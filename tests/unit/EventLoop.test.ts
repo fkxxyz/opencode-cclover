@@ -7,7 +7,7 @@ import { MemoryManager } from "../../src/core/MemoryManager"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import { agentRegistry } from "../../src/utils/AgentRegistry"
 
-const testWorkspace = "./workspace_test"
+const testWorkspace = "./workspace_test_eventloop"
 
 // Mock OpencodeClient
 function createMockOpencodeClient() {
