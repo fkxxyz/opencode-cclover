@@ -11,6 +11,7 @@ dist/
 
 # Test workspace
 /tmp/cclover-test-workspace/
+workspace_test/
 
 # Cclover runtime workspace
 .cclover/

@@ -1,8 +1,8 @@
-import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
-import * as yaml from 'yaml'
-import EventEmitter from 'eventemitter3'
-import * as lockfile from 'proper-lockfile'
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
+import * as yaml from "yaml"
+import EventEmitter from "eventemitter3"
+import * as lockfile from "proper-lockfile"
 
 /**
  * 消息对象（API 格式）
@@ -18,7 +18,7 @@ export interface Message {
  */
 interface YamlMessage {
   timestamp: string
-  direction: 'send' | 'receive'
+  direction: "send" | "receive"
   content: string
 }
 
@@ -40,12 +40,12 @@ export class MessageClient {
   async recv(): Promise<Message> {
     // 1. 检查未读队列
     const queue = this.service.getUnreadQueue(this.employeeName)
-    
+
     if (queue.length > 0) {
       // 2. 如果有未读消息，立即返回第一条
       return queue.shift()!
     }
-    
+
     // 3. 如果没有未读消息，返回 Promise 并等待
     return new Promise((resolve) => {
       const listener = (message: Message) => {
@@ -71,29 +71,29 @@ export class MessageClient {
   async history(peer: string, limit?: number): Promise<Message[]> {
     // 1. 读取消息文件
     const filePath = this.service.getMessageFilePath(this.employeeName, peer)
-    
+
     try {
-      const content = await fs.readFile(filePath, 'utf-8')
-      
+      const content = await fs.readFile(filePath, "utf-8")
+
       // 2. 解析 YAML
-      const messages = yaml.parse(content) as YamlMessage[] || []
-      
+      const messages = (yaml.parse(content) as YamlMessage[]) || []
+
       // 3. 转换格式
-      const result = messages.map(msg => ({
-        from: msg.direction === 'receive' ? peer : this.employeeName,
+      const result = messages.map((msg) => ({
+        from: msg.direction === "receive" ? peer : this.employeeName,
         content: msg.content,
-        timestamp: msg.timestamp
+        timestamp: msg.timestamp,
       }))
-      
+
       // 4. 限制数量（返回最近的 N 条）
       if (limit) {
         return result.slice(-limit)
       }
-      
+
       return result
     } catch (error: any) {
       // 文件不存在时返回空数组
-      if (error.code === 'ENOENT') {
+      if (error.code === "ENOENT") {
         return []
       }
       throw error
@@ -109,7 +109,7 @@ export class MessageService {
   private clients: Map<string, MessageClient> = new Map()
   private unreadQueues: Map<string, Message[]> = new Map()
   public eventEmitter: EventEmitter = new EventEmitter()
-  
+
   constructor(private workspaceRoot: string) {}
 
   /**
@@ -129,24 +129,24 @@ export class MessageService {
   async send(from: string, to: string, content: string): Promise<void> {
     const timestamp = new Date().toISOString()
     const message: Message = { from, content, timestamp }
-    
+
     // 1. 写入发送方的消息文件
     await this.appendMessage(from, to, {
       timestamp,
-      direction: 'send',
-      content
+      direction: "send",
+      content,
     })
-    
+
     // 2. 写入接收方的消息文件
     await this.appendMessage(to, from, {
       timestamp,
-      direction: 'receive',
-      content
+      direction: "receive",
+      content,
     })
-    
+
     // 3. 添加到接收方的未读队列
     this.addToUnreadQueue(to, message)
-    
+
     // 4. 触发事件通知接收方
     this.notifyNewMessage(to, message)
   }
@@ -167,11 +167,11 @@ export class MessageService {
   getMessageFilePath(owner: string, peer: string): string {
     return path.join(
       this.workspaceRoot,
-      'employees',
+      "employees",
       owner,
-      'messages',
+      "messages",
       peer,
-      'chat.yaml'
+      "chat.yaml"
     )
   }
 
@@ -184,17 +184,17 @@ export class MessageService {
     message: YamlMessage
   ): Promise<void> {
     const filePath = this.getMessageFilePath(owner, peer)
-    
+
     // 确保目录存在
     await fs.mkdir(path.dirname(filePath), { recursive: true })
-    
+
     // 确保文件存在（用于加锁）
     try {
       await fs.access(filePath)
     } catch {
-      await fs.writeFile(filePath, yaml.stringify([]), 'utf-8')
+      await fs.writeFile(filePath, yaml.stringify([]), "utf-8")
     }
-    
+
     // 加锁写入
     let release: (() => Promise<void>) | undefined
     try {
@@ -207,25 +207,24 @@ export class MessageService {
         },
         stale: 5000,
       })
-      
+
       // 读取现有内容
       let messages: YamlMessage[] = []
       try {
-        const content = await fs.readFile(filePath, 'utf-8')
+        const content = await fs.readFile(filePath, "utf-8")
         messages = yaml.parse(content) || []
       } catch (error: any) {
         // 文件为空时，messages 保持为空数组
-        if (error.code !== 'ENOENT') {
+        if (error.code !== "ENOENT") {
           throw error
         }
       }
-      
+
       // 追加新消息
       messages.push(message)
-      
+
       // 写入文件
-      await fs.writeFile(filePath, yaml.stringify(messages), 'utf-8')
-      
+      await fs.writeFile(filePath, yaml.stringify(messages), "utf-8")
     } catch (error) {
       console.error(`[MessageService] Failed to append message: ${error}`)
       throw error

@@ -1,0 +1,433 @@
+/**
+ * 工具集成测试
+ *
+ * 测试工具与 MessageService、MemoryManager 的集成
+ */
+import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
+import { MessageService } from "../../src/core/MessageService"
+import { MemoryManager } from "../../src/core/MemoryManager"
+import { createSendMessageTool } from "../../src/tools/SendMessageTool"
+import { createEditTasksTool } from "../../src/tools/EditTasksTool"
+import { createCreateAgentTool } from "../../src/tools/CreateAgentTool"
+import { sessionRegistry } from "../../src/utils/SessionRegistry"
+import { agentRegistry } from "../../src/utils/AgentRegistry"
+import type { OpencodeClient } from "@opencode-ai/sdk"
+
+const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-tools")
+
+describe("Tools Integration", () => {
+  let messageService: MessageService
+  let memoryManager: MemoryManager
+  let mockOpcodeClient: OpencodeClient
+
+  beforeEach(async () => {
+    // 清理测试目录
+    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
+    await fs.mkdir(TEST_WORKSPACE, { recursive: true })
+
+    // 初始化服务
+    messageService = new MessageService(TEST_WORKSPACE)
+    memoryManager = new MemoryManager(TEST_WORKSPACE)
+
+    // Mock OpencodeClient
+    mockOpcodeClient = {
+      session: {
+        create: async () => ({
+          data: { id: "mock-session-id" },
+        }),
+        prompt: async () => ({
+          data: { info: { role: "assistant" } },
+        }),
+      },
+    } as any
+
+    // 清空注册表
+    sessionRegistry.clear()
+    agentRegistry.clear()
+  })
+
+  afterEach(async () => {
+    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
+  })
+
+  describe("send_message tool", () => {
+    test("should send message successfully", async () => {
+      const tool = createSendMessageTool(messageService)
+      const sessionId = "test-session-1"
+      const employeeName = "alice"
+
+      // 注册 session
+      sessionRegistry.register(sessionId, employeeName)
+
+      // 创建接收方客户端
+      const bobClient = messageService.getClient("bob")
+
+      // 执行工具
+      const result = await tool.execute(
+        { to: "bob", content: "Hello Bob" },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toBe("消息已发送给 bob")
+
+      // 验证消息已发送
+      const message = await bobClient.recv()
+      expect(message.from).toBe("alice")
+      expect(message.content).toBe("Hello Bob")
+    })
+
+    test("should return error if session not registered", async () => {
+      const tool = createSendMessageTool(messageService)
+
+      const result = await tool.execute(
+        { to: "bob", content: "Hello" },
+        {
+          sessionID: "unknown-session",
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("错误: 无法识别调用者身份")
+    })
+  })
+
+  describe("edit_tasks tool", () => {
+    test("should add task successfully", async () => {
+      const tool = createEditTasksTool(memoryManager)
+      const sessionId = "test-session-2"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      const result = await tool.execute(
+        {
+          operations: [
+            {
+              action: "add",
+              name: "计算1+1",
+              description: "为用户计算 1+1",
+              dependencies: [],
+            },
+          ],
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("✓ 已添加任务: 计算1+1")
+
+      // 验证任务已添加
+      const task = await memoryManager.getTask(employeeName, "计算1+1")
+      expect(task).not.toBeNull()
+      expect(task?.name).toBe("计算1+1")
+      expect(task?.status).toBe("pending")
+    })
+
+    test("should update task successfully", async () => {
+      const tool = createEditTasksTool(memoryManager)
+      const sessionId = "test-session-3"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      // 先添加任务
+      await memoryManager.addTask(employeeName, {
+        name: "计算1+1",
+        status: "pending",
+        description: "计算任务",
+        dependencies: [],
+        created: new Date().toISOString(),
+      })
+
+      // 更新任务
+      const result = await tool.execute(
+        {
+          operations: [
+            {
+              action: "update",
+              name: "计算1+1",
+              status: "completed",
+              result: "2",
+            },
+          ],
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("✓ 已更新任务: 计算1+1")
+
+      // 验证任务已更新
+      const task = await memoryManager.getTask(employeeName, "计算1+1")
+      expect(task?.status).toBe("completed")
+      expect(task?.result).toBe("2")
+      expect(task?.completed).toBeDefined()
+    })
+
+    test("should delete task successfully", async () => {
+      const tool = createEditTasksTool(memoryManager)
+      const sessionId = "test-session-4"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      // 先添加任务
+      await memoryManager.addTask(employeeName, {
+        name: "计算1+1",
+        status: "pending",
+        description: "计算任务",
+        dependencies: [],
+        created: new Date().toISOString(),
+      })
+
+      // 删除任务
+      const result = await tool.execute(
+        {
+          operations: [
+            {
+              action: "delete",
+              name: "计算1+1",
+            },
+          ],
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("✓ 已删除任务: 计算1+1")
+
+      // 验证任务已删除
+      const task = await memoryManager.getTask(employeeName, "计算1+1")
+      expect(task).toBeNull()
+    })
+
+    test("should handle multiple operations", async () => {
+      const tool = createEditTasksTool(memoryManager)
+      const sessionId = "test-session-5"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      const result = await tool.execute(
+        {
+          operations: [
+            {
+              action: "add",
+              name: "任务1",
+              description: "第一个任务",
+              dependencies: [],
+            },
+            {
+              action: "add",
+              name: "任务2",
+              description: "第二个任务",
+              dependencies: ["任务1"],
+            },
+            {
+              action: "update",
+              name: "任务1",
+              status: "completed",
+              result: "完成",
+            },
+          ],
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("✓ 已添加任务: 任务1")
+      expect(result).toContain("✓ 已添加任务: 任务2")
+      expect(result).toContain("✓ 已更新任务: 任务1")
+
+      // 验证任务状态
+      const task1 = await memoryManager.getTask(employeeName, "任务1")
+      const task2 = await memoryManager.getTask(employeeName, "任务2")
+
+      expect(task1?.status).toBe("completed")
+      expect(task2?.dependencies).toEqual(["任务1"])
+    })
+
+    test("should return error for invalid operations", async () => {
+      const tool = createEditTasksTool(memoryManager)
+      const sessionId = "test-session-6"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      const result = await tool.execute(
+        {
+          operations: [
+            {
+              action: "add",
+              name: "任务1",
+              // 缺少 description
+            },
+            {
+              action: "update",
+              // 缺少 name
+              status: "completed",
+            },
+          ],
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("错误: add 操作需要 name 和 description 字段")
+      expect(result).toContain("错误: update 操作需要 name 字段")
+    })
+  })
+
+  describe("create_agent tool", () => {
+    test("should create agent successfully", async () => {
+      const tool = createCreateAgentTool(mockOpcodeClient)
+      const sessionId = "test-session-7"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      const result = await tool.execute(
+        {
+          task_name: "复杂计算",
+          prompt: "请计算 (123+456)*789",
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("✓ 已创建 Agent: mock-session-id")
+      expect(result).toContain("正在执行任务: 复杂计算")
+
+      // 验证 agent 已注册
+      const agentInfo = agentRegistry.getInfo("mock-session-id")
+      expect(agentInfo).not.toBeUndefined()
+      expect(agentInfo?.employeeName).toBe("calculator")
+      expect(agentInfo?.taskName).toBe("复杂计算")
+    })
+
+    test("should return error if session not registered", async () => {
+      const tool = createCreateAgentTool(mockOpcodeClient)
+
+      const result = await tool.execute(
+        {
+          task_name: "任务",
+          prompt: "提示词",
+        },
+        {
+          sessionID: "unknown-session",
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("错误: 无法识别调用者身份")
+    })
+
+    test("should handle client errors", async () => {
+      // Mock 失败的客户端
+      const failingClient = {
+        session: {
+          create: async () => {
+            throw new Error("Network error")
+          },
+        },
+      } as any
+
+      const tool = createCreateAgentTool(failingClient)
+      const sessionId = "test-session-8"
+      const employeeName = "calculator"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      const result = await tool.execute(
+        {
+          task_name: "任务",
+          prompt: "提示词",
+        },
+        {
+          sessionID: sessionId,
+          messageID: "msg-1",
+          agent: "test",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
+        }
+      )
+
+      expect(result).toContain("创建 Agent 失败")
+      expect(result).toContain("Network error")
+    })
+  })
+})

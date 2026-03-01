@@ -1,2 +1,2 @@
-export * from "./MessageService";
-export * from "./MemoryManager";
+export * from "./MessageService"
+export * from "./MemoryManager"

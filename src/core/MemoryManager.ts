@@ -1,33 +1,33 @@
-import * as fs from "fs/promises";
-import * as path from "path";
-import * as yaml from "yaml";
-import * as lockfile from "proper-lockfile";
+import * as fs from "fs/promises"
+import * as path from "path"
+import * as yaml from "yaml"
+import * as lockfile from "proper-lockfile"
 
 /**
  * 任务状态
  */
-export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled"
 
 /**
  * 任务对象
  */
 export interface Task {
-  name: string; // 任务名称（唯一标识，AI 自己命名）
-  status: TaskStatus; // 任务状态
-  description: string; // 任务描述
-  result?: string; // 任务结果（完成时填写）
-  dependencies: string[]; // 依赖的任务名称列表
-  created: string; // 创建时间（ISO 8601）
-  completed?: string; // 完成时间（ISO 8601，可选）
+  name: string // 任务名称（唯一标识，AI 自己命名）
+  status: TaskStatus // 任务状态
+  description: string // 任务描述
+  result?: string // 任务结果（完成时填写）
+  dependencies: string[] // 依赖的任务名称列表
+  created: string // 创建时间（ISO 8601）
+  completed?: string // 完成时间（ISO 8601，可选）
 }
 
 /**
  * 记忆对象
  */
 export interface Memory {
-  knowledge: string[]; // 经验知识
-  tasks: Task[]; // 任务列表
-  custom: Record<string, any>; // 自定义字段
+  knowledge: string[] // 经验知识
+  tasks: Task[] // 任务列表
+  custom: Record<string, any> // 自定义字段
 }
 
 /**
@@ -35,10 +35,10 @@ export interface Memory {
  * 负责维护员工的经验知识、任务状态和自定义数据
  */
 export class MemoryManager {
-  private workspaceRoot: string;
+  private workspaceRoot: string
 
   constructor(workspaceRoot: string) {
-    this.workspaceRoot = workspaceRoot;
+    this.workspaceRoot = workspaceRoot
   }
 
   /**
@@ -50,7 +50,7 @@ export class MemoryManager {
       "employees",
       employeeName,
       "memory.yaml"
-    );
+    )
   }
 
   /**
@@ -58,7 +58,7 @@ export class MemoryManager {
    */
   private async ensureDir(dirPath: string): Promise<void> {
     try {
-      await fs.mkdir(dirPath, { recursive: true });
+      await fs.mkdir(dirPath, { recursive: true })
     } catch (error) {
       // 忽略已存在的错误
     }
@@ -69,18 +69,18 @@ export class MemoryManager {
    * 如果文件不存在，返回空记忆
    */
   async read(employeeName: string): Promise<Memory> {
-    const memoryPath = this.getMemoryPath(employeeName);
+    const memoryPath = this.getMemoryPath(employeeName)
 
     try {
-      const content = await fs.readFile(memoryPath, "utf-8");
-      const data = yaml.parse(content);
+      const content = await fs.readFile(memoryPath, "utf-8")
+      const data = yaml.parse(content)
 
       // 确保数据结构完整
       return {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
         custom: data?.custom ?? {},
-      };
+      }
     } catch (error: any) {
       if (error.code === "ENOENT") {
         // 文件不存在，返回空记忆
@@ -88,9 +88,9 @@ export class MemoryManager {
           knowledge: [],
           tasks: [],
           custom: {},
-        };
+        }
       }
-      throw error;
+      throw error
     }
   }
 
@@ -98,17 +98,21 @@ export class MemoryManager {
    * 写入员工记忆
    */
   async write(employeeName: string, memory: Memory): Promise<void> {
-    const memoryPath = this.getMemoryPath(employeeName);
-    const dirPath = path.dirname(memoryPath);
+    const memoryPath = this.getMemoryPath(employeeName)
+    const dirPath = path.dirname(memoryPath)
 
     // 确保目录存在
-    await this.ensureDir(dirPath);
-    
+    await this.ensureDir(dirPath)
+
     // 确保文件存在（用于加锁）
     try {
       await fs.access(memoryPath)
     } catch {
-      await fs.writeFile(memoryPath, yaml.stringify({ knowledge: [], tasks: [], custom: {} }), 'utf-8')
+      await fs.writeFile(
+        memoryPath,
+        yaml.stringify({ knowledge: [], tasks: [], custom: {} }),
+        "utf-8"
+      )
     }
 
     // 加锁写入
@@ -123,13 +127,12 @@ export class MemoryManager {
         },
         stale: 5000,
       })
-      
+
       // 序列化为 YAML
-      const content = yaml.stringify(memory);
+      const content = yaml.stringify(memory)
 
       // 写入文件
-      await fs.writeFile(memoryPath, content, "utf-8");
-      
+      await fs.writeFile(memoryPath, content, "utf-8")
     } catch (error) {
       console.error(`[MemoryManager] Failed to write memory: ${error}`)
       throw error
@@ -148,21 +151,21 @@ export class MemoryManager {
     employeeName: string,
     task: Omit<Task, "created">
   ): Promise<void> {
-    const memory = await this.read(employeeName);
+    const memory = await this.read(employeeName)
 
     // 检查任务名称是否已存在
     if (memory.tasks.some((t) => t.name === task.name)) {
-      throw new Error(`Task "${task.name}" already exists`);
+      throw new Error(`Task "${task.name}" already exists`)
     }
 
     // 添加创建时间
     const newTask: Task = {
       ...task,
       created: new Date().toISOString(),
-    };
+    }
 
-    memory.tasks.push(newTask);
-    await this.write(employeeName, memory);
+    memory.tasks.push(newTask)
+    await this.write(employeeName, memory)
   }
 
   /**
@@ -173,51 +176,48 @@ export class MemoryManager {
     taskName: string,
     updates: Partial<Task>
   ): Promise<void> {
-    const memory = await this.read(employeeName);
+    const memory = await this.read(employeeName)
 
-    const taskIndex = memory.tasks.findIndex((t) => t.name === taskName);
+    const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
     if (taskIndex === -1) {
-      throw new Error(`Task "${taskName}" not found`);
+      throw new Error(`Task "${taskName}" not found`)
     }
 
     // 更新任务
     memory.tasks[taskIndex] = {
       ...memory.tasks[taskIndex],
       ...updates,
-    };
+    }
 
     // 如果状态变为 completed，添加完成时间
     if (updates.status === "completed" && !memory.tasks[taskIndex].completed) {
-      memory.tasks[taskIndex].completed = new Date().toISOString();
+      memory.tasks[taskIndex].completed = new Date().toISOString()
     }
 
-    await this.write(employeeName, memory);
+    await this.write(employeeName, memory)
   }
 
   /**
    * 删除任务
    */
   async deleteTask(employeeName: string, taskName: string): Promise<void> {
-    const memory = await this.read(employeeName);
+    const memory = await this.read(employeeName)
 
-    const taskIndex = memory.tasks.findIndex((t) => t.name === taskName);
+    const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
     if (taskIndex === -1) {
-      throw new Error(`Task "${taskName}" not found`);
+      throw new Error(`Task "${taskName}" not found`)
     }
 
-    memory.tasks.splice(taskIndex, 1);
-    await this.write(employeeName, memory);
+    memory.tasks.splice(taskIndex, 1)
+    await this.write(employeeName, memory)
   }
 
   /**
    * 获取任务
    */
-  async getTask(
-    employeeName: string,
-    taskName: string
-  ): Promise<Task | null> {
-    const memory = await this.read(employeeName);
-    return memory.tasks.find((t) => t.name === taskName) ?? null;
+  async getTask(employeeName: string, taskName: string): Promise<Task | null> {
+    const memory = await this.read(employeeName)
+    return memory.tasks.find((t) => t.name === taskName) ?? null
   }
 
   /**
@@ -225,24 +225,23 @@ export class MemoryManager {
    * 返回所有依赖已满足的 pending 任务
    */
   async getExecutableTasks(employeeName: string): Promise<Task[]> {
-    const memory = await this.read(employeeName);
+    const memory = await this.read(employeeName)
 
     // 获取所有 completed 任务的名称
     const completedTasks = new Set(
       memory.tasks.filter((t) => t.status === "completed").map((t) => t.name)
-    );
+    )
 
     // 找出所有依赖已满足的 pending 任务
     return memory.tasks.filter((task) => {
       if (task.status !== "pending") {
-        return false;
+        return false
       }
 
       // 检查所有依赖是否都已完成
-      return task.dependencies.every((dep) => completedTasks.has(dep));
-    });
+      return task.dependencies.every((dep) => completedTasks.has(dep))
+    })
   }
-
 
   /**
    * 总结记忆
@@ -252,14 +251,14 @@ export class MemoryManager {
     employeeName: string,
     summary: { knowledge: string[]; custom: Record<string, any> }
   ): Promise<void> {
-    const memory = await this.read(employeeName);
+    const memory = await this.read(employeeName)
 
     // 更新 knowledge 和 custom
-    memory.knowledge = summary.knowledge;
-    memory.custom = summary.custom;
+    memory.knowledge = summary.knowledge
+    memory.custom = summary.custom
 
     // tasks 保持不变
-    await this.write(employeeName, memory);
+    await this.write(employeeName, memory)
   }
 
   /**
@@ -267,43 +266,43 @@ export class MemoryManager {
    * 返回 true 如果存在循环依赖
    */
   async detectCycle(employeeName: string): Promise<boolean> {
-    const memory = await this.read(employeeName);
+    const memory = await this.read(employeeName)
 
     // 构建邻接表
-    const graph = new Map<string, string[]>();
+    const graph = new Map<string, string[]>()
     for (const task of memory.tasks) {
-      graph.set(task.name, task.dependencies);
+      graph.set(task.name, task.dependencies)
     }
 
     // DFS 检测环
-    const visited = new Set<string>();
-    const recStack = new Set<string>();
+    const visited = new Set<string>()
+    const recStack = new Set<string>()
 
     const hasCycle = (node: string): boolean => {
       if (!visited.has(node)) {
-        visited.add(node);
-        recStack.add(node);
+        visited.add(node)
+        recStack.add(node)
 
-        const neighbors = graph.get(node) ?? [];
+        const neighbors = graph.get(node) ?? []
         for (const neighbor of neighbors) {
           if (!visited.has(neighbor) && hasCycle(neighbor)) {
-            return true;
+            return true
           } else if (recStack.has(neighbor)) {
-            return true;
+            return true
           }
         }
       }
 
-      recStack.delete(node);
-      return false;
-    };
+      recStack.delete(node)
+      return false
+    }
 
     for (const task of memory.tasks) {
       if (hasCycle(task.name)) {
-        return true;
+        return true
       }
     }
 
-    return false;
+    return false
   }
 }

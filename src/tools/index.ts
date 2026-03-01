@@ -1,10 +1,16 @@
 /**
  * 工具系统基础框架
- * 
+ *
  * 提供工具注册机制、类型定义和权限管理
  */
-
 import type { ToolDefinition } from "@opencode-ai/plugin"
+import type { MessageService } from "../core/MessageService"
+import type { MemoryManager } from "../core/MemoryManager"
+import type { OpencodeClient } from "@opencode-ai/sdk"
+import { createSendMessageTool } from "./SendMessageTool"
+import { createEditTasksTool } from "./EditTasksTool"
+import { createCreateAgentTool } from "./CreateAgentTool"
+import { hireEmployeeTool } from "./HireEmployeeTool"
 
 /**
  * 工具定义类型
@@ -20,7 +26,7 @@ export interface ToolRegistry {
 
 /**
  * 工具权限配置
- * 
+ *
  * 用于控制不同员工可以使用哪些工具
  */
 export interface ToolPermissions {
@@ -29,7 +35,7 @@ export interface ToolPermissions {
 
 /**
  * 默认工具权限
- * 
+ *
  * 第一版所有员工都可以使用所有工具（除了 hire_employee）
  */
 export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
@@ -41,7 +47,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
 
 /**
  * 获取员工可用的工具列表
- * 
+ *
  * @param employeeName 员工名称
  * @param customPermissions 自定义权限（可选）
  * @returns 工具权限配置
@@ -57,10 +63,29 @@ export function getToolPermissions(
 
 /**
  * 工具导出
- * 
+ *
  * 从各个工具文件导入并统一导出
  */
-export { sendMessageTool } from "./SendMessageTool"
-export { editTasksTool } from "./EditTasksTool"
-export { createAgentTool } from "./CreateAgentTool"
+export { createSendMessageTool } from "./SendMessageTool"
+export { createEditTasksTool } from "./EditTasksTool"
+export { createCreateAgentTool } from "./CreateAgentTool"
 export { hireEmployeeTool } from "./HireEmployeeTool"
+
+/**
+ * 创建所有工具
+ *
+ * @param deps 依赖项
+ * @returns 工具注册表
+ */
+export function createTools(deps: {
+  messageService: MessageService
+  memoryManager: MemoryManager
+  opcodeClient: OpencodeClient
+}): ToolRegistry {
+  return {
+    send_message: createSendMessageTool(deps.messageService),
+    edit_tasks: createEditTasksTool(deps.memoryManager),
+    create_agent: createCreateAgentTool(deps.opcodeClient),
+    hire_employee: hireEmployeeTool,
+  }
+}

@@ -1,6 +1,6 @@
 /**
  * Session Registry
- * 
+ *
  * 维护 sessionID 到员工名称的映射关系
  * 用于工具调用时识别调用者身份
  */
