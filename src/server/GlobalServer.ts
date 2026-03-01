@@ -173,6 +173,35 @@ export class GlobalCcloverService {
   getProjectRegistry(): ProjectRegistry {
     return this.projectRegistry
   }
+
+  /**
+   * 动态添加 project
+   */
+  async addProject(config: ProjectConfig): Promise<void> {
+    // 检查是否已存在
+    const existing = this.projectRegistry.getByPath(config.path)
+    if (existing) {
+      throw new Error(`Project already initialized: ${config.path}`)
+    }
+
+    // 初始化项目
+    await this.initializeProject(config)
+    logger.info(`Project added dynamically: ${config.name} (${config.path})`)
+  }
+
+  /**
+   * 动态删除 project
+   */
+  async removeProject(directory: string): Promise<void> {
+    const project = this.projectRegistry.getByPath(directory)
+    if (!project) {
+      throw new Error(`Project not found: ${directory}`)
+    }
+
+    // 注销项目
+    this.projectRegistry.unregister(project.projectId)
+    logger.info(`Project removed: ${project.projectName} (${directory})`)
+  }
   /**
    * 确保 .cclover/.gitignore 存在
    * 只在第一次需要时创建
