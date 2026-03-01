@@ -98,16 +98,29 @@ graph LR
 
 ### Detailed Design Phase
 
-**File**: `{module}/docs/design.md` (module-level)
+**File Location**: Flexible based on project complexity
+
+**Option 1: Project-level** (for simple projects or few modules):
+- `docs/design.md` (alongside requirements and architecture)
+- `docs/design-{module}.md` (if split by module)
+
+**Option 2: Module-level** (recommended when design docs are numerous):
+- `{module}/docs/design.md` (within each module)
+- `{module}/docs/design-{component}.md` (if split by component)
 
 **Splitting Rule**: If `design.md` exceeds 8KB, split into:
 - `design.md` (main entry with overview and links)
-- `design-{component}.md` (detailed designs by component)
+- `design-{module}.md` or `design-{component}.md` (detailed designs)
 
 **Content**: 
 - Module internal design
 - Links to interface code (relative paths)
 - Instance creation instructions
+
+**Organization Guideline**:
+- Start with project-level (`docs/design.md`) for simplicity
+- Move to module-level when design docs become numerous (>3 modules)
+- Keep consistency: don't mix both approaches in the same project
 
 ### Implementation Phase
 
@@ -157,12 +170,14 @@ project-root/
 │   ├── requirements-*.md     (Optional: Split requirements if > 8KB)
 │   ├── architecture.md        (REQUIRED: Architecture)
 │   ├── architecture-*.md     (Optional: Split architecture if > 8KB)
+│   ├── design.md             (Optional: Project-level design for simple projects)
+│   ├── design-*.md           (Optional: Split designs if > 8KB)
 │   ├── testing.md            (Optional: Testing documentation)
 │   └── deployment.md         (REQUIRED: Deployment)
 ├── module-a/
 │   ├── docs/
 │   │   ├── structure.md      (REQUIRED: Module file layout)
-│   │   ├── design.md         (REQUIRED: Detailed design)
+│   │   ├── design.md         (Optional: Module-level design for complex projects)
 │   │   └── design-*.md       (Optional: Split designs if > 8KB)
 │   ├── interface.ts          (Interface code)
 │   └── ...                   (Implementation)
@@ -453,9 +468,10 @@ Sessions expire after 30 minutes of inactivity.
 4. Create `docs/architecture.md` (with required sections)
 5. For each module:
    - Create `{module}/docs/structure.md`
-   - Create `{module}/docs/design.md`
-   - Create interface code
-   - Link interface in `design.md`
+5. Create design documents:
+   - For simple projects: Create `docs/design.md` (project-level)
+   - For complex projects: Create `{module}/docs/design.md` for each module
+   - Create interface code and link in design docs
 6. Create `docs/deployment.md`
 
 ### For Existing Projects
@@ -483,7 +499,9 @@ Sessions expire after 30 minutes of inactivity.
 1. Start with root `docs/structure.md` to understand file organization
 2. Read `docs/requirements.md` to understand what the project does
 3. Read `docs/architecture.md` to understand system structure
-4. For specific modules, read `{module}/docs/design.md`
+4. For specific modules, read design docs:
+   - Project-level: `docs/design.md` or `docs/design-{module}.md`
+   - Module-level: `{module}/docs/design.md`
 5. For module usage, read interface code linked in design docs
 6. Check for `.changed.md` files to identify pending updates
 
@@ -491,7 +509,7 @@ Sessions expire after 30 minutes of inactivity.
 
 1. Check if requirements changed → Update `requirements.md` first
 2. Check if architecture affected → Update `architecture.md` next
-3. Check if design affected → Update `design.md` next
+3. Check if design affected → Update design docs (project-level or module-level)
 4. Create `.changed.md` for each updated document
 5. Update code last
 6. Update `structure.md` if files added/removed
@@ -502,7 +520,7 @@ Sessions expire after 30 minutes of inactivity.
 **Signals for Document Split**:
 - `requirements.md` exceeds 8KB
 - `architecture.md` exceeds 8KB
-- `design.md` exceeds 8KB
+- Any `design.md` exceeds 8KB
 - Multiple unrelated topics in one document
 - Document becomes difficult to navigate
 
@@ -595,24 +613,60 @@ Database schema and data flow.
 - `architecture-{module}.md` (detailed architecture, e.g., `architecture-auth.md`, `architecture-storage.md`)
 
 ### design.md Template
+
+**For Project-level design** (`docs/design.md`):
+```markdown
+# Design
+
+## Overview
+Project design overview.
+
+## Module A Design
+### Architecture Reference
+Implements [Architecture - Module A](./architecture.md#module-a).
+
+### Interface
+Public API: [Module A Interface](../module-a/interface.ts)
+
+### Creating Instance
+\```typescript
+import { ModuleA } from './module-a/interface';
+const instance = new ModuleA(config);
+\```
+
+### Internal Design
+Component descriptions...
+
+## Module B Design
+...
+```
+
+**For Module-level design** (`{module}/docs/design.md`):
 ```markdown
 # {Module Name} Design
+
 ## Overview
 Module purpose and scope.
+
 ## Architecture Reference
 Implements [Architecture - {Module Name}](../../docs/architecture.md#{module-name}).
+
 ## Interface
 Public API: [Interface Code](../interface.ts)
+
 ### Creating Instance
 \```typescript
 import { ModuleName } from './interface';
 const instance = new ModuleName(config);
 \```
+
 ## Internal Design
 ### Component 1
 Internal component description.
+
 ### Component 2
 Internal component description.
+
 ## Data Flow
 \```mermaid
 sequenceDiagram
@@ -622,8 +676,8 @@ sequenceDiagram
     Interface->>Client: result
 \```
 ```
-**Note**: If this file exceeds 8KB, split into:
-- `design.md` (main entry with overview and links to split files)
+
+**Note**: If any `design.md` exceeds 8KB, split into:
 - `design-{component}.md` (detailed design, e.g., `design-oauth.md`, `design-session.md`)
 
 ---
