@@ -17,25 +17,23 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
 export function EmployeeDetail() {
-  const { name } = useParams<{ name: string }>()
+  const { projectId, name } = useParams<{ projectId: string; name: string }>()
   const navigate = useNavigate()
   const [employee, setEmployee] = useState<EmployeeDetailType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-
   useEffect(() => {
-    if (!name) return
-
+    if (!name || !projectId) return
     setLoading(true)
     apiClient
-      .getEmployeeDetail(name)
+      .getEmployeeDetail(projectId, name)
       .then(setEmployee)
       .catch((err: Error) => {
         console.error("获取员工详情失败:", err)
         setError(err)
       })
       .finally(() => setLoading(false))
-  }, [name])
+  }, [name, projectId])
 
   if (loading) {
     return (
@@ -102,7 +100,7 @@ export function EmployeeDetail() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${projectId}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
           </Button>
@@ -132,13 +130,13 @@ export function EmployeeDetail() {
             value="messages"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <MessageList employeeName={employee.name} />
+            <MessageList projectId={projectId!} employeeName={employee.name} />
           </TabsContent>
           <TabsContent
             value="tasks"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <TaskList employeeName={employee.name} />
+            <TaskList projectId={projectId!} employeeName={employee.name} />
             <Card>
               <CardContent sx={{ pt: 3 }}>
                 <Box sx={{ height: 600 }}>
@@ -163,7 +161,7 @@ export function EmployeeDetail() {
             value="events"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <EventTimeline employeeName={employee.name} />
+            <EventTimeline projectId={projectId!} employeeName={employee.name} />
           </TabsContent>
         </Tabs>
       </Box>

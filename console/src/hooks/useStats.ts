@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import { useProjectContext } from "../contexts/ProjectContext"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
 interface Stats {
@@ -8,8 +7,7 @@ interface Stats {
   pendingTasks: number
   todayMessages: number
 }
-export function useStats() {
-  const { currentProject } = useProjectContext()
+export function useStats(projectId: string | undefined) {
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -20,51 +18,40 @@ export function useStats() {
   const { subscribe } = useWebSocket()
   // 初始加载
   useEffect(() => {
-    if (!currentProject) {
+    if (!projectId) {
       setLoading(false)
       return
     }
     setLoading(true)
-    // 确保 apiClient 已设置 project
-    apiClient.setProject(currentProject)
     apiClient
-    // 确保 apiClient 已设置 project
-    apiClient.setProject(currentProject)
-    apiClient
-    apiClient
-      .getStats()
+      .getStats(projectId)
       .then(setStats)
       .catch((err: Error) => {
         console.error("获取统计数据失败:", err)
       })
       .finally(() => setLoading(false))
-  }, [currentProject])
-
+  }, [projectId])
   // 实时更新 - 监听相关事件
   useEffect(() => {
+    if (!projectId) return
     const unsubscribeHired = subscribe("employee_hired", () => {
-      apiClient.getStats().then(setStats)
+      apiClient.getStats(projectId).then(setStats)
     })
-
     const unsubscribeStatus = subscribe("employee_status_changed", () => {
-      apiClient.getStats().then(setStats)
+      apiClient.getStats(projectId).then(setStats)
     })
-
     const unsubscribeTask = subscribe("task_updated", () => {
-      apiClient.getStats().then(setStats)
+      apiClient.getStats(projectId).then(setStats)
     })
-
     const unsubscribeMessage = subscribe("message_sent", () => {
-      apiClient.getStats().then(setStats)
+      apiClient.getStats(projectId).then(setStats)
     })
-
     return () => {
       unsubscribeHired()
       unsubscribeStatus()
       unsubscribeTask()
       unsubscribeMessage()
     }
-  }, [subscribe])
-
+  }, [subscribe, projectId])
   return { stats, loading }
 }

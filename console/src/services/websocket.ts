@@ -7,30 +7,21 @@ const MAX_RECONNECT_ATTEMPTS = 10
 const BASE_RECONNECT_DELAY = 1000 // 1 second
 
 export class WebSocketClient {
-  private currentProjectId: string | null = null
   private ws: WebSocket | null = null
   private eventHandlers: Map<EventType, Set<(event: Event) => void>> = new Map()
   private reconnectAttempts = 0
   private heartbeatInterval: NodeJS.Timeout | null = null
   private heartbeatTimeout: NodeJS.Timeout | null = null
-
-  setProject(projectId: string): void {
-    this.currentProjectId = projectId
-  }
-
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       return
     }
-
     this.ws = new WebSocket(WS_URL)
-
     this.ws.onopen = () => {
       console.log("WebSocket connected")
       this.reconnectAttempts = 0
       this.startHeartbeat()
     }
-
     this.ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data) as WebSocketMessage
@@ -41,40 +32,33 @@ export class WebSocketClient {
         console.error("Failed to parse WebSocket message:", error)
       }
     }
-
     this.ws.onerror = (error) => {
       console.error("WebSocket error:", error)
     }
-
     this.ws.onclose = () => {
       console.log("WebSocket disconnected")
       this.stopHeartbeat()
       this.reconnect()
     }
   }
-
   disconnect(): void {
     this.stopHeartbeat()
     this.ws?.close()
     this.ws = null
   }
-
   on(eventType: EventType, handler: (event: Event) => void): void {
     if (!this.eventHandlers.has(eventType)) {
       this.eventHandlers.set(eventType, new Set())
     }
     this.eventHandlers.get(eventType)!.add(handler)
   }
-
   off(eventType: EventType, handler: (event: Event) => void): void {
     this.eventHandlers.get(eventType)?.delete(handler)
   }
-
   private startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ type: "ping" }))
-
         // Set timeout to detect if pong is not received
         this.heartbeatTimeout = setTimeout(() => {
           console.warn("Heartbeat timeout, reconnecting...")
@@ -83,7 +67,6 @@ export class WebSocketClient {
       }
     }, HEARTBEAT_INTERVAL)
   }
-
   private stopHeartbeat(): void {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
@@ -94,7 +77,6 @@ export class WebSocketClient {
       this.heartbeatTimeout = null
     }
   }
-
   private reconnect(): void {
     if (this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
       const delay = BASE_RECONNECT_DELAY * Math.pow(2, this.reconnectAttempts)
@@ -105,12 +87,7 @@ export class WebSocketClient {
       console.error("Max reconnection attempts reached, stopping reconnection")
     }
   }
-
   private handleEvent(event: Event): void {
-    // 只处理当前 project 的事件
-    if (event.projectId !== this.currentProjectId) {
-      return
-    }
     const handlers = this.eventHandlers.get(event.type)
     if (handlers) {
       handlers.forEach((handler) => handler(event))

@@ -13,6 +13,7 @@ import {
 import type { EventType } from "../../types/index"
 
 interface EventTimelineProps {
+  projectId: string
   employeeName: string
 }
 
@@ -92,8 +93,8 @@ function getEventDescription(
   }
 }
 
-export function EventTimeline({ employeeName }: EventTimelineProps) {
-  const { events, loading } = useEvents({ employeeName })
+export function EventTimeline({ projectId, employeeName }: EventTimelineProps) {
+  const { events, loading } = useEvents(projectId, { employeeName })
   const [filterType, setFilterType] = useState<EventType | "all">("all")
 
   const filteredEvents =

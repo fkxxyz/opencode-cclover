@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react"
-import { useProjectContext } from "../contexts/ProjectContext"
 import type { Employee } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-export function useEmployees() {
-  const { currentProject } = useProjectContext()
+
+export function useEmployees(projectId: string | undefined) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -12,23 +11,21 @@ export function useEmployees() {
 
   // 初始加载
   useEffect(() => {
-    if (!currentProject) {
+    if (!projectId) {
       setLoading(false)
       setEmployees([])
       return
     }
     setLoading(true)
-    // 确保 apiClient 已设置 project
-    apiClient.setProject(currentProject)
     apiClient
-      .getEmployees()
+      .getEmployees(projectId)
       .then(setEmployees)
       .catch((err: Error) => {
         console.error("获取员工列表失败:", err)
         setError(err)
       })
       .finally(() => setLoading(false))
-  }, [currentProject])
+  }, [projectId])
 
   // 实时更新
   useEffect(() => {

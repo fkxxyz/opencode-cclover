@@ -5,6 +5,7 @@ import Typography from "@mui/material/Typography"
 import CircularProgress from "@mui/material/CircularProgress"
 
 interface MessageListProps {
+  projectId: string
   employeeName: string
   peer?: string
 }
@@ -19,8 +20,8 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-export function MessageList({ employeeName, peer }: MessageListProps) {
-  const { messages, loading } = useMessages(employeeName, peer)
+export function MessageList({ projectId, employeeName, peer }: MessageListProps) {
+  const { messages, loading } = useMessages(projectId, employeeName, peer)
   if (loading) {
     return (
       <Card>

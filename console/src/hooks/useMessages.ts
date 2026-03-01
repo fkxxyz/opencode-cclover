@@ -1,27 +1,28 @@
 import { useEffect, useState } from "react"
-import { useProjectContext } from "../contexts/ProjectContext"
 import type { Message } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-export function useMessages(employeeName: string, peer?: string) {
-  const { currentProject } = useProjectContext()
+export function useMessages(
+  projectId: string | undefined,
+  employeeName: string,
+  peer?: string
+  ) {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
   // 初始加载
   useEffect(() => {
-    if (!currentProject) return
+    if (!projectId) return
     setLoading(true)
     apiClient
-      .getMessages(employeeName, peer)
+      .getMessages(projectId, employeeName, peer)
       .then(setMessages)
       .catch((err: Error) => {
         console.error("获取消息失败:", err)
         setMessages([])
       })
       .finally(() => setLoading(false))
-  }, [currentProject, employeeName, peer])
-
+  }, [projectId, employeeName, peer])
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("message", (event) => {
@@ -38,6 +39,5 @@ export function useMessages(employeeName: string, peer?: string) {
     })
     return unsubscribe
   }, [subscribe, employeeName, peer])
-
   return { messages, loading }
 }

@@ -1,6 +1,5 @@
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { useEmployees } from "../hooks/useEmployees"
-import { useProjectContext } from "../contexts/ProjectContext"
 import { GlobalStats } from "../components/dashboard/GlobalStats"
 import { EventStream } from "../components/dashboard/EventStream"
 import { HierarchyTree } from "../components/visualizations/HierarchyTree"
@@ -15,40 +14,27 @@ import Typography from "@mui/material/Typography"
 
 export function Overview() {
   const navigate = useNavigate()
-  const { employees, loading: employeesLoading } = useEmployees()
-  const { currentProject } = useProjectContext()
+  const { projectId } = useParams<{ projectId: string }>()
+  const { employees, loading: employeesLoading } = useEmployees(projectId)
   const [hierarchy, setHierarchy] = useState<EmployeeHierarchy | null>(null)
   const [hierarchyLoading, setHierarchyLoading] = useState(true)
-
-
-
-
-
-
-
   useEffect(() => {
-    if (!currentProject) {
+    if (!projectId) {
       setHierarchyLoading(false)
       return
     }
     setHierarchyLoading(true)
-    // 确保 apiClient 已设置 project
-    apiClient.setProject(currentProject)
     apiClient
-    // 确保 apiClient 已设置 project
-    apiClient.setProject(currentProject)
-    apiClient
-    apiClient
-      .getHierarchy()
+      .getHierarchy(projectId)
       .then(setHierarchy)
       .catch((err: Error) => {
         console.error("获取雇佣关系失败:", err)
       })
       .finally(() => setHierarchyLoading(false))
-  }, [currentProject])
+  }, [projectId])
 
   const handleNodeClick = (employee: { name: string; role: string }) => {
-    navigate(`/employee/${employee.name}`)
+    navigate(`/projects/${projectId}/employee/${employee.name}`)
   }
 
   if (employeesLoading || hierarchyLoading) {
@@ -95,7 +81,7 @@ export function Overview() {
             {employees.length} 个员工
           </Typography>
         </Box>
-        <GlobalStats />
+        <GlobalStats projectId={projectId!} />
         {hierarchy && (
           <Card>
             <CardHeader>
@@ -131,13 +117,13 @@ export function Overview() {
                 <EmployeeCard
                   key={emp.name}
                   employee={emp}
-                  onClick={() => navigate(`/employee/${emp.name}`)}
+                  onClick={() => navigate(`/projects/${projectId}/employee/${emp.name}`)}
                 />
               ))}
             </Box>
           </CardContent>
         </Card>
-        <EventStream />
+        <EventStream projectId={projectId!} />
       </Box>
     </Box>
   )

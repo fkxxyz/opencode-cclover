@@ -12,10 +12,6 @@ import type {
 } from "../types/index"
 const API_BASE_URL = "http://localhost:4097/api"
 export class ApiClient {
-  private currentProjectId: string | null = null
-  setProject(projectId: string): void {
-    this.currentProjectId = projectId
-  }
   async getProjects(): Promise<Project[]> {
     const data = await this.request<{ projects: Project[] }>("/projects")
     return data.projects
@@ -65,89 +61,74 @@ export class ApiClient {
     }
     return (json as SuccessResponse<T>).data
   }
-  async getEmployees(): Promise<Employee[]> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
+  async getEmployees(projectId: string): Promise<Employee[]> {
     const data = await this.request<{ employees: Employee[] }>(
-      `/projects/${this.currentProjectId}/employees`
+      `/projects/${projectId}/employees`
     )
     return data.employees
   }
-  async getEmployeeDetail(name: string): Promise<EmployeeDetail> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
+  async getEmployeeDetail(
+    projectId: string,
+    name: string
+  ): Promise<EmployeeDetail> {
     return this.request<EmployeeDetail>(
-      `/projects/${this.currentProjectId}/employees/${name}`
+      `/projects/${projectId}/employees/${name}`
     )
   }
   async getMessages(
+    projectId: string,
     employeeName: string,
     peer?: string,
     limit?: number
   ): Promise<Message[]> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
     const params = new URLSearchParams()
     if (peer) params.append("peer", peer)
     if (limit) params.append("limit", limit.toString())
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ messages: Message[] }>(
-      `/projects/${this.currentProjectId}/employees/${employeeName}/messages${query}`
+      `/projects/${projectId}/employees/${employeeName}/messages${query}`
     )
     return data.messages
   }
-  async getTasks(employeeName: string): Promise<TasksResponse> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
+  async getTasks(projectId: string, employeeName: string): Promise<TasksResponse> {
     return this.request<TasksResponse>(
-      `/projects/${this.currentProjectId}/employees/${employeeName}/tasks`
+      `/projects/${projectId}/employees/${employeeName}/tasks`
     )
   }
-  async getEvents(options?: {
-    limit?: number
-    employeeName?: string
+  async getEvents(
+    projectId: string,
+    options?: {
+      limit?: number
+      employeeName?: string
   }): Promise<Event[]> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
     const params = new URLSearchParams()
     if (options?.limit) params.append("limit", options.limit.toString())
     if (options?.employeeName)
       params.append("employeeName", options.employeeName)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ events: Event[] }>(
-      `/projects/${this.currentProjectId}/events${query}`
+      `/projects/${projectId}/events${query}`
     )
     return data.events
   }
-  async getHierarchy(): Promise<EmployeeHierarchy> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
+  async getHierarchy(projectId: string): Promise<EmployeeHierarchy> {
     const data = await this.request<{ hierarchy: EmployeeHierarchy }>(
-      `/projects/${this.currentProjectId}/employees/hierarchy`
+      `/projects/${projectId}/employees/hierarchy`
     )
     return data.hierarchy
   }
-  async getStats(): Promise<{
+  async getStats(projectId: string): Promise<{
     totalEmployees: number
     activeEmployees: number
     pendingTasks: number
     todayMessages: number
   }> {
-    if (!this.currentProjectId) {
-      throw new Error("No project selected")
-    }
     return this.request<{
       totalEmployees: number
       activeEmployees: number
       pendingTasks: number
       todayMessages: number
-    }>(`/projects/${this.currentProjectId}/stats`)
+    }>(`/projects/${projectId}/stats`)
   }
   async getHealth(): Promise<{
     status: string

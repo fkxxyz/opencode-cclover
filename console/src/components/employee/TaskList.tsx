@@ -15,6 +15,7 @@ import Typography from "@mui/material/Typography"
 import CircularProgress from "@mui/material/CircularProgress"
 
 interface TaskListProps {
+  projectId: string
   employeeName: string
 }
 
@@ -45,8 +46,8 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-export function TaskList({ employeeName }: TaskListProps) {
-  const { tasks, executableTasks, loading } = useTasks(employeeName)
+export function TaskList({ projectId, employeeName }: TaskListProps) {
+  const { tasks, executableTasks, loading } = useTasks(projectId, employeeName)
   if (loading) {
     return (
       <Card>

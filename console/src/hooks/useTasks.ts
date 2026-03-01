@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react"
-import { useProjectContext } from "../contexts/ProjectContext"
 import type { Task } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-export function useTasks(employeeName: string) {
-  const { currentProject } = useProjectContext()
+export function useTasks(projectId: string | undefined, employeeName: string) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [executableTasks, setExecutableTasks] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
   // 初始加载
   useEffect(() => {
-    if (!currentProject) return
+    if (!projectId) return
     setLoading(true)
     apiClient
-      .getTasks(employeeName)
+      .getTasks(projectId, employeeName)
       .then((data) => {
         setTasks(data.tasks)
         setExecutableTasks(data.executableTasks)
@@ -25,8 +23,7 @@ export function useTasks(employeeName: string) {
         setExecutableTasks([])
       })
       .finally(() => setLoading(false))
-  }, [currentProject, employeeName])
-
+  }, [projectId, employeeName])
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("task_updated", (event) => {
@@ -42,7 +39,6 @@ export function useTasks(employeeName: string) {
           return prev
         })
       }
-
       // 更新可执行任务列表
       if (event.details.executableTasks) {
         setExecutableTasks(event.details.executableTasks as string[])
@@ -50,6 +46,5 @@ export function useTasks(employeeName: string) {
     })
     return unsubscribe
   }, [subscribe])
-
   return { tasks, executableTasks, loading }
 }

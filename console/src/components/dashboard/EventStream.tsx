@@ -88,8 +88,11 @@ function getEventDescription(
   }
 }
 
-export function EventStream() {
-  const { events, loading } = useEvents({ limit: 50 })
+interface EventStreamProps {
+  projectId: string
+}
+export function EventStream({ projectId }: EventStreamProps) {
+  const { events, loading } = useEvents(projectId, { limit: 50 })
 
   if (loading) {
     return (

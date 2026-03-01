@@ -2,8 +2,11 @@ import { Box, Typography } from "@mui/material"
 import { Users, Activity, CheckSquare, MessageSquare } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { useStats } from "../../hooks/useStats"
-export function GlobalStats() {
-  const { stats, loading } = useStats()
+interface GlobalStatsProps {
+  projectId: string
+}
+export function GlobalStats({ projectId }: GlobalStatsProps) {
+  const { stats, loading } = useStats(projectId)
   const statCards = [
     {
       title: "员工总数",
