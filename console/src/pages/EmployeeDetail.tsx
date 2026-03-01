@@ -52,9 +52,7 @@ export function EmployeeDetail() {
         <Card className="max-w-md">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
-              <p className="text-red-600">
-                {error?.message || "员工不存在"}
-              </p>
+              <p className="text-red-600">{error?.message || "员工不存在"}</p>
               <Button onClick={() => navigate("/")}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 返回总览
@@ -70,17 +68,11 @@ export function EmployeeDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/")}
-          >
+          <Button variant="outline" size="sm" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {employee.name}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">{employee.name}</h1>
         </div>
 
         <EmployeeCard employee={employee} />
@@ -103,10 +95,7 @@ export function EmployeeDetail() {
             <Card>
               <CardContent className="pt-6">
                 <div className="h-[600px]">
-                  <TaskDAG
-                    tasks={employee.tasks}
-                    executableTasks={[]}
-                  />
+                  <TaskDAG tasks={employee.tasks} executableTasks={[]} />
                 </div>
               </CardContent>
             </Card>

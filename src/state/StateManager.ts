@@ -7,12 +7,14 @@ import type { Employee, EmployeeStatus, Event, EventType } from "../types/index"
  * 整合员工注册表和事件历史,提供统一的状态查询接口
  */
 export class StateManager {
+  private projectId: string
   private employeeRegistry: EmployeeRegistry
   private eventHistory: EventHistory
   private taskCount: Map<string, number>
   private messageCount: Map<string, number>
 
-  constructor() {
+  constructor(projectId: string) {
+    this.projectId = projectId
     this.employeeRegistry = new EmployeeRegistry()
     this.eventHistory = new EventHistory()
     this.taskCount = new Map()
@@ -56,6 +58,7 @@ export class StateManager {
 
     // 记录状态变化事件
     this.eventHistory.add({
+      projectId: this.projectId,
       type: "employee_status_changed",
       timestamp: new Date().toISOString(),
       employeeName: name,
@@ -70,6 +73,10 @@ export class StateManager {
    * 添加事件
    */
   addEvent(event: Event): void {
+    // 确保事件包含 projectId
+    if (!event.projectId) {
+      event.projectId = this.projectId
+    }
     this.eventHistory.add(event)
 
     // 更新统计数据

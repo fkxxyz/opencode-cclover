@@ -1,3 +1,10 @@
+// Project types
+export interface Project {
+  projectId: string
+  projectName: string
+  directory: string
+}
+
 // Employee types
 export type EmployeeStatus = "active" | "idle" | "error" | "inactive"
 
@@ -86,6 +93,7 @@ export type EventType =
   | "agent_updated"
 
 export interface Event {
+  projectId: string
   type: EventType
   timestamp: string
   employeeName?: string

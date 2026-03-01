@@ -1,82 +1,27 @@
 import { Plugin } from "@opencode-ai/plugin"
 import path from "node:path"
 import * as fs from "node:fs/promises"
-import { MessageService } from "./core/MessageService"
-import { MemoryManager } from "./core/MemoryManager"
-import { EventLoop } from "./core/EventLoop"
 import { createTools } from "./tools"
-import { CalculatorRole } from "./roles"
 import { logger } from "./lib/logger"
-import { StateManager } from "./state/StateManager"
-import { createAndStartServer } from "./server/index"
+import { GlobalCcloverService } from "./server/GlobalServer"
 import { agentRegistry } from "./utils/AgentRegistry"
 /**
- * 确保 .gitignore 包含 .cclover
+ * 确保 .cclover 目录被 git 忽略
  */
 async function ensureGitignore(projectRoot: string): Promise<void> {
-  const gitignorePath = path.join(projectRoot, ".gitignore")
+  const ccloverDir = path.join(projectRoot, ".cclover")
+  const gitignorePath = path.join(ccloverDir, ".gitignore")
 
   try {
-    // 读取现有 .gitignore
-    let content = ""
-    try {
-      content = await fs.readFile(gitignorePath, "utf-8")
-    } catch (error: any) {
-      if (error.code !== "ENOENT") throw error
-      // 文件不存在，创建新的
-    }
+    // 确保 .cclover 目录存在
+    await fs.mkdir(ccloverDir, { recursive: true })
 
-    // 检查是否已包含 .cclover
-    if (!content.includes(".cclover")) {
-      content += "\n# Cclover workspace\n.cclover/\n"
-      await fs.writeFile(gitignorePath, content, "utf-8")
-      logger.info("Added .cclover to .gitignore")
-    }
+    // 创建 .gitignore 忽略整个目录
+    await fs.writeFile(gitignorePath, "*\n", "utf-8")
+    logger.info("Ensured .cclover/.gitignore exists")
   } catch (error) {
-    logger.error("Failed to update .gitignore:", error)
+    logger.error("Failed to create .cclover/.gitignore:", error)
   }
-}
-
-/**
- * 启动员工
- */
-async function startEmployees(
-  messageService: MessageService,
-  memoryManager: MemoryManager,
-  stateManager: StateManager,
-  opcodeClient: any
-): Promise<void> {
-  const employees = [{ name: "calculator", role: CalculatorRole }]
-
-  // 并行启动所有员工
-  Promise.all(
-    employees.map(async ({ name, role }) => {
-      try {
-        const messageClient = messageService.getClient(name)
-        const eventLoop = new EventLoop(
-          name,
-          role,
-          messageClient,
-          memoryManager,
-          opcodeClient,
-          stateManager
-        )
-
-        // 启动事件循环（不等待，让它在后台运行）
-        eventLoop.run().catch((error) => {
-          logger.error(`[${name}] EventLoop crashed:`, error)
-        })
-
-        logger.info(`Started employee: ${name}`)
-      } catch (error) {
-        logger.error(`Failed to start employee ${name}:`, error)
-      }
-    })
-  ).catch((error) => {
-    logger.error("Error in employee startup:", error)
-  })
-
-  logger.info(`Started ${employees.length} employee(s)`)
 }
 
 /**
@@ -86,76 +31,34 @@ async function startEmployees(
  */
 export const CcloverPlugin: Plugin = async (ctx) => {
   logger.info("Initializing opencode-cclover plugin...")
-  // 1. 初始化工作空间
-  const workspaceRoot = path.join(ctx.directory, ".cclover/workspace")
-  logger.info(`Workspace root: ${workspaceRoot}`)
+
+  // 1. 确保全局服务已启动(单例,只启动一次)
+  const globalService = await GlobalCcloverService.getInstance()
 
   // 2. 确保 .gitignore
   await ensureGitignore(ctx.directory)
 
-  // 3. 初始化消息服务
-  const messageService = new MessageService(workspaceRoot)
-  logger.info("MessageService initialized")
+  // 3. 从全局服务获取当前 project 的服务实例
+  const project = globalService.getProject(ctx.directory)
 
-  // 4. 初始化记忆管理
-  const memoryManager = new MemoryManager(workspaceRoot)
-  logger.info("MemoryManager initialized")
-
-  // 5. 初始化状态管理器
-  const stateManager = new StateManager()
-  logger.info("StateManager initialized")
-
-  // 6. 将 StateManager 传递给服务
-  const messageServiceWithState = new MessageService(
-    workspaceRoot,
-    stateManager
-  )
-  const memoryManagerWithState = new MemoryManager(workspaceRoot, stateManager)
-
-  // 7. 注册初始员工到 StateManager
-  stateManager.registerEmployee({
-    name: "calculator",
-    role: "calculator",
-    status: "inactive",
-    createdAt: new Date().toISOString(),
-    lastActiveAt: new Date().toISOString(),
-  })
-
-  // 8. 创建工具
-  const tools = createTools({
-    messageService: messageServiceWithState,
-    memoryManager: memoryManagerWithState,
-    opcodeClient: ctx.client,
-  })
-  logger.info("Tools created")
-
-  // 9. 启动员工（后台运行）
-  startEmployees(
-    messageServiceWithState,
-    memoryManagerWithState,
-    stateManager,
-    ctx.client
-  )
-
-  // 10. 启动 HTTP/WebSocket 服务器
-  try {
-    await createAndStartServer(
-      { port: 4097, workspaceRoot },
-      {
-        stateManager,
-        memoryManager: memoryManagerWithState,
-        messageService: messageServiceWithState,
-        agentRegistry,
-        workspaceRoot,
-      }
+  if (!project) {
+    logger.warn(`Project not found in config: ${ctx.directory}`)
+    logger.warn(
+      "Please add this project to ~/.config/opencode-cclover/config.yaml"
     )
-    logger.info("Console server started on port 4097")
-  } catch (error) {
-    logger.error("Failed to start console server:", error)
+    return {} // 返回空,不提供工具
   }
 
+  // 4. 创建工具(使用 project 的服务实例)
+  const tools = createTools({
+    messageService: project.messageService,
+    memoryManager: project.memoryManager,
+    opcodeClient: ctx.client,
+  })
+
   logger.info("Plugin initialized successfully")
-  // 11. 返回工具
+
+  // 5. 返回工具(注册到 OpenCode)
   return {
     tool: tools,
   }

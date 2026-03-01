@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react"
+import { useProjectContext } from "../contexts/ProjectContext"
 import type { Event } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-
 export function useEvents(options?: { limit?: number; employeeName?: string }) {
+  const { currentProject } = useProjectContext()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
   const limit = options?.limit || 50
-
   // 初始加载
   useEffect(() => {
+    if (!currentProject) return
     setLoading(true)
     apiClient
       .getEvents(options)
@@ -20,7 +21,7 @@ export function useEvents(options?: { limit?: number; employeeName?: string }) {
         setEvents([])
       })
       .finally(() => setLoading(false))
-  }, [options?.limit, options?.employeeName])
+  }, [currentProject, options?.limit, options?.employeeName])
 
   // 实时更新
   useEffect(() => {

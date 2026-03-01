@@ -10,28 +10,26 @@ import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"
 import { ConsoleServer } from "../../src/server/index"
-import { agentRegistry } from "../../src/utils/AgentRegistry"
+import { ProjectRegistry } from "../../src/server/ProjectRegistry"
+import { AgentRegistry, agentRegistry } from "../../src/utils/AgentRegistry"
 import type { Employee } from "../../src/types/index"
 
 const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-server")
 const TEST_PORT = 4098
 
 describe("Console Server", () => {
-  let messageService: MessageService
-  let memoryManager: MemoryManager
-  let stateManager: StateManager
+  let projectRegistry: ProjectRegistry
   let server: ConsoleServer
 
   beforeEach(async () => {
     // 清理测试目录
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-
     // 初始化服务
-    messageService = new MessageService(TEST_WORKSPACE)
-    memoryManager = new MemoryManager(TEST_WORKSPACE)
-    stateManager = new StateManager()
-
+    const messageService = new MessageService(TEST_WORKSPACE)
+    const memoryManager = new MemoryManager(TEST_WORKSPACE)
+    const stateManager = new StateManager()
+    const testAgentRegistry = new AgentRegistry()
     // 注册测试员工
     const testEmployee: Employee = {
       name: "calculator",
@@ -41,25 +39,27 @@ describe("Console Server", () => {
       lastActiveAt: new Date().toISOString(),
     }
     stateManager.registerEmployee(testEmployee)
-
+    // 创建 ProjectRegistry 并注册测试 project
+    projectRegistry = new ProjectRegistry()
+    projectRegistry.register({
+      projectId: "test-project",
+      projectName: "Test Project",
+      directory: TEST_WORKSPACE,
+      workspaceRoot: TEST_WORKSPACE,
+      stateManager,
+      messageService,
+      memoryManager,
+      agentRegistry: testAgentRegistry,
+    })
     // 创建服务器
     server = new ConsoleServer(
       { port: TEST_PORT, workspaceRoot: TEST_WORKSPACE },
-      {
-        stateManager,
-        memoryManager,
-        messageService,
-        agentRegistry,
-        workspaceRoot: TEST_WORKSPACE,
-      }
+      projectRegistry
     )
-
     // 启动服务器
     await server.start()
-
     // 等待服务器启动
     await new Promise((resolve) => setTimeout(resolve, 100))
-
     // 清空注册表
     agentRegistry.clear()
   })
@@ -84,9 +84,9 @@ describe("Console Server", () => {
       expect(json.data.version).toBeDefined()
     })
 
-    test("GET /api/employees - 获取员工列表", async () => {
+    test("GET /api/projects/test-project/employees - 获取员工列表", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees`
       )
       const json = await response.json()
 
@@ -97,9 +97,9 @@ describe("Console Server", () => {
       expect(json.data.employees[0].name).toBe("calculator")
     })
 
-    test("GET /api/employees/:name - 获取员工详情", async () => {
+    test("GET /api/projects/test-project/employees/:name - 获取员工详情", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees/calculator`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator`
       )
       const json = await response.json()
 
@@ -112,9 +112,9 @@ describe("Console Server", () => {
       expect(json.data.agents).toBeDefined()
     })
 
-    test("GET /api/employees/:name - 员工不存在返回 404", async () => {
+    test("GET /api/projects/test-project/employees/:name - 员工不存在返回 404", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees/unknown`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/unknown`
       )
       const json = await response.json()
 
@@ -123,9 +123,9 @@ describe("Console Server", () => {
       expect(json.error.code).toBe("EMPLOYEE_NOT_FOUND")
     })
 
-    test("GET /api/employees/:name/messages - 获取消息历史", async () => {
+    test("GET /api/projects/test-project/employees/:name/messages - 获取消息历史", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees/calculator/messages`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator/messages`
       )
       const json = await response.json()
 
@@ -134,9 +134,9 @@ describe("Console Server", () => {
       expect(Array.isArray(json.data.messages)).toBe(true)
     })
 
-    test("GET /api/employees/:name/tasks - 获取任务列表", async () => {
+    test("GET /api/projects/test-project/employees/:name/tasks - 获取任务列表", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees/calculator/tasks`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator/tasks`
       )
       const json = await response.json()
 
@@ -146,9 +146,9 @@ describe("Console Server", () => {
       expect(Array.isArray(json.data.executableTasks)).toBe(true)
     })
 
-    test("GET /api/employees/hierarchy - 获取雇佣关系树", async () => {
+    test("GET /api/projects/test-project/employees/hierarchy - 获取雇佣关系树", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees/hierarchy`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/hierarchy`
       )
       const json = await response.json()
 
@@ -158,8 +158,10 @@ describe("Console Server", () => {
       expect(json.data.hierarchy.name).toBe("calculator")
     })
 
-    test("GET /api/events - 获取事件历史", async () => {
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/events`)
+    test("GET /api/projects/test-project/events - 获取事件历史", async () => {
+      const response = await fetch(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/events`
+      )
       const json = await response.json()
 
       expect(response.status).toBe(200)
@@ -167,8 +169,10 @@ describe("Console Server", () => {
       expect(Array.isArray(json.data.events)).toBe(true)
     })
 
-    test("GET /api/stats - 获取全局统计", async () => {
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/stats`)
+    test("GET /api/projects/test-project/stats - 获取全局统计", async () => {
+      const response = await fetch(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/stats`
+      )
       const json = await response.json()
 
       expect(response.status).toBe(200)
@@ -179,10 +183,18 @@ describe("Console Server", () => {
       expect(json.data.todayMessages).toBeDefined()
     })
 
-    test("GET /api/unknown - 404 错误", async () => {
+    test("GET /api/unknown - 400 错误 (无效路径)", async () => {
       const response = await fetch(`http://localhost:${TEST_PORT}/api/unknown`)
       const json = await response.json()
-
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+      expect(json.error.code).toBe("INVALID_PATH")
+    })
+    test("GET /api/projects/test-project/unknown - 404 错误", async () => {
+      const response = await fetch(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/unknown`
+      )
+      const json = await response.json()
       expect(response.status).toBe(404)
       expect(json.success).toBe(false)
       expect(json.error.code).toBe("NOT_FOUND")
@@ -190,7 +202,7 @@ describe("Console Server", () => {
 
     test("OPTIONS 请求 - CORS 预检", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees`,
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees`,
         {
           method: "OPTIONS",
         }
@@ -283,9 +295,9 @@ describe("Console Server", () => {
   })
 
   describe("查询参数", () => {
-    test("GET /api/events?limit=10 - 限制事件数量", async () => {
+    test("GET /api/projects/test-project/events?limit=10 - 限制事件数量", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/events?limit=10`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/events?limit=10`
       )
       const json = await response.json()
 
@@ -294,9 +306,9 @@ describe("Console Server", () => {
       expect(Array.isArray(json.data.events)).toBe(true)
     })
 
-    test("GET /api/employees/:name/messages?limit=5 - 限制消息数量", async () => {
+    test("GET /api/projects/test-project/employees/:name/messages?limit=5 - 限制消息数量", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/employees/calculator/messages?limit=5`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator/messages?limit=5`
       )
       const json = await response.json()
 

@@ -117,7 +117,9 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
           <CardTitle>事件时间线</CardTitle>
           <Select
             value={filterType}
-            onValueChange={(value: string) => setFilterType(value as EventType | "all")}
+            onValueChange={(value: string) =>
+              setFilterType(value as EventType | "all")
+            }
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="筛选事件类型" />

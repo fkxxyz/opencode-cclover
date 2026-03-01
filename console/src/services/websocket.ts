@@ -7,11 +7,16 @@ const MAX_RECONNECT_ATTEMPTS = 10
 const BASE_RECONNECT_DELAY = 1000 // 1 second
 
 export class WebSocketClient {
+  private currentProjectId: string | null = null
   private ws: WebSocket | null = null
   private eventHandlers: Map<EventType, Set<(event: Event) => void>> = new Map()
   private reconnectAttempts = 0
   private heartbeatInterval: NodeJS.Timeout | null = null
   private heartbeatTimeout: NodeJS.Timeout | null = null
+
+  setProject(projectId: string): void {
+    this.currentProjectId = projectId
+  }
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
@@ -102,6 +107,10 @@ export class WebSocketClient {
   }
 
   private handleEvent(event: Event): void {
+    // 只处理当前 project 的事件
+    if (event.projectId !== this.currentProjectId) {
+      return
+    }
     const handlers = this.eventHandlers.get(event.type)
     if (handlers) {
       handlers.forEach((handler) => handler(event))

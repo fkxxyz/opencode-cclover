@@ -10,7 +10,7 @@ export interface AgentInfo {
   taskName: string // Agent 关联的任务名称
 }
 
-class AgentRegistry {
+export class AgentRegistry {
   private agents = new Map<string, AgentInfo>()
 
   /**

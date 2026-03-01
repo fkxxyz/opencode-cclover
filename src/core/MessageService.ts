@@ -107,14 +107,17 @@ export class MessageClient {
  * 负责消息的发送、接收和持久化
  */
 export class MessageService {
+  private projectId: string
   private clients: Map<string, MessageClient> = new Map()
   private unreadQueues: Map<string, Message[]> = new Map()
   public eventEmitter: EventEmitter = new EventEmitter()
-
   constructor(
     private workspaceRoot: string,
-    private stateManager?: StateManager
-  ) {}
+    private stateManager?: StateManager,
+    projectId?: string
+  ) {
+    this.projectId = projectId || "default"
+  }
 
   /**
    * 获取员工的消息客户端
@@ -156,6 +159,7 @@ export class MessageService {
 
     // 5. 发射事件到 StateManager
     this.stateManager?.addEvent({
+      projectId: this.projectId,
       type: "message",
       timestamp,
       employeeName: from,

@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react"
+import { useProjectContext } from "../contexts/ProjectContext"
 import type { Message } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-
 export function useMessages(employeeName: string, peer?: string) {
+  const { currentProject } = useProjectContext()
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
-
   // 初始加载
   useEffect(() => {
+    if (!currentProject) return
     setLoading(true)
     apiClient
       .getMessages(employeeName, peer)
@@ -19,7 +20,7 @@ export function useMessages(employeeName: string, peer?: string) {
         setMessages([])
       })
       .finally(() => setLoading(false))
-  }, [employeeName, peer])
+  }, [currentProject, employeeName, peer])
 
   // 实时更新
   useEffect(() => {

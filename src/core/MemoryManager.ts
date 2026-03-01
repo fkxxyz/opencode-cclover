@@ -36,12 +36,17 @@ export interface Memory {
  * 负责维护员工的经验知识、任务状态和自定义数据
  */
 export class MemoryManager {
+  private projectId: string
   private workspaceRoot: string
   private stateManager?: StateManager
-
-  constructor(workspaceRoot: string, stateManager?: StateManager) {
+  constructor(
+    workspaceRoot: string,
+    stateManager?: StateManager,
+    projectId?: string
+  ) {
     this.workspaceRoot = workspaceRoot
     this.stateManager = stateManager
+    this.projectId = projectId || "default"
   }
 
   /**
@@ -203,6 +208,7 @@ export class MemoryManager {
     const timestamp = new Date().toISOString()
     if (updates.status === "completed") {
       this.stateManager?.addEvent({
+        projectId: this.projectId,
         type: "task_completed",
         timestamp,
         employeeName,
@@ -213,6 +219,7 @@ export class MemoryManager {
       })
     } else if (updates.status === "cancelled") {
       this.stateManager?.addEvent({
+        projectId: this.projectId,
         type: "task_failed",
         timestamp,
         employeeName,

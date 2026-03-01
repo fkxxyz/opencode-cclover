@@ -269,9 +269,8 @@ bun test tests/integration/MessageService.integration.test.ts
 **手动测试**: 使用真实的 OpenCode 服务器测试插件
 
 ```bash
-# 在 workspace_test 目录启动 OpenCode 服务器
-cd workspace_test
-opencode serve --port 4099
+# 使用 OPENCODE_CONFIG_DIR 指向 workspace_test/.opencode 启动 OpenCode 服务器
+OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099
 ```
 
 参见 [workspace_test/README.md](workspace_test/README.md) 了解快速开始指南、测试场景和调试技巧。

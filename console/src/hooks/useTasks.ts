@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react"
+import { useProjectContext } from "../contexts/ProjectContext"
 import type { Task } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-
 export function useTasks(employeeName: string) {
+  const { currentProject } = useProjectContext()
   const [tasks, setTasks] = useState<Task[]>([])
   const [executableTasks, setExecutableTasks] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
-
   // 初始加载
   useEffect(() => {
+    if (!currentProject) return
     setLoading(true)
     apiClient
       .getTasks(employeeName)
@@ -24,7 +25,7 @@ export function useTasks(employeeName: string) {
         setExecutableTasks([])
       })
       .finally(() => setLoading(false))
-  }, [employeeName])
+  }, [currentProject, employeeName])
 
   // 实时更新
   useEffect(() => {

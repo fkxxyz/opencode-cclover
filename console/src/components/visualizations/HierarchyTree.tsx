@@ -11,7 +11,7 @@ const STATUS_COLORS: Record<EmployeeStatus, string> = {
   active: "#10b981",
   idle: "#eab308",
   error: "#ef4444",
-  inactive: "#6b7280"
+  inactive: "#6b7280",
 }
 
 export function HierarchyTree({ hierarchy, onNodeClick }: HierarchyTreeProps) {
@@ -68,7 +68,9 @@ export function HierarchyTree({ hierarchy, onNodeClick }: HierarchyTreeProps) {
     svg.call(zoom)
 
     // 创建树布局
-    const treeLayout = d3.tree<EmployeeHierarchy>().size([innerHeight, innerWidth])
+    const treeLayout = d3
+      .tree<EmployeeHierarchy>()
+      .size([innerHeight, innerWidth])
 
     // 转换数据为层次结构
     const root = d3.hierarchy(hierarchy)
@@ -76,7 +78,10 @@ export function HierarchyTree({ hierarchy, onNodeClick }: HierarchyTreeProps) {
 
     // 创建连接线生成器
     const linkGenerator = d3
-      .linkHorizontal<d3.HierarchyPointLink<EmployeeHierarchy>, d3.HierarchyPointNode<EmployeeHierarchy>>()
+      .linkHorizontal<
+        d3.HierarchyPointLink<EmployeeHierarchy>,
+        d3.HierarchyPointNode<EmployeeHierarchy>
+      >()
       .x((d) => d.y)
       .y((d) => d.x)
 

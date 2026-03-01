@@ -1,4 +1,4 @@
-import type { ServerDependencies, ServerConfig } from "./types"
+import type { ServerConfig } from "./types"
 import { Router } from "./router"
 import { WebSocketManager } from "./websocket"
 import type { Event } from "../types/index"
@@ -13,13 +13,13 @@ export class ConsoleServer {
   private port: number
   private router: Router
   private wsManager: WebSocketManager
-  private deps: ServerDependencies
+  private projectRegistry: any
   private server: any = null
 
-  constructor(config: ServerConfig, deps: ServerDependencies) {
+  constructor(config: ServerConfig, projectRegistry: any) {
     this.port = config.port || DEFAULT_PORT
-    this.deps = deps
-    this.router = new Router(deps)
+    this.projectRegistry = projectRegistry
+    this.router = new Router(projectRegistry)
     this.wsManager = new WebSocketManager()
   }
 
@@ -79,14 +79,17 @@ export class ConsoleServer {
    * 监听 StateManager 的事件并通过 WebSocket 广播
    */
   private setupEventBroadcasting(): void {
-    // 如果 StateManager 有事件发射器，监听事件
-    if (
-      this.deps.stateManager &&
-      typeof this.deps.stateManager.on === "function"
-    ) {
-      this.deps.stateManager.on("event", (event: Event) => {
-        this.wsManager.broadcast(event)
-      })
+    // 监听所有 project 的 StateManager 事件
+    const projects = this.projectRegistry.getAll()
+    for (const project of projects) {
+      if (
+        project.stateManager &&
+        typeof project.stateManager.on === "function"
+      ) {
+        project.stateManager.on("event", (event: Event) => {
+          this.wsManager.broadcast(event)
+        })
+      }
     }
   }
 
@@ -120,9 +123,9 @@ export class ConsoleServer {
  */
 export async function createAndStartServer(
   config: ServerConfig,
-  deps: ServerDependencies
+  projectRegistry: any
 ): Promise<ConsoleServer> {
-  const server = new ConsoleServer(config, deps)
+  const server = new ConsoleServer(config, projectRegistry)
   await server.start()
   return server
 }

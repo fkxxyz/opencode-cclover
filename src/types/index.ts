@@ -90,6 +90,7 @@ export type EventType =
 
 // 事件
 export interface Event {
+  projectId: string
   type: EventType
   timestamp: string
   employeeName?: string

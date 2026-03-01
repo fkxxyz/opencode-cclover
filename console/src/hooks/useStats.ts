@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react"
+import { useProjectContext } from "../contexts/ProjectContext"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-
 interface Stats {
   totalEmployees: number
   activeEmployees: number
   pendingTasks: number
   todayMessages: number
 }
-
 export function useStats() {
+  const { currentProject } = useProjectContext()
   const [stats, setStats] = useState<Stats>({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -18,9 +18,9 @@ export function useStats() {
   })
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
-
   // 初始加载
   useEffect(() => {
+    if (!currentProject) return
     setLoading(true)
     apiClient
       .getStats()
@@ -29,7 +29,7 @@ export function useStats() {
         console.error("获取统计数据失败:", err)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [currentProject])
 
   // 实时更新 - 监听相关事件
   useEffect(() => {

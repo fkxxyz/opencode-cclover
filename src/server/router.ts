@@ -12,10 +12,10 @@ import * as health from "../api/health"
  * 根据 URL 和 HTTP 方法分发到对应的 API 处理器
  */
 export class Router {
-  private deps: ServerDependencies
+  private projectRegistry: any
 
-  constructor(deps: ServerDependencies) {
-    this.deps = deps
+  constructor(projectRegistry: any) {
+    this.projectRegistry = projectRegistry
   }
 
   /**
@@ -32,43 +32,89 @@ export class Router {
         return this.jsonResponse(health.getHealth())
       }
 
-      // 获取所有员工
-      if (pathname === "/api/employees" && method === "GET") {
-        return this.jsonResponse(employees.getEmployees(this.deps.stateManager))
+      // 获取所有 project 列表
+      if (pathname === "/api/projects" && method === "GET") {
+        const projects = this.projectRegistry.getAll().map((p: any) => ({
+          projectId: p.projectId,
+          projectName: p.projectName,
+          directory: p.directory,
+        }))
+        return this.jsonResponse({ projects })
       }
 
-      // 获取员工雇佣关系树（必须在 /:name 之前）
-      if (pathname === "/api/employees/hierarchy" && method === "GET") {
-        return this.jsonResponse(hierarchy.getHierarchy(this.deps.stateManager))
+      // 所有其他 API 都需要 projectId
+      const projectMatch = pathname.match(/^\/api\/projects\/([^/]+)\/(.+)$/)
+      if (!projectMatch) {
+        return this.jsonResponse(
+          {
+            success: false,
+            error: {
+              code: "INVALID_PATH",
+              message: "API路径必须包含projectId: /api/projects/:projectId/...",
+            },
+          },
+          400
+        )
       }
 
-      // 获取全局事件
-      if (pathname === "/api/events" && method === "GET") {
+      const projectId = projectMatch[1]
+      const subpath = projectMatch[2]
+
+      // 获取 project 实例
+      const project = this.projectRegistry.get(projectId)
+      if (!project) {
+        return this.jsonResponse(
+          {
+            success: false,
+            error: {
+              code: "PROJECT_NOT_FOUND",
+              message: `Project '${projectId}' not found`,
+            },
+          },
+          404
+        )
+      }
+      // 构建依赖对象(兼容现有API处理器)
+      const deps: ServerDependencies = {
+        stateManager: project.stateManager,
+        memoryManager: project.memoryManager,
+        messageService: project.messageService,
+        agentRegistry: project.agentRegistry,
+        workspaceRoot: project.workspaceRoot,
+      }
+
+      // 分发到具体 API 处理器
+      if (subpath === "employees" && method === "GET") {
+        return this.jsonResponse(employees.getEmployees(deps.stateManager))
+      }
+
+      if (subpath === "employees/hierarchy" && method === "GET") {
+        return this.jsonResponse(hierarchy.getHierarchy(deps.stateManager))
+      }
+
+      if (subpath === "events" && method === "GET") {
         const limit = url.searchParams.get("limit")
           ? parseInt(url.searchParams.get("limit")!)
           : 50
         const employeeName = url.searchParams.get("employeeName") || undefined
         return this.jsonResponse(
-          events.getEvents({ limit, employeeName }, this.deps.stateManager)
+          events.getEvents({ limit, employeeName }, deps.stateManager)
         )
       }
 
-      // 获取全局统计
-      if (pathname === "/api/stats" && method === "GET") {
+      if (subpath === "stats" && method === "GET") {
         return this.jsonResponse(
-          await stats.getStats(this.deps.stateManager, this.deps.memoryManager)
+          await stats.getStats(deps.stateManager, deps.memoryManager)
         )
       }
 
-      // 获取员工详情或消息或任务
-      const employeeMatch = pathname.match(
-        /^\/api\/employees\/([^/]+)(?:\/(.+))?$/
-      )
+      // 员工相关 API
+      const employeeMatch = subpath.match(/^employees\/([^/]+)(?:\/(.+))?$/)
       if (employeeMatch && method === "GET") {
         const employeeName = employeeMatch[1]
-        const subpath = employeeMatch[2]
+        const employeeSubpath = employeeMatch[2]
 
-        if (subpath === "messages") {
+        if (employeeSubpath === "messages") {
           const peer = url.searchParams.get("peer") || undefined
           const limit = url.searchParams.get("limit")
             ? parseInt(url.searchParams.get("limit")!)
@@ -78,26 +124,25 @@ export class Router {
               employeeName,
               peer,
               limit,
-              this.deps.messageService
+              deps.messageService
             )
           )
         }
 
-        if (subpath === "tasks") {
+        if (employeeSubpath === "tasks") {
           return this.jsonResponse(
-            await tasks.getTasks(employeeName, this.deps.memoryManager)
+            await tasks.getTasks(employeeName, deps.memoryManager)
           )
         }
 
-        // 获取员工详情
-        if (!subpath) {
+        if (!employeeSubpath) {
           return this.jsonResponse(
             await employees.getEmployeeDetail(
               employeeName,
-              this.deps.stateManager,
-              this.deps.memoryManager,
-              this.deps.agentRegistry,
-              this.deps.workspaceRoot
+              deps.stateManager,
+              deps.memoryManager,
+              deps.agentRegistry,
+              deps.workspaceRoot
             )
           )
         }

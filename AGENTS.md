@@ -269,9 +269,8 @@ bun test tests/integration/MessageService.integration.test.ts
 **Manual Testing**: Test the plugin with real OpenCode server
 
 ```bash
-# Start OpenCode server in workspace_test directory
-cd workspace_test
-opencode serve --port 4099
+# Start OpenCode server with OPENCODE_CONFIG_DIR pointing to workspace_test/.opencode
+OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099
 ```
 
 See [workspace_test/README.md](workspace_test/README.md) for quick start guide, testing scenarios, and debugging tips.

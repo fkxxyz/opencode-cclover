@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react"
+import { useProjectContext } from "../contexts/ProjectContext"
 import type { Employee } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-
 export function useEmployees() {
+  const { currentProject } = useProjectContext()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const { subscribe } = useWebSocket()
-
   // 初始加载
   useEffect(() => {
+    if (!currentProject) return
     setLoading(true)
     apiClient
       .getEmployees()
@@ -20,7 +21,7 @@ export function useEmployees() {
         setError(err)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [currentProject])
 
   // 实时更新
   useEffect(() => {
