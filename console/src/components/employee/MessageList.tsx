@@ -1,6 +1,8 @@
 import { useMessages } from "../../hooks/useMessages"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
-import { cn } from "../../lib/utils"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
+import CircularProgress from "@mui/material/CircularProgress"
 
 interface MessageListProps {
   employeeName: string
@@ -19,7 +21,6 @@ function formatTimestamp(timestamp: string): string {
 
 export function MessageList({ employeeName, peer }: MessageListProps) {
   const { messages, loading } = useMessages(employeeName, peer)
-
   if (loading) {
     return (
       <Card>
@@ -27,12 +28,13 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
           <CardTitle>消息列表</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">加载中...</div>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+            <CircularProgress />
+          </Box>
         </CardContent>
       </Card>
     )
   }
-
   if (messages.length === 0) {
     return (
       <Card>
@@ -40,62 +42,67 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
           <CardTitle>消息列表</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">暂无消息</div>
+          <Typography align="center" color="text.secondary">
+            暂无消息
+          </Typography>
         </CardContent>
       </Card>
     )
   }
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>
           消息列表{" "}
           {peer && (
-            <span className="text-sm font-normal text-muted-foreground">
+            <Typography component="span" variant="body2" color="text.secondary">
               与 {peer}
-            </span>
+            </Typography>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3 max-h-[600px] overflow-y-auto">
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, maxHeight: 600, overflowY: "auto" }}>
           {messages.map((message, index) => {
             const isSent = message.direction === "send"
             return (
-              <div
+              <Box
                 key={`${message.timestamp}-${index}`}
-                className={cn("flex", isSent ? "justify-end" : "justify-start")}
+                sx={{
+                  display: "flex",
+                  justifyContent: isSent ? "flex-end" : "flex-start",
+                }}
               >
-                <div
-                  className={cn(
-                    "max-w-[70%] rounded-lg p-3",
-                    isSent
-                      ? "bg-blue-500 text-white"
-                      : "bg-secondary text-foreground"
-                  )}
+                <Box
+                  sx={{
+                    maxWidth: "70%",
+                    borderRadius: 2,
+                    p: 1.5,
+                    bgcolor: isSent ? "primary.main" : "grey.200",
+                    color: isSent ? "primary.contrastText" : "text.primary",
+                  }}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium">
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                    <Typography variant="caption" fontWeight="medium">
                       {isSent ? message.from : message.from}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-xs",
-                        isSent ? "text-blue-100" : "text-muted-foreground"
-                      )}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: isSent ? "primary.light" : "text.secondary",
+                      }}
                     >
                       {formatTimestamp(message.timestamp)}
-                    </span>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap break-words">
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     {message.content}
-                  </p>
-                </div>
-              </div>
+                  </Typography>
+                </Box>
+              </Box>
             )
           })}
-        </div>
+        </Box>
       </CardContent>
     </Card>
   )

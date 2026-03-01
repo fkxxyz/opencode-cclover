@@ -10,17 +10,19 @@ import {
   TableRow,
 } from "../ui/table"
 import type { TaskStatus } from "../../types/index"
-import { cn } from "../../lib/utils"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
+import CircularProgress from "@mui/material/CircularProgress"
 
 interface TaskListProps {
   employeeName: string
 }
 
-const statusColors: Record<TaskStatus, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-secondary text-gray-800",
+const statusVariants: Record<TaskStatus, "default" | "secondary" | "destructive" | "outline"> = {
+  pending: "outline",
+  in_progress: "default",
+  completed: "secondary",
+  cancelled: "destructive",
 }
 
 const statusLabels: Record<TaskStatus, string> = {
@@ -42,7 +44,6 @@ function formatTimestamp(timestamp: string): string {
 
 export function TaskList({ employeeName }: TaskListProps) {
   const { tasks, executableTasks, loading } = useTasks(employeeName)
-
   if (loading) {
     return (
       <Card>
@@ -50,12 +51,13 @@ export function TaskList({ employeeName }: TaskListProps) {
           <CardTitle>任务列表</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">加载中...</div>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+            <CircularProgress />
+          </Box>
         </CardContent>
       </Card>
     )
   }
-
   if (tasks.length === 0) {
     return (
       <Card>
@@ -63,12 +65,13 @@ export function TaskList({ employeeName }: TaskListProps) {
           <CardTitle>任务列表</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">暂无任务</div>
+          <Typography align="center" color="text.secondary">
+            暂无任务
+          </Typography>
         </CardContent>
       </Card>
     )
   }
-
   return (
     <Card>
       <CardHeader>
@@ -91,31 +94,39 @@ export function TaskList({ employeeName }: TaskListProps) {
               return (
                 <TableRow
                   key={task.name}
-                  className={cn(
-                    isExecutable && task.status === "pending" && "bg-green-50"
-                  )}
+                  sx={{
+                    ...(isExecutable && task.status === "pending" && {
+                      bgcolor: "success.light",
+                    }),
+                  }}
                 >
-                  <TableCell className="font-medium">
-                    {task.name}
-                    {isExecutable && task.status === "pending" && (
-                      <Badge className="ml-2 bg-green-100 text-green-800">
-                        可执行
-                      </Badge>
-                    )}
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography fontWeight="medium">{task.name}</Typography>
+                      {isExecutable && task.status === "pending" && (
+                        <Badge variant="secondary">可执行</Badge>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>
-                    <Badge className={statusColors[task.status]}>
+                    <Badge variant={statusVariants[task.status]}>
                       {statusLabels[task.status]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-md truncate">
-                    {task.description}
+                  <TableCell>
+                    <Typography noWrap sx={{ maxWidth: 400 }}>
+                      {task.description}
+                    </Typography>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatTimestamp(task.created)}
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatTimestamp(task.created)}
+                    </Typography>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {task.completed ? formatTimestamp(task.completed) : "-"}
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {task.completed ? formatTimestamp(task.completed) : "-"}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )
