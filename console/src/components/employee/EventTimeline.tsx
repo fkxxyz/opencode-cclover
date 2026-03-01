@@ -21,7 +21,7 @@ const eventTypeColors: Record<EventType, string> = {
   task_failed: "bg-red-100 text-red-800",
   agent_completed: "bg-purple-100 text-purple-800",
   agent_failed: "bg-red-100 text-red-800",
-  timer: "bg-gray-100 text-gray-800",
+  timer: "bg-secondary text-gray-800",
   employee_hired: "bg-yellow-100 text-yellow-800",
   employee_status_changed: "bg-orange-100 text-orange-800",
   message_sent: "bg-blue-100 text-blue-800",
@@ -141,7 +141,7 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
         ) : (
           <div className="relative">
             {/* 时间线竖线 */}
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted" />
 
             {/* 事件列表 */}
             <div className="space-y-4">
@@ -151,7 +151,7 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
                   className="relative pl-10"
                 >
                   {/* 时间线圆点 */}
-                  <div className="absolute left-2.5 top-2 h-3 w-3 rounded-full bg-white border-2 border-blue-500" />
+                  <div className="absolute left-2.5 top-2 h-3 w-3 rounded-full bg-card border-2 border-blue-500" />
 
                   {/* 事件内容 */}
                   <div className="bg-card border rounded-lg p-3 hover:shadow-md transition-shadow">

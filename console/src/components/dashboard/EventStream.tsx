@@ -9,7 +9,7 @@ const eventTypeColors: Record<EventType, string> = {
   task_failed: "bg-red-100 text-red-800",
   agent_completed: "bg-purple-100 text-purple-800",
   agent_failed: "bg-red-100 text-red-800",
-  timer: "bg-gray-100 text-gray-800",
+  timer: "bg-secondary text-secondary-foreground",
   employee_hired: "bg-yellow-100 text-yellow-800",
   employee_status_changed: "bg-orange-100 text-orange-800",
   message_sent: "bg-blue-100 text-blue-800",

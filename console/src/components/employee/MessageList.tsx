@@ -72,7 +72,7 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
                     "max-w-[70%] rounded-lg p-3",
                     isSent
                       ? "bg-blue-500 text-white"
-                      : "bg-gray-100 text-gray-900"
+                      : "bg-secondary text-foreground"
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -82,7 +82,7 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
                     <span
                       className={cn(
                         "text-xs",
-                        isSent ? "text-blue-100" : "text-gray-500"
+                        isSent ? "text-blue-100" : "text-muted-foreground"
                       )}
                     >
                       {formatTimestamp(message.timestamp)}

@@ -20,7 +20,7 @@ const statusColors: Record<TaskStatus, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   in_progress: "bg-blue-100 text-blue-800",
   completed: "bg-green-100 text-green-800",
-  cancelled: "bg-gray-100 text-gray-800",
+  cancelled: "bg-secondary text-gray-800",
 }
 
 const statusLabels: Record<TaskStatus, string> = {

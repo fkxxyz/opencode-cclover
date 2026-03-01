@@ -26,7 +26,7 @@ export function MemoryView({ memory }: MemoryViewProps) {
               {memory.knowledge.map((item, index) => (
                 <li
                   key={index}
-                  className="text-sm text-muted-foreground pl-4 border-l-2 border-gray-200"
+                  className="text-sm text-muted-foreground pl-4 border-l-2 border-border"
                 >
                   {item}
                 </li>
@@ -53,7 +53,7 @@ export function MemoryView({ memory }: MemoryViewProps) {
               {Object.keys(memory.custom).length === 0 ? (
                 <p className="text-sm text-muted-foreground">暂无自定义字段</p>
               ) : (
-                <pre className="text-xs bg-gray-50 p-3 rounded-lg overflow-x-auto">
+                <pre className="text-xs bg-background p-3 rounded-lg overflow-x-auto">
                   {JSON.stringify(memory.custom, null, 2)}
                 </pre>
               )}

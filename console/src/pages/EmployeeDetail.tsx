@@ -37,7 +37,7 @@ export function EmployeeDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>加载中...</span>
@@ -48,7 +48,7 @@ export function EmployeeDetail() {
 
   if (error || !employee) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
@@ -65,14 +65,14 @@ export function EmployeeDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">{employee.name}</h1>
+          <h1 className="text-3xl font-bold text-foreground">{employee.name}</h1>
         </div>
 
         <EmployeeCard employee={employee} />
