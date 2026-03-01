@@ -22,7 +22,9 @@ export class ApiClient {
   }
 
   async getCandidateProjects(): Promise<CandidateProject[]> {
-    const data = await this.request<{ candidates: CandidateProject[] }>("/candidate-projects")
+    const data = await this.request<{ candidates: CandidateProject[] }>(
+      "/candidate-projects"
+    )
     return data.candidates
   }
 
@@ -32,7 +34,9 @@ export class ApiClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, path }),
     })
-    const json = (await response.json()) as SuccessResponse<{ project: any }> | ErrorResponse
+    const json = (await response.json()) as
+      | SuccessResponse<{ project: any }>
+      | ErrorResponse
     if (!json.success) {
       const error = json as ErrorResponse
       throw new Error(error.error.message)
