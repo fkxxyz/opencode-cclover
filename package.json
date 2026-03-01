@@ -26,6 +26,12 @@
   "devDependencies": {
     "@opencode-ai/plugin": "*",
     "@types/node": "^20.0.0",
+    "@types/proper-lockfile": "^4.1.4",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.4",
+    "proper-lockfile": "^4.1.2",
+    "yaml": "^2.8.2"
   }
 }

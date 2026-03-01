@@ -7,3 +7,22 @@ dist/
 *~
 .vscode/
 .idea/
+
+
+# Test workspace
+/tmp/cclover-test-workspace/
+
+# Cclover runtime workspace
+.cclover/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Lock files (using bun)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
