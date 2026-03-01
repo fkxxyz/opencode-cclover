@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises"
 import path from "node:path"
 import { ConfigManager } from "../config/ConfigManager"
 import type { ProjectConfig } from "../config/ConfigManager"
@@ -81,6 +82,9 @@ export class GlobalCcloverService {
    */
   private async initializeProject(config: ProjectConfig): Promise<void> {
     const workspaceRoot = path.join(config.path, ".cclover/workspace")
+
+    // 确保 .cclover/.gitignore 存在（按需创建）
+    await this.ensureCcloverGitignore(config.path)
 
     // 创建服务实例
     const projectId = ProjectRegistry.hashPath(config.path)
@@ -168,5 +172,28 @@ export class GlobalCcloverService {
    */
   getProjectRegistry(): ProjectRegistry {
     return this.projectRegistry
+  }
+  /**
+   * 确保 .cclover/.gitignore 存在
+   * 只在第一次需要时创建
+   */
+  private async ensureCcloverGitignore(projectRoot: string): Promise<void> {
+    const ccloverDir = path.join(projectRoot, ".cclover")
+    const gitignorePath = path.join(ccloverDir, ".gitignore")
+    try {
+      // 检查 .gitignore 是否已存在
+      await fs.access(gitignorePath)
+    } catch {
+      // .gitignore 不存在，创建它
+      try {
+        // 确保 .cclover 目录存在
+        await fs.mkdir(ccloverDir, { recursive: true })
+        // 创建 .gitignore 忽略整个目录
+        await fs.writeFile(gitignorePath, "*\n", "utf-8")
+        logger.info(`Created .cclover/.gitignore for project: ${projectRoot}`)
+      } catch (error) {
+        logger.error(`Failed to create .cclover/.gitignore: ${error}`)
+      }
+    }
   }
 }

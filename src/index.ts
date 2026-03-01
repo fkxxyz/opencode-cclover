@@ -5,24 +5,6 @@ import { createTools } from "./tools"
 import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
 import { agentRegistry } from "./utils/AgentRegistry"
-/**
- * 确保 .cclover 目录被 git 忽略
- */
-async function ensureGitignore(projectRoot: string): Promise<void> {
-  const ccloverDir = path.join(projectRoot, ".cclover")
-  const gitignorePath = path.join(ccloverDir, ".gitignore")
-
-  try {
-    // 确保 .cclover 目录存在
-    await fs.mkdir(ccloverDir, { recursive: true })
-
-    // 创建 .gitignore 忽略整个目录
-    await fs.writeFile(gitignorePath, "*\n", "utf-8")
-    logger.info("Ensured .cclover/.gitignore exists")
-  } catch (error) {
-    logger.error("Failed to create .cclover/.gitignore:", error)
-  }
-}
 
 /**
  * OpenCode Cclover Plugin
@@ -34,9 +16,6 @@ export const CcloverPlugin: Plugin = async (ctx) => {
 
   // 1. 确保全局服务已启动(单例,只启动一次)
   const globalService = await GlobalCcloverService.getInstance()
-
-  // 2. 确保 .gitignore
-  await ensureGitignore(ctx.directory)
 
   // 3. 从全局服务获取当前 project 的服务实例
   const project = globalService.getProject(ctx.directory)
