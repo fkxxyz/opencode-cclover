@@ -2,6 +2,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import * as yaml from "yaml"
 import * as lockfile from "proper-lockfile"
+import type { StateManager } from "../state/StateManager"
 
 /**
  * 任务状态
@@ -36,9 +37,11 @@ export interface Memory {
  */
 export class MemoryManager {
   private workspaceRoot: string
+  private stateManager?: StateManager
 
-  constructor(workspaceRoot: string) {
+  constructor(workspaceRoot: string, stateManager?: StateManager) {
     this.workspaceRoot = workspaceRoot
+    this.stateManager = stateManager
   }
 
   /**
@@ -195,7 +198,32 @@ export class MemoryManager {
     }
 
     await this.write(employeeName, memory)
+
+    // 发射事件到 StateManager
+    const timestamp = new Date().toISOString()
+    if (updates.status === "completed") {
+      this.stateManager?.addEvent({
+        type: "task_completed",
+        timestamp,
+        employeeName,
+        details: {
+          taskName,
+          result: updates.result,
+        },
+      })
+    } else if (updates.status === "cancelled") {
+      this.stateManager?.addEvent({
+        type: "task_failed",
+        timestamp,
+        employeeName,
+        details: {
+          taskName,
+          reason: "cancelled",
+        },
+      })
+    }
   }
+
 
   /**
    * 删除任务

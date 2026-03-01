@@ -7,6 +7,7 @@ import { EventLoop } from "./core/EventLoop"
 import { createTools } from "./tools"
 import { CalculatorRole } from "./roles"
 import { logger } from "./lib/logger"
+import { StateManager } from "./state/StateManager"
 /**
  * 确保 .gitignore 包含 .cclover
  */
@@ -40,6 +41,7 @@ async function ensureGitignore(projectRoot: string): Promise<void> {
 async function startEmployees(
   messageService: MessageService,
   memoryManager: MemoryManager,
+  stateManager: StateManager,
   opcodeClient: any
 ): Promise<void> {
   const employees = [{ name: "calculator", role: CalculatorRole }]
@@ -54,7 +56,8 @@ async function startEmployees(
           role,
           messageClient,
           memoryManager,
-          opcodeClient
+          opcodeClient,
+          stateManager
         )
 
         // 启动事件循环（不等待，让它在后台运行）
@@ -96,16 +99,33 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   const memoryManager = new MemoryManager(workspaceRoot)
   logger.info("MemoryManager initialized")
 
-  // 5. 创建工具
+  // 5. 初始化状态管理器
+  const stateManager = new StateManager()
+  logger.info("StateManager initialized")
+
+  // 6. 将 StateManager 传递给服务
+  const messageServiceWithState = new MessageService(workspaceRoot, stateManager)
+  const memoryManagerWithState = new MemoryManager(workspaceRoot, stateManager)
+
+  // 7. 注册初始员工到 StateManager
+  stateManager.registerEmployee({
+    name: "calculator",
+    role: "calculator",
+    status: "inactive",
+    createdAt: new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+  })
+
+  // 8. 创建工具
   const tools = createTools({
-    messageService,
-    memoryManager,
+    messageService: messageServiceWithState,
+    memoryManager: memoryManagerWithState,
     opcodeClient: ctx.client,
   })
   logger.info("Tools created")
 
-  // 6. 启动员工（后台运行）
-  startEmployees(messageService, memoryManager, ctx.client)
+  // 9. 启动员工（后台运行）
+  startEmployees(messageServiceWithState, memoryManagerWithState, stateManager, ctx.client)
 
   logger.info("Plugin initialized successfully")
   // 7. 返回工具

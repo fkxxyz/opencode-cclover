@@ -3,6 +3,7 @@ import * as path from "node:path"
 import * as yaml from "yaml"
 import EventEmitter from "eventemitter3"
 import * as lockfile from "proper-lockfile"
+import type { StateManager } from "../state/StateManager"
 
 /**
  * 消息对象（API 格式）
@@ -110,7 +111,10 @@ export class MessageService {
   private unreadQueues: Map<string, Message[]> = new Map()
   public eventEmitter: EventEmitter = new EventEmitter()
 
-  constructor(private workspaceRoot: string) {}
+  constructor(
+    private workspaceRoot: string,
+    private stateManager?: StateManager
+  ) {}
 
   /**
    * 获取员工的消息客户端
@@ -149,6 +153,18 @@ export class MessageService {
 
     // 4. 触发事件通知接收方
     this.notifyNewMessage(to, message)
+
+    // 5. 发射事件到 StateManager
+    this.stateManager?.addEvent({
+      type: "message",
+      timestamp,
+      employeeName: from,
+      details: {
+        from,
+        to,
+        content,
+      },
+    })
   }
 
   /**

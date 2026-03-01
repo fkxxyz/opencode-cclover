@@ -4,6 +4,7 @@ import type { MemoryManager, Memory } from "./MemoryManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { sessionRegistry } from "../utils/SessionRegistry"
+import type { StateManager } from "../state/StateManager"
 
 /**
  * 角色定义
@@ -56,7 +57,8 @@ export class EventLoop {
     private role: Role,
     private messageClient: MessageClient,
     private memoryManager: MemoryManager,
-    private opcodeClient: OpencodeClient
+    private opcodeClient: OpencodeClient,
+    private stateManager?: StateManager
   ) {}
 
   /**
@@ -64,19 +66,29 @@ export class EventLoop {
    */
   async run(): Promise<void> {
     console.log(`[${this.employeeName}] Starting event loop...`)
+    // 更新员工状态为 active
+    this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
 
     while (true) {
       try {
-        // 1. 等待事件
+        // 1. 更新状态为 idle（等待事件）
+        this.stateManager?.updateEmployeeStatus(this.employeeName, "idle")
+
+        // 2. 等待事件
         const event = await this.waitForEvent()
 
-        // 2. 处理事件
+        // 3. 更新状态为 active（处理事件）
+        this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
+
+        // 4. 处理事件
         await this.handleEvent(event)
 
-        // 3. 检查是否需要总结
+        // 5. 检查是否需要总结
         await this.summarizeIfNeeded()
       } catch (error) {
         console.error(`[${this.employeeName}] Error in event loop:`, error)
+        // 更新状态为 error
+        this.stateManager?.updateEmployeeStatus(this.employeeName, "error")
         // 继续循环，不退出
       }
     }
