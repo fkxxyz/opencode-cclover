@@ -6,6 +6,7 @@ import * as hierarchy from "../api/hierarchy"
 import * as events from "../api/events"
 import * as stats from "../api/stats"
 import * as health from "../api/health"
+import * as projectsApi from "../api/projects"
 
 /**
  * 路由分发器
@@ -39,7 +40,42 @@ export class Router {
           projectName: p.projectName,
           directory: p.directory,
         }))
-        return this.jsonResponse({ projects })
+        return this.jsonResponse({
+          success: true,
+          data: { projects },
+        })
+      }
+
+      // 获取候选项目列表
+      if (pathname === "/api/candidate-projects" && method === "GET") {
+        return this.jsonResponse(await projectsApi.getCandidateProjects())
+      }
+
+      // 添加项目
+      if (pathname === "/api/projects" && method === "POST") {
+        const body = (await req.json()) as { name: string; path: string }
+        return this.jsonResponse(
+          await projectsApi.addProject(body.name, body.path)
+        )
+      }
+
+      // 删除项目
+      const deleteProjectMatch = pathname.match(/^\/api\/projects\/delete$/)
+      if (deleteProjectMatch && method === "POST") {
+        const body = (await req.json()) as { path: string }
+        return this.jsonResponse(await projectsApi.deleteProject(body.path))
+      }
+
+      // 更新项目
+      const updateProjectMatch = pathname.match(/^\/api\/projects\/update$/)
+      if (updateProjectMatch && method === "POST") {
+        const body = (await req.json()) as {
+          path: string
+          updates: { name?: string; enabled?: boolean }
+        }
+        return this.jsonResponse(
+          await projectsApi.updateProject(body.path, body.updates)
+        )
       }
 
       // 所有其他 API 都需要 projectId

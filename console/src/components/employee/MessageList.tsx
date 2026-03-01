@@ -62,7 +62,15 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, maxHeight: 600, overflowY: "auto" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1.5,
+            maxHeight: 600,
+            overflowY: "auto",
+          }}
+        >
           {messages.map((message, index) => {
             const isSent = message.direction === "send"
             return (
@@ -82,7 +90,14 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
                     color: isSent ? "primary.contrastText" : "text.primary",
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 0.5,
+                    }}
+                  >
                     <Typography variant="caption" fontWeight="medium">
                       {isSent ? message.from : message.from}
                     </Typography>
@@ -95,7 +110,10 @@ export function MessageList({ employeeName, peer }: MessageListProps) {
                       {formatTimestamp(message.timestamp)}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                  >
                     {message.content}
                   </Typography>
                 </Box>

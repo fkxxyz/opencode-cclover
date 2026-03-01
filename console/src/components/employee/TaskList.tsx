@@ -18,7 +18,10 @@ interface TaskListProps {
   employeeName: string
 }
 
-const statusVariants: Record<TaskStatus, "default" | "secondary" | "destructive" | "outline"> = {
+const statusVariants: Record<
+  TaskStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   pending: "outline",
   in_progress: "default",
   completed: "secondary",
@@ -95,9 +98,10 @@ export function TaskList({ employeeName }: TaskListProps) {
                 <TableRow
                   key={task.name}
                   sx={{
-                    ...(isExecutable && task.status === "pending" && {
-                      bgcolor: "success.light",
-                    }),
+                    ...(isExecutable &&
+                      task.status === "pending" && {
+                        bgcolor: "success.light",
+                      }),
                   }}
                 >
                   <TableCell>

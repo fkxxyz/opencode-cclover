@@ -1,5 +1,6 @@
 import type {
   Project,
+  CandidateProject,
   Employee,
   EmployeeDetail,
   EmployeeHierarchy,
@@ -18,6 +19,38 @@ export class ApiClient {
   async getProjects(): Promise<Project[]> {
     const data = await this.request<{ projects: Project[] }>("/projects")
     return data.projects
+  }
+
+  async getCandidateProjects(): Promise<CandidateProject[]> {
+    const data = await this.request<{ candidates: CandidateProject[] }>("/candidate-projects")
+    return data.candidates
+  }
+
+  async addProject(name: string, path: string): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, path }),
+    })
+    const json = (await response.json()) as SuccessResponse<{ project: any }> | ErrorResponse
+    if (!json.success) {
+      const error = json as ErrorResponse
+      throw new Error(error.error.message)
+    }
+    return (json as SuccessResponse<{ project: any }>).data.project
+  }
+
+  async deleteProject(path: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/projects/delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    })
+    const json = (await response.json()) as SuccessResponse<any> | ErrorResponse
+    if (!json.success) {
+      const error = json as ErrorResponse
+      throw new Error(error.error.message)
+    }
   }
   private async request<T>(endpoint: string): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`)

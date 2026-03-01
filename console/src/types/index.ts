@@ -5,6 +5,13 @@ export interface Project {
   directory: string
 }
 
+export interface CandidateProject {
+  path: string
+  firstSeenAt: string
+  lastSeenAt: string
+  seenCount: number
+}
+
 // Employee types
 export type EmployeeStatus = "active" | "idle" | "error" | "inactive"
 

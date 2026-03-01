@@ -2,20 +2,22 @@ import { useEvents } from "../../hooks/useEvents"
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import type { EventType } from "../../types/index"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
 
-const eventTypeColors: Record<EventType, string> = {
-  message: "bg-blue-100 text-blue-800",
-  task_completed: "bg-green-100 text-green-800",
-  task_failed: "bg-red-100 text-red-800",
-  agent_completed: "bg-purple-100 text-purple-800",
-  agent_failed: "bg-red-100 text-red-800",
-  timer: "bg-secondary text-secondary-foreground",
-  employee_hired: "bg-yellow-100 text-yellow-800",
-  employee_status_changed: "bg-orange-100 text-orange-800",
-  message_sent: "bg-blue-100 text-blue-800",
-  message_received: "bg-blue-100 text-blue-800",
-  task_updated: "bg-green-100 text-green-800",
-  agent_updated: "bg-purple-100 text-purple-800",
+const eventTypeColors: Record<EventType, { bg: string; text: string }> = {
+  message: { bg: "#dbeafe", text: "#1e40af" },
+  task_completed: { bg: "#dcfce7", text: "#166534" },
+  task_failed: { bg: "#fee2e2", text: "#991b1b" },
+  agent_completed: { bg: "#f3e8ff", text: "#6b21a8" },
+  agent_failed: { bg: "#fee2e2", text: "#991b1b" },
+  timer: { bg: "#f1f5f9", text: "#475569" },
+  employee_hired: { bg: "#fef3c7", text: "#92400e" },
+  employee_status_changed: { bg: "#fed7aa", text: "#9a3412" },
+  message_sent: { bg: "#dbeafe", text: "#1e40af" },
+  message_received: { bg: "#dbeafe", text: "#1e40af" },
+  task_updated: { bg: "#dcfce7", text: "#166534" },
+  agent_updated: { bg: "#f3e8ff", text: "#6b21a8" },
 }
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -96,7 +98,9 @@ export function EventStream() {
           <CardTitle>实时事件流</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">加载中...</div>
+          <Typography textAlign="center" color="text.secondary">
+            加载中...
+          </Typography>
         </CardContent>
       </Card>
     )
@@ -109,7 +113,9 @@ export function EventStream() {
           <CardTitle>实时事件流</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">暂无事件</div>
+          <Typography textAlign="center" color="text.secondary">
+            暂无事件
+          </Typography>
         </CardContent>
       </Card>
     )
@@ -121,39 +127,76 @@ export function EventStream() {
         <CardTitle>实时事件流</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            maxHeight: 600,
+            overflowY: "auto",
+          }}
+        >
           {events.map((event, index) => (
-            <div
+            <Box
               key={`${event.timestamp}-${index}`}
-              className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 1.5,
+                p: 1.5,
+                borderRadius: 1,
+                border: 1,
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                "&:hover": {
+                  bgcolor: "action.hover",
+                },
+                transition: "background-color 0.2s",
+              }}
             >
-              <div className="flex-shrink-0 pt-1">
-                <Badge className={eventTypeColors[event.type]}>
+              <Box sx={{ flexShrink: 0, pt: 0.5 }}>
+                <Badge
+                  style={{
+                    backgroundColor: eventTypeColors[event.type].bg,
+                    color: eventTypeColors[event.type].text,
+                  }}
+                >
                   {eventTypeLabels[event.type]}
                 </Badge>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: 0.5,
+                  }}
+                >
                   {event.employeeName && (
-                    <span className="text-sm font-medium">
+                    <Typography variant="body2" fontWeight="medium">
                       {event.employeeName}
-                    </span>
+                    </Typography>
                   )}
-                  <span className="text-xs text-muted-foreground">
+                  <Typography variant="caption" color="text.secondary">
                     {formatTimestamp(event.timestamp)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground break-words">
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ wordBreak: "break-word" }}
+                >
                   {getEventDescription(
                     event.type,
                     event.details,
                     event.employeeName
                   )}
-                </p>
-              </div>
-            </div>
+                </Typography>
+              </Box>
+            </Box>
           ))}
-        </div>
+        </Box>
       </CardContent>
     </Card>
   )

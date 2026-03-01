@@ -4,6 +4,7 @@ import * as fs from "node:fs/promises"
 import { createTools } from "./tools"
 import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
+import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
 import { agentRegistry } from "./utils/AgentRegistry"
 
 /**
@@ -25,6 +26,10 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     logger.warn(
       "Please add this project to ~/.config/opencode-cclover/config.yaml"
     )
+    // 记录到候选项目列表
+    CandidateProjectsManager.addCandidate(ctx.directory).catch((error) => {
+      logger.error("Failed to record candidate project:", error)
+    })
     return {} // 返回空,不提供工具
   }
 
