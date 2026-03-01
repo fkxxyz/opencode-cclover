@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom"
 import { useEmployees } from "../hooks/useEmployees"
+import { useProjectContext } from "../contexts/ProjectContext"
 import { GlobalStats } from "../components/dashboard/GlobalStats"
 import { EventStream } from "../components/dashboard/EventStream"
 import { HierarchyTree } from "../components/visualizations/HierarchyTree"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
+import { EmployeeCard } from "../components/employee/EmployeeCard"
 import { Loader2 } from "lucide-react"
 import { apiClient } from "../services"
 import { useEffect, useState } from "react"
@@ -14,10 +16,28 @@ import Typography from "@mui/material/Typography"
 export function Overview() {
   const navigate = useNavigate()
   const { employees, loading: employeesLoading } = useEmployees()
+  const { currentProject } = useProjectContext()
   const [hierarchy, setHierarchy] = useState<EmployeeHierarchy | null>(null)
   const [hierarchyLoading, setHierarchyLoading] = useState(true)
 
+
+
+
+
+
+
   useEffect(() => {
+    if (!currentProject) {
+      setHierarchyLoading(false)
+      return
+    }
+    setHierarchyLoading(true)
+    // 确保 apiClient 已设置 project
+    apiClient.setProject(currentProject)
+    apiClient
+    // 确保 apiClient 已设置 project
+    apiClient.setProject(currentProject)
+    apiClient
     apiClient
       .getHierarchy()
       .then(setHierarchy)
@@ -25,7 +45,7 @@ export function Overview() {
         console.error("获取雇佣关系失败:", err)
       })
       .finally(() => setHierarchyLoading(false))
-  }, [])
+  }, [currentProject])
 
   const handleNodeClick = (employee: { name: string; role: string }) => {
     navigate(`/employee/${employee.name}`)
@@ -91,6 +111,32 @@ export function Overview() {
             </CardContent>
           </Card>
         )}
+        <Card>
+          <CardHeader>
+            <CardTitle>员工列表</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, 1fr)",
+                  lg: "repeat(3, 1fr)",
+                },
+                gap: 2,
+              }}
+            >
+              {employees.map((emp) => (
+                <EmployeeCard
+                  key={emp.name}
+                  employee={emp}
+                  onClick={() => navigate(`/employee/${emp.name}`)}
+                />
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
         <EventStream />
       </Box>
     </Box>

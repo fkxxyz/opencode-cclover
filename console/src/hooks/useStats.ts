@@ -20,8 +20,17 @@ export function useStats() {
   const { subscribe } = useWebSocket()
   // 初始加载
   useEffect(() => {
-    if (!currentProject) return
+    if (!currentProject) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
+    // 确保 apiClient 已设置 project
+    apiClient.setProject(currentProject)
+    apiClient
+    // 确保 apiClient 已设置 project
+    apiClient.setProject(currentProject)
+    apiClient
     apiClient
       .getStats()
       .then(setStats)

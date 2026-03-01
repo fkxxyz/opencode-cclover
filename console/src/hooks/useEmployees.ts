@@ -9,10 +9,17 @@ export function useEmployees() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const { subscribe } = useWebSocket()
+
   // 初始加载
   useEffect(() => {
-    if (!currentProject) return
+    if (!currentProject) {
+      setLoading(false)
+      setEmployees([])
+      return
+    }
     setLoading(true)
+    // 确保 apiClient 已设置 project
+    apiClient.setProject(currentProject)
     apiClient
       .getEmployees()
       .then(setEmployees)
