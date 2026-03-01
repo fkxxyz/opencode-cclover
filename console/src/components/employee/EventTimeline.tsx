@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Box, Typography } from "@mui/material"
 import { useEvents } from "../../hooks/useEvents"
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
@@ -15,19 +16,22 @@ interface EventTimelineProps {
   employeeName: string
 }
 
-const eventTypeColors: Record<EventType, string> = {
-  message: "bg-blue-100 text-blue-800",
-  task_completed: "bg-green-100 text-green-800",
-  task_failed: "bg-red-100 text-red-800",
-  agent_completed: "bg-purple-100 text-purple-800",
-  agent_failed: "bg-red-100 text-red-800",
-  timer: "bg-secondary text-gray-800",
-  employee_hired: "bg-yellow-100 text-yellow-800",
-  employee_status_changed: "bg-orange-100 text-orange-800",
-  message_sent: "bg-blue-100 text-blue-800",
-  message_received: "bg-blue-100 text-blue-800",
-  task_updated: "bg-green-100 text-green-800",
-  agent_updated: "bg-purple-100 text-purple-800",
+const eventTypeColors: Record<
+  EventType,
+  { backgroundColor: string; color: string }
+> = {
+  message: { backgroundColor: "#dbeafe", color: "#1e40af" },
+  task_completed: { backgroundColor: "#dcfce7", color: "#166534" },
+  task_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  agent_completed: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
+  agent_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  timer: { backgroundColor: "#f3f4f6", color: "#1f2937" },
+  employee_hired: { backgroundColor: "#fef3c7", color: "#92400e" },
+  employee_status_changed: { backgroundColor: "#fed7aa", color: "#9a3412" },
+  message_sent: { backgroundColor: "#dbeafe", color: "#1e40af" },
+  message_received: { backgroundColor: "#dbeafe", color: "#1e40af" },
+  task_updated: { backgroundColor: "#dcfce7", color: "#166534" },
+  agent_updated: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
 }
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -70,7 +74,7 @@ function getEventDescription(
     case "task_failed":
       return `任务 "${details.taskName}" 失败: ${details.error}`
     case "agent_completed":
-      return `Agent ${details.agentId} 完成任务.taskName}"`
+      return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
     case "agent_failed":
       return `Agent ${details.agentId} 失败: ${details.error}`
     case "employee_hired":
@@ -104,7 +108,11 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
           <CardTitle>事件时间线</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">加载中...</div>
+          <Box sx={{ textAlign: "center" }}>
+            <Typography variant="body2" color="text.secondary">
+              加载中...
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
     )
@@ -113,7 +121,13 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <CardTitle>事件时间线</CardTitle>
           <Select
             value={filterType}
@@ -121,7 +135,7 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
               setFilterType(value as EventType | "all")
             }
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger sx={{ width: "180px" }}>
               <SelectValue placeholder="筛选事件类型" />
             </SelectTrigger>
             <SelectContent>
@@ -133,44 +147,92 @@ export function EventTimeline({ employeeName }: EventTimelineProps) {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Box>
       </CardHeader>
       <CardContent>
         {filteredEvents.length === 0 ? (
-          <div className="text-center text-muted-foreground">暂无事件</div>
+          <Box sx={{ textAlign: "center" }}>
+            <Typography variant="body2" color="text.secondary">
+              暂无事件
+            </Typography>
+          </Box>
         ) : (
-          <div className="relative">
+          <Box sx={{ position: "relative" }}>
             {/* 时间线竖线 */}
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted" />
+            <Box
+              sx={{
+                position: "absolute",
+                left: "1rem",
+                top: 0,
+                bottom: 0,
+                width: "2px",
+                bgcolor: "divider",
+              }}
+            />
 
             {/* 事件列表 */}
-            <div className="space-y-4">
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {filteredEvents.map((event, index) => (
-                <div
+                <Box
                   key={`${event.timestamp}-${index}`}
-                  className="relative pl-10"
+                  sx={{ position: "relative", pl: "2.5rem" }}
                 >
                   {/* 时间线圆点 */}
-                  <div className="absolute left-2.5 top-2 h-3 w-3 rounded-full bg-card border-2 border-blue-500" />
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      left: "0.625rem",
+                      top: "0.5rem",
+                      height: "0.75rem",
+                      width: "0.75rem",
+                      borderRadius: "50%",
+                      bgcolor: "background.paper",
+                      border: "2px solid",
+                      borderColor: "#3b82f6",
+                    }}
+                  />
 
                   {/* 事件内容 */}
-                  <div className="bg-card border rounded-lg p-3 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={eventTypeColors[event.type]}>
+                  <Box
+                    sx={{
+                      bgcolor: "background.paper",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      p: 1.5,
+                      transition: "box-shadow 0.2s",
+                      "&:hover": {
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 1,
+                      }}
+                    >
+                      <Badge style={eventTypeColors[event.type]}>
                         {eventTypeLabels[event.type]}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      <Typography variant="caption" color="text.secondary">
                         {formatTimestamp(event.timestamp)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground break-words">
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ wordBreak: "break-word" }}
+                    >
                       {getEventDescription(event.type, event.details)}
-                    </p>
-                  </div>
-                </div>
+                    </Typography>
+                  </Box>
+                </Box>
               ))}
-            </div>
-          </div>
+            </Box>
+          </Box>
         )}
       </CardContent>
     </Card>

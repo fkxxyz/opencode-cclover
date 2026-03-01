@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import * as d3 from "d3"
 import type { EmployeeHierarchy, EmployeeStatus } from "../../types"
+import { Box } from "@mui/material"
 
 interface HierarchyTreeProps {
   hierarchy: EmployeeHierarchy
@@ -180,8 +181,8 @@ export function HierarchyTree({ hierarchy, onNodeClick }: HierarchyTreeProps) {
   }, [hierarchy, onNodeClick, dimensions])
 
   return (
-    <div ref={containerRef} className="w-full h-full">
-      <svg ref={svgRef} className="w-full h-full" />
-    </div>
+    <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
+      <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
+    </Box>
   )
 }

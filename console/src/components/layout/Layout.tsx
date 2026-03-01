@@ -1,11 +1,12 @@
 import { ReactNode } from "react"
 import { Sidebar } from "./Sidebar"
+import Box from "@mui/material/Box"
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen">
+    <Box sx={{ display: "flex", height: "100vh" }}>
       <Sidebar />
-      <div className="flex-1 overflow-auto">{children}</div>
-    </div>
+      <Box sx={{ flex: 1, overflow: "auto" }}>{children}</Box>
+    </Box>
   )
 }

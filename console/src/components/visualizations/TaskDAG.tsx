@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import * as d3 from "d3"
 import type { Task, TaskStatus } from "../../types"
+import { Box } from "@mui/material"
 
 interface TaskDAGProps {
   tasks: Task[]
@@ -241,8 +242,8 @@ export function TaskDAG({ tasks, executableTasks, onTaskClick }: TaskDAGProps) {
   }, [tasks, executableTasks, onTaskClick, dimensions])
 
   return (
-    <div ref={containerRef} className="w-full h-full">
-      <svg ref={svgRef} className="w-full h-full" />
-    </div>
+    <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
+      <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
+    </Box>
   )
 }

@@ -1,17 +1,19 @@
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import type { Employee, EmployeeStatus } from "../../types/index"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
 
 interface EmployeeCardProps {
   employee: Employee
   onClick?: () => void
 }
 
-const statusColors: Record<EmployeeStatus, string> = {
-  active: "bg-green-100 text-green-800",
-  idle: "bg-yellow-100 text-yellow-800",
-  error: "bg-red-100 text-red-800",
-  inactive: "bg-secondary text-secondary-foreground",
+const statusColors: Record<EmployeeStatus, { bg: string; text: string }> = {
+  active: { bg: "#dcfce7", text: "#166534" },
+  idle: { bg: "#fef3c7", text: "#92400e" },
+  error: { bg: "#fee2e2", text: "#991b1b" },
+  inactive: { bg: "#f1f5f9", text: "#475569" },
 }
 
 const statusLabels: Record<EmployeeStatus, string> = {
@@ -24,31 +26,59 @@ const statusLabels: Record<EmployeeStatus, string> = {
 export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+      style={{
+        cursor: "pointer",
+        transition: "box-shadow 0.2s",
+      }}
       onClick={onClick}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = ""
+      }}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{employee.name}</CardTitle>
-          <Badge className={statusColors[employee.status]}>
+      <CardHeader style={{ paddingBottom: "12px" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <CardTitle style={{ fontSize: "1.125rem" }}>
+            {employee.name}
+          </CardTitle>
+          <Badge
+            style={{
+              backgroundColor: statusColors[employee.status].bg,
+              color: statusColors[employee.status].text,
+            }}
+          >
             {statusLabels[employee.status]}
           </Badge>
-        </div>
+        </Box>
       </CardHeader>
       <CardContent>
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">角色:</span> {employee.role}
-          </p>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            <Box component="span" fontWeight="medium">
+              角色:
+            </Box>{" "}
+            {employee.role}
+          </Typography>
           {employee.hiredBy && (
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium">雇佣者:</span> {employee.hiredBy}
-            </p>
+            <Typography variant="body2" color="text.secondary">
+              <Box component="span" fontWeight="medium">
+                雇佣者:
+              </Box>{" "}
+              {employee.hiredBy}
+            </Typography>
           )}
-          <p className="text-xs text-muted-foreground">
+          <Typography variant="caption" color="text.secondary">
             最后活跃: {new Date(employee.lastActiveAt).toLocaleString("zh-CN")}
-          </p>
-        </div>
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   )

@@ -1,3 +1,4 @@
+import { Box, Typography } from "@mui/material"
 import { Loader2 } from "lucide-react"
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
@@ -15,10 +16,13 @@ interface AgentListProps {
   agents: AgentExecution[]
 }
 
-const statusColors: Record<AgentStatus, string> = {
-  running: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  failed: "bg-red-100 text-red-800",
+const statusColors: Record<
+  AgentStatus,
+  { backgroundColor: string; color: string }
+> = {
+  running: { backgroundColor: "#dbeafe", color: "#1e40af" },
+  completed: { backgroundColor: "#dcfce7", color: "#166534" },
+  failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
 }
 
 const statusLabels: Record<AgentStatus, string> = {
@@ -45,9 +49,11 @@ export function AgentList({ agents }: AgentListProps) {
           <CardTitle>Agent 执行记录</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground">
-            暂无 Agent 执行记录
-          </div>
+          <Box sx={{ textAlign: "center" }}>
+            <Typography variant="body2" color="text.secondary">
+              暂无 Agent 执行记录
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
     )
@@ -73,28 +79,53 @@ export function AgentList({ agents }: AgentListProps) {
           <TableBody>
             {agents.map((agent) => (
               <TableRow key={agent.agentId}>
-                <TableCell className="font-mono text-sm">
-                  {agent.agentId}
-                </TableCell>
-                <TableCell className="font-medium">{agent.taskName}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
+                  <Typography
+                    variant="body2"
+                    sx={{ fontFamily: "monospace", fontSize: "0.875rem" }}
+                  >
+                    {agent.agentId}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {agent.taskName}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     {agent.status === "running" && (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     )}
-                    <Badge className={statusColors[agent.status]}>
+                    <Badge style={statusColors[agent.status]}>
                       {statusLabels[agent.status]}
                     </Badge>
-                  </div>
+                  </Box>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatTimestamp(agent.createdAt)}
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatTimestamp(agent.createdAt)}
+                  </Typography>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {agent.completedAt ? formatTimestamp(agent.completedAt) : "-"}
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {agent.completedAt
+                      ? formatTimestamp(agent.completedAt)
+                      : "-"}
+                  </Typography>
                 </TableCell>
-                <TableCell className="max-w-md truncate text-sm">
-                  {agent.result || "-"}
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      maxWidth: "28rem",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {agent.result || "-"}
+                  </Typography>
                 </TableCell>
               </TableRow>
             ))}

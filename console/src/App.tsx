@@ -1,18 +1,20 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { Box } from "@mui/material"
 import { ProjectProvider } from "./contexts/ProjectContext"
 import { Layout } from "./components/layout/Layout"
-import { Overview, EmployeeDetail } from "./pages"
+import { Overview, EmployeeDetail, ProjectManagement } from "./pages"
 function App() {
   return (
     <BrowserRouter>
       <ProjectProvider>
         <Layout>
-          <div className="min-h-screen bg-background">
+          <Box sx={{ minHeight: "100vh" }}>
             <Routes>
               <Route path="/" element={<Overview />} />
               <Route path="/employee/:name" element={<EmployeeDetail />} />
+              <Route path="/projects" element={<ProjectManagement />} />
             </Routes>
-          </div>
+          </Box>
         </Layout>
       </ProjectProvider>
     </BrowserRouter>

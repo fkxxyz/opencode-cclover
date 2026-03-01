@@ -9,7 +9,13 @@ export interface TabsProps extends Omit<MuiTabsProps, "value" | "onChange"> {
   children?: React.ReactNode
 }
 const TabsContext = React.createContext<{ value: string } | null>(null)
-export const Tabs = ({ value, onValueChange, defaultValue, children, ...props }: TabsProps) => {
+export const Tabs = ({
+  value,
+  onValueChange,
+  defaultValue,
+  children,
+  ...props
+}: TabsProps) => {
   const [internalValue, setInternalValue] = React.useState(defaultValue || "")
   const currentValue = value !== undefined ? value : internalValue
   const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
@@ -47,24 +53,36 @@ export const Tabs = ({ value, onValueChange, defaultValue, children, ...props }:
   )
 }
 Tabs.displayName = "Tabs"
-export const TabsList = ({ children, className }: { children?: React.ReactNode; className?: string }) => <Box className={className}>{children}</Box>
+export const TabsList = ({
+  children,
+  sx,
+}: {
+  children?: React.ReactNode
+  sx?: any
+}) => <Box sx={sx}>{children}</Box>
 TabsList.displayName = "TabsList"
-export interface TabsTriggerProps extends Omit<MuiTabProps, "value" | "children"> {
+export interface TabsTriggerProps extends Omit<
+  MuiTabProps,
+  "value" | "children"
+> {
   value: string
   children?: React.ReactNode
 }
-export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
-  ({ children, ...props }, ref) => <MuiTab ref={ref as any} label={children} {...props} />
-)
+export const TabsTrigger = React.forwardRef<
+  HTMLButtonElement,
+  TabsTriggerProps
+>(({ children, ...props }, ref) => (
+  <MuiTab ref={ref as any} label={children} {...props} />
+))
 TabsTrigger.displayName = "TabsTrigger"
 export interface TabsContentProps {
   value: string
   children?: React.ReactNode
-  className?: string
+  sx?: any
 }
-export const TabsContent = ({ value, children, className }: TabsContentProps) => {
+export const TabsContent = ({ value, children, sx }: TabsContentProps) => {
   const parent = React.useContext(TabsContext)
   if (parent?.value !== value) return null
-  return <Box sx={{ mt: 2 }} className={className}>{children}</Box>
+  return <Box sx={{ mt: 2, ...sx }}>{children}</Box>
 }
 TabsContent.displayName = "TabsContent"

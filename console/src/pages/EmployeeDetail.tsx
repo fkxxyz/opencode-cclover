@@ -13,6 +13,8 @@ import { MemoryView } from "../components/employee/MemoryView"
 import { AgentList } from "../components/employee/AgentList"
 import { EventTimeline } from "../components/employee/EventTimeline"
 import type { EmployeeDetail as EmployeeDetailType } from "../types"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
 
 export function EmployeeDetail() {
   const { name } = useParams<{ name: string }>()
@@ -37,83 +39,134 @@ export function EmployeeDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>加载中...</span>
-        </div>
-      </div>
+          <Typography color="text.secondary">加载中...</Typography>
+        </Box>
+      </Box>
     )
   }
 
   if (error || !employee) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <p className="text-red-600">{error?.message || "员工不存在"}</p>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Card sx={{ maxWidth: "md" }}>
+          <CardContent sx={{ pt: 3 }}>
+            <Box
+              sx={{
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
+              <Typography color="error">
+                {error?.message || "员工不存在"}
+              </Typography>
               <Button onClick={() => navigate("/")}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 返回总览
               </Button>
-            </div>
+            </Box>
           </CardContent>
         </Card>
-      </div>
+      </Box>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center gap-4">
+    <Box sx={{ minHeight: "100vh" }}>
+      <Box
+        sx={{
+          maxWidth: "lg",
+          mx: "auto",
+          p: 3,
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Button variant="outline" size="sm" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">{employee.name}</h1>
-        </div>
-
+          <Typography variant="h3" fontWeight="bold">
+            {employee.name}
+          </Typography>
+        </Box>
         <EmployeeCard employee={employee} />
-
-        <Tabs defaultValue="messages" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs
+          defaultValue="messages"
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        >
+          <TabsList
+            sx={{
+              display: "grid",
+              width: "100%",
+              gridTemplateColumns: "repeat(5, 1fr)",
+            }}
+          >
             <TabsTrigger value="messages">消息通信</TabsTrigger>
             <TabsTrigger value="tasks">任务管理</TabsTrigger>
             <TabsTrigger value="memory">记忆系统</TabsTrigger>
             <TabsTrigger value="agents">Agent执行</TabsTrigger>
             <TabsTrigger value="events">事件历史</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="messages" className="space-y-4">
+          <TabsContent
+            value="messages"
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <MessageList employeeName={employee.name} />
           </TabsContent>
-
-          <TabsContent value="tasks" className="space-y-4">
+          <TabsContent
+            value="tasks"
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <TaskList employeeName={employee.name} />
             <Card>
-              <CardContent className="pt-6">
-                <div className="h-[600px]">
+              <CardContent sx={{ pt: 3 }}>
+                <Box sx={{ height: 600 }}>
                   <TaskDAG tasks={employee.tasks} executableTasks={[]} />
-                </div>
+                </Box>
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="memory" className="space-y-4">
+          <TabsContent
+            value="memory"
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <MemoryView memory={employee.memory} />
           </TabsContent>
-
-          <TabsContent value="agents" className="space-y-4">
+          <TabsContent
+            value="agents"
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <AgentList agents={employee.agents} />
           </TabsContent>
-
-          <TabsContent value="events" className="space-y-4">
+          <TabsContent
+            value="events"
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <EventTimeline employeeName={employee.name} />
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }

@@ -8,6 +8,8 @@ import { Loader2 } from "lucide-react"
 import { apiClient } from "../services"
 import { useEffect, useState } from "react"
 import type { EmployeeHierarchy } from "../types"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
 
 export function Overview() {
   const navigate = useNavigate()
@@ -31,47 +33,66 @@ export function Overview() {
 
   if (employeesLoading || hierarchyLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>加载中...</span>
-        </div>
-      </div>
+          <Typography color="text.secondary">加载中...</Typography>
+        </Box>
+      </Box>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-foreground">
+    <Box sx={{ minHeight: "100vh" }}>
+      <Box
+        sx={{
+          maxWidth: "lg",
+          mx: "auto",
+          p: 3,
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography variant="h3" fontWeight="bold">
             CClover 管理控制台
-          </h1>
-          <div className="text-sm text-muted-foreground">
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             {employees.length} 个员工
-          </div>
-        </div>
-
+          </Typography>
+        </Box>
         <GlobalStats />
-
         {hierarchy && (
           <Card>
             <CardHeader>
               <CardTitle>雇佣关系树状图</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[600px]">
+              <Box sx={{ height: 600 }}>
                 <HierarchyTree
                   hierarchy={hierarchy}
                   onNodeClick={handleNodeClick}
                 />
-              </div>
+              </Box>
             </CardContent>
           </Card>
         )}
-
         <EventStream />
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }

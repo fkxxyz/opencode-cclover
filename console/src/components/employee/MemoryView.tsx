@@ -1,45 +1,79 @@
 import { useState } from "react"
+import { Box, Typography } from "@mui/material"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import type { Memory } from "../../types/index"
-
 interface MemoryViewProps {
   memory: Memory
 }
-
 export function MemoryView({ memory }: MemoryViewProps) {
   const [isCustomExpanded, setIsCustomExpanded] = useState(false)
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>记忆</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {/* 经验知识 */}
-        <div>
-          <h3 className="text-sm font-semibold mb-2">经验知识</h3>
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+            经验知识
+          </Typography>
           {memory.knowledge.length === 0 ? (
-            <p className="text-sm text-muted-foreground">暂无经验知识</p>
+            <Typography variant="body2" color="text.secondary">
+              暂无经验知识
+            </Typography>
           ) : (
-            <ul className="space-y-1">
+            <Box
+              component="ul"
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.5,
+                m: 0,
+                p: 0,
+                listStyle: "none",
+              }}
+            >
               {memory.knowledge.map((item, index) => (
-                <li
+                <Box
+                  component="li"
                   key={index}
-                  className="text-sm text-muted-foreground pl-4 border-l-2 border-border"
+                  sx={{
+                    fontSize: "0.875rem",
+                    color: "text.secondary",
+                    pl: 2,
+                    borderLeft: "2px solid",
+                    borderColor: "divider",
+                  }}
                 >
                   {item}
-                </li>
+                </Box>
               ))}
-            </ul>
+            </Box>
           )}
-        </div>
-
+        </Box>
         {/* 自定义字段 */}
-        <div>
-          <button
+        <Box>
+          <Box
+            component="button"
             onClick={() => setIsCustomExpanded(!isCustomExpanded)}
-            className="flex items-center gap-1 text-sm font-semibold hover:text-primary transition-colors"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              p: 0,
+              color: "text.primary",
+              transition: "color 0.2s",
+              "&:hover": {
+                color: "primary.main",
+              },
+            }}
           >
             {isCustomExpanded ? (
               <ChevronDown className="h-4 w-4" />
@@ -47,19 +81,31 @@ export function MemoryView({ memory }: MemoryViewProps) {
               <ChevronRight className="h-4 w-4" />
             )}
             自定义字段
-          </button>
+          </Box>
           {isCustomExpanded && (
-            <div className="mt-2">
+            <Box sx={{ mt: 1 }}>
               {Object.keys(memory.custom).length === 0 ? (
-                <p className="text-sm text-muted-foreground">暂无自定义字段</p>
+                <Typography variant="body2" color="text.secondary">
+                  暂无自定义字段
+                </Typography>
               ) : (
-                <pre className="text-xs bg-background p-3 rounded-lg overflow-x-auto">
+                <Box
+                  component="pre"
+                  sx={{
+                    fontSize: "0.75rem",
+                    bgcolor: "background.default",
+                    p: 1.5,
+                    borderRadius: 1,
+                    overflowX: "auto",
+                    m: 0,
+                  }}
+                >
                   {JSON.stringify(memory.custom, null, 2)}
-                </pre>
+                </Box>
               )}
-            </div>
+            </Box>
           )}
-        </div>
+        </Box>
       </CardContent>
     </Card>
   )
