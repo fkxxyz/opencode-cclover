@@ -9,12 +9,14 @@ dist/
 .idea/
 
 
-# Test workspace
+# Test workspace (temporary files created during tests)
 /tmp/cclover-test-workspace/
-workspace_test/
 
 # Cclover runtime workspace
 .cclover/
+
+# Ignore runtime data in workspace_test but keep the directory structure
+workspace_test/.cclover/
 
 # Build artifacts
 *.tsbuildinfo
