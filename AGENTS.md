@@ -264,22 +264,17 @@ bun test tests/unit/MessageService.test.ts
 bun test tests/integration/MessageService.integration.test.ts
 ```
 
-### Test Workspace
+### Plugin Testing
 
-Tests use `workspace_test/` directory for file operations. This directory is gitignored and cleaned between test runs.
+**Manual Testing**: Test the plugin with real OpenCode server
 
-**Setup**:
-```typescript
-import { beforeEach, afterEach } from "bun:test"
-import * as fs from "fs/promises"
-
-const testWorkspace = "./workspace_test"
-
-beforeEach(async () => {
-  await fs.rm(testWorkspace, { recursive: true, force: true })
-  await fs.mkdir(testWorkspace, { recursive: true })
-})
+```bash
+# Start OpenCode server in workspace_test directory
+cd workspace_test
+opencode serve --port 4099
 ```
+
+See [workspace_test/README.md](workspace_test/README.md) for quick start guide, testing scenarios, and debugging tips.
 
 ### Coverage Target
 

@@ -106,7 +106,10 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   logger.info("StateManager initialized")
 
   // 6. 将 StateManager 传递给服务
-  const messageServiceWithState = new MessageService(workspaceRoot, stateManager)
+  const messageServiceWithState = new MessageService(
+    workspaceRoot,
+    stateManager
+  )
   const memoryManagerWithState = new MemoryManager(workspaceRoot, stateManager)
 
   // 7. 注册初始员工到 StateManager
@@ -127,7 +130,12 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   logger.info("Tools created")
 
   // 9. 启动员工（后台运行）
-  startEmployees(messageServiceWithState, memoryManagerWithState, stateManager, ctx.client)
+  startEmployees(
+    messageServiceWithState,
+    memoryManagerWithState,
+    stateManager,
+    ctx.client
+  )
 
   // 10. 启动 HTTP/WebSocket 服务器
   try {

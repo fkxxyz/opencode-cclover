@@ -264,22 +264,17 @@ bun test tests/unit/MessageService.test.ts
 bun test tests/integration/MessageService.integration.test.ts
 ```
 
-### 测试工作区
+### 插件测试
 
-测试使用 `workspace_test/` 目录进行文件操作。此目录被 gitignore 并在测试运行之间清理。
+**手动测试**: 使用真实的 OpenCode 服务器测试插件
 
-**设置**:
-```typescript
-import { beforeEach, afterEach } from "bun:test"
-import * as fs from "fs/promises"
-
-const testWorkspace = "./workspace_test"
-
-beforeEach(async () => {
-  await fs.rm(testWorkspace, { recursive: true, force: true })
-  await fs.mkdir(testWorkspace, { recursive: true })
-})
+```bash
+# 在 workspace_test 目录启动 OpenCode 服务器
+cd workspace_test
+opencode serve --port 4099
 ```
+
+参见 [workspace_test/README.md](workspace_test/README.md) 了解快速开始指南、测试场景和调试技巧。
 
 ### 覆盖率目标
 
