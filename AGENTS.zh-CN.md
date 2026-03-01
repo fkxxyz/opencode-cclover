@@ -55,12 +55,21 @@ tests/
 ├── integration/          # 模块交互的集成测试
 └── fixtures/             # 测试数据和工作区快照
 
-.cclover/workspace/       # 运行时工作区 (由插件创建)
-└── employees/
-    └── {name}/
-        ├── messages/     # 消息 YAML 文件 (每个对等体一个)
-        └── memory.yaml   # 员工记忆 (知识、任务、自定义)
-```
+console/                  # Web 管理控制台 (已实现)
+├── src/                  # 前端源码 (React + MUI)
+│   ├── components/       # UI 组件
+│   ├── pages/            # 页面 (Overview, EmployeeDetail, ProjectManagement)
+│   ├── hooks/            # 自定义 Hooks
+│   ├── services/         # API 和 WebSocket 客户端
+│   └── types/            # TypeScript 类型
+├── docs/                 # Console 文档
+└── DEVELOPMENT.md        # 前端开发规范
+src/server/               # 后端服务器 (已实现)
+├── GlobalServer.ts       # 全局服务器 (单例, 端口 4097)
+├── ProjectRegistry.ts    # 项目注册表
+├── router.ts             # HTTP 路由
+├── websocket.ts          # WebSocket 服务
+└── index.ts              # ConsoleServer 主类
 
 ## 开发规则
 
@@ -269,6 +278,11 @@ bun test tests/integration/MessageService.integration.test.ts
 **手动测试**: 使用真实的 OpenCode 服务器测试插件
 
 ```bash
+# 快速开始: 使用提供的脚本
+./start-test-server.sh
+```
+或手动:
+```bash
 # 使用 OPENCODE_CONFIG_DIR 指向 workspace_test/.opencode 启动 OpenCode 服务器
 OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099
 ```
@@ -284,8 +298,9 @@ OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099
 
 ## 文档
 
-**设计文档** (在 `docs/` 中):
-- 实现功能前阅读这些文档以理解系统设计
+**设计文档** (在 `docs/` 和 `console/docs/` 中):
+- 插件核心: 实现功能前阅读 `docs/` 以理解系统设计
+- Console: 阅读 `console/docs/` 了解前端架构和需求
 - 进行架构更改时更新
 
 **代码注释**:

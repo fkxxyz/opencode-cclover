@@ -55,12 +55,21 @@ tests/
 ├── integration/          # Integration tests for module interactions
 └── fixtures/             # Test data and workspace snapshots
 
-.cclover/workspace/       # Runtime workspace (created by plugin)
-└── employees/
-    └── {name}/
-        ├── messages/     # Message YAML files (one per peer)
-        └── memory.yaml   # Employee memory (knowledge, tasks, custom)
-```
+console/                  # Web 管理控制台 (已实现)
+├── src/                  # 前端源码 (React + MUI)
+│   ├── components/       # UI 组件
+│   ├── pages/            # 页面 (Overview, EmployeeDetail, ProjectManagement)
+│   ├── hooks/            # 自定义 Hooks
+│   ├── services/         # API 和 WebSocket 客户端
+│   └── types/            # TypeScript 类型
+├── docs/                 # Console 文档
+└── DEVELOPMENT.md        # 前端开发规范
+src/server/               # 后端服务器 (已实现)
+├── GlobalServer.ts       # 全局服务器 (单例, 端口 4097)
+├── ProjectRegistry.ts    # 项目注册表
+├── router.ts             # HTTP 路由
+├── websocket.ts          # WebSocket 服务
+└── index.ts              # ConsoleServer 主类
 
 ## Development Rules
 
@@ -269,6 +278,11 @@ bun test tests/integration/MessageService.integration.test.ts
 **Manual Testing**: Test the plugin with real OpenCode server
 
 ```bash
+# Quick start: Use the provided script
+./start-test-server.sh
+```
+Or manually:
+```bash
 # Start OpenCode server with OPENCODE_CONFIG_DIR pointing to workspace_test/.opencode
 OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099
 ```
@@ -284,8 +298,9 @@ Aim for high coverage on core modules:
 
 ## Documentation
 
-**Design Docs** (in `docs/`):
-- Read these to understand system design before implementing features
+**Design Docs** (in `docs/` and `console/docs/`):
+- Plugin core: Read `docs/` to understand system design before implementing features
+- Console: Read `console/docs/` for frontend architecture and requirements
 - Update when making architectural changes
 
 **Code Comments**:
