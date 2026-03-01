@@ -8,6 +8,8 @@ import { createTools } from "./tools"
 import { CalculatorRole } from "./roles"
 import { logger } from "./lib/logger"
 import { StateManager } from "./state/StateManager"
+import { createAndStartServer } from "./server/index"
+import { agentRegistry } from "./utils/AgentRegistry"
 /**
  * 确保 .gitignore 包含 .cclover
  */
@@ -127,8 +129,25 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   // 9. 启动员工（后台运行）
   startEmployees(messageServiceWithState, memoryManagerWithState, stateManager, ctx.client)
 
+  // 10. 启动 HTTP/WebSocket 服务器
+  try {
+    await createAndStartServer(
+      { port: 4097, workspaceRoot },
+      {
+        stateManager,
+        memoryManager: memoryManagerWithState,
+        messageService: messageServiceWithState,
+        agentRegistry,
+        workspaceRoot,
+      }
+    )
+    logger.info("Console server started on port 4097")
+  } catch (error) {
+    logger.error("Failed to start console server:", error)
+  }
+
   logger.info("Plugin initialized successfully")
-  // 7. 返回工具
+  // 11. 返回工具
   return {
     tool: tools,
   }
