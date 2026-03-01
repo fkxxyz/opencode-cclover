@@ -151,7 +151,7 @@ See [Employee Runtime Requirements](./requirements-runtime.md) for detailed spec
 **Requirements**:
 - Single global HTTP service managing all projects
 - Employees run continuously, independent of project open/close state
-- Configuration-based project management
+- Configuration-based project management (see [Project Management Requirements](./requirements-project-management.md))
 - Console UI can switch between projects
 - No port conflicts between multiple project instances
 
