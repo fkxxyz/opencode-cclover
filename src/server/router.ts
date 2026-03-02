@@ -1,16 +1,9 @@
 import type { ServerDependencies } from "./types"
-import * as employees from "../api/employees"
-import * as messages from "../api/messages"
-import * as tasks from "../api/tasks"
-import * as hierarchy from "../api/hierarchy"
-import * as events from "../api/events"
-import * as stats from "../api/stats"
-import * as health from "../api/health"
-import * as projectsApi from "../api/projects"
+import { staticRoutes, projectRoutes, projectParamRoutes } from "./routes"
 
 /**
  * 路由分发器
- * 根据 URL 和 HTTP 方法分发到对应的 API 处理器
+ * 使用 Map 查找路由，性能优化版本
  */
 export class Router {
   private projectRegistry: any
@@ -28,59 +21,67 @@ export class Router {
     const method = req.method
 
     try {
-      // 健康检查
-      if (pathname === "/api/health" && method === "GET") {
-        return this.jsonResponse(health.getHealth())
-      }
-
-      // 获取所有 project 列表
-      if (pathname === "/api/projects" && method === "GET") {
-        const projects = this.projectRegistry.getAll().map((p: any) => ({
-          projectId: p.projectId,
-          projectName: p.projectName,
-          directory: p.directory,
-        }))
-        return this.jsonResponse({
-          success: true,
-          data: { projects },
-        })
-      }
-
-      // 获取候选项目列表
-      if (pathname === "/api/candidate-projects" && method === "GET") {
-        return this.jsonResponse(await projectsApi.getCandidateProjects())
-      }
-
-      // 添加项目
-      if (pathname === "/api/projects" && method === "POST") {
-        const body = (await req.json()) as { name: string; path: string }
-        return this.jsonResponse(
-          await projectsApi.addProject(body.name, body.path)
+      // 1. 先查静态路由（O(1) 查找）
+      const staticKey = `${method}:${pathname}`
+      const staticHandler = staticRoutes.get(staticKey)
+      if (staticHandler) {
+        const result = await staticHandler(
+          req,
+          {},
+          {
+            projectRegistry: this.projectRegistry,
+          }
         )
+        return this.jsonResponse(result)
       }
 
-      // 删除项目
-      const deleteProjectMatch = pathname.match(/^\/api\/projects\/delete$/)
-      if (deleteProjectMatch && method === "POST") {
-        const body = (await req.json()) as { path: string }
-        return this.jsonResponse(await projectsApi.deleteProject(body.path))
-      }
-
-      // 更新项目
-      const updateProjectMatch = pathname.match(/^\/api\/projects\/update$/)
-      if (updateProjectMatch && method === "POST") {
-        const body = (await req.json()) as {
-          path: string
-          updates: { name?: string; enabled?: boolean }
-        }
-        return this.jsonResponse(
-          await projectsApi.updateProject(body.path, body.updates)
-        )
-      }
-
-      // 所有其他 API 都需要 projectId
+      // 2. 再查项目级路由
       const projectMatch = pathname.match(/^\/api\/projects\/([^/]+)\/(.+)$/)
-      if (!projectMatch) {
+      if (projectMatch) {
+        const [, projectId, subpath] = projectMatch
+
+        // 获取 project 实例
+        const project = this.projectRegistry.get(projectId)
+        if (!project) {
+          return this.jsonResponse(
+            {
+              success: false,
+              error: {
+                code: "PROJECT_NOT_FOUND",
+                message: `Project '${projectId}' not found`,
+              },
+            },
+            404
+          )
+        }
+
+        // 构建依赖对象
+        const deps: ServerDependencies = {
+          stateManager: project.stateManager,
+          memoryManager: project.memoryManager,
+          messageService: project.messageService,
+          agentRegistry: project.agentRegistry,
+          workspaceRoot: project.workspaceRoot,
+        }
+
+        // 2.1 查找精确匹配的项目路由
+        const projectKey = `${method}:/${subpath}`
+        const projectHandler = projectRoutes.get(projectKey)
+        if (projectHandler) {
+          const result = await projectHandler(req, {}, deps)
+          return this.jsonResponse(result)
+        }
+
+        // 2.2 查找带参数的项目路由
+        const paramRoute = this.matchParamRoute(method, `/${subpath}`)
+        if (paramRoute) {
+          const result = await paramRoute.handler(req, paramRoute.params, deps)
+          return this.jsonResponse(result)
+        }
+      }
+
+      // 3. 路径不匹配，返回 400 或 404
+      if (!pathname.startsWith("/api/projects/")) {
         return this.jsonResponse(
           {
             success: false,
@@ -93,98 +94,7 @@ export class Router {
         )
       }
 
-      const projectId = projectMatch[1]
-      const subpath = projectMatch[2]
-
-      // 获取 project 实例
-      const project = this.projectRegistry.get(projectId)
-      if (!project) {
-        return this.jsonResponse(
-          {
-            success: false,
-            error: {
-              code: "PROJECT_NOT_FOUND",
-              message: `Project '${projectId}' not found`,
-            },
-          },
-          404
-        )
-      }
-      // 构建依赖对象(兼容现有API处理器)
-      const deps: ServerDependencies = {
-        stateManager: project.stateManager,
-        memoryManager: project.memoryManager,
-        messageService: project.messageService,
-        agentRegistry: project.agentRegistry,
-        workspaceRoot: project.workspaceRoot,
-      }
-
-      // 分发到具体 API 处理器
-      if (subpath === "employees" && method === "GET") {
-        return this.jsonResponse(employees.getEmployees(deps.stateManager))
-      }
-
-      if (subpath === "employees/hierarchy" && method === "GET") {
-        return this.jsonResponse(hierarchy.getHierarchy(deps.stateManager))
-      }
-
-      if (subpath === "events" && method === "GET") {
-        const limit = url.searchParams.get("limit")
-          ? parseInt(url.searchParams.get("limit")!)
-          : 50
-        const employeeName = url.searchParams.get("employeeName") || undefined
-        return this.jsonResponse(
-          events.getEvents({ limit, employeeName }, deps.stateManager)
-        )
-      }
-
-      if (subpath === "stats" && method === "GET") {
-        return this.jsonResponse(
-          await stats.getStats(deps.stateManager, deps.memoryManager)
-        )
-      }
-
-      // 员工相关 API
-      const employeeMatch = subpath.match(/^employees\/([^/]+)(?:\/(.+))?$/)
-      if (employeeMatch && method === "GET") {
-        const employeeName = employeeMatch[1]
-        const employeeSubpath = employeeMatch[2]
-
-        if (employeeSubpath === "messages") {
-          const peer = url.searchParams.get("peer") || undefined
-          const limit = url.searchParams.get("limit")
-            ? parseInt(url.searchParams.get("limit")!)
-            : 50
-          return this.jsonResponse(
-            await messages.getMessages(
-              employeeName,
-              peer,
-              limit,
-              deps.messageService
-            )
-          )
-        }
-
-        if (employeeSubpath === "tasks") {
-          return this.jsonResponse(
-            await tasks.getTasks(employeeName, deps.memoryManager)
-          )
-        }
-
-        if (!employeeSubpath) {
-          return this.jsonResponse(
-            await employees.getEmployeeDetail(
-              employeeName,
-              deps.stateManager,
-              deps.memoryManager,
-              deps.agentRegistry,
-              deps.workspaceRoot
-            )
-          )
-        }
-      }
-
-      // 404
+      // 4. 404
       return this.jsonResponse(
         {
           success: false,
@@ -208,6 +118,52 @@ export class Router {
         500
       )
     }
+  }
+
+  /**
+   * 匹配参数路由（只在 Map 查找失败后调用）
+   */
+  private matchParamRoute(
+    method: string,
+    path: string
+  ): { handler: any; params: Record<string, string> } | null {
+    for (const [pattern, handler] of projectParamRoutes) {
+      if (!pattern.startsWith(`${method}:`)) continue
+
+      const pathPattern = pattern.substring(method.length + 1)
+      const params = this.matchPath(pathPattern, path)
+      if (params) {
+        return { handler, params }
+      }
+    }
+    return null
+  }
+
+  /**
+   * 路径参数匹配
+   * 例如: matchPath("/employees/:name", "/employees/calculator")
+   * 返回: { name: "calculator" }
+   */
+  private matchPath(
+    pattern: string,
+    path: string
+  ): Record<string, string> | null {
+    const patternParts = pattern.split("/")
+    const pathParts = path.split("/")
+
+    if (patternParts.length !== pathParts.length) return null
+
+    const params: Record<string, string> = {}
+    for (let i = 0; i < patternParts.length; i++) {
+      if (patternParts[i].startsWith(":")) {
+        // 参数部分
+        params[patternParts[i].substring(1)] = pathParts[i]
+      } else if (patternParts[i] !== pathParts[i]) {
+        // 静态部分不匹配
+        return null
+      }
+    }
+    return params
   }
 
   /**

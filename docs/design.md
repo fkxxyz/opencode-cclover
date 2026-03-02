@@ -543,3 +543,4 @@ See [workspace_test/README.md](../workspace_test/README.md) for manual testing g
 - [Architecture Document](./architecture.md)
 - [OpenCode Plugin SDK](https://github.com/opencode-ai/plugin)
 - [Project README](../README.md)
+- [HTTP API Routes](../src/server/routes.ts) - All API endpoints are documented in `src/server/routes.ts` with JSDoc comments. See [Server Design](../src/server/README.md) for routing system details.

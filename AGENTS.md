@@ -67,10 +67,14 @@ console/                  # Web 管理控制台 (已实现)
 src/server/               # 后端服务器 (已实现)
 ├── GlobalServer.ts       # 全局服务器 (单例, 端口 4097)
 ├── ProjectRegistry.ts    # 项目注册表
-├── router.ts             # HTTP 路由
+├── routes.ts             # API 路由定义表 (集中管理所有 API, 详细注释)
+├── router.ts             # 路由分发器 (Map 查找优化)
 ├── websocket.ts          # WebSocket 服务
 └── index.ts              # ConsoleServer 主类
 
+
+## HTTP API Routes
+All HTTP API routes are defined in `src/server/routes.ts` with JSDoc documentation.
 ## Development Rules
 
 ### Before Every Commit
