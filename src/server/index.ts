@@ -37,7 +37,11 @@ export class ConsoleServer {
       },
     })
 
-    console.log(`Console server started on port ${this.port}`)
+    console.log(`\n========================================`)
+    console.log(`Console server started successfully!`)
+    console.log(`HTTP API: http://localhost:${this.port}`)
+    console.log(`WebSocket: ws://localhost:${this.port}/ws`)
+    console.log(`========================================\n`)
 
     // 监听 StateManager 事件并广播
     this.setupEventBroadcasting()
