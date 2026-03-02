@@ -3,10 +3,16 @@ import { Settings } from "lucide-react"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
+import Drawer from "@mui/material/Drawer"
 import { apiClient } from "../../services"
 import { useEffect, useState } from "react"
 import type { Project } from "../../types"
-export function Sidebar() {
+interface SidebarProps {
+  isMobile: boolean
+  mobileOpen: boolean
+  onClose: () => void
+}
+export function Sidebar({ isMobile, mobileOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const { projectId } = useParams<{ projectId?: string }>()
   const [projects, setProjects] = useState<Project[]>([])
@@ -18,14 +24,13 @@ export function Sidebar() {
       .catch((err) => console.error("获取项目列表失败:", err))
       .finally(() => setLoading(false))
   }, [])
-  return (
+  const sidebarContent = (
     <Box
       sx={{
         width: 256,
-        borderRight: 1,
-        borderColor: "divider",
         display: "flex",
         flexDirection: "column",
+        height: "100%",
       }}
     >
       <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
@@ -44,6 +49,7 @@ export function Sidebar() {
               key={project.projectId}
               component={Link}
               to={`/projects/${project.projectId}`}
+              onClick={isMobile ? onClose : undefined}
               sx={{
                 width: "100%",
                 px: 2,
@@ -65,7 +71,7 @@ export function Sidebar() {
                   {project.projectName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap>
-                  {project.directory}
+               {project.directory}
                 </Typography>
               </Box>
             </Button>
@@ -77,7 +83,9 @@ export function Sidebar() {
           component={Link}
           to="/projects"
           startIcon={<Settings />}
-          sx={{       width: "100%",
+          onClick={isMobile ? onClose : undefined}
+          sx={{
+            width: "100%",
             justifyContent: "flex-start",
             ...(location.pathname === "/projects" && {
               bgcolor: "primary.light",
@@ -88,6 +96,37 @@ export function Sidebar() {
           Manage Projects
         </Button>
       </Box>
+    </Box>
+  )
+  if (isMobile) {
+    return (
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: 256,
+          },
+        }}
+      >
+        {sidebarContent}
+      </Drawer>
+    )
+  }
+  return (
+    <Box
+      sx={{
+        width: 256,
+        borderRight: 1,
+        borderColor: "divider",
+      }}
+    >
+      {sidebarContent}
     </Box>
   )
 }
