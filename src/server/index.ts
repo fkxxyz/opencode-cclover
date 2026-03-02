@@ -2,6 +2,7 @@ import type { ServerConfig } from "./types"
 import { Router } from "./router"
 import { WebSocketManager } from "./websocket"
 import type { Event } from "../types/index"
+import { logger } from "../lib/logger"
 
 const DEFAULT_PORT = 4097
 
@@ -27,24 +28,36 @@ export class ConsoleServer {
    * 启动服务器
    */
   async start(): Promise<void> {
-    this.server = Bun.serve({
-      port: this.port,
-      fetch: (req: Request, server: any) => this.handleFetch(req, server),
-      websocket: {
-        open: (ws: any) => this.wsManager.open(ws),
-        message: (ws: any, message: any) => this.wsManager.message(ws, message),
-        close: (ws: any) => this.wsManager.close(ws),
-      },
-    })
+    try {
+      this.server = Bun.serve({
+        port: this.port,
+        fetch: (req: Request, server: any) => this.handleFetch(req, server),
+        websocket: {
+          open: (ws: any) => this.wsManager.open(ws),
+          message: (ws: any, message: any) =>
+            this.wsManager.message(ws, message),
+          close: (ws: any) => this.wsManager.close(ws),
+        },
+      })
 
-    console.log(`\n========================================`)
-    console.log(`Console server started successfully!`)
-    console.log(`HTTP API: http://localhost:${this.port}`)
-    console.log(`WebSocket: ws://localhost:${this.port}/ws`)
-    console.log(`========================================\n`)
+      console.log(`\n========================================`)
+      console.log(`Console server started successfully!`)
+      console.log(`HTTP API: http://localhost:${this.port}`)
+      console.log(`WebSocket: ws://localhost:${this.port}/ws`)
+      console.log(`========================================\n`)
 
-    // 监听 StateManager 事件并广播
-    this.setupEventBroadcasting()
+      // 监听 StateManager 事件并广播
+      this.setupEventBroadcasting()
+    } catch (error: any) {
+      logger.error(`Failed to start ConsoleServer on port ${this.port}:`, error)
+      if (error.code === "EADDRINUSE") {
+        logger.error(
+          `Port ${this.port} is already in use. Please check if another instance is running.`
+        )
+        logger.error(`You can find the process using: lsof -i :${this.port}`)
+      }
+      throw error
+    }
   }
 
   /**

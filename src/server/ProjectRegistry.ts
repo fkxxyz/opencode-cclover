@@ -16,6 +16,7 @@ export interface ProjectInstance {
   messageService: MessageService
   memoryManager: MemoryManager
   agentRegistry: AgentRegistry
+  eventLoopStarted: boolean // EventLoop 是否已启动
 }
 
 /**

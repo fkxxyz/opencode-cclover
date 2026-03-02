@@ -11,7 +11,7 @@ import { MemoryManager } from "../core/MemoryManager"
 import { AgentRegistry } from "../utils/AgentRegistry"
 import { EventLoop } from "../core/EventLoop"
 import { CalculatorRole } from "../roles"
-import { createOpencodeClient } from "@opencode-ai/sdk"
+import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
 
 /**
@@ -20,29 +20,68 @@ import { logger } from "../lib/logger"
  */
 export class GlobalCcloverService {
   private static instance: GlobalCcloverService | null = null
+  private static initPromise: Promise<GlobalCcloverService> | null = null
+  private static opcodeClient: OpencodeClient | null = null
   private projectRegistry: ProjectRegistry = new ProjectRegistry()
   private httpServer: ConsoleServer | null = null
-  private initialized: boolean = false
 
   private constructor() {}
 
   /**
+   * 静态注入 OpencodeClient
+   * 必须在 getInstance() 之前调用
+   */
+  static setOpencodeClient(client: OpencodeClient): void {
+    if (this.opcodeClient) {
+      return
+    }
+    this.opcodeClient = client
+    logger.info("OpencodeClient injected successfully")
+  }
+
+  /**
    * 获取单例
+   * 注意：必须先调用 setOpencodeClient()
    */
   static async getInstance(): Promise<GlobalCcloverService> {
-    if (!this.instance) {
-      this.instance = new GlobalCcloverService()
-      await this.instance.initialize()
+    if (!this.opcodeClient) {
+      throw new Error(
+        "OpencodeClient must be set before getInstance(). Call setOpencodeClient() first."
+      )
     }
-    return this.instance
+
+    // 如果已经初始化完成，直接返回
+    if (this.instance) {
+      return this.instance
+    }
+
+    // 如果正在初始化，等待初始化完成
+    if (this.initPromise) {
+      return this.initPromise
+    }
+
+    // 开始初始化（只有第一个调用者会执行这里）
+    this.initPromise = (async () => {
+      const instance = new GlobalCcloverService()
+      await instance.initialize()
+      this.instance = instance
+      return instance
+    })()
+
+    return this.initPromise
+  }
+
+  /**
+   * 获取 OpencodeClient
+   */
+  getOpencodeClient(): OpencodeClient {
+    return GlobalCcloverService.opcodeClient!
   }
 
   /**
    * 初始化服务
    */
   private async initialize(): Promise<void> {
-    if (this.initialized) return
-
     logger.info("Initializing GlobalCcloverService...")
 
     // 1. 加载配置并初始化所有 project
@@ -55,7 +94,6 @@ export class GlobalCcloverService {
     )
     await this.httpServer.start()
 
-    this.initialized = true
     logger.info("GlobalCcloverService initialized")
   }
 
@@ -82,6 +120,14 @@ export class GlobalCcloverService {
    */
   private async initializeProject(config: ProjectConfig): Promise<void> {
     const workspaceRoot = path.join(config.path, ".cclover/workspace")
+
+    // 异步触发一下 opencode 去打开 config.path，确保它会为这个 project 加载插件注入 tools
+    const opcodeClient = this.getOpencodeClient()
+    opcodeClient.session
+      .status({ query: { directory: config.path } })
+      .catch((error) => {
+        logger.error("Failed to connect to OpenCode server:", error)
+      })
 
     // 确保 .cclover/.gitignore 存在（按需创建）
     await this.ensureCcloverGitignore(config.path)
@@ -111,20 +157,24 @@ export class GlobalCcloverService {
       messageService,
       memoryManager,
       agentRegistry,
+      eventLoopStarted: false, // 初始化时不启动 EventLoop
     }
 
     this.projectRegistry.register(projectInstance)
-
-    // 启动员工
-    this.startEmployees(projectInstance)
-
+    // 不在这里启动 EventLoop，等待 CcloverPlugin 调用时再启动
+    // 这样可以确保 tools 已经注册到 OpenCode
     logger.info(`Project initialized: ${config.name} (${config.path})`)
   }
 
   /**
-   * 启动 project 的员工
+   * 启动 project 的员工 EventLoop
+   * 由 CcloverPlugin 调用，确保 tools 已注册
    */
-  private startEmployees(project: ProjectInstance): void {
+  startEmployees(project: ProjectInstance): void {
+    // 防止重复启动
+    if (project.eventLoopStarted) {
+      return
+    }
     // 注册初始员工
     project.stateManager.registerEmployee({
       name: "calculator",
@@ -133,12 +183,11 @@ export class GlobalCcloverService {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
-
     // 启动员工 EventLoop
     const messageClient = project.messageService.getClient("calculator")
-    const opcodeClient = createOpencodeClient()
-
+    const opcodeClient = this.getOpencodeClient()
     const eventLoop = new EventLoop(
+      project.directory,
       "calculator",
       CalculatorRole,
       messageClient,
@@ -146,11 +195,13 @@ export class GlobalCcloverService {
       opcodeClient,
       project.stateManager
     )
-
+    // 标记为已启动
+    project.eventLoopStarted = true
     // 后台运行
     eventLoop.run().catch((error) => {
       logger.error(`[calculator] EventLoop crashed:`, error)
     })
+    logger.info(`EventLoop started for project: ${project.projectName}`)
   }
 
   /**
@@ -202,6 +253,7 @@ export class GlobalCcloverService {
     this.projectRegistry.unregister(project.projectId)
     logger.info(`Project removed: ${project.projectName} (${directory})`)
   }
+
   /**
    * 确保 .cclover/.gitignore 存在
    * 只在第一次需要时创建

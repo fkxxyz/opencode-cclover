@@ -5,6 +5,7 @@ import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { sessionRegistry } from "../utils/SessionRegistry"
 import type { StateManager } from "../state/StateManager"
+import { logger } from "../lib/logger"
 
 /**
  * 角色定义
@@ -53,6 +54,7 @@ export class EventLoop {
   private readonly MESSAGE_THRESHOLD = 20 // 20 轮对话
 
   constructor(
+    private projectPath: string,
     private employeeName: string,
     private role: Role,
     private messageClient: MessageClient,
@@ -65,7 +67,7 @@ export class EventLoop {
    * 主循环
    */
   async run(): Promise<void> {
-    console.log(`[${this.employeeName}] Starting event loop...`)
+    logger.info(`[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`)
     // 更新员工状态为 active
     this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
 

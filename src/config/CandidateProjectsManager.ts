@@ -97,7 +97,6 @@ export class CandidateProjectsManager {
     }
 
     await this.save(config)
-    logger.info(`Candidate project recorded: ${projectPath}`)
   }
 
   /**
