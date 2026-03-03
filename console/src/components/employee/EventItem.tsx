@@ -9,7 +9,10 @@ interface EventItemProps {
 const EVENT_ICONS: Partial<Record<EventType, string>> = {
   employee_status_changed: "🔄",
   session_created: "⚡",
-  session_summarized: "📊",
+  session_prompt_started: "🤔",
+  session_prompt_completed: "💡",
+  session_summary_started: "📝",
+  session_summary_completed: "📊",
   agent_created: "🤖",
   agent_completed: "✅",
   task_created: "📋",
@@ -37,8 +40,17 @@ function getEventDescription(event: Event): string {
     case "session_created":
       return `会话创建 (${String(details.sessionId).slice(0, 8)}...)`
 
-    case "session_summarized":
-      return `会话总结 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
+    case "session_prompt_started":
+      return `AI请求开始 (会话: ${String(details.sessionId).slice(0, 8)}..., 事件: ${details.eventType})`
+
+    case "session_prompt_completed":
+      return `AI响应完成 (会话: ${String(details.sessionId).slice(0, 8)}...)`
+
+    case "session_summary_started":
+      return `开始总结会话 (${String(details.sessionId).slice(0, 8)}...)`
+
+    case "session_summary_completed":
+      return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
 
     case "agent_created":
       return `Agent 创建: ${details.taskName}`

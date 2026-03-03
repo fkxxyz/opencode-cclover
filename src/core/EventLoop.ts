@@ -280,7 +280,20 @@ export class EventLoop {
         ? buildSystemPrompt(this.role.systemPrompt, memory)
         : undefined
 
-    // 5. 发送给 AI
+    // 5. 记录 session prompt 开始事件
+    await this.stateManager?.addEvent({
+      projectId: "",
+      type: "session_prompt_started",
+      timestamp: new Date().toISOString(),
+      employeeName: this.employeeName,
+      details: {
+        sessionId: session.id,
+        eventType: event.type,
+        messageCount: session.messageCount,
+      },
+    })
+
+    // 6. 发送给 AI
     await this.opcodeClient.session.prompt({
       path: { id: session.id },
       body: {
@@ -297,8 +310,20 @@ export class EventLoop {
       },
     })
 
-    // 6. 更新 session 信息
+    // 7. 更新 session 信息
     this.currentSession!.messageCount++
+
+    // 8. 记录 session prompt 完成事件
+    await this.stateManager?.addEvent({
+      projectId: "",
+      type: "session_prompt_completed",
+      timestamp: new Date().toISOString(),
+      employeeName: this.employeeName,
+      details: {
+        sessionId: session.id,
+        messageCount: session.messageCount,
+      },
+    })
 
     console.log(`[${this.employeeName}] Event handled`)
   }
@@ -393,19 +418,32 @@ export class EventLoop {
         `[${this.employeeName}] Threshold reached (tokens: ${tokenCount}, messages: ${messageCount}), summarizing...`
       )
 
-      // 1. 请求 AI 总结
-      const summary = await this.requestSummary()
-
-      // 2. 保存总结
-      await this.saveSummary(summary)
-
-      // 3. 保存 sessionId（closeSession 会把 currentSession 设为 null）
-      const sessionId = this.currentSession.id
-
-      // 4. 记录 session 总结事件
+      // 1. 记录 session 总结开始事件
       await this.stateManager?.addEvent({
         projectId: "",
-        type: "session_summarized",
+        type: "session_summary_started",
+        timestamp: new Date().toISOString(),
+        employeeName: this.employeeName,
+        details: {
+          sessionId: this.currentSession.id,
+          messageCount,
+          tokenCount,
+        },
+      })
+
+      // 2. 请求 AI 总结
+      const summary = await this.requestSummary()
+
+      // 3. 保存总结
+      await this.saveSummary(summary)
+
+      // 4. 保存 sessionId（closeSession 会把 currentSession 设为 null）
+      const sessionId = this.currentSession.id
+
+      // 5. 记录 session 总结完成事件
+      await this.stateManager?.addEvent({
+        projectId: "",
+        type: "session_summary_completed",
         timestamp: new Date().toISOString(),
         employeeName: this.employeeName,
         details: {
@@ -415,7 +453,7 @@ export class EventLoop {
         },
       })
 
-      // 5. 关闭当前 session
+      // 6. 关闭当前 session
       await this.closeSession()
 
       console.log(`[${this.employeeName}] Summary completed`)

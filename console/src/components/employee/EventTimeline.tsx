@@ -17,10 +17,9 @@ interface EventTimelineProps {
   employeeName: string
 }
 
-const eventTypeColors: Partial<Record<
-  EventType,
-  { backgroundColor: string; color: string }
->> = {
+const eventTypeColors: Partial<
+  Record<EventType, { backgroundColor: string; color: string }>
+> = {
   message: { backgroundColor: "#dbeafe", color: "#1e40af" },
   task_completed: { backgroundColor: "#dcfce7", color: "#166534" },
   task_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
@@ -33,7 +32,10 @@ const eventTypeColors: Partial<Record<
   employee_hired: { backgroundColor: "#fef3c7", color: "#92400e" },
   employee_status_changed: { backgroundColor: "#fed7aa", color: "#9a3412" },
   session_created: { backgroundColor: "#ddd6fe", color: "#5b21b6" },
-  session_summarized: { backgroundColor: "#e0e7ff", color: "#3730a3" },
+  session_prompt_started: { backgroundColor: "#e0e7ff", color: "#4338ca" },
+  session_prompt_completed: { backgroundColor: "#ddd6fe", color: "#4338ca" },
+  session_summary_started: { backgroundColor: "#fef3c7", color: "#92400e" },
+  session_summary_completed: { backgroundColor: "#e0e7ff", color: "#3730a3" },
   message_sent: { backgroundColor: "#dbeafe", color: "#1e40af" },
   message_received: { backgroundColor: "#dbeafe", color: "#1e40af" },
   task_updated: { backgroundColor: "#dcfce7", color: "#166534" },
@@ -53,7 +55,10 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   employee_hired: "员工雇佣",
   employee_status_changed: "状态变化",
   session_created: "会话创建",
-  session_summarized: "会话总结",
+  session_prompt_started: "AI请求开始",
+  session_prompt_completed: "AI响应完成",
+  session_summary_started: "总结开始",
+  session_summary_completed: "总结完成",
   message_sent: "发送消息",
   message_received: "接收消息",
   task_updated: "任务更新",

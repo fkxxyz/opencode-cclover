@@ -5,7 +5,9 @@ import type { EventType } from "../../types/index"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
-const eventTypeColors: Partial<Record<EventType, { bg: string; text: string }>> = {
+const eventTypeColors: Partial<
+  Record<EventType, { bg: string; text: string }>
+> = {
   message: { bg: "#dbeafe", text: "#1e40af" },
   task_completed: { bg: "#dcfce7", text: "#166534" },
   task_failed: { bg: "#fee2e2", text: "#991b1b" },
@@ -18,7 +20,10 @@ const eventTypeColors: Partial<Record<EventType, { bg: string; text: string }>> 
   employee_hired: { bg: "#fef3c7", text: "#92400e" },
   employee_status_changed: { bg: "#fed7aa", text: "#9a3412" },
   session_created: { bg: "#ddd6fe", text: "#5b21b6" },
-  session_summarized: { bg: "#e0e7ff", text: "#3730a3" },
+  session_prompt_started: { bg: "#e0e7ff", text: "#4338ca" },
+  session_prompt_completed: { bg: "#ddd6fe", text: "#4338ca" },
+  session_summary_started: { bg: "#fef3c7", text: "#92400e" },
+  session_summary_completed: { bg: "#e0e7ff", text: "#3730a3" },
   message_sent: { bg: "#dbeafe", text: "#1e40af" },
   message_received: { bg: "#dbeafe", text: "#1e40af" },
   task_updated: { bg: "#dcfce7", text: "#166534" },
@@ -38,7 +43,10 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   employee_hired: "员工雇佣",
   employee_status_changed: "状态变化",
   session_created: "会话创建",
-  session_summarized: "会话总结",
+  session_prompt_started: "AI请求开始",
+  session_prompt_completed: "AI响应完成",
+  session_summary_started: "总结开始",
+  session_summary_completed: "总结完成",
   message_sent: "发送消息",
   message_received: "接收消息",
   task_updated: "任务更新",
@@ -91,8 +99,14 @@ function getEventDescription(
       return `创建 Agent 执行任务 "${details.taskName}"`
     case "session_created":
       return `创建会话 (${String(details.sessionId).slice(0, 8)}...)`
-    case "session_summarized":
-      return `会话总结 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
+    case "session_prompt_started":
+      return `AI请求开始 (会话: ${String(details.sessionId).slice(0, 8)}..., 事件: ${details.eventType})`
+    case "session_prompt_completed":
+      return `AI响应完成 (会话: ${String(details.sessionId).slice(0, 8)}..., 消息数: ${details.messageCount})`
+    case "session_summary_started":
+      return `开始总结会话 (${String(details.sessionId).slice(0, 8)}..., ${details.messageCount} 条消息)`
+    case "session_summary_completed":
+      return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     case "employee_hired":
       return `${details.hiredBy} 雇佣了 ${details.employeeName} (${details.role})`
     case "employee_status_changed":
