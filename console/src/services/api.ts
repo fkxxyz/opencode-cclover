@@ -5,6 +5,7 @@ import type {
   EmployeeDetail,
   EmployeeHierarchy,
   Message,
+  PeerWithLastMessage,
   TasksResponse,
   Event,
   SuccessResponse,
@@ -109,8 +110,11 @@ export class ApiClient {
     return data.messages
   }
 
-  async getPeers(projectId: string, employeeName: string): Promise<string[]> {
-    const data = await this.request<{ peers: string[] }>(
+  async getPeers(
+    projectId: string,
+    employeeName: string
+  ): Promise<PeerWithLastMessage[]> {
+    const data = await this.request<{ peers: PeerWithLastMessage[] }>(
       `/projects/${projectId}/employees/${employeeName}/peers`
     )
     return data.peers

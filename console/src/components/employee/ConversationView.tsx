@@ -6,6 +6,7 @@ import useMediaQuery from "@mui/material/useMediaQuery"
 import { useTheme } from "@mui/material/styles"
 import { ConversationList } from "./ConversationList"
 import { MessagePanel } from "./MessagePanel"
+import { usePeers } from "../../hooks/usePeers"
 
 interface ConversationViewProps {
   projectId: string
@@ -25,6 +26,7 @@ export function ConversationView({
   >(null)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+  const { peers, loading } = usePeers(projectId, employeeName)
   // 使用外部传入的 selectedPeer，如果没有则使用内部状态
   const selectedPeer =
     externalSelectedPeer !== undefined
@@ -61,10 +63,10 @@ export function ConversationView({
           <>
             {!selectedPeer ? (
               <ConversationList
-                projectId={projectId}
-                employeeName={employeeName}
                 selectedPeer={selectedPeer}
                 onSelectPeer={handleSelectPeer}
+                peers={peers}
+                loading={loading}
               />
             ) : (
               <MessagePanel
@@ -79,10 +81,10 @@ export function ConversationView({
           /* 桌面端：双栏布局 */
           <>
             <ConversationList
-              projectId={projectId}
-              employeeName={employeeName}
               selectedPeer={selectedPeer}
               onSelectPeer={handleSelectPeer}
+              peers={peers}
+              loading={loading}
             />
             {selectedPeer ? (
               <MessagePanel

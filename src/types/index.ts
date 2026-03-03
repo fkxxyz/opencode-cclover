@@ -38,6 +38,13 @@ export interface Message {
   direction: MessageDirection
 }
 
+// 对话对象（带最后消息信息）
+export interface PeerWithLastMessage {
+  name: string
+  lastMessageTime?: string
+  lastMessageContent?: string
+}
+
 // 任务状态类型
 export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled"
 

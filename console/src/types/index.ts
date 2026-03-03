@@ -48,11 +48,11 @@ export interface Message {
   direction: MessageDirection
 }
 
-export interface Peer {
+// 对话对象（带最后消息信息）
+export interface PeerWithLastMessage {
   name: string
-  messageCount: number
-  lastMessage?: string
-  lastTimestamp?: string
+  lastMessageTime?: string
+  lastMessageContent?: string
 }
 
 // Task types

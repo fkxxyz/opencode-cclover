@@ -616,7 +616,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
     "GET:/employees/:name/peers",
     async (req, params, deps) => {
       const employeeName = params.name
-      return messages.getPeers(employeeName, deps.messageService)
+      return messages.getPeers(
+        employeeName,
+        deps.messageService,
+        deps.stateManager,
+        deps.bossManager
+      )
     },
   ],
 

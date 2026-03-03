@@ -1,6 +1,11 @@
 import type { MessageService } from "../core/MessageService"
 import type { Message as ServiceMessage } from "../core/MessageService"
-import type { Message, SuccessResponse, ErrorResponse } from "../types/index"
+import type {
+  Message,
+  PeerWithLastMessage,
+  SuccessResponse,
+  ErrorResponse,
+} from "../types/index"
 
 /**
  * 获取消息历史
@@ -109,12 +114,14 @@ export async function getMessages(
 }
 
 /**
- * 获取员工的对话对象列表
+ * 获取员工的对话对象列表（包括所有员工和 boss，按最后聊天时间排序）
  */
 export async function getPeers(
   employeeName: string,
-  messageService?: MessageService
-): Promise<SuccessResponse<{ peers: string[] }> | ErrorResponse> {
+  messageService?: MessageService,
+  stateManager?: any,
+  bossManager?: any
+): Promise<SuccessResponse<{ peers: PeerWithLastMessage[] }> | ErrorResponse> {
   if (!messageService) {
     return {
       success: false,
@@ -137,12 +144,95 @@ export async function getPeers(
       }
     }
 
-    const peers = await messageService.getPeers(employeeName)
+    // 1. 收集所有可能的联系人
+    const allPossiblePeers = new Set<string>()
+
+    // 添加有消息记录的对话对象
+    const peersWithMessages = await messageService.getPeers(employeeName)
+    peersWithMessages.forEach((peer: string) => allPossiblePeers.add(peer))
+
+    // 添加所有员工（排除自己）
+    if (stateManager) {
+      const employees = stateManager.getEmployees()
+      employees.forEach((emp: any) => {
+        if (emp.name !== employeeName) {
+          allPossiblePeers.add(emp.name)
+        }
+      })
+    }
+
+    // 添加所有 boss（排除自己）
+    if (bossManager) {
+      const bosses = bossManager.getBosses()
+      bosses.forEach((boss: string) => {
+        if (boss !== employeeName) {
+          allPossiblePeers.add(boss)
+        }
+      })
+    }
+
+    // 2. 获取每个 peer 的最后消息时间
+    const client = messageService.getClient(employeeName)
+    const peersWithTime: PeerWithLastMessage[] = []
+
+    for (const peer of allPossiblePeers) {
+      try {
+        // 获取与该 peer 的最后一条消息
+        const messages = await client.history(peer, 1)
+
+        if (messages.length > 0) {
+          const lastMessage = messages[messages.length - 1]
+          peersWithTime.push({
+            name: peer,
+            lastMessageTime: lastMessage.timestamp,
+            lastMessageContent: lastMessage.content.substring(0, 50), // 预览前 50 个字符
+          })
+        } else {
+          // 没有消息记录的联系人
+          peersWithTime.push({
+            name: peer,
+            lastMessageTime: undefined,
+            lastMessageContent: undefined,
+          })
+        }
+      } catch (error) {
+        // 读取失败，视为没有消息
+        peersWithTime.push({
+          name: peer,
+          lastMessageTime: undefined,
+          lastMessageContent: undefined,
+        })
+      }
+    }
+
+    // 3. 排序：有消息的按时间降序，没有消息的按名称字母顺序排在最后
+    peersWithTime.sort((a, b) => {
+      // 如果都有消息，按时间降序
+      if (a.lastMessageTime && b.lastMessageTime) {
+        return (
+          new Date(b.lastMessageTime).getTime() -
+          new Date(a.lastMessageTime).getTime()
+        )
+      }
+
+      // 如果只有 a 有消息，a 排在前面
+      if (a.lastMessageTime && !b.lastMessageTime) {
+        return -1
+      }
+
+      // 如果只有 b 有消息，b 排在前面
+      if (!a.lastMessageTime && b.lastMessageTime) {
+        return 1
+      }
+
+      // 如果都没有消息，按名称字母顺序
+      return a.name.localeCompare(b.name)
+    })
 
     return {
       success: true,
       data: {
-        peers,
+        peers: peersWithTime,
       },
     }
   } catch (error: any) {

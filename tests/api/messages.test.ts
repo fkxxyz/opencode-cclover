@@ -266,8 +266,8 @@ describe("getPeers API", () => {
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.peers).toHaveLength(2)
-      expect(response.data.peers).toContain("alice")
-      expect(response.data.peers).toContain("bob")
+      expect(response.data.peers.map((p) => p.name)).toContain("alice")
+      expect(response.data.peers.map((p) => p.name)).toContain("bob")
     }
   })
 

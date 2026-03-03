@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
+import type { PeerWithLastMessage } from "../types/index"
 
 export function usePeers(projectId: string | undefined, employeeName: string) {
-  const [peers, setPeers] = useState<string[]>([])
+  const [peers, setPeers] = useState<PeerWithLastMessage[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
 
@@ -33,14 +34,45 @@ export function usePeers(projectId: string | undefined, employeeName: string) {
         messageData.from === employeeName ||
         messageData.to === employeeName
       ) {
-        const newPeer =
+        const newPeerName =
           messageData.from === employeeName ? messageData.to : messageData.from
-
         setPeers((prev) => {
-          if (!prev.includes(newPeer)) {
-            return [...prev, newPeer]
+          // 查找是否已存在
+          const existingIndex = prev.findIndex((p) => p.name === newPeerName)
+          if (existingIndex >= 0) {
+            // 已存在，更新最后消息时间和内容
+            const updated = [...prev]
+            updated[existingIndex] = {
+              name: newPeerName,
+              lastMessageTime:
+                messageData.timestamp || new Date().toISOString(),
+              lastMessageContent: messageData.content?.substring(0, 50),
+            }
+            // 重新排序：最新消息的排在最前
+            updated.sort((a, b) => {
+              if (a.lastMessageTime && b.lastMessageTime) {
+                return (
+                  new Date(b.lastMessageTime).getTime() -
+                  new Date(a.lastMessageTime).getTime()
+                )
+              }
+              if (a.lastMessageTime && !b.lastMessageTime) return -1
+              if (!a.lastMessageTime && b.lastMessageTime) return 1
+              return a.name.localeCompare(b.name)
+            })
+            return updated
+          } else {
+            // 不存在，添加到列表开头
+            return [
+              {
+                name: newPeerName,
+                lastMessageTime:
+                  messageData.timestamp || new Date().toISOString(),
+                lastMessageContent: messageData.content?.substring(0, 50),
+              },
+              ...prev,
+            ]
           }
-          return prev
         })
       }
     })

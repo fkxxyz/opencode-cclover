@@ -5,24 +5,39 @@ import ListItemButton from "@mui/material/ListItemButton"
 import ListItemText from "@mui/material/ListItemText"
 import Typography from "@mui/material/Typography"
 import CircularProgress from "@mui/material/CircularProgress"
-import { usePeers } from "../../hooks/usePeers"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useTheme } from "@mui/material/styles"
+import type { PeerWithLastMessage } from "../../types"
 
+function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  if (diffMins < 1) return "刚刚"
+  if (diffMins < 60) return `${diffMins}分钟前`
+  if (diffHours < 24) return `${diffHours}小时前`
+  if (diffDays < 7) return `${diffDays}天前`
+  return date.toLocaleDateString("zh-CN", {
+    month: "short",
+    day: "numeric",
+  })
+}
 interface ConversationListProps {
-  projectId: string
-  employeeName: string
   selectedPeer: string | null
   onSelectPeer: (peer: string) => void
+  peers: PeerWithLastMessage[]
+  loading: boolean
 }
 
 export function ConversationList({
-  projectId,
-  employeeName,
   selectedPeer,
   onSelectPeer,
+  peers,
+  loading,
 }: ConversationListProps) {
-  const { peers, loading } = usePeers(projectId, employeeName)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
 
@@ -80,10 +95,10 @@ export function ConversationList({
       </Box>
       <List sx={{ p: 0 }}>
         {peers.map((peer) => (
-          <ListItem key={peer} disablePadding>
+          <ListItem key={peer.name} disablePadding>
             <ListItemButton
-              selected={selectedPeer === peer}
-              onClick={() => onSelectPeer(peer)}
+              selected={selectedPeer === peer.name}
+              onClick={() => onSelectPeer(peer.name)}
               sx={{
                 py: 1.5,
                 "&.Mui-selected": {
@@ -96,10 +111,57 @@ export function ConversationList({
               }}
             >
               <ListItemText
-                primary={peer}
-                primaryTypographyProps={{
-                  fontWeight: selectedPeer === peer ? "medium" : "normal",
-                }}
+                primary={
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      fontWeight={
+                        selectedPeer === peer.name ? "medium" : "normal"
+                      }
+                    >
+                      {peer.name}
+                    </Typography>
+                    {peer.lastMessageTime && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color:
+                            selectedPeer === peer.name
+                              ? "rgba(255, 255, 255, 0.7)"
+                              : "text.secondary",
+                          ml: 1,
+                        }}
+                      >
+                        {formatTimestamp(peer.lastMessageTime)}
+                      </Typography>
+                    )}
+                  </Box>
+                }
+                secondary={
+                  peer.lastMessageContent && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color:
+                          selectedPeer === peer.name
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "text.secondary",
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {peer.lastMessageContent}
+                    </Typography>
+                  )
+                }
               />
             </ListItemButton>
           </ListItem>

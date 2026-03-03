@@ -231,7 +231,7 @@ export function MessagePanel({
         />
         <Button
           variant="contained"
-          nClick={handleSend}
+          onClick={handleSend}
           disabled={!inputValue.trim()}
           sx={{ minWidth: "auto", px: 2 }}
         >
