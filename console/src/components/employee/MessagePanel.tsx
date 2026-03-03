@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTimeline } from "../../hooks/useTimeline"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -41,6 +41,8 @@ export function MessagePanel({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [inputValue, setInputValue] = useState("")
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const isInitialLoadRef = useRef(true)
 
   // 过滤只显示与当前 peer 的消息和事件
   const filteredTimeline =
@@ -55,6 +57,29 @@ export function MessagePanel({
       // 事件总是显示
       return true
     }) || []
+
+  // 初始加载时直接定位到底部，后续新消息平滑滚动
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      if (isInitialLoadRef.current && filteredTimeline.length > 0) {
+        // 初始加载：直接跳到底部，无动画
+        messagesContainerRef.current.scrollTop =
+          messagesContainerRef.current.scrollHeight
+        isInitialLoadRef.current = false
+      } else if (!isInitialLoadRef.current) {
+        // 后续更新：平滑滚动
+        messagesContainerRef.current.scrollTo({
+          top: messagesContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        })
+      }
+    }
+  }, [filteredTimeline])
+
+  // 切换 peer 时重置初始加载标志
+  useEffect(() => {
+    isInitialLoadRef.current = true
+  }, [peer])
 
   const handleSend = async () => {
     if (!inputValue.trim()) return
@@ -115,6 +140,7 @@ export function MessagePanel({
         <Typography variant="h6">与 {peer} 的对话</Typography>
       </Box>
       <Box
+        ref={messagesContainerRef}
         sx={{
           flex: 1,
           overflowY: "auto",
