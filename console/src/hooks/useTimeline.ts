@@ -3,6 +3,8 @@ import type { TimelineItem } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
 
+const MAX_TIMELINE_ITEMS = 500
+
 export function useTimeline(
   projectId: string | undefined,
   employeeName: string,
@@ -51,17 +53,25 @@ export function useTimeline(
                   : ("receive" as const),
             },
           }
-          setTimeline((prev) => [...prev, messageItem])
+          setTimeline((prev) => {
+            const newTimeline = [...prev, messageItem]
+            // 只保留最近的 MAX_TIMELINE_ITEMS 条
+            return newTimeline.slice(-MAX_TIMELINE_ITEMS)
+          })
         } else {
           // 其他事件保持原样
-          setTimeline((prev) => [
-            ...prev,
-            {
-              type: "event",
-              timestamp: event.timestamp,
-              data: event,
-            },
-          ])
+          setTimeline((prev) => {
+            const newTimeline = [
+              ...prev,
+              {
+                type: "event" as const,
+                timestamp: event.timestamp,
+                data: event,
+              },
+            ]
+            // 只保留最近的 MAX_TIMELINE_ITEMS 条
+            return newTimeline.slice(-MAX_TIMELINE_ITEMS)
+          })
         }
       }
     })
