@@ -5,14 +5,19 @@
  */
 import { tool } from "@opencode-ai/plugin"
 import type { OpencodeClient } from "@opencode-ai/sdk"
+import type { StateManager } from "../state/StateManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 import { agentRegistry } from "../utils/AgentRegistry"
 /**
  * 创建 create_agent 工具
  *
  * @param opcodeClient OpenCode SDK 客户端
+ * @param stateManager 状态管理器
  */
-export function createCreateAgentTool(opcodeClient: OpencodeClient) {
+export function createCreateAgentTool(
+  opcodeClient: OpencodeClient,
+  stateManager?: StateManager
+) {
   return tool({
     description: "创建 OpenCode agent 执行任务",
     args: {
@@ -53,6 +58,17 @@ export function createCreateAgentTool(opcodeClient: OpencodeClient) {
         agentRegistry.register(agentId, {
           employeeName,
           taskName: args.task_name,
+        })
+        // 4. 记录 agent 创建事件
+        await stateManager?.addEvent({
+          projectId: "",
+          type: "agent_created",
+          timestamp: new Date().toISOString(),
+          employeeName,
+          details: {
+            agentId,
+            taskName: args.task_name,
+          },
         })
 
         return `✓ 已创建 Agent: ${agentId}，正在执行任务: ${args.task_name}`

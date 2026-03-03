@@ -174,6 +174,17 @@ export class MemoryManager {
 
     memory.tasks.push(newTask)
     await this.write(employeeName, memory)
+    // 记录 task 创建事件
+    await this.stateManager?.addEvent({
+      projectId: this.projectId,
+      type: "task_created",
+      timestamp: newTask.created,
+      employeeName,
+      details: {
+        taskName: newTask.name,
+        description: newTask.description,
+      },
+    })
   }
 
   /**
@@ -226,6 +237,19 @@ export class MemoryManager {
         details: {
           taskName,
           reason: "cancelled",
+        },
+      })
+    }
+    // 记录 task 修改事件（除了 completed/cancelled 状态变化）
+    if (updates.status !== "completed" && updates.status !== "cancelled") {
+      await this.stateManager?.addEvent({
+        projectId: this.projectId,
+        type: "task_modified",
+        timestamp,
+        employeeName,
+        details: {
+          taskName,
+          changes: updates,
         },
       })
     }

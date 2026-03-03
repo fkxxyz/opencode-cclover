@@ -83,11 +83,12 @@ export function createTools(deps: {
   memoryManager: MemoryManager
   opcodeClient: OpencodeClient
   bossManager?: BossManager
+  stateManager?: any
 }): ToolRegistry {
   return {
     send_message: createSendMessageTool(deps.messageService, deps.bossManager),
     edit_tasks: createEditTasksTool(deps.memoryManager),
-    create_agent: createCreateAgentTool(deps.opcodeClient),
+    create_agent: createCreateAgentTool(deps.opcodeClient, deps.stateManager),
     hire_employee: hireEmployeeTool,
   }
 }

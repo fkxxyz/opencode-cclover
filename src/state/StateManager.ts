@@ -1,5 +1,6 @@
 import { EmployeeRegistry } from "./EmployeeRegistry"
 import { EventHistory } from "./EventHistory"
+import { EventLogger } from "./EventLogger"
 import type { Employee, EmployeeStatus, Event, EventType } from "../types/index"
 
 /**
@@ -8,15 +9,19 @@ import type { Employee, EmployeeStatus, Event, EventType } from "../types/index"
  */
 export class StateManager {
   private projectId: string
+  private workspaceRoot: string
   private employeeRegistry: EmployeeRegistry
   private eventHistory: EventHistory
+  private eventLogger: EventLogger
   private taskCount: Map<string, number>
   private messageCount: Map<string, number>
 
-  constructor(projectId: string) {
+  constructor(projectId: string, workspaceRoot: string) {
     this.projectId = projectId
+    this.workspaceRoot = workspaceRoot
     this.employeeRegistry = new EmployeeRegistry()
     this.eventHistory = new EventHistory()
+    this.eventLogger = new EventLogger(workspaceRoot)
     this.taskCount = new Map()
     this.messageCount = new Map()
   }
@@ -47,37 +52,45 @@ export class StateManager {
   /**
    * 更新员工状态并记录事件
    */
-  updateEmployeeStatus(name: string, status: EmployeeStatus): void {
+  async updateEmployeeStatus(
+    name: string,
+    status: EmployeeStatus
+  ): Promise<void> {
     const employee = this.employeeRegistry.get(name)
     if (!employee) {
       throw new Error(`员工 '${name}' 不存在`)
     }
-
     const oldStatus = employee.status
     this.employeeRegistry.updateStatus(name, status)
-
     // 记录状态变化事件
-    this.eventHistory.add({
+    const event = {
       projectId: this.projectId,
-      type: "employee_status_changed",
+      type: "employee_status_changed" as const,
       timestamp: new Date().toISOString(),
       employeeName: name,
       details: {
         oldStatus,
         newStatus: status,
       },
-    })
+    }
+    this.eventHistory.add(event)
+    // 持久化事件到 JSONL 文件
+    await this.eventLogger.logEvent(name, event)
   }
-
   /**
    * 添加事件
    */
-  addEvent(event: Event): void {
+  async addEvent(event: Event): Promise<void> {
     // 确保事件包含 projectId
     if (!event.projectId) {
       event.projectId = this.projectId
     }
     this.eventHistory.add(event)
+
+    // 持久化事件到 JSONL 文件
+    if (event.employeeName) {
+      await this.eventLogger.logEvent(event.employeeName, event)
+    }
 
     // 更新统计数据
     if (event.type === "message" && event.employeeName) {
@@ -176,5 +189,12 @@ export class StateManager {
     this.eventHistory.clear()
     this.taskCount.clear()
     this.messageCount.clear()
+  }
+
+  /**
+   * 获取 EventLogger 实例
+   */
+  getEventLogger(): EventLogger {
+    return this.eventLogger
   }
 }

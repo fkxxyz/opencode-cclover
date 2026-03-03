@@ -87,6 +87,11 @@ export type EventType =
   | "timer"
   | "employee_hired"
   | "employee_status_changed"
+  | "session_created"
+  | "session_summarized"
+  | "agent_created"
+  | "task_created"
+  | "task_modified"
 
 // 事件
 export interface Event {
@@ -123,3 +128,13 @@ export type ConnectionStatus =
   | "connected"
   | "disconnected"
   | "error"
+
+// Timeline 项类型
+export type TimelineItemType = "message" | "event"
+
+// Timeline 项
+export interface TimelineItem {
+  type: TimelineItemType
+  timestamp: string
+  data: Message | Event
+}

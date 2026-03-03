@@ -7,6 +7,7 @@ import * as events from "../api/events"
 import * as stats from "../api/stats"
 import * as health from "../api/health"
 import * as projectsApi from "../api/projects"
+import * as timeline from "../api/timeline"
 
 /**
  * 路由处理器函数类型
@@ -633,6 +634,66 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
     async (req, params, deps) => {
       const employeeName = params.name
       return tasks.getTasks(employeeName, deps.memoryManager)
+    },
+  ],
+  /**
+   * 获取员工的时间线（消息 + 事件混合）
+   *
+   * @endpoint GET /api/projects/:projectId/employees/:name/timeline
+   * @description 获取指定员工的时间线，包括消息和事件按时间排序
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - name: 员工名称
+   *
+   * @queryParams
+   *   - limit: 返回数量，默认 50，最大 200（可选）
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     timeline: [
+   *       {
+   *         type: "message",
+   *         timestamp: "2026-03-03T10:00:00.000Z",
+   *         data: {
+   *           from: "alice",
+   *           to: "calculator",
+   *           content: "计算 1+1",
+   *           direction: "receive"
+   *         }
+   *       },
+   *       {
+   *         type: "event",
+   *         timestamp: "2026-03-03T10:00:05.000Z",
+   *         data: {
+   *           type: "task_completed",
+   *           employeeName: "calculator",
+   *           details: { taskName: "Task1", result: "2" }
+   *         }
+   *       }
+   *     ]
+   *   }
+   * }
+   *
+   * @example
+   * GET /api/projects/abc123/employees/calculator/timeline?limit=10
+   * Response: { success: true, data: { timeline: [...] } }
+   */
+  [
+    "GET:/employees/:name/timeline",
+    async (req, params, deps) => {
+      const url = new URL(req.url)
+      const employeeName = params.name
+      const limit = url.searchParams.get("limit")
+        ? parseInt(url.searchParams.get("limit")!)
+        : 50
+      return timeline.getTimeline(
+        employeeName,
+        deps.messageService,
+        deps.stateManager,
+        limit
+      )
     },
   ],
 ])

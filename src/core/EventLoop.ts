@@ -70,12 +70,12 @@ export class EventLoop {
       `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`
     )
     // 更新员工状态为 active
-    this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
+    await this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
 
     while (true) {
       try {
         // 1. 更新状态为 idle（等待事件）
-        this.stateManager?.updateEmployeeStatus(this.employeeName, "idle")
+        await this.stateManager?.updateEmployeeStatus(this.employeeName, "idle")
 
         // 2. 等待事件
         const event = await this.waitForEvent()
@@ -91,7 +91,10 @@ export class EventLoop {
         }
 
         // 3. 更新状态为 active（处理事件）
-        this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
+        await this.stateManager?.updateEmployeeStatus(
+          this.employeeName,
+          "active"
+        )
 
         // 4. 处理事件
         await this.handleEvent(event)
@@ -101,7 +104,10 @@ export class EventLoop {
       } catch (error) {
         console.error(`[${this.employeeName}] Error in event loop:`, error)
         // 更新状态为 error
-        this.stateManager?.updateEmployeeStatus(this.employeeName, "error")
+        await this.stateManager?.updateEmployeeStatus(
+          this.employeeName,
+          "error"
+        )
         // 继续循环，不退出
       }
     }
@@ -157,6 +163,18 @@ export class EventLoop {
 
             // 取消注册
             agentRegistry.unregister(sessionId)
+            // 记录 agent 完成事件
+            await this.stateManager?.addEvent({
+              projectId: "",
+              type: "agent_completed",
+              timestamp: new Date().toISOString(),
+              employeeName: this.employeeName,
+              details: {
+                agentId: sessionId,
+                taskName: agentInfo.taskName,
+                result,
+              },
+            })
 
             return {
               type: "agent_completed",
@@ -292,6 +310,16 @@ export class EventLoop {
     console.log(`[${this.employeeName}] Created session: ${sessionId}`)
 
     return this.currentSession
+    // 记录 session 创建事件
+    await this.stateManager?.addEvent({
+      projectId: "",
+      type: "session_created",
+      timestamp: new Date().toISOString(),
+      employeeName: this.employeeName,
+      details: {
+        sessionId,
+      },
+    })
   }
 
   /**
@@ -344,6 +372,18 @@ export class EventLoop {
       await this.closeSession()
 
       console.log(`[${this.employeeName}] Summary completed`)
+      // 记录 session 总结事件
+      await this.stateManager?.addEvent({
+        projectId: "",
+        type: "session_summarized",
+        timestamp: new Date().toISOString(),
+        employeeName: this.employeeName,
+        details: {
+          sessionId: this.currentSession.id,
+          messageCount,
+          tokenCount,
+        },
+      })
     }
   }
 
