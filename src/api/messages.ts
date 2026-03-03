@@ -303,20 +303,8 @@ export async function sendMessage(
     const client = messageService.getClient(employeeName)
     await client.send(to, content)
 
-    // 广播消息发送事件
-    if (stateManager && projectId) {
-      stateManager.emit("event", {
-        projectId,
-        type: "message_sent",
-        timestamp: new Date().toISOString(),
-        employeeName,
-        details: {
-          from: employeeName,
-          to,
-          content,
-        },
-      })
-    }
+    // MessageService.send() 已经通过 stateManager.addEvent() 触发了 "message" 事件
+    // 不需要在这里再次触发事件
 
     return {
       success: true,

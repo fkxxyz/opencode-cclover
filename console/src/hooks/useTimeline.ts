@@ -36,6 +36,7 @@ export function useTimeline(
       if (event.employeeName === employeeName) {
         // 如果是消息事件，转换为消息格式
         if (
+          event.type === "message" ||
           event.type === "message_sent" ||
           event.type === "message_received"
         ) {
@@ -48,7 +49,7 @@ export function useTimeline(
               to: event.details.to as string,
               content: event.details.content as string,
               direction:
-                event.type === "message_sent"
+                event.details.from === employeeName
                   ? ("send" as const)
                   : ("receive" as const),
             },

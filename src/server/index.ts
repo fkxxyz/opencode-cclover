@@ -99,14 +99,23 @@ export class ConsoleServer {
     // 监听所有 project 的 StateManager 事件
     const projects = this.projectRegistry.getAll()
     for (const project of projects) {
-      if (
-        project.stateManager &&
-        typeof project.stateManager.on === "function"
-      ) {
-        project.stateManager.on("event", (event: Event) => {
-          this.wsManager.broadcast(event)
-        })
-      }
+      this.subscribeToProject(project)
+    }
+
+    // 监听新项目注册事件
+    this.projectRegistry.on("project:registered", (project: any) => {
+      this.subscribeToProject(project)
+    })
+  }
+
+  /**
+   * 订阅单个项目的事件
+   */
+  private subscribeToProject(project: any): void {
+    if (project.stateManager && typeof project.stateManager.on === "function") {
+      project.stateManager.on("event", (event: Event) => {
+        this.wsManager.broadcast(event)
+      })
     }
   }
 

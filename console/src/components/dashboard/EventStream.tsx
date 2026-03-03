@@ -161,7 +161,7 @@ export function EventStream({ projectId }: EventStreamProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>实时事件流</CardTitle>
+        <CardTitle>实时事件流 (共 {events.length} 条)</CardTitle>
       </CardHeader>
       <CardContent>
         <Box
@@ -173,67 +173,71 @@ export function EventStream({ projectId }: EventStreamProps) {
             overflowY: "auto",
           }}
         >
-          {events.map((event, index) => (
-            <Box
-              key={`${event.timestamp}-${index}`}
-              sx={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 1.5,
-                p: 1.5,
-                borderRadius: 1,
-                border: 1,
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                "&:hover": {
-                  bgcolor: "action.hover",
-                },
-                transition: "background-color 0.2s",
-              }}
-            >
-              <Box sx={{ flexShrink: 0, pt: 0.5 }}>
-                <Badge
-                  style={{
-                    backgroundColor:
-                      eventTypeColors[event.type]?.bg || "#e5e7eb",
-                    color: eventTypeColors[event.type]?.text || "#374151",
-                  }}
-                >
-                  {eventTypeLabels[event.type] || event.type || "未知事件"}
-                </Badge>
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    mb: 0.5,
-                  }}
-                >
-                  {event.employeeName && (
-                    <Typography variant="body2" fontWeight="medium">
-                      {event.employeeName}
+          {events.map((event, index) => {
+            // 使用 timestamp + employeeName + type + index 作为唯一 key
+            const uniqueKey = `${event.timestamp}-${event.employeeName || "unknown"}-${event.type}-${index}`
+            return (
+              <Box
+                key={uniqueKey}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 1.5,
+                  p: 1.5,
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                  "&:hover": {
+                    bgcolor: "action.hover",
+                  },
+                  transition: "background-color 0.2s",
+                }}
+              >
+                <Box sx={{ flexShrink: 0, pt: 0.5 }}>
+                  <Badge
+                    style={{
+                      backgroundColor:
+                        eventTypeColors[event.type]?.bg || "#e5e7eb",
+                      color: eventTypeColors[event.type]?.text || "#374151",
+                    }}
+                  >
+                    {eventTypeLabels[event.type] || event.type || "未知事件"}
+                  </Badge>
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 0.5,
+                    }}
+                  >
+                    {event.employeeName && (
+                      <Typography variant="body2" fontWeight="medium">
+                        {event.employeeName}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" color="text.secondary">
+                      {formatTimestamp(event.timestamp)}
                     </Typography>
-                  )}
-                  <Typography variant="caption" color="text.secondary">
-                    {formatTimestamp(event.timestamp)}
+                  </Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ wordBreak: "break-word" }}
+                  >
+                    {getEventDescription(
+                      event.type,
+                      event.details,
+                      event.employeeName
+                    )}
                   </Typography>
                 </Box>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ wordBreak: "break-word" }}
-                >
-                  {getEventDescription(
-                    event.type,
-                    event.details,
-                    event.employeeName
-                  )}
-                </Typography>
               </Box>
-            </Box>
-          ))}
+            )
+          })}
         </Box>
       </CardContent>
     </Card>

@@ -4,6 +4,7 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { AgentRegistry } from "../utils/AgentRegistry"
 import type { BossManager } from "../core/BossManager"
 import { createHash } from "node:crypto"
+import EventEmitter from "eventemitter3"
 
 /**
  * Project 实例
@@ -27,12 +28,14 @@ export interface ProjectInstance {
  */
 export class ProjectRegistry {
   private projects: Map<string, ProjectInstance> = new Map()
+  private emitter: EventEmitter = new EventEmitter()
 
   /**
    * 注册 project
    */
   register(project: ProjectInstance): void {
     this.projects.set(project.projectId, project)
+    this.emitter.emit("project:registered", project)
   }
 
   /**
@@ -76,5 +79,19 @@ export class ProjectRegistry {
    */
   static hashPath(directory: string): string {
     return createHash("sha256").update(directory).digest("hex").substring(0, 16)
+  }
+
+  /**
+   * 监听事件
+   */
+  on(event: string, listener: (...args: any[]) => void): void {
+    this.emitter.on(event, listener)
+  }
+
+  /**
+   * 取消监听事件
+   */
+  off(event: string, listener: (...args: any[]) => void): void {
+    this.emitter.off(event, listener)
   }
 }

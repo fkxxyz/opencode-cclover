@@ -188,65 +188,69 @@ export function EventTimeline({ projectId, employeeName }: EventTimelineProps) {
 
             {/* 事件列表 */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {filteredEvents.map((event, index) => (
-                <Box
-                  key={`${event.timestamp}-${index}`}
-                  sx={{ position: "relative", pl: "2.5rem" }}
-                >
-                  {/* 时间线圆点 */}
+              {filteredEvents.map((event, index) => {
+                // 使用 timestamp + type + index 作为唯一 key
+                const uniqueKey = `${event.timestamp}-${event.type}-${index}`
+                return (
                   <Box
-                    sx={{
-                      position: "absolute",
-                      left: "0.625rem",
-                      top: "0.5rem",
-                      height: "0.75rem",
-                      width: "0.75rem",
-                      borderRadius: "50%",
-                      bgcolor: "background.paper",
-                      border: "2px solid",
-                      borderColor: "#3b82f6",
-                    }}
-                  />
-
-                  {/* 事件内容 */}
-                  <Box
-                    sx={{
-                      bgcolor: "background.paper",
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 1.5,
-                      transition: "box-shadow 0.2s",
-                      "&:hover": {
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      },
-                    }}
+                    key={uniqueKey}
+                    sx={{ position: "relative", pl: "2.5rem" }}
                   >
+                    {/* 时间线圆点 */}
                     <Box
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 1,
+                        position: "absolute",
+                        left: "0.625rem",
+                        top: "0.5rem",
+                        height: "0.75rem",
+                        width: "0.75rem",
+                        borderRadius: "50%",
+                        bgcolor: "background.paper",
+                        border: "2px solid",
+                        borderColor: "#3b82f6",
+                      }}
+                    />
+
+                    {/* 事件内容 */}
+                    <Box
+                      sx={{
+                        bgcolor: "background.paper",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        p: 1.5,
+                        transition: "box-shadow 0.2s",
+                        "&:hover": {
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        },
                       }}
                     >
-                      <Badge style={eventTypeColors[event.type]}>
-                        {eventTypeLabels[event.type]}
-                      </Badge>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatTimestamp(event.timestamp)}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Badge style={eventTypeColors[event.type]}>
+                          {eventTypeLabels[event.type]}
+                        </Badge>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatTimestamp(event.timestamp)}
+                        </Typography>
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ wordBreak: "break-word" }}
+                      >
+                        {getEventDescription(event.type, event.details)}
                       </Typography>
                     </Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ wordBreak: "break-word" }}
-                    >
-                      {getEventDescription(event.type, event.details)}
-                    </Typography>
                   </Box>
-                </Box>
-              ))}
+                )
+              })}
             </Box>
           </Box>
         )}
