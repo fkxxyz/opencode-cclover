@@ -4,15 +4,17 @@ import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
 import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
 
-// 模块加载时立即打印，确认插件已被加载
-console.log("[Cclover] Plugin module loaded")
-
 /**
  * OpenCode Cclover Plugin
  *
  * 多 Agent 自主协作系统
  */
 export const CcloverPlugin: Plugin = async (ctx) => {
+  if (!process.env.CCLOVER_ENABLE) {
+    logger.info("[Cclover] Plugin is not enabled, if you want to enable it, set CCLOVER_ENABLE=1")
+    return {}
+  }
+
   // 1. 静态注入 OpencodeClient（必须在 getInstance 之前）
   GlobalCcloverService.setOpencodeClient(ctx.client)
 

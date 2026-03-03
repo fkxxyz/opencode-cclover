@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # 快速启动 OpenCode server 进行测试
 
-# 获取脚本所在目录（项目根目录）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "🚀 Starting OpenCode server for cclover plugin testing..."
 echo ""
-echo "📁 Project root: $SCRIPT_DIR"
 echo "🔌 Port: 4099"
 echo "🔗 Config dir: workspace_test/.opencode"
 echo ""
@@ -16,7 +14,7 @@ echo ""
 
 # 后台启动 OpenCode server，输出到临时文件
 LOG_FILE="/tmp/opencode-cclover-test-$$.log"
-OPENCODE_CONFIG_DIR="$SCRIPT_DIR/workspace_test/.opencode" opencode serve --port 4099 > "$LOG_FILE" 2>&1 &
+CCLOVER_ENABLE=1 OPENCODE_CONFIG_DIR="$SCRIPT_DIR/workspace_test/.opencode" opencode serve --port 4099 > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 
 # 清理函数
@@ -58,7 +56,7 @@ done
 # 显示日志（包含插件加载信息）
 echo "📋 Server log:"
 echo ""
-tail -f "$LOG_FILE" &
+tail -n 10000 -f "$LOG_FILE" &
 TAIL_PID=$!
 
 # 等待服务器进程结束
