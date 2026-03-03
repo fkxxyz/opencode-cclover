@@ -68,18 +68,7 @@ export function BossList() {
             },
           }}
         >
-          {/* 状态指示器 */}
-          <Box
-            sx={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              backgroundColor: STATUS_COLORS[boss.status],
-              flexShrink: 0,
-              mr: 2,
-            }}
-            title={STATUS_LABELS[boss.status]}
-          />
+          {/* Boss 不显示状态指示器 */}
 
           {/* Boss 信息 */}
           <Box
@@ -112,27 +101,6 @@ export function BossList() {
             >
               {boss.role}
             </Typography>
-
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                flexShrink: 0,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  backgroundColor: STATUS_COLORS[boss.status],
-                }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                {STATUS_LABELS[boss.status]}
-              </Typography>
-            </Box>
           </Box>
 
           {/* 查看详情按钮 */}

@@ -49,14 +49,17 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
           <CardTitle style={{ fontSize: "1.125rem" }}>
             {employee.name}
           </CardTitle>
-          <Badge
-            style={{
-              backgroundColor: statusColors[employee.status].bg,
-              color: statusColors[employee.status].text,
-            }}
-          >
-            {statusLabels[employee.status]}
-          </Badge>
+          {/* Boss 不显示状态 */}
+          {employee.role !== "Boss" && (
+            <Badge
+              style={{
+                backgroundColor: statusColors[employee.status].bg,
+                color: statusColors[employee.status].text,
+              }}
+            >
+              {statusLabels[employee.status]}
+            </Badge>
+          )}
         </Box>
       </CardHeader>
       <CardContent>
