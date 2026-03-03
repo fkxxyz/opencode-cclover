@@ -88,9 +88,15 @@ export class WebSocketClient {
     }
   }
   private handleEvent(event: Event): void {
+    // 触发特定类型的处理器
     const handlers = this.eventHandlers.get(event.type)
     if (handlers) {
       handlers.forEach((handler) => handler(event))
+    }
+    // 触发通配符处理器
+    const wildcardHandlers = this.eventHandlers.get("*" as EventType)
+    if (wildcardHandlers) {
+      wildcardHandlers.forEach((handler) => handler(event))
     }
   }
 }

@@ -253,7 +253,9 @@ export async function sendMessage(
   employeeName: string,
   to: string,
   content: string,
-  messageService?: MessageService
+  messageService?: MessageService,
+  stateManager?: any,
+  projectId?: string
 ): Promise<SuccessResponse<{ message: string }> | ErrorResponse> {
   if (!messageService) {
     return {
@@ -300,6 +302,21 @@ export async function sendMessage(
     // 发送消息
     const client = messageService.getClient(employeeName)
     await client.send(to, content)
+
+    // 广播消息发送事件
+    if (stateManager && projectId) {
+      stateManager.emit("event", {
+        projectId,
+        type: "message_sent",
+        timestamp: new Date().toISOString(),
+        employeeName,
+        details: {
+          from: employeeName,
+          to,
+          content,
+        },
+      })
+    }
 
     return {
       success: true,

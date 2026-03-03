@@ -666,7 +666,9 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         employeeName,
         body.to,
         body.content,
-        deps.messageService
+        deps.messageService,
+        deps.stateManager,
+        params.projectId
       )
     },
   ],
