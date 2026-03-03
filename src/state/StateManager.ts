@@ -79,6 +79,8 @@ export class StateManager {
     this.eventHistory.add(event)
     // 持久化事件到 JSONL 文件
     await this.eventLogger.logEvent(name, event)
+    // 触发事件通知
+    this.emit("event", event)
   }
   /**
    * 添加事件
@@ -108,6 +110,9 @@ export class StateManager {
       const count = this.taskCount.get(event.employeeName) || 0
       this.taskCount.set(event.employeeName, count + 1)
     }
+
+    // 触发事件通知（让 ConsoleServer 能够广播到前端）
+    this.emit("event", event)
   }
 
   /**
