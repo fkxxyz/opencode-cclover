@@ -244,6 +244,9 @@ export class EventLoop {
           create_agent: true,
         },
       },
+      headers: {
+        "x-opencode-directory": this.projectPath,
+      },
     })
 
     // 6. 更新 session 信息
@@ -363,9 +366,12 @@ export class EventLoop {
         parts: [
           {
             type: "text",
-            text: "请总结你在本次对话中积累的经验知识和自定义数据。只总结新的、有价值的信息，不要重复已有的知识。请以 JSON 格式返回，包含 knowledge (字符串数组) 和 custom (对象) 两个字段。",
+            text: "请总结你在本次对话中积累的经验知识和自定义数据。只总结新的、有价值的信息,不要重复已有的知识。请以 JSON 格式返回,包含 knowledge (字符串数组) 和 custom (对象) 两个字段。",
           },
         ],
+      },
+      headers: {
+        "x-opencode-directory": this.projectPath,
       },
     })
 
