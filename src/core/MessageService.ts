@@ -212,6 +212,30 @@ export class MessageService {
   }
 
   /**
+   * 获取员工的所有对话对象列表
+   */
+  async getPeers(employeeName: string): Promise<string[]> {
+    // 获取消息目录路径
+    const messagesDir = this.bossManager?.isBoss(employeeName)
+      ? path.join(this.workspaceRoot, "bosses", employeeName, "messages")
+      : path.join(this.workspaceRoot, "employees", employeeName, "messages")
+
+    try {
+      // 读取目录下的所有子目录（每个子目录代表一个对话对象）
+      const entries = await fs.readdir(messagesDir, { withFileTypes: true })
+      return entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+    } catch (error: any) {
+      // 目录不存在时返回空数组
+      if (error.code === "ENOENT") {
+        return []
+      }
+      throw error
+    }
+  }
+
+  /**
    * 追加消息到文件
    */
   private async appendMessage(

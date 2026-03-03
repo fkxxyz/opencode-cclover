@@ -60,9 +60,35 @@ export async function getMessages(
         direction: msg.from === employeeName ? "send" : "receive",
       }))
     } else {
-      // 获取所有消息（这里需要从所有对话中收集）
-      // 简化实现：返回空数组，实际应该遍历所有对话
-      messages = []
+      // 获取所有消息（遍历所有对话）
+      const peers = await messageService.getPeers(employeeName)
+      const client = messageService.getClient(employeeName)
+
+      // 收集所有对话的消息
+      const allMessages: Message[] = []
+      for (const peer of peers) {
+        const serviceMessages = await client.history(peer)
+        const peerMessages = serviceMessages.map((msg: ServiceMessage) => ({
+          timestamp: msg.timestamp,
+          from: msg.from,
+          to: msg.from === employeeName ? peer : employeeName,
+          content: msg.content,
+          direction:
+            msg.from === employeeName
+              ? ("send" as const)
+              : ("receive" as const),
+        }))
+        allMessages.push(...peerMessages)
+      }
+
+      // 按时间戳排序
+      allMessages.sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )
+
+      // 限制数量（返回最近的 N 条）
+      messages = msgLimit ? allMessages.slice(-msgLimit) : allMessages
     }
 
     return {
