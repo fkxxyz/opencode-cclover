@@ -160,11 +160,12 @@ export function EventStream({ projectId }: EventStreamProps) {
               <Box sx={{ flexShrink: 0, pt: 0.5 }}>
                 <Badge
                   style={{
-                    backgroundColor: eventTypeColors[event.type].bg,
-                    color: eventTypeColors[event.type].text,
+                    backgroundColor:
+                      eventTypeColors[event.type]?.bg || "#e5e7eb",
+                    color: eventTypeColors[event.type]?.text || "#374151",
                   }}
                 >
-                  {eventTypeLabels[event.type]}
+                  {eventTypeLabels[event.type] || event.type || "未知事件"}
                 </Badge>
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
