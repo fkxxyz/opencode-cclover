@@ -339,7 +339,6 @@ export class EventLoop {
 
     console.log(`[${this.employeeName}] Created session: ${sessionId}`)
 
-    return this.currentSession
     // 记录 session 创建事件
     await this.stateManager?.addEvent({
       projectId: "",
@@ -350,6 +349,8 @@ export class EventLoop {
         sessionId,
       },
     })
+
+    return this.currentSession
   }
 
   /**
@@ -398,22 +399,26 @@ export class EventLoop {
       // 2. 保存总结
       await this.saveSummary(summary)
 
-      // 3. 关闭当前 session
-      await this.closeSession()
+      // 3. 保存 sessionId（closeSession 会把 currentSession 设为 null）
+      const sessionId = this.currentSession.id
 
-      console.log(`[${this.employeeName}] Summary completed`)
-      // 记录 session 总结事件
+      // 4. 记录 session 总结事件
       await this.stateManager?.addEvent({
         projectId: "",
         type: "session_summarized",
         timestamp: new Date().toISOString(),
         employeeName: this.employeeName,
         details: {
-          sessionId: this.currentSession.id,
+          sessionId,
           messageCount,
           tokenCount,
         },
       })
+
+      // 5. 关闭当前 session
+      await this.closeSession()
+
+      console.log(`[${this.employeeName}] Summary completed`)
     }
   }
 
