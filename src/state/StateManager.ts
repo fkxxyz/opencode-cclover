@@ -2,6 +2,7 @@ import { EmployeeRegistry } from "./EmployeeRegistry"
 import { EventHistory } from "./EventHistory"
 import { EventLogger } from "./EventLogger"
 import type { Employee, EmployeeStatus, Event, EventType } from "../types/index"
+import EventEmitter from "eventemitter3"
 
 /**
  * 统一状态管理器
@@ -15,6 +16,7 @@ export class StateManager {
   private eventLogger: EventLogger
   private taskCount: Map<string, number>
   private messageCount: Map<string, number>
+  private emitter: EventEmitter
 
   constructor(projectId: string, workspaceRoot: string) {
     this.projectId = projectId
@@ -24,6 +26,7 @@ export class StateManager {
     this.eventLogger = new EventLogger(workspaceRoot)
     this.taskCount = new Map()
     this.messageCount = new Map()
+    this.emitter = new EventEmitter()
   }
 
   /**
@@ -242,5 +245,26 @@ export class StateManager {
         }
       }
     }
+  }
+
+  /**
+   * 监听事件
+   */
+  on(event: string, listener: (...args: any[]) => void): void {
+    this.emitter.on(event, listener)
+  }
+
+  /**
+   * 取消监听事件
+   */
+  off(event: string, listener: (...args: any[]) => void): void {
+    this.emitter.off(event, listener)
+  }
+
+  /**
+   * 触发事件
+   */
+  emit(event: string, ...args: any[]): void {
+    this.emitter.emit(event, ...args)
   }
 }
