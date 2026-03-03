@@ -76,7 +76,9 @@ export class Router {
         // 2.2 查找带参数的项目路由
         const paramRoute = this.matchParamRoute(method, `/${subpath}`)
         if (paramRoute) {
-          const result = await paramRoute.handler(req, paramRoute.params, deps)
+          // 将 projectId 添加到 params 中
+          const params = { ...paramRoute.params, projectId }
+          const result = await paramRoute.handler(req, params, deps)
           return this.jsonResponse(result)
         }
       }
