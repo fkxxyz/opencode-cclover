@@ -510,6 +510,40 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   ],
 
   /**
+   * 获取员工的对话对象列表
+   *
+   * @endpoint GET /api/projects/:projectId/employees/:name/peers
+   * @description 获取指定员工的所有对话对象（peers）列表
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - name: 员工名称
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     peers: ["bayecao", "alice", "bob"]
+   *   }
+   * }
+   *
+   * @errors
+   *   - INVALID_PARAMETER: 员工名称为空
+   *   - FILE_READ_ERROR: 读取对话列表失败
+   *   - INTERNAL_ERROR: 消息服务未初始化
+   *
+   * @example
+   * GET /api/projects/abc123/employees/calculator/peers
+   * Response: { success: true, data: { peers: ["bayecao", "alice"] } }
+   */
+  [
+    "GET:/employees/:name/peers",
+    async (req, params, deps) => {
+      const employeeName = params.name
+      return messages.getPeers(employeeName, deps.messageService)
+    },
+  ],
+
+  /**
    * 获取员工任务列表
    *
    * @endpoint GET /api/projects/:projectId/employees/:name/tasks

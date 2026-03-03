@@ -55,7 +55,7 @@ export async function getMessages(
       messages = serviceMessages.map((msg: ServiceMessage) => ({
         timestamp: msg.timestamp,
         from: msg.from,
-        to: peer,
+        to: msg.from === employeeName ? peer : employeeName,
         content: msg.content,
         direction: msg.from === employeeName ? "send" : "receive",
       }))
@@ -103,6 +103,54 @@ export async function getMessages(
       error: {
         code: "FILE_READ_ERROR",
         message: `读取消息失败: ${error.message}`,
+      },
+    }
+  }
+}
+
+/**
+ * 获取员工的对话对象列表
+ */
+export async function getPeers(
+  employeeName: string,
+  messageService?: MessageService
+): Promise<SuccessResponse<{ peers: string[] }> | ErrorResponse> {
+  if (!messageService) {
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "消息服务未初始化",
+      },
+    }
+  }
+
+  try {
+    // 验证参数
+    if (!employeeName || employeeName.trim() === "") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_PARAMETER",
+          message: "员工名称不能为空",
+        },
+      }
+    }
+
+    const peers = await messageService.getPeers(employeeName)
+
+    return {
+      success: true,
+      data: {
+        peers,
+      },
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: {
+        code: "FILE_READ_ERROR",
+        message: `读取对话列表失败: ${error.message}`,
       },
     }
   }

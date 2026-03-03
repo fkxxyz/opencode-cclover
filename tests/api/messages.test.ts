@@ -228,3 +228,55 @@ describe("Messages API", () => {
     }
   })
 })
+
+describe("getPeers API", () => {
+  it("should return error when employee name is empty", async () => {
+    const messageService = new MessageService(testWorkspace)
+    const { getPeers } = await import("../../src/api/messages")
+    const response = await getPeers("", messageService)
+    expect(response.success).toBe(false)
+    if (!response.success) {
+      expect(response.error.code).toBe("INVALID_PARAMETER")
+    }
+  })
+
+  it("should return empty array when employee has no peers", async () => {
+    const messageService = new MessageService(testWorkspace)
+    const { getPeers } = await import("../../src/api/messages")
+    const response = await getPeers("calculator", messageService)
+    expect(response.success).toBe(true)
+    if (response.success) {
+      expect(response.data.peers).toEqual([])
+    }
+  })
+
+  it("should return list of peers", async () => {
+    const messageService = new MessageService(testWorkspace)
+    const { getPeers } = await import("../../src/api/messages")
+    // 创建与 alice 和 bob 的对话目录
+    const employeeDir = path.join(
+      testWorkspace,
+      "employees",
+      "calculator",
+      "messages"
+    )
+    await fs.mkdir(path.join(employeeDir, "alice"), { recursive: true })
+    await fs.mkdir(path.join(employeeDir, "bob"), { recursive: true })
+    const response = await getPeers("calculator", messageService)
+    expect(response.success).toBe(true)
+    if (response.success) {
+      expect(response.data.peers).toHaveLength(2)
+      expect(response.data.peers).toContain("alice")
+      expect(response.data.peers).toContain("bob")
+    }
+  })
+
+  it("should return error when message service is not provided", async () => {
+    const { getPeers } = await import("../../src/api/messages")
+    const response = await getPeers("calculator", undefined)
+    expect(response.success).toBe(false)
+    if (!response.success) {
+      expect(response.error.code).toBe("INTERNAL_ERROR")
+    }
+  })
+})

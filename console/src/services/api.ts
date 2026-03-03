@@ -90,7 +90,16 @@ export class ApiClient {
     )
     return data.messages
   }
-  async getTasks(projectId: string, employeeName: string): Promise<TasksResponse> {
+  async getPeers(projectId: string, employeeName: string): Promise<string[]> {
+    const data = await this.request<{ peers: string[] }>(
+      `/projects/${projectId}/employees/${employeeName}/peers`
+    )
+    return data.peers
+  }
+  async getTasks(
+    projectId: string,
+    employeeName: string
+  ): Promise<TasksResponse> {
     return this.request<TasksResponse>(
       `/projects/${projectId}/employees/${employeeName}/tasks`
     )
@@ -100,7 +109,8 @@ export class ApiClient {
     options?: {
       limit?: number
       employeeName?: string
-  }): Promise<Event[]> {
+    }
+  ): Promise<Event[]> {
     const params = new URLSearchParams()
     if (options?.limit) params.append("limit", options.limit.toString())
     if (options?.employeeName)
