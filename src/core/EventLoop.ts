@@ -1,6 +1,6 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { MessageClient, Message } from "./MessageService"
-import type { MemoryManager, Memory } from "./MemoryManager"
+import type { MemoryManager, Memory, Task } from "./MemoryManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { sessionRegistry } from "../utils/SessionRegistry"
@@ -18,7 +18,7 @@ export interface Role {
 /**
  * 事件类型
  */
-export type Event = MessageEvent | AgentEvent
+export type Event = MessageEvent | AgentEvent | TaskAvailableEvent
 
 export interface MessageEvent {
   type: "message"
@@ -32,6 +32,12 @@ export interface AgentEvent {
   agentId: string
   taskName: string
   result: string
+  timestamp: string
+}
+
+export interface TaskAvailableEvent {
+  type: "task_available"
+  tasks: Task[]
   timestamp: string
 }
 
@@ -124,6 +130,9 @@ export class EventLoop {
 
       // 2. 等待 Agent 完成
       this.waitForAgentCompletion(),
+
+      // 3. 检查可执行任务
+      this.waitForTaskAvailable(),
     ])
   }
 
@@ -190,6 +199,27 @@ export class EventLoop {
 
     // 永远不会到达这里（for await 会一直等待）
     throw new Error("Unexpected end of event stream")
+  }
+  /**
+   * 等待可执行任务
+   * 延迟检查，避免和消息/Agent事件竞争
+   */
+  private async waitForTaskAvailable(): Promise<TaskAvailableEvent> {
+    // 延迟 1 秒再检查，让消息和 Agent 完成事件优先触发
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // 检查是否有可执行任务
+    const executableTasks = await this.memoryManager.getExecutableTasks(
+      this.employeeName
+    )
+    if (executableTasks.length > 0) {
+      return {
+        type: "task_available",
+        tasks: executableTasks,
+        timestamp: new Date().toISOString(),
+      }
+    }
+    // 如果没有可执行任务，继续等待
+    return this.waitForTaskAvailable()
   }
 
   /**

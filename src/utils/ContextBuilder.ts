@@ -89,6 +89,12 @@ export function buildEventMessage(event: Event): string {
     sections.push(`关联任务: ${event.taskName}`)
     sections.push(`执行结果: ${event.result}`)
     sections.push(`时间: ${event.timestamp}`)
+  } else if (event.type === "task_available") {
+    sections.push("目前没有未读消息，但有以下任务可以执行：")
+    for (const task of event.tasks) {
+      sections.push(`- ${task.name}: ${task.description}`)
+    }
+    sections.push(`时间: ${event.timestamp}`)
   } else {
     // 通用处理：输出所有字段
     for (const [key, value] of Object.entries(event)) {
