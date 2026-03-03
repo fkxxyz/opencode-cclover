@@ -6,7 +6,7 @@ import { Button } from "../components/ui/button"
 import { Card, CardContent } from "../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { EmployeeCard } from "../components/employee/EmployeeCard"
-import { MessageList } from "../components/employee/MessageList"
+import { ConversationView } from "../components/employee/ConversationView"
 import { TaskList } from "../components/employee/TaskList"
 import { TaskDAG } from "../components/visualizations/TaskDAG"
 import { MemoryView } from "../components/employee/MemoryView"
@@ -130,7 +130,7 @@ export function EmployeeDetail() {
             value="messages"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <MessageList projectId={projectId!} employeeName={employee.name} />
+            <ConversationView projectId={projectId!} employeeName={employee.name} />
           </TabsContent>
           <TabsContent
             value="tasks"

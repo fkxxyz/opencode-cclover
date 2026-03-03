@@ -20,7 +20,11 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-export function MessageList({ projectId, employeeName, peer }: MessageListProps) {
+export function MessageList({
+  projectId,
+  employeeName,
+  peer,
+}: MessageListProps) {
   const { messages, loading } = useMessages(projectId, employeeName, peer)
   if (loading) {
     return (
@@ -90,11 +94,15 @@ export function MessageList({ projectId, employeeName, peer }: MessageListProps)
                     bgcolor: isSent
                       ? "primary.main"
                       : (theme) =>
-                          theme.palette.mode === "dark" ? "grey.800" : "grey.200",
+                          theme.palette.mode === "dark"
+                            ? "grey.800"
+                            : "grey.200",
                     color: isSent
                       ? "primary.contrastText"
                       : (theme) =>
-                          theme.palette.mode === "dark" ? "grey.100" : "grey.900",
+                          theme.palette.mode === "dark"
+                            ? "grey.100"
+                            : "grey.900",
                   }}
                 >
                   <Box

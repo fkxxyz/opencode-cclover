@@ -48,6 +48,13 @@ export interface Message {
   direction: MessageDirection
 }
 
+export interface Peer {
+  name: string
+  messageCount: number
+  lastMessage?: string
+  lastTimestamp?: string
+}
+
 // Task types
 export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled"
 

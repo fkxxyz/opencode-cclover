@@ -6,7 +6,7 @@ export function useMessages(
   projectId: string | undefined,
   employeeName: string,
   peer?: string
-  ) {
+) {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
