@@ -305,7 +305,7 @@ export async function sendMessage(
 
     // 广播消息发送事件
     if (stateManager && projectId) {
-      const event = {
+      stateManager.emit("event", {
         projectId,
         type: "message_sent",
         timestamp: new Date().toISOString(),
@@ -315,13 +315,7 @@ export async function sendMessage(
           to,
           content,
         },
-      }
-      console.log("[messages.sendMessage] Broadcasting event:", event)
-      stateManager.emit("event", event)
-    } else {
-      console.warn(
-        "[messages.sendMessage] Cannot broadcast event - missing stateManager or projectId"
-      )
+      })
     }
 
     return {

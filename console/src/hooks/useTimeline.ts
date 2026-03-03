@@ -30,16 +30,13 @@ export function useTimeline(
   // 实时更新 - 监听所有事件类型
   useEffect(() => {
     const unsubscribe = subscribe("*", (event) => {
-      console.log("[useTimeline] Received event:", event)
       // 只添加与当前员工相关的事件
       if (event.employeeName === employeeName) {
-        console.log("[useTimeline] Event matches employee:", employeeName)
         // 如果是消息事件，转换为消息格式
         if (
           event.type === "message_sent" ||
           event.type === "message_received"
         ) {
-          console.log("[useTimeline] Converting message event to timeline item")
           const messageItem: TimelineItem = {
             type: "message",
             timestamp: event.timestamp,
