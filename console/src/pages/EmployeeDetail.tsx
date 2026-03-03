@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { apiClient } from "../services"
 import { Button } from "../components/ui/button"
@@ -19,9 +19,15 @@ import Typography from "@mui/material/Typography"
 export function EmployeeDetail() {
   const { projectId, name } = useParams<{ projectId: string; name: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [employee, setEmployee] = useState<EmployeeDetailType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  // 从 URL 读取当前标签页，默认为 messages
+  const currentTab = searchParams.get("tab") || "messages"
+  // 从 URL 读取当前聊天对象
+  const currentPeer = searchParams.get("peer") || null
   useEffect(() => {
     if (!name || !projectId) return
     setLoading(true)
@@ -114,7 +120,13 @@ export function EmployeeDetail() {
         </Box>
         <EmployeeCard employee={employee} />
         <Tabs
-          defaultValue="messages"
+          value={currentTab}
+          onValueChange={(value) => {
+            // 更新 URL query params，保留其他参数
+            const newParams = new URLSearchParams(searchParams)
+            newParams.set("tab", value)
+            setSearchParams(newParams)
+          }}
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           <TabsList
@@ -137,6 +149,18 @@ export function EmployeeDetail() {
             <ConversationView
               projectId={projectId!}
               employeeName={employee.name}
+              selectedPeer={currentPeer}
+              onPeerChange={(peer) => {
+                // 更新 URL query params
+                const newParams = new URLSearchParams(searchParams)
+                if (peer) {
+                  newParams.set("tab", "messages") // 确保在 messages 标签页
+                  newParams.set("peer", peer)
+                } else {
+                  newParams.delete("peer")
+                }
+                setSearchParams(newParams)
+              }}
             />
           </TabsContent>
           <TabsContent

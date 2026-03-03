@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "../ui/card"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -10,22 +10,42 @@ import { MessagePanel } from "./MessagePanel"
 interface ConversationViewProps {
   projectId: string
   employeeName: string
+  selectedPeer?: string | null
+  onPeerChange?: (peer: string | null) => void
 }
 
 export function ConversationView({
   projectId,
   employeeName,
+  selectedPeer: externalSelectedPeer,
+  onPeerChange,
 }: ConversationViewProps) {
-  const [selectedPeer, setSelectedPeer] = useState<string | null>(null)
+  const [internalSelectedPeer, setInternalSelectedPeer] = useState<string | null>(null)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+  // 使用外部传入的 selectedPeer，如果没有则使用内部状态
+  const selectedPeer = externalSelectedPeer !== undefined ? externalSelectedPeer : internalSelectedPeer
+  // 同步外部状态到内部状态
+  useEffect(() => {
+    if (externalSelectedPeer !== undefined) {
+      setInternalSelectedPeer(externalSelectedPeer)
+    }
+  }, [externalSelectedPeer])
 
   const handleSelectPeer = (peer: string) => {
-    setSelectedPeer(peer)
+    if (onPeerChange) {
+      onPeerChange(peer)
+    } else {
+      setInternalSelectedPeer(peer)
+    }
   }
 
   const handleBack = () => {
-    setSelectedPeer(null)
+    if (onPeerChange) {
+      onPeerChange(null)
+    } else {
+      setInternalSelectedPeer(null)
+    }
   }
 
   return (
