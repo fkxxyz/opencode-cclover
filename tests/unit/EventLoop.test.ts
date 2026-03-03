@@ -135,37 +135,6 @@ describe("EventLoop", () => {
   })
 
   describe("Memory Management", () => {
-    test("should build system prompt with memory", async () => {
-      const messageClient = messageService.getClient("test-employee")
-
-      // 写入一些记忆
-      await memoryManager.write("test-employee", {
-        knowledge: ["Test knowledge 1", "Test knowledge 2"],
-        tasks: [],
-        custom: { testKey: "testValue" },
-      })
-
-      const eventLoop = new EventLoop(
-        testWorkspace,
-        "test-employee",
-        testRole,
-        messageClient,
-        memoryManager,
-        opcodeClient
-      )
-
-      // 调用 buildSystemPrompt
-      const buildSystemPrompt = (eventLoop as any).buildSystemPrompt.bind(
-        eventLoop
-      )
-      const systemPrompt = await buildSystemPrompt()
-
-      expect(systemPrompt).toContain("You are a test role.")
-      expect(systemPrompt).toContain("Test knowledge 1")
-      expect(systemPrompt).toContain("Test knowledge 2")
-      expect(systemPrompt).toContain("testKey")
-    })
-
     test("should save summary to memory", async () => {
       const messageClient = messageService.getClient("test-employee")
 
@@ -282,8 +251,8 @@ describe("EventLoop", () => {
 
       // 验证没有调用 prompt（不应该触发总结）
       const promptCallCount = opcodeClient.session.prompt.mock.calls.length
-      // 只有 ensureSession 时调用了一次 prompt
-      expect(promptCallCount).toBe(1)
+      // ensureSession 不再调用 prompt，所以应该是 0
+      expect(promptCallCount).toBe(0)
     })
 
     test("should summarize when token threshold reached", async () => {

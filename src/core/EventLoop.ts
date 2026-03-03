@@ -52,7 +52,6 @@ export class EventLoop {
   private currentSession: SessionInfo | null = null
   private readonly TOKEN_THRESHOLD = 100000 // 10万 token
   private readonly MESSAGE_THRESHOLD = 20 // 20 轮对话
-
   constructor(
     private projectPath: string,
     private employeeName: string,
@@ -80,6 +79,16 @@ export class EventLoop {
 
         // 2. 等待事件
         const event = await this.waitForEvent()
+        console.log(`[${this.employeeName}] Received event:`, event.type)
+        if (event.type === "message") {
+          console.log(
+            `[${this.employeeName}] Message from ${event.from}: ${event.content}`
+          )
+        } else if (event.type === "agent_completed") {
+          console.log(
+            `[${this.employeeName}] Agent completed: ${event.taskName}, result: ${event.result}`
+          )
+        }
 
         // 3. 更新状态为 active（处理事件）
         this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
@@ -207,6 +216,9 @@ export class EventLoop {
 
     // 1. 确保 session 存在
     const session = await this.ensureSession()
+    console.log(
+      `[${this.employeeName}] Handling event in session: ${session.id}`
+    )
 
     // 2. 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeName)
@@ -214,10 +226,17 @@ export class EventLoop {
     // 3. 构建事件消息
     const eventMessage = buildEventMessage(event)
 
-    // 4. 发送给 AI
+    // 4. 构建系统提示词(仅在第一条消息时)
+    const systemPrompt =
+      session.messageCount === 0
+        ? buildSystemPrompt(this.role.systemPrompt, memory)
+        : undefined
+
+    // 5. 发送给 AI
     await this.opcodeClient.session.prompt({
       path: { id: session.id },
       body: {
+        system: systemPrompt,
         parts: [{ type: "text", text: eventMessage }],
         tools: {
           send_message: true,
@@ -227,7 +246,7 @@ export class EventLoop {
       },
     })
 
-    // 5. 更新 session 信息
+    // 6. 更新 session 信息
     this.currentSession!.messageCount++
 
     console.log(`[${this.employeeName}] Event handled`)
@@ -243,11 +262,12 @@ export class EventLoop {
     }
 
     // 创建新 session
-    const systemPrompt = await this.buildSystemPrompt()
-
     const response = await this.opcodeClient.session.create({
       body: {
         title: `${this.employeeName} - ${new Date().toISOString()}`,
+      },
+      query: {
+        directory: this.projectPath,
       },
     })
 
@@ -259,15 +279,6 @@ export class EventLoop {
 
     // 注册 session
     sessionRegistry.register(sessionId, this.employeeName)
-
-    // 发送系统提示词（使用 noReply 只注入上下文，不触发 AI 响应）
-    await this.opcodeClient.session.prompt({
-      path: { id: sessionId },
-      body: {
-        noReply: true,
-        parts: [{ type: "text", text: systemPrompt }],
-      },
-    })
 
     this.currentSession = {
       id: sessionId,
@@ -294,14 +305,6 @@ export class EventLoop {
     sessionRegistry.unregister(this.currentSession.id)
 
     this.currentSession = null
-  }
-
-  /**
-   * 构建系统提示词
-   */
-  private async buildSystemPrompt(): Promise<string> {
-    const memory = await this.memoryManager.read(this.employeeName)
-    return buildSystemPrompt(this.role.systemPrompt, memory)
   }
 
   /**
