@@ -20,11 +20,16 @@ export function ConversationView({
   selectedPeer: externalSelectedPeer,
   onPeerChange,
 }: ConversationViewProps) {
-  const [internalSelectedPeer, setInternalSelectedPeer] = useState<string | null>(null)
+  const [internalSelectedPeer, setInternalSelectedPeer] = useState<
+    string | null
+  >(null)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   // 使用外部传入的 selectedPeer，如果没有则使用内部状态
-  const selectedPeer = externalSelectedPeer !== undefined ? externalSelectedPeer : internalSelectedPeer
+  const selectedPeer =
+    externalSelectedPeer !== undefined
+      ? externalSelectedPeer
+      : internalSelectedPeer
   // 同步外部状态到内部状态
   useEffect(() => {
     if (externalSelectedPeer !== undefined) {

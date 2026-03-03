@@ -139,3 +139,12 @@ export interface WebSocketMessage {
   type: "event"
   data: Event
 }
+
+// Timeline types
+export type TimelineItemType = "message" | "event"
+
+export interface TimelineItem {
+  type: TimelineItemType
+  timestamp: string
+  data: Message | Event
+}

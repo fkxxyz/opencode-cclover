@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useMessages } from "../../hooks/useMessages"
+import { useTimeline } from "../../hooks/useTimeline"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import CircularProgress from "@mui/material/CircularProgress"
@@ -11,6 +11,8 @@ import TextField from "@mui/material/TextField"
 import Button from "@mui/material/Button"
 import { Send } from "lucide-react"
 import { apiClient } from "../../services/api"
+import { EventItem } from "./EventItem"
+import type { TimelineItem, Message, Event } from "../../types"
 
 interface MessagePanelProps {
   projectId: string
@@ -35,10 +37,24 @@ export function MessagePanel({
   peer,
   onBack,
 }: MessagePanelProps) {
-  const { messages, loading } = useMessages(projectId, employeeName, peer)
+  const { timeline, loading } = useTimeline(projectId, employeeName)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [inputValue, setInputValue] = useState("")
+
+  // 过滤只显示与当前 peer 的消息和事件
+  const filteredTimeline =
+    timeline?.filter((item) => {
+      if (item.type === "message") {
+        const message = item.data as Message
+        return (
+          (message.from === employeeName && message.to === peer) ||
+          (message.from === peer && message.to === employeeName)
+        )
+      }
+      // 事件总是显示
+      return true
+    }) || []
 
   const handleSend = async () => {
     if (!inputValue.trim()) return
@@ -51,12 +67,14 @@ export function MessagePanel({
       alert(`发送失败: ${error instanceof Error ? error.message : "未知错误"}`)
     }
   }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
   }
+
   if (loading) {
     return (
       <Box
@@ -72,7 +90,7 @@ export function MessagePanel({
     )
   }
 
-  if (messages.length === 0) {
+  if (filteredTimeline.length === 0) {
     return (
       <Box
         sx={{
@@ -121,11 +139,21 @@ export function MessagePanel({
           gap: 1.5,
         }}
       >
-        {messages.map((message, index) => {
+        {filteredTimeline.map((item, index) => {
+          if (item.type === "event") {
+            return (
+              <EventItem
+                key={`event-${item.timestamp}-${index}`}
+                event={item.data as Event}
+              />
+            )
+          }
+
+          const message = item.data as Message
           const isSent = message.direction === "send"
           return (
             <Box
-              key={`${message.timestamp}-${index}`}
+              key={`message-${message.timestamp}-${index}`}
               sx={{
                 display: "flex",
                 justifyContent: isSent ? "flex-end" : "flex-start",
@@ -203,7 +231,7 @@ export function MessagePanel({
         />
         <Button
           variant="contained"
-          onClick={handleSend}
+          nClick={handleSend}
           disabled={!inputValue.trim()}
           sx={{ minWidth: "auto", px: 2 }}
         >

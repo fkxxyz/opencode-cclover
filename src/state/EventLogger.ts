@@ -95,12 +95,12 @@ export class EventLogger {
     // 获取消息（从所有对话对象）
     const peers = await messageService.getPeers(employeeName)
     const allMessages = []
+
+    // 创建 MessageClient 来获取历史消息
+    const client = messageService.getClient(employeeName)
+
     for (const peer of peers) {
-      const messages = await messageService.getMessages(
-        employeeName,
-        peer,
-        limit * 2
-      )
+      const messages = await client.history(peer, limit * 2)
       allMessages.push(...messages)
     }
 

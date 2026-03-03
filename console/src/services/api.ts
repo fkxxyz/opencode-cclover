@@ -9,8 +9,11 @@ import type {
   Event,
   SuccessResponse,
   ErrorResponse,
+  TimelineItem,
 } from "../types/index"
+
 const API_BASE_URL = "http://localhost:4097/api"
+
 export class ApiClient {
   async getProjects(): Promise<Project[]> {
     const data = await this.request<{ projects: Project[] }>("/projects")
@@ -52,6 +55,7 @@ export class ApiClient {
       throw new Error(error.error.message)
     }
   }
+
   private async request<T>(endpoint: string): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`)
     const json = (await response.json()) as SuccessResponse<T> | ErrorResponse
@@ -61,12 +65,14 @@ export class ApiClient {
     }
     return (json as SuccessResponse<T>).data
   }
+
   async getEmployees(projectId: string): Promise<Employee[]> {
     const data = await this.request<{ employees: Employee[] }>(
       `/projects/${projectId}/employees`
     )
     return data.employees
   }
+
   async getEmployeeDetail(
     projectId: string,
     name: string
@@ -75,6 +81,7 @@ export class ApiClient {
       `/projects/${projectId}/employees/${name}`
     )
   }
+
   async getMessages(
     projectId: string,
     employeeName: string,
@@ -90,12 +97,14 @@ export class ApiClient {
     )
     return data.messages
   }
+
   async getPeers(projectId: string, employeeName: string): Promise<string[]> {
     const data = await this.request<{ peers: string[] }>(
       `/projects/${projectId}/employees/${employeeName}/peers`
     )
     return data.peers
   }
+
   async sendMessage(
     projectId: string,
     employeeName: string,
@@ -116,6 +125,7 @@ export class ApiClient {
       throw new Error(error.error.message)
     }
   }
+
   async getTasks(
     projectId: string,
     employeeName: string
@@ -124,6 +134,7 @@ export class ApiClient {
       `/projects/${projectId}/employees/${employeeName}/tasks`
     )
   }
+
   async getEvents(
     projectId: string,
     options?: {
@@ -141,12 +152,14 @@ export class ApiClient {
     )
     return data.events
   }
+
   async getHierarchy(projectId: string): Promise<EmployeeHierarchy> {
     const data = await this.request<{ hierarchy: EmployeeHierarchy }>(
       `/projects/${projectId}/employees/hierarchy`
     )
     return data.hierarchy
   }
+
   async getStats(projectId: string): Promise<{
     totalEmployees: number
     activeEmployees: number
@@ -160,6 +173,7 @@ export class ApiClient {
       todayMessages: number
     }>(`/projects/${projectId}/stats`)
   }
+
   async getHealth(): Promise<{
     status: string
     timestamp: string
@@ -171,5 +185,20 @@ export class ApiClient {
       version: string
     }>("/health")
   }
+
+  async getTimeline(
+    projectId: string,
+    employeeName: string,
+    limit?: number
+  ): Promise<TimelineItem[]> {
+    const params = new URLSearchParams()
+    if (limit) params.append("limit", limit.toString())
+    const query = params.toString() ? `?${params.toString()}` : ""
+    const data = await this.request<{ timeline: TimelineItem[] }>(
+      `/projects/${projectId}/employees/${employeeName}/timeline${query}`
+    )
+    return data.timeline
+  }
 }
+
 export const apiClient = new ApiClient()

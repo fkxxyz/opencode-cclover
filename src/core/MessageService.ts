@@ -85,8 +85,10 @@ export class MessageClient {
       // 3. 转换格式
       const result = messages.map((msg) => ({
         from: msg.direction === "receive" ? peer : this.employeeName,
+        to: msg.direction === "receive" ? this.employeeName : peer,
         content: msg.content,
         timestamp: msg.timestamp,
+        direction: msg.direction,
       }))
 
       // 4. 限制数量（返回最近的 N 条）
