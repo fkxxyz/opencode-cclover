@@ -26,16 +26,16 @@ export function usePeers(projectId: string | undefined, employeeName: string) {
   // 实时更新：收到新消息时更新对话列表
   useEffect(() => {
     const unsubscribe = subscribe("message", (event) => {
-      const messageData = event.details as any
-      if (!messageData) return
+      const details = event.details as any
+      if (!details || !details.from || !details.to) return
+
+      const from = details.from as string
+      const to = details.to as string
+      const content = details.content as string
 
       // 如果消息涉及当前员工，更新 peers 列表
-      if (
-        messageData.from === employeeName ||
-        messageData.to === employeeName
-      ) {
-        const newPeerName =
-          messageData.from === employeeName ? messageData.to : messageData.from
+      if (from === employeeName || to === employeeName) {
+        const newPeerName = from === employeeName ? to : from
         setPeers((prev) => {
           // 查找是否已存在
           const existingIndex = prev.findIndex((p) => p.name === newPeerName)
@@ -44,9 +44,8 @@ export function usePeers(projectId: string | undefined, employeeName: string) {
             const updated = [...prev]
             updated[existingIndex] = {
               name: newPeerName,
-              lastMessageTime:
-                messageData.timestamp || new Date().toISOString(),
-              lastMessageContent: messageData.content?.substring(0, 50),
+              lastMessageTime: event.timestamp,
+              lastMessageContent: content?.substring(0, 50),
             }
             // 重新排序：最新消息的排在最前
             updated.sort((a, b) => {
@@ -66,9 +65,8 @@ export function usePeers(projectId: string | undefined, employeeName: string) {
             return [
               {
                 name: newPeerName,
-                lastMessageTime:
-                  messageData.timestamp || new Date().toISOString(),
-                lastMessageContent: messageData.content?.substring(0, 50),
+                lastMessageTime: event.timestamp,
+                lastMessageContent: content?.substring(0, 50),
               },
               ...prev,
             ]

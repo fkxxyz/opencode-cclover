@@ -26,15 +26,31 @@ export function useMessages(
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("message", (event) => {
-      const messageData = event.details as unknown as Message
-      if (
-        messageData &&
-        ((messageData.from === employeeName &&
-          (!peer || messageData.to === peer)) ||
-          (messageData.to === employeeName &&
-            (!peer || messageData.from === peer)))
-      ) {
-        setMessages((prev) => [...prev, messageData])
+      // 从 Event 对象中提取消息数据
+      const details = event.details as any
+      if (!details || !details.from || !details.to) {
+        return
+      }
+
+      const from = details.from as string
+      const to = details.to as string
+      const content = details.content as string
+
+      // 检查消息是否与当前员工和对话对象相关
+      const isRelevant =
+        (from === employeeName && (!peer || to === peer)) ||
+        (to === employeeName && (!peer || from === peer))
+
+      if (isRelevant) {
+        // 构造完整的 Message 对象
+        const message: Message = {
+          from,
+          to,
+          content,
+          timestamp: event.timestamp,
+          direction: from === employeeName ? "send" : "receive",
+        }
+        setMessages((prev) => [...prev, message])
       }
     })
     return unsubscribe

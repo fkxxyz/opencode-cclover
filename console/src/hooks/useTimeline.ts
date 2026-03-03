@@ -32,24 +32,38 @@ export function useTimeline(
   // 实时更新 - 监听所有事件类型
   useEffect(() => {
     const unsubscribe = subscribe("*", (event) => {
-      // 只添加与当前员工相关的事件
-      if (event.employeeName === employeeName) {
+      // 检查事件是否与当前员工相关
+      let isRelevant = false
+
+      if (event.type === "message") {
+        // 消息事件：检查 from 或 to 是否是当前员工
+        const details = event.details as any
+        const from = details?.from as string
+        const to = details?.to as string
+        isRelevant = from === employeeName || to === employeeName
+      } else {
+        // 其他事件：检查 employeeName 字段
+        isRelevant = event.employeeName === employeeName
+      }
+
+      if (isRelevant) {
         // 如果是消息事件，转换为消息格式
         if (
           event.type === "message" ||
           event.type === "message_sent" ||
           event.type === "message_received"
         ) {
+          const details = event.details as any
           const messageItem: TimelineItem = {
             type: "message",
             timestamp: event.timestamp,
             data: {
               timestamp: event.timestamp,
-              from: event.details.from as string,
-              to: event.details.to as string,
-              content: event.details.content as string,
+              from: details.from as string,
+              to: details.to as string,
+              content: details.content as string,
               direction:
-                event.details.from === employeeName
+                details.from === employeeName
                   ? ("send" as const)
                   : ("receive" as const),
             },
