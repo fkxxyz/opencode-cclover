@@ -17,33 +17,43 @@ interface EventTimelineProps {
   employeeName: string
 }
 
-const eventTypeColors: Record<
+const eventTypeColors: Partial<Record<
   EventType,
   { backgroundColor: string; color: string }
-> = {
+>> = {
   message: { backgroundColor: "#dbeafe", color: "#1e40af" },
   task_completed: { backgroundColor: "#dcfce7", color: "#166534" },
   task_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  task_created: { backgroundColor: "#e0f2fe", color: "#075985" },
+  task_modified: { backgroundColor: "#fef3c7", color: "#92400e" },
   agent_completed: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
   agent_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  agent_created: { backgroundColor: "#ede9fe", color: "#5b21b6" },
   timer: { backgroundColor: "#f3f4f6", color: "#1f2937" },
   employee_hired: { backgroundColor: "#fef3c7", color: "#92400e" },
   employee_status_changed: { backgroundColor: "#fed7aa", color: "#9a3412" },
+  session_created: { backgroundColor: "#ddd6fe", color: "#5b21b6" },
+  session_summarized: { backgroundColor: "#e0e7ff", color: "#3730a3" },
   message_sent: { backgroundColor: "#dbeafe", color: "#1e40af" },
   message_received: { backgroundColor: "#dbeafe", color: "#1e40af" },
   task_updated: { backgroundColor: "#dcfce7", color: "#166534" },
   agent_updated: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
 }
 
-const eventTypeLabels: Record<EventType, string> = {
+const eventTypeLabels: Partial<Record<EventType, string>> = {
   message: "消息",
   task_completed: "任务完成",
   task_failed: "任务失败",
+  task_created: "任务创建",
+  task_modified: "任务修改",
   agent_completed: "Agent完成",
   agent_failed: "Agent失败",
+  agent_created: "Agent创建",
   timer: "定时器",
   employee_hired: "员工雇佣",
   employee_status_changed: "状态变化",
+  session_created: "会话创建",
+  session_summarized: "会话总结",
   message_sent: "发送消息",
   message_received: "接收消息",
   task_updated: "任务更新",

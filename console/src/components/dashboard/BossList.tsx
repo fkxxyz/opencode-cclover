@@ -5,21 +5,7 @@ import Typography from "@mui/material/Typography"
 import IconButton from "@mui/material/IconButton"
 import { ExternalLink } from "lucide-react"
 import { apiClient } from "../../services"
-import type { Employee, EmployeeStatus } from "../../types"
-
-const STATUS_COLORS: Record<EmployeeStatus, string> = {
-  active: "#10b981",
-  idle: "#eab308",
-  error: "#ef4444",
-  inactive: "#6b7280",
-}
-
-const STATUS_LABELS: Record<EmployeeStatus, string> = {
-  active: "活跃",
-  idle: "空闲",
-  error: "错误",
-  inactive: "未启动",
-}
+import type { Employee } from "../../types"
 
 export function BossList() {
   const { projectId } = useParams<{ projectId: string }>()

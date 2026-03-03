@@ -1,4 +1,4 @@
-import { Box, Typography, Tooltip } from "@mui/material"
+import { Box, Typography } from "@mui/material"
 import type { Event, EventType } from "../../types"
 
 interface EventItemProps {
@@ -6,7 +6,7 @@ interface EventItemProps {
 }
 
 // 事件图标映射
-const EVENT_ICONS: Record<EventType, string> = {
+const EVENT_ICONS: Partial<Record<EventType, string>> = {
   employee_status_changed: "🔄",
   session_created: "⚡",
   session_summarized: "📊",

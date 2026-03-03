@@ -5,30 +5,40 @@ import type { EventType } from "../../types/index"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
-const eventTypeColors: Record<EventType, { bg: string; text: string }> = {
+const eventTypeColors: Partial<Record<EventType, { bg: string; text: string }>> = {
   message: { bg: "#dbeafe", text: "#1e40af" },
   task_completed: { bg: "#dcfce7", text: "#166534" },
   task_failed: { bg: "#fee2e2", text: "#991b1b" },
+  task_created: { bg: "#e0f2fe", text: "#075985" },
+  task_modified: { bg: "#fef3c7", text: "#92400e" },
   agent_completed: { bg: "#f3e8ff", text: "#6b21a8" },
   agent_failed: { bg: "#fee2e2", text: "#991b1b" },
+  agent_created: { bg: "#ede9fe", text: "#5b21b6" },
   timer: { bg: "#f1f5f9", text: "#475569" },
   employee_hired: { bg: "#fef3c7", text: "#92400e" },
   employee_status_changed: { bg: "#fed7aa", text: "#9a3412" },
+  session_created: { bg: "#ddd6fe", text: "#5b21b6" },
+  session_summarized: { bg: "#e0e7ff", text: "#3730a3" },
   message_sent: { bg: "#dbeafe", text: "#1e40af" },
   message_received: { bg: "#dbeafe", text: "#1e40af" },
   task_updated: { bg: "#dcfce7", text: "#166534" },
   agent_updated: { bg: "#f3e8ff", text: "#6b21a8" },
 }
 
-const eventTypeLabels: Record<EventType, string> = {
+const eventTypeLabels: Partial<Record<EventType, string>> = {
   message: "消息",
   task_completed: "任务完成",
   task_failed: "任务失败",
+  task_created: "任务创建",
+  task_modified: "任务修改",
   agent_completed: "Agent完成",
   agent_failed: "Agent失败",
+  agent_created: "Agent创建",
   timer: "定时器",
   employee_hired: "员工雇佣",
   employee_status_changed: "状态变化",
+  session_created: "会话创建",
+  session_summarized: "会话总结",
   message_sent: "发送消息",
   message_received: "接收消息",
   task_updated: "任务更新",
@@ -69,10 +79,20 @@ function getEventDescription(
       return `任务 "${details.taskName}" 已完成`
     case "task_failed":
       return `任务 "${details.taskName}" 失败: ${details.error}`
+    case "task_created":
+      return `创建任务 "${details.taskName}"${details.description ? `: ${details.description}` : ""}`
+    case "task_modified":
+      return `修改任务 "${details.taskName}"`
     case "agent_completed":
       return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
     case "agent_failed":
       return `Agent ${details.agentId} 失败: ${details.error}`
+    case "agent_created":
+      return `创建 Agent 执行任务 "${details.taskName}"`
+    case "session_created":
+      return `创建会话 (${String(details.sessionId).slice(0, 8)}...)`
+    case "session_summarized":
+      return `会话总结 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     case "employee_hired":
       return `${details.hiredBy} 雇佣了 ${details.employeeName} (${details.role})`
     case "employee_status_changed":
