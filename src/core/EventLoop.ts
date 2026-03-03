@@ -67,7 +67,9 @@ export class EventLoop {
    * 主循环
    */
   async run(): Promise<void> {
-    logger.info(`[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`)
+    logger.info(
+      `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`
+    )
     // 更新员工状态为 active
     this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
 

@@ -8,6 +8,7 @@ import { ConsoleServer } from "./index"
 import { StateManager } from "../state/StateManager"
 import { MessageService } from "../core/MessageService"
 import { MemoryManager } from "../core/MemoryManager"
+import { BossManager } from "../core/BossManager"
 import { AgentRegistry } from "../utils/AgentRegistry"
 import { EventLoop } from "../core/EventLoop"
 import { CalculatorRole } from "../roles"
@@ -24,7 +25,7 @@ export class GlobalCcloverService {
   private static opcodeClient: OpencodeClient | null = null
   private projectRegistry: ProjectRegistry = new ProjectRegistry()
   private httpServer: ConsoleServer | null = null
-
+  private bossManager: BossManager | null = null
   private constructor() {}
 
   /**
@@ -83,17 +84,17 @@ export class GlobalCcloverService {
    */
   private async initialize(): Promise<void> {
     logger.info("Initializing GlobalCcloverService...")
-
-    // 1. 加载配置并初始化所有 project
+    // 1. 加载配置并初始化 BossManager
+    const config = await ConfigManager.load()
+    this.bossManager = new BossManager(config)
+    // 2. 加载配置并初始化所有 project
     await this.loadProjects()
-
-    // 2. 启动 HTTP 服务(单例)
+    // 3. 启动 HTTP 服务(单例)
     this.httpServer = new ConsoleServer(
       { port: 4097, workspaceRoot: "" }, // workspaceRoot 不再使用
       this.projectRegistry
     )
     await this.httpServer.start()
-
     logger.info("GlobalCcloverService initialized")
   }
 
@@ -138,7 +139,8 @@ export class GlobalCcloverService {
     const messageService = new MessageService(
       workspaceRoot,
       stateManager,
-      projectId
+      projectId,
+      this.bossManager || undefined
     )
     const memoryManager = new MemoryManager(
       workspaceRoot,
@@ -223,6 +225,12 @@ export class GlobalCcloverService {
    */
   getProjectRegistry(): ProjectRegistry {
     return this.projectRegistry
+  }
+  /**
+   * 获取 BossManager
+   */
+  getBossManager(): BossManager | null {
+    return this.bossManager
   }
 
   /**

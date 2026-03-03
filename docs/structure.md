@@ -19,6 +19,7 @@ opencode-cclover/
 ├── docs/                                        - Design documentation
 │   ├── structure.md                             - This file
 │   ├── requirements.md                          - Main requirements document
+│   ├── requirements-boss.md                     - Boss Message System Requirements
 │   ├── requirements-messaging.md                - Messaging system requirements
 │   ├── requirements-memory.md                   - Memory system requirements
 │   ├── requirements-tasks.md                    - Task management requirements
@@ -27,6 +28,7 @@ opencode-cclover/
 │   ├── requirements-project-management.md       - Project management requirements
 │   ├── architecture.md                          - System architecture
 │   ├── architecture-modules.md                  - Module design details
+│   ├── boss-message-system.md                   - Boss message system usage guide
 │   ├── design.md                                - Main design document
 │   ├── design-message-service.md                - MessageService design
 │   ├── design-memory-manager.md                 - MemoryManager design
@@ -40,6 +42,7 @@ opencode-cclover/
 │   │   ├── MessageService.ts
 │   │   ├── MemoryManager.ts
 │   │   ├── EventLoop.ts
+│   │   ├── BossManager.ts
 │   │   └── index.ts
 │   ├── config/                                  - Configuration management
 │   │   ├── ConfigManager.ts
@@ -80,10 +83,13 @@ opencode-cclover/
 │       ├── logger.ts
 │       └── index.ts
 ├── tests/                                       - Test suite
-│   ├── unit/                                    - Unit tests─ MessageService.test.ts
+│   ├── unit/                                    - Unit tests
+│   │   ├── MessageService.test.ts
 │   │   ├── MemoryManager.test.ts
 │   │   ├── EventLoop.test.ts
 │   │   ├── Calculator.test.ts
+│   │   ├── BossManager.test.ts
+│   │   ├── ConfigManager.test.ts
 │   │   ├── ContextBuilder.test.ts
 │   │   ├── MermaidGenerator.test.ts
 │   │   ├── SessionRegistry.test.ts
@@ -91,6 +97,7 @@ opencode-cclover/
 │   │   ├── EmployeeRegistry.test.ts
 │   │   └── EventHistory.test.ts
 │   ├── integration/                             - Integration tests
+│   │   ├── BossMessage.integration.test.ts
 │   │   └── ...
 │   ├── api/                                     - API tests
 │   │   └── ...

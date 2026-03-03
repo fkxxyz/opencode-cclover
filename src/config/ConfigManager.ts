@@ -17,6 +17,7 @@ export interface ProjectConfig {
  * Cclover 配置
  */
 export interface CcloverConfig {
+  bosses?: string[]
   projects: ProjectConfig[]
 }
 
@@ -84,6 +85,18 @@ export class ConfigManager {
 
     if (!Array.isArray(config.projects)) {
       return false
+    }
+
+    // 验证 bosses 字段（可选）
+    if (config.bosses !== undefined) {
+      if (!Array.isArray(config.bosses)) {
+        return false
+      }
+      for (const boss of config.bosses) {
+        if (typeof boss !== "string") {
+          return false
+        }
+      }
     }
 
     for (const project of config.projects) {

@@ -2,9 +2,9 @@
 
 ## Overview
 
-opencode-cclover is a multi-agent autonomous collaboration system implemented as an OpenCode plugin. The system simulates employee collaboration behavior where AI employees can send/receive messages, manage tasks, create agents to execute work, and achieve autonomous decision-making with parallel execution.
+opencode-cclover is a multi-agent autonomous collaboration system implemented as an OpenCode plugin. The system simulates employee collaboration behavior where AI employees can send/receive messages, manage tasks, create agents to execute work, and achieve autonomous decision-making with parallel execution. The system also supports boss entities (global human operators) that can communicate with employees for testing and debugging purposes.
 
-**Module Purpose**: Provide a complete framework for multi-agent collaboration within OpenCode, enabling AI employees to work together autonomously through event-driven architecture.
+**Module Purpose**: Provide a complete framework for multi-agent collaboration within OpenCode, enabling AI employees to work together autonomously through event-driven architecture, with support for human operator (boss) communication.
 
 **Scope**: This design covers the entire plugin system including core services, tool system, role definitions, and plugin integration.
 
@@ -268,18 +268,26 @@ sequenceDiagram
 
 ```
 {projectRoot}/.cclover/workspace/
-└── employees/
-    ├── calculator/
-    │   ├── messages/
-    │   │   └── user/
-    │   │       └── chat.yaml
-    │   └── memory.yaml
-    └── coder/
-        ├── messages/
-        │   └── pm/
-        │       └── chat.yaml
-        └── memory.yaml
-```
+├── employees/           # Employee directory
+│   ├── calculator/
+│   │   ├── messages/
+│   │   │   ├── user/
+│   │   │   │   └── chat.yaml
+│   │   │   └── bayecao/
+│   │   │       └── chat.yaml
+│   │   └── memory.yaml
+│   └── coder/
+│       ├── messages/
+│       │   └── pm/
+│       │       └── chat.yaml
+│       └── memory.yaml
+└── bosses/              # Boss directory (NEW)
+    └── bayecao/
+        └── messages/
+            ├── calculator/
+            │   └── chat.yaml
+            └── coder/
+                └── chat.yaml
 
 **Message File Format** (`messages/{peer}/chat.yaml`):
 ```yaml

@@ -97,6 +97,7 @@ See [Messaging System Requirements](./requirements-messaging.md) for detailed sp
 - Read-only client: Employees can only read messages, cannot write directly
 - Blocking receive: `recv()` blocks until new message arrives
 - Atomic send: `send()` writes to both parties' message files atomically
+- Boss communication: Supports global boss entities for human-employee interaction (see [Boss Message System](./requirements-boss.md))
 
 ### Memory System
 
@@ -159,6 +160,12 @@ See [Employee Runtime Requirements](./requirements-runtime.md) for detailed spec
 - Location: `~/.config/opencode-cclover/config.yaml`
 - Format:
   ```yaml
+  # Global boss list (optional)
+  bosses:
+    - bayecao
+    - another-boss
+  
+  # Project configurations
   projects:
     - name: my-app
       path: /path/to/my-app
@@ -247,6 +254,11 @@ See [Architecture](./architecture.md) for implementation details.
 - Use database instead of file system
 - Improve query efficiency
 
+### Boss System Deprecation
+
+- Deprecate temporary boss message system
+- Implement direct human-employee communication
+- Migrate existing boss messages to new system
 ### Monitoring and Visualization
 
 - Real-time employee status viewing
@@ -267,3 +279,4 @@ See [Architecture](./architecture.md) for implementation details.
 | DAG | 有向无环图 | Directed Acyclic Graph, represents task dependencies |
 | Project | 项目 | Independent workspace with its own employees |
 | Global Service | 全局服务 | Singleton service managing all projects |
+| Boss | 老板 | Global entity serving as human-employee bridge (temporary) |

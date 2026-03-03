@@ -2,15 +2,15 @@
 
 ## Overview
 
-MessageService is the core communication module for the multi-agent collaboration system, responsible for message sending/receiving and synchronization between employees.
+MessageService is the core communication module for the multi-agent collaboration system, responsible for message sending/receiving and synchronization between employees and bosses (human operators).
 
-**Module Purpose**: Enable decentralized message storage with centralized synchronization, providing event-driven message delivery for employee communication.
+**Module Purpose**: Enable decentralized message storage with centralized synchronization, providing event-driven message delivery for employee-to-employee and boss-to-employee communication.
 
 **Key Responsibilities**:
-- Message sending and receiving between employees
+- Message sending and receiving between employees and bosses
+- Boss identity management (global entities)
 - Unread message queue management
 - Message persistence in YAML format
-- Event notification mechanism for new messages
 
 ## Architecture Reference
 
@@ -22,6 +22,7 @@ Implements the messaging system requirements specified in [Requirements - Messag
 - **Read-Only Client**: Employees can only read messages, cannot write directly
 - **Blocking Receive**: `recv()` blocks until new message arrives
 - **Atomic Send**: `send()` writes to both parties' message files atomically
+- **Boss Support**: Bosses are global entities (not employees) that can communicate with employees across projects
 
 ## Interface
 
@@ -31,16 +32,19 @@ Implements the messaging system requirements specified in [Requirements - Messag
 
 ```typescript
 class MessageService {
-  constructor(workspaceRoot: string)
+  constructor(
+    workspaceRoot: string,
+    bossManager: BossManager  // NEW: Boss identity management
+  )
   
-  // Get client for specific employee
-  getClient(employeeName: string): MessageClient
+  // Get client for specific employee or boss
+  getClient(name: string): MessageClient
   
   // Send message (internal use)
-  send(from: string, ring, content: string): Promise<void>
+  send(from: string, to: string, content: string): Promise<void>
   
   // Get unread queue (internal use)
-  getUnreadQueue(employeeName: string): Message[]
+  getUnreadQueue(name: string): Message[]
 }
 ```
 
@@ -74,25 +78,53 @@ interface Message {
 }
 ```
 
+#### BossManager Interface
+
+```typescript
+class BossManager {
+  constructor(configPath: string)
+  
+  // Check if a name is a boss
+  isBoss(name: string): boolean
+  
+  // Get all boss names
+  getBosses(): string[]
+  
+  // Reload configuration
+  reload(): Promise<void>
+}
+```
+
 ### Creating Instance
 
 ```typescript
 import { MessageService } from './core/MessageService'
+import { BossManager } from './core/BossManager'
 import path from 'path'
+import os from 'os'
+
+// Initialize boss manager
+const configPath = path.join(os.homedir(), '.config/opencode-cclover/config.yaml')
+const bossManager = new BossManager(configPath)
 
 // Initialize service
 const workspaceRoot = path.join(projectRoot, '.cclover/workspace')
-const messageService = new MessageService(workspaceRoot)
+const messageService = new MessageService(workspaceRoot, bossManager)
 
-// Create clients for employees
+// Create clients for employees and bosses
 const aliceClient = messageService.getClient('alice')
 const bobClient = messageService.getClient('bob')
+const bossClient = messageService.getClient('bayecao')  // Boss client
 
-// Send and receive messages
-await aliceClient.send('bob', 'Hello Bob!')
-const message = await bobClient.recv()
-console.log(message.content) // "Hello Bob!"
-```
+// Boss sends message to employee
+await bossClient.send('alice', 'Please calculate 1+1')
+const message = await aliceClient.recv()
+console.log(message.content) // "Please calculate 1+1"
+
+// Employee replies to boss
+await aliceClient.send('bayecao', 'The result is 2')
+const reply = await bossClient.recv()
+console.log(reply.content) // "The result is 2"
 
 ## Internal Design
 
@@ -111,16 +143,25 @@ graph TD
 ### File Structure
 
 ```
-{workspaceRoot}/employees/
-├── alice/
-│   └── messages/
-│       └── bob/
-│           └── chat.yaml      # Alice's view of conversation with Bob
-└── bob/
-    └── messages/
-        └── alice/
-            └── chat.yaml      # Bob's view of conversation with Alice
-```
+{workspaceRoot}/
+├── employees/
+│   ├── alice/
+│   │   └── messages/
+│   │       ├── bob/
+│   │       │   └── chat.yaml      # Alice's view of conversation with Bob
+│   │       └── bayecao/
+│   │           └── chat.yaml      # Alice's view of conversation with boss bayecao
+│   └── bob/
+│       └── messages/
+│           └── alice/
+│               └── chat.yaml      # Bob's view of conversation with Alice
+└── bosses/
+    └── bayecao/
+        └── messages/
+            ├── alice/
+            │   └── chat.yaml      # Boss bayecao's view of conversation with Alice
+            └── bob/
+                └── chat.yaml      # Boss bayecao's view of conversation with Bob
 
 ### YAML Message Format
 
@@ -139,6 +180,11 @@ graph TD
 - `timestamp`: ISO 8601 format timestamp
 - `direction`: `send` or `receive` (from owner's perspective)
 - `content`: Message text content
+
+**Key Points**:
+- Boss messages are stored in `bosses/{bossName}/messages/{employeeName}/` directory
+- Employee messages with bosses are stored in `employees/{employeeName}/messages/{bossName}/` directory
+- Message format is identical for both employees and bosses
 
 ### Internal Components
 
@@ -159,6 +205,23 @@ getUnreadQueue(employeeName: string): Message[] {
 }
 ```
 
+#### 1.5. Boss Identity Management
+
+```typescript
+private bossManager: BossManager
+
+constructor(workspaceRoot: string, bossManager: BossManager) {
+  this.workspaceRoot = workspaceRoot
+  this.bossManager = bossManager
+  // ... other initialization
+}
+
+// Check if a name is a boss
+private isBoss(name: string): boolean {
+  return this.bossManager.isBoss(name)
+}
+```
+
 #### 2. Event Notification
 
 ```typescript
@@ -172,6 +235,31 @@ private notifyNewMessage(to: string, message: Message): void {
 #### 3. File Operations
 
 ```typescript
+// Get message file path (supports both employees and bosses)
+private getMessageFilePath(owner: string, peer: string): string {
+  // Check if owner is a boss
+  if (this.bossManager.isBoss(owner)) {
+    return path.join(
+      this.workspaceRoot,
+      'bosses',           // Boss directory
+      owner,
+      'messages',
+      peer,
+      'chat.yaml'
+    )
+  }
+  
+  // Owner is an employee
+  return path.join(
+    this.workspaceRoot,
+    'employees',
+    owner,
+    'messages',
+    peer,
+    'chat.yaml'
+  )
+}
+
 private async appendMessage(
   owner: string,
   peer: string,
@@ -198,6 +286,11 @@ private async appendMessage(
   await fs.writeFile(filePath, yaml.stringify(messages), 'utf-8')
 }
 ```
+
+**Key Points**:
+- `getMessageFilePath()` automatically determines if owner is a boss or employee
+- Boss messages are stored in `bosses/` directory, employee messages in `employees/` directory
+- The rest of the file operations remain unchanged
 
 ### Error Handling
 
@@ -228,6 +321,34 @@ sequenceDiagram
     Service->>Bob: Emit event "message:bob"
     Bob->>Service: recv() resolves
     Bob-->>Alice: Message received
+```
+
+### Boss-Employee Message Flow
+
+```mermaid
+sequenceDiagram
+    participant Boss as Boss Client (bayecao)
+    participant Service as MessageService
+    participant FS as File System
+    participant Employee as Employee Client (alice)
+    
+    Boss->>Service: send("alice", "Calculate 1+1")
+    Service->>FS: Write to bosses/bayecao/messages/alice/chat.yaml
+    Service->>FS: Write to employees/alice/messages/bayecao/chat.yaml
+    Service->>Service: Add to Alice's unread queue
+    Service->>Employee: Emit event "message:alice"
+    Employee->>Service: recv() resolves
+    Employee-->>Boss: Message received
+    
+    Note over Employee: Employee processes and replies
+    
+    Employee->>Service: send("bayecao", "Result is 2")
+    Service->>FS: Write to employees/alice/messages/bayecao/chat.yaml
+    Service->>FS: Write to bosses/bayecao/messages/alice/chat.yaml
+    Service->>Service: Add to Boss's unread queue
+    Service->>Boss: Emit event "message:bayecao"
+    Boss->>Service: recv() resolves
+    Boss-->>Employee: Reply received
 ```
 
 ### Message Receive Flow
@@ -290,6 +411,12 @@ sequenceDiagram
 - Archive old messages periodically
 - Replace file system with database for better query performance
 
+### Boss Message Handling
+
+- Boss messages use the same file format and synchronization mechanism as employee messages
+- The only difference is the directory structure (`bosses/` vs `employees/`)
+- This ensures consistency and simplifies implementation
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -323,6 +450,35 @@ describe('MessageService', () => {
     expect(msg2.content).toBe('Message 2')
   })
 })
+  
+  test('boss sends message to employee', async () => {
+    const bossManager = new BossManager(configPath)
+    const service = new MessageService(workspaceRoot, bossManager)
+    const boss = service.getClient('bayecao')
+    const alice = service.getClient('alice')
+    
+    await boss.send('alice', 'Calculate 1+1')
+    const message = await alice.recv()
+    
+    expect(message.from).toBe('bayecao')
+    expect(message.content).toBe('Calculate 1+1')
+  })
+  
+  test('employee replies to boss', async () => {
+    const bossManager = new BossManager(configPath)
+    const service = new MessageService(workspaceRoot, bossManager)
+    const boss = service.getClient('bayecao')
+    const alice = service.getClient('alice')
+    
+    await boss.send('alice', 'Calculate 1+1')
+    await alice.recv()
+    
+    await alice.send('bayecao', 'Result is 2')
+    const reply = await boss.recv()
+    
+    expect(reply.from).toBe('alice')
+    expect(reply.content).toBe('Result is 2')
+  })
 ```
 
 ### Integration Tests
@@ -330,6 +486,8 @@ describe('MessageService', () => {
 - Test file persistence across service restarts
 - Test concurrent send/receive with multiple employees
 - Test history query with various limits
+- Test boss-employee communication across projects
+- Test boss message file structure
 
 ## Implementation Checklist
 
@@ -338,6 +496,7 @@ describe('MessageService', () => {
   - [x] send() method
   - [x] getClient() method
   - [x] Unread queue management
+  - [x] Boss identity management
   - [x] EventEmitter integration
 - [x] MessageClient class
   - [x] recv() method
@@ -347,6 +506,8 @@ describe('MessageService', () => {
   - [x] appendMessage() method
   - [x] Directory creation
   - [x] YAML parsing and serialization
+  - [x] Boss message file paths
 - [x] Tests
   - [x] Unit tests
   - [x] Integration tests
+  - [x] Boss-employee communication tests

@@ -4,10 +4,10 @@
 
 The plugin entry is the system's startup point, responsible for initializing all modules and starting employees.
 
-**Module Purpose**: Serve as the OpenCode plugin entry point, orchestrating initialization of core services, tool registration, and employee lifecycle management.
+**Module Purpose**: Serve as the OpenCode plugin entry point, orchestrating initialization of core services (including boss management), tool registration, and employee lifecycle management.
 
 **Key Responsibilities**:
-- Initialize workspace and core services
+- Initialize workspace and core services (including BossManager)
 - Register tools with OpenCode
 - Start employee event loops
 - Ensure .gitignore configuration
@@ -50,6 +50,9 @@ export default CcloverPlugin
 interface PluginInput {
   directory: string        // Project root directory
   client: OpencodeClient   // OpenCode SDK client
+  config: {                // Global configuration
+    configPath: string     // Path to global config file
+  }
   // ... other context properties
 }
 ```
@@ -63,6 +66,7 @@ sequenceDiagram
     participant OC as OpenCode
     participant Plugin as CcloverPlugin
     participant WS as Workspace
+    participant Config as BossManager
     participant MS as MessageService
     participant MM as MemoryManager
     participant Tools as Tool System
@@ -70,8 +74,8 @@ sequenceDiagram
     
     OC->>Plugin: Load plugin
     Plugin->>WS: Initialize workspace directory
-    Plugin->>MS: new MessageService(workspaceRoot)
-    Plugin->>MM: new MemoryManager(workspaceRoot)
+    Plugin->>Config: new BossManager(configPath)
+    Plugin->>MS: new MessageService(workspaceRoot, bossManager)
     Plugin->>Tools: Create tool instances
     Plugin->>WS: ensureGitignore()
     Plugin->>Employees: startEmployees()
@@ -87,16 +91,8 @@ import { Plugin } from "@opencode-ai/plugin"
 import path from "path"
 import * as fs from "fs/promises"
 import { MessageService } from "./core/MessageService"
+import { BossManager } from "./core/BossManager"
 import { MemoryManager } from "./core/MemoryManager"
-import { EventLoop } from "./core/EventLoop"
-import { CalculatorRole } from "./roles/Calculator"
-import {
-  createSendMessageTool,
-  createEditTasksTool,
-  createCreateAgentTool,
-  createHireEmployeeTool
-} from "./tools"
-import { sessionRegistry } from "./utils/SessionRegistry"
 
 export const CcloverPlugin: Plugin = async (ctx) => {
   console.log("[Cclover] Initializing plugin...")
@@ -105,9 +101,13 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   const workspaceRoot = path.join(ctx.directory, '.cclover/workspace')
   await fs.mkdir(workspaceRoot, { recursive: true })
   
-  // 2. Initialize message service
-  const messageService = new MessageService(workspaceRoot)
+  // 1.5. Initialize boss manager
+  const configPath = path.join(os.homedir(), '.config/opencode-cclover/config.yaml')
+  const bossManager = new BossManager(configPath)
   
+  // 2. Initialize message service
+  // 2. Initialize message service (with boss manager)
+  const messageService = new MessageService(workspaceRoot, bossManager)
   // 3. Initialize memory manager
   const memoryManager = new MemoryManager(workspaceRoot)
   
@@ -152,6 +152,20 @@ async function initializeWorkspace(projectRoot: string): Promise<string> {
   console.log(`[Cclover] Workspace initialized at ${workspaceRoot}`)
   
   return workspaceRoot
+}
+```
+### Boss Manager Initialization
+```typescript
+async function initializeBossManager(): Promise<BossManager> {
+  const configPath = path.join(os.homedir(), '.config/opencode-cclover/config.yaml')
+  const bossManager = new BossManager(configPath)
+  
+  // Load configuration
+  await bossManager.reload()
+  
+  console.log(`[Cclover] Loaded ${bossManager.getBosses().length} boss(es)`)
+  
+  return bossManager
 }
 ```
 
@@ -470,6 +484,7 @@ opencode-cclover/
 - [x] Initialization flow
   - [x] Workspace creation
   - [x] ensureGitignore() function
+  - [x] Boss manager initialization
   - [x] startEmployees() function
 - [x] Error handling
   - [x] Try-catch in plugin entry

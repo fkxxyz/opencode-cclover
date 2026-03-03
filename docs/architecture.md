@@ -13,13 +13,19 @@ graph TB
         OpenCode[OpenCode IDE]
     end
     
+    subgraph "Boss Agents"
+        BossAgents[Boss Agents]
+    end
+    
     subgraph "Global Service (Singleton)"
         Config[Config Manager]
+        BossManager[Boss Manager]
         GlobalService[Global Cclover Service]
         ProjectRegistry[Project Registry]
         HTTPServer[HTTP Server :4097]
         
         Config --> GlobalService
+        Config --> BossManager
         GlobalService --> ProjectRegistry
         GlobalService --> HTTPServer
     end
@@ -58,10 +64,14 @@ graph TB
     User --> OpenCode
     OpenCode --> PluginA
     OpenCode --> PluginB
+    OpenCode --> BossAgents
     
     PluginA --> GlobalService
     PluginB --> GlobalService
+    BossAgents --> GlobalService
     
+    GlobalService --> PA_Msg
+    GlobalService --> PB_Msg
     GlobalService --> PA_State
     GlobalService --> PB_State
     
@@ -165,10 +175,11 @@ graph TB
 See [Module Design Details](./architecture-modules.md) for comprehensive module specifications.
 
 **Core Modules**:
-- ConfigManager: Configuration file management
+- ConfigManager: Configuration file management (including boss list)
+- BossManager: Boss identity management
 - GlobalCcloverService: Global singleton service
 - ProjectRegistry: Project instance registry
-- MessageService: Message synchronization
+- MessageService: Message synchronization (supports boss-employee communication)
 - MemoryManager: Memory and task management
 - StateManager: Employee state tracking
 - EventLoop: Employee runtime
@@ -222,9 +233,16 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
   ├── employees/
   │   ├── {employeeName}/
   │   │   ├── messages/
-  │   │   │   └── {peerName}/
+  │   │   │   ├── {peerName}/
+  │   │   │   │   └── chat.yaml
+  │   │   │   └── {bossName}/
   │   │   │       └── chat.yaml
   │   │   └── memory.yaml
+  └── bosses/
+      └── {bossName}/
+          └── messages/
+              └── {employeeName}/
+                  └── chat.yaml
   ```
 
 ### HTTP Server
@@ -256,34 +274,6 @@ export const CcloverPlugin: Plugin = async (ctx: PluginContext) => {
 }
 ```
 
-### HTTP API Interface
-
-**Base URL**: `http://localhost:4097`
-
-**Authentication**: None (local only)
-
-**Response Format**:
-```typescript
-{
-  success: boolean
-  data?: any
-  error?: {
-    code: string
-    message: string
-  }
-}
-```
-
-**Routes**:
-- `GET /api/health` - Health check
-- `GET /api/projects` - List all projects
-- `GET /api/projects/:projectId/employees` - List employees
-- `GET /api/projects/:projectId/employees/:name` - Employee details
-- `GET /api/projects/:projectId/employees/:name/messages` - Message history
-- `GET /api/projects/:projectId/employees/:name/tasks` - Task list
-- `GET /api/projects/:projectId/events` - Event history
-- `GET /api/projects/:projectId/stats` - Statistics
-
 ### Tool Interface
 
 **Format**: OpenCode tool definition
@@ -312,6 +302,10 @@ export const CcloverPlugin: Plugin = async (ctx: PluginContext) => {
 
 **Schema**:
 ```yaml
+# Global boss list (not tied to any project)
+bosses:
+  - string
+# Project configurations
 projects:
   - name: string
     path: string

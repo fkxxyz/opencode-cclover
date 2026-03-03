@@ -1,6 +1,11 @@
 # OpenCode CClover 配置文件
 # 位置: ~/.config/opencode-cclover/config.yaml
 
+# Boss 列表（全局，不绑定到特定项目）
+bosses:
+  - bayecao
+  # - another-boss
+
 projects:
   # 示例项目配置
   - name: my-app

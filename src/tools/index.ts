@@ -6,6 +6,7 @@
 import type { ToolDefinition } from "@opencode-ai/plugin"
 import type { MessageService } from "../core/MessageService"
 import type { MemoryManager } from "../core/MemoryManager"
+import type { BossManager } from "../core/BossManager"
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import { createSendMessageTool } from "./SendMessageTool"
 import { createEditTasksTool } from "./EditTasksTool"
@@ -81,9 +82,10 @@ export function createTools(deps: {
   messageService: MessageService
   memoryManager: MemoryManager
   opcodeClient: OpencodeClient
+  bossManager?: BossManager
 }): ToolRegistry {
   return {
-    send_message: createSendMessageTool(deps.messageService),
+    send_message: createSendMessageTool(deps.messageService, deps.bossManager),
     edit_tasks: createEditTasksTool(deps.memoryManager),
     create_agent: createCreateAgentTool(deps.opcodeClient),
     hire_employee: hireEmployeeTool,

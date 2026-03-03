@@ -192,4 +192,112 @@ describe("MessageService", () => {
     const contents = [msg1.content, msg2.content].sort()
     expect(contents).toEqual(["From Alice", "From Charlie"])
   })
+
+  describe("Boss message system", () => {
+    test("should use bosses directory for boss messages", () => {
+      const bossManager = {
+        isBoss: (name: string) => name === "bayecao",
+        getBosses: () => ["bayecao"],
+        reload: async () => {},
+        addBoss: () => {},
+        removeBoss: () => {},
+      }
+      const serviceWithBoss = new MessageService(
+        TEST_WORKSPACE,
+        undefined,
+        "test-project",
+        bossManager
+      )
+      // Boss 的消息路径
+      const bossPath = serviceWithBoss.getMessageFilePath("bayecao", "alice")
+      expect(bossPath).toContain("bosses/bayecao/messages/alice")
+      // Employee 的消息路径
+      const employeePath = serviceWithBoss.getMessageFilePath(
+        "alice",
+        "bayecao"
+      )
+      expect(employeePath).toContain("employees/alice/messages/bayecao")
+    })
+
+    test("should send message from boss to employee", async () => {
+      const bossManager = {
+        isBoss: (name: string) => name === "bayecao",
+        getBosses: () => ["bayecao"],
+        reload: async () => {},
+        addBoss: () => {},
+        removeBoss: () => {},
+      }
+      const serviceWithBoss = new MessageService(
+        TEST_WORKSPACE,
+        undefined,
+        "test-project",
+        bossManager
+      )
+      const boss = serviceWithBoss.getClient("bayecao")
+      const employee = serviceWithBoss.getClient("alice")
+      // Boss 发送消息
+      await boss.send("alice", "Hello from boss")
+      // Employee 接收消息
+      const message = await employee.recv()
+      expect(message.from).toBe("bayecao")
+      expect(message.content).toBe("Hello from boss")
+    })
+
+    test("should send message from employee to boss", async () => {
+      const bossManager = {
+        isBoss: (name: string) => name === "bayecao",
+        getBosses: () => ["bayecao"],
+        reload: async () => {},
+        addBoss: () => {},
+        removeBoss: () => {},
+      }
+      const serviceWithBoss = new MessageService(
+        TEST_WORKSPACE,
+        undefined,
+        "test-project",
+        bossManager
+      )
+      const boss = serviceWithBoss.getClient("bayecao")
+      const employee = serviceWithBoss.getClient("alice")
+      // Employee 发送消息
+      await employee.send("bayecao", "Report from employee")
+      // Boss 接收消息
+      const message = await boss.recv()
+      expect(message.from).toBe("alice")
+      expect(message.content).toBe("Report from employee")
+    })
+
+    test("should query boss-employee message history", async () => {
+      const bossManager = {
+        isBoss: (name: string) => name === "bayecao",
+        getBosses: () => ["bayecao"],
+        reload: async () => {},
+        addBoss: () => {},
+        removeBoss: () => {},
+      }
+      const serviceWithBoss = new MessageService(
+        TEST_WORKSPACE,
+        undefined,
+        "test-project",
+        bossManager
+      )
+      const boss = serviceWithBoss.getClient("bayecao")
+      const employee = serviceWithBoss.getClient("alice")
+      // 双向通信
+      await boss.send("alice", "Task 1")
+      await employee.send("bayecao", "Done")
+      await boss.send("alice", "Task 2")
+      // 查询历史
+      const bossHistory = await boss.history("alice")
+      expect(bossHistory).toHaveLength(3)
+      expect(bossHistory[0].from).toBe("bayecao")
+      expect(bossHistory[1].from).toBe("alice")
+      expect(bossHistory[2].from).toBe("bayecao")
+      const employeeHistory = await employee.history("bayecao")
+      expect(employeeHistory).toHaveLength(3)
+      expect(employeeHistory[0].from).toBe("bayecao")
+      expect(employeeHistory[1].from).toBe("alice")
+      expect(employeeHistory[2].from).toBe("bayecao")
+    })
+  })
 })

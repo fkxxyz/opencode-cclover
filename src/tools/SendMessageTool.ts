@@ -6,14 +6,19 @@
 
 import { tool } from "@opencode-ai/plugin"
 import type { MessageService } from "../core/MessageService"
+import type { BossManager } from "../core/BossManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 
 /**
  * 创建 send_message 工具
  *
  * @param messageService 消息服务实例
+ * @param bossManager Boss 管理器实例（可选）
  */
-export function createSendMessageTool(messageService: MessageService) {
+export function createSendMessageTool(
+  messageService: MessageService,
+  bossManager?: BossManager
+) {
   return tool({
     description: "发送消息给其他员工",
     args: {
@@ -22,10 +27,19 @@ export function createSendMessageTool(messageService: MessageService) {
     },
     async execute(args, context) {
       // 1. 获取调用者信息
-      const from = sessionRegistry.getEmployeeName(context.sessionID)
-
+      let from: string | undefined
+      // 2. 首先尝试从 SessionRegistry 获取（员工）
+      from = sessionRegistry.getEmployeeName(context.sessionID)
+      // 3. 如果 SessionRegistry 中没有，尝试从 context.agent 获取（可能是 boss）
+      if (!from && context.agent) {
+        const agentName = context.agent
+        // 检查是否是 boss
+        if (bossManager?.isBoss(agentName)) {
+          from = agentName
+        }
+      }
       if (!from) {
-        return `错误: 无法识别调用者身份 (sessionID: ${context.sessionID})`
+        return `错误: 无法识别调用者身份 (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
       }
 
       // 2. 调用消息服务

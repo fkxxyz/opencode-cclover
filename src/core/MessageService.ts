@@ -4,6 +4,7 @@ import * as yaml from "yaml"
 import EventEmitter from "eventemitter3"
 import * as lockfile from "proper-lockfile"
 import type { StateManager } from "../state/StateManager"
+import type { BossManager } from "./BossManager"
 
 /**
  * 消息对象（API 格式）
@@ -114,7 +115,8 @@ export class MessageService {
   constructor(
     private workspaceRoot: string,
     private stateManager?: StateManager,
-    projectId?: string
+    projectId?: string,
+    private bossManager?: BossManager
   ) {
     this.projectId = projectId || "default"
   }
@@ -185,6 +187,18 @@ export class MessageService {
    * 获取消息文件路径
    */
   getMessageFilePath(owner: string, peer: string): string {
+    // 检查 owner 是否是 boss
+    if (this.bossManager?.isBoss(owner)) {
+      return path.join(
+        this.workspaceRoot,
+        "bosses",
+        owner,
+        "messages",
+        peer,
+        "chat.yaml"
+      )
+    }
+    // 原有逻辑：employee 的消息
     return path.join(
       this.workspaceRoot,
       "employees",
