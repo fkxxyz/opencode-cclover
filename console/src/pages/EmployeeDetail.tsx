@@ -100,7 +100,11 @@ export function EmployeeDetail() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${projectId}`)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/projects/${projectId}`)}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
           </Button>
@@ -130,7 +134,10 @@ export function EmployeeDetail() {
             value="messages"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <ConversationView projectId={projectId!} employeeName={employee.name} />
+            <ConversationView
+              projectId={projectId!}
+              employeeName={employee.name}
+            />
           </TabsContent>
           <TabsContent
             value="tasks"
@@ -161,7 +168,10 @@ export function EmployeeDetail() {
             value="events"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <EventTimeline projectId={projectId!} employeeName={employee.name} />
+            <EventTimeline
+              projectId={projectId!}
+              employeeName={employee.name}
+            />
           </TabsContent>
         </Tabs>
       </Box>

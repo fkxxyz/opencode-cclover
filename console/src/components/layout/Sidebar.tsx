@@ -71,7 +71,7 @@ export function Sidebar({ isMobile, mobileOpen, onClose }: SidebarProps) {
                   {project.projectName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap>
-               {project.directory}
+                  {project.directory}
                 </Typography>
               </Box>
             </Button>

@@ -96,6 +96,26 @@ export class ApiClient {
     )
     return data.peers
   }
+  async sendMessage(
+    projectId: string,
+    employeeName: string,
+    to: string,
+    content: string
+  ): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/messages`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, content }),
+      }
+    )
+    const json = (await response.json()) as SuccessResponse<any> | ErrorResponse
+    if (!json.success) {
+      const error = json as ErrorResponse
+      throw new Error(error.error.message)
+    }
+  }
   async getTasks(
     projectId: string,
     employeeName: string
@@ -152,3 +172,4 @@ export class ApiClient {
     }>("/health")
   }
 }
+export const apiClient = new ApiClient()

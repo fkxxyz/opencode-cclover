@@ -11,7 +11,9 @@ import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
  */
 export const CcloverPlugin: Plugin = async (ctx) => {
   if (!process.env.CCLOVER_ENABLE) {
-    logger.info("[Cclover] Plugin is not enabled, if you want to enable it, set CCLOVER_ENABLE=1")
+    logger.info(
+      "[Cclover] Plugin is not enabled, if you want to enable it, set CCLOVER_ENABLE=1"
+    )
     return {}
   }
 

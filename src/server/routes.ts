@@ -544,6 +544,52 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   ],
 
   /**
+   * 发送消息
+   *
+   * @endpoint POST /api/projects/:projectId/employees/:name/messages
+   * @description 发送消息给指定对象
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - name: 员工名称
+   *
+   * @requestBody {
+   *   to: "接收者名称",
+   *   content: "消息内容"
+   * }
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     message: "消息发送成功"
+   *   }
+   * }
+   *
+   * @errors
+   *   - INVALID_PARAMETER: 参数为空
+   *   - MESSAGE_SEND_ERROR: 发送失败
+   *   - INTERNAL_ERROR: 消息服务未初始化
+   *
+   * @example
+   * POST /api/projects/abc123/employees/calculator/messages
+   * Body: { to: "alice", content: "Hello" }
+   * Response: { success: true, data: { message: "消息发送成功" } }
+   */
+  [
+    "POST:/employees/:name/messages",
+    async (req, params, deps) => {
+      const employeeName = params.name
+      const body = (await req.json()) as { to: string; content: string }
+      return messages.sendMessage(
+        employeeName,
+        body.to,
+        body.content,
+        deps.messageService
+      )
+    },
+  ],
+
+  /**
    * 获取员工任务列表
    *
    * @endpoint GET /api/projects/:projectId/employees/:name/tasks

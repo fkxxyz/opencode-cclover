@@ -22,7 +22,14 @@ export function Layout({ children }: { children: ReactNode }) {
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />
-      <Box sx={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {isMobile && (
           <Box
             sx={{

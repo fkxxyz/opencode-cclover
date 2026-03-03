@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useMessages } from "../../hooks/useMessages"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -6,6 +7,10 @@ import IconButton from "@mui/material/IconButton"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { useTheme } from "@mui/material/styles"
 import { ArrowLeft } from "lucide-react"
+import TextField from "@mui/material/TextField"
+import Button from "@mui/material/Button"
+import { Send } from "lucide-react"
+import { apiClient } from "../../services/api"
 
 interface MessagePanelProps {
   projectId: string
@@ -33,7 +38,25 @@ export function MessagePanel({
   const { messages, loading } = useMessages(projectId, employeeName, peer)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+  const [inputValue, setInputValue] = useState("")
 
+  const handleSend = async () => {
+    if (!inputValue.trim()) return
+    try {
+      await apiClient.sendMessage(projectId, employeeName, peer, inputValue)
+      setInputValue("")
+      // 消息会通过 WebSocket 自动更新
+    } catch (error) {
+      console.error("发送消息失败:", error)
+      alert(`发送失败: ${error instanceof Error ? error.message : "未知错误"}`)
+    }
+  }
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
   if (loading) {
     return (
       <Box
@@ -158,6 +181,34 @@ export function MessagePanel({
             </Box>
           )
         })}
+      </Box>
+      <Box
+        sx={{
+          p: 2,
+          borderTop: 1,
+          borderColor: "divider",
+          display: "flex",
+          gap: 1,
+        }}
+      >
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="输入消息..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={handleKeyPress}
+          multiline
+          maxRows={4}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSend}
+          disabled={!inputValue.trim()}
+          sx={{ minWidth: "auto", px: 2 }}
+        >
+          <Send className="h-5 w-5" />
+        </Button>
       </Box>
     </Box>
   )

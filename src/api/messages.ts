@@ -155,3 +155,75 @@ export async function getPeers(
     }
   }
 }
+
+/**
+ * 发送消息
+ */
+export async function sendMessage(
+  employeeName: string,
+  to: string,
+  content: string,
+  messageService?: MessageService
+): Promise<SuccessResponse<{ message: string }> | ErrorResponse> {
+  if (!messageService) {
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "消息服务未初始化",
+      },
+    }
+  }
+
+  try {
+    // 验证参数
+    if (!employeeName || employeeName.trim() === "") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_PARAMETER",
+          message: "员工名称不能为空",
+        },
+      }
+    }
+
+    if (!to || to.trim() === "") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_PARAMETER",
+          message: "接收者名称不能为空",
+        },
+      }
+    }
+
+    if (!content || content.trim() === "") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_PARAMETER",
+          message: "消息内容不能为空",
+        },
+      }
+    }
+
+    // 发送消息
+    const client = messageService.getClient(employeeName)
+    await client.send(to, content)
+
+    return {
+      success: true,
+      data: {
+        message: "消息发送成功",
+      },
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: {
+        code: "MESSAGE_SEND_ERROR",
+        message: `发送消息失败: ${error.message}`,
+      },
+    }
+  }
+}
