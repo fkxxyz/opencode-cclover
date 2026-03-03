@@ -32,9 +32,9 @@ export function BossDetail() {
   useEffect(() => {
     if (!name || !projectId) return
     setLoading(true)
-    // 复用员工详情 API
+    // 使用 boss 专用 API
     apiClient
-      .getEmployeeDetail(projectId, name)
+      .getBossDetail(projectId, name)
       .then(setBoss)
       .catch((err: Error) => {
         console.error("获取 boss 详情失败:", err)
@@ -194,10 +194,7 @@ export function BossDetail() {
             value="events"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <EventTimeline
-          projectId={projectId!}
-              employeeName={boss.name}
-            />
+            <EventTimeline projectId={projectId!} employeeName={boss.name} />
           </TabsContent>
         </Tabs>
       </Box>

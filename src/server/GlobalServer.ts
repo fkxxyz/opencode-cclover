@@ -186,6 +186,22 @@ export class GlobalCcloverService {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
+    // 注册所有 boss 为员工
+    const bossNames = this.bossManager?.getBosses() || []
+    for (const bossName of bossNames) {
+      // 检查是否已经注册
+      const existing = project.stateManager.getEmployee(bossName)
+      if (!existing) {
+        project.stateManager.registerEmployee({
+          name: bossName,
+          role: "Boss",
+          status: "inactive",
+          createdAt: new Date().toISOString(),
+          lastActiveAt: new Date().toISOString(),
+        })
+        logger.info(`Registered boss: ${bossName}`)
+      }
+    }
     // 启动员工 EventLoop
     const messageClient = project.messageService.getClient("calculator")
     const opcodeClient = this.getOpencodeClient()

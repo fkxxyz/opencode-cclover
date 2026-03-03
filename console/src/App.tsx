@@ -1,7 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { Box } from "@mui/material"
 import { Layout } from "./components/layout/Layout"
-import { Overview, EmployeeDetail, ProjectManagement, BossDetail } from "./pages"
+import {
+  Overview,
+  EmployeeDetail,
+  ProjectManagement,
+  BossDetail,
+} from "./pages"
 function App() {
   return (
     <BrowserRouter>

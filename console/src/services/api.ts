@@ -78,6 +78,12 @@ export class ApiClient {
     )
     return data.bosses
   }
+  async getBossDetail(
+    projectId: string,
+    name: string
+  ): Promise<EmployeeDetail> {
+    return this.request<EmployeeDetail>(`/projects/${projectId}/boss/${name}`)
+  }
   async getEmployeeDetail(
     projectId: string,
     name: string
