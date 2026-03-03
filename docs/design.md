@@ -433,6 +433,13 @@ For detailed design of each component, see:
    - Workspace management
    - .gitignore handling
 
+7. **[Event Tracing System Design](./design-events.md)**
+   - Event types and storage format
+   - JSONL file persistence
+   - Session and agent lifecycle tracking
+   - Task operation logging
+   - Console timeline integration
+
 ## Testing
 
 ### Test Structure

@@ -93,6 +93,17 @@ Common patterns for API integration, error handling, and performance optimizatio
 - Error Handling (API errors, WebSocket errors, error boundaries)
 - Performance Optimization (memoization, lazy loading, virtual scrolling, debouncing)
 
+### Event Timeline Display
+
+Visual representation of employee lifecycle events embedded in message timeline.
+
+**Detailed Design**: [Event Timeline Display Design](./design-event-timeline.md)
+
+**Topics**:
+- Event display components (EventItem, Timeline)
+- Timeline merging logic (messages + events)
+- Visual styling (QQ-style system messages)
+- Real-time event updates
 ### Testing Strategy
 
 Comprehensive testing approach covering unit, integration, and E2E tests.
