@@ -173,7 +173,7 @@ export class GlobalCcloverService {
    * 启动 project 的员工 EventLoop
    * 由 CcloverPlugin 调用，确保 tools 已注册
    */
-  startEmployees(project: ProjectInstance): void {
+  async startEmployees(project: ProjectInstance): Promise<void> {
     // 防止重复启动
     if (project.eventLoopStarted) {
       return
@@ -202,6 +202,20 @@ export class GlobalCcloverService {
         logger.info(`Registered boss: ${bossName}`)
       }
     }
+
+    // 加载历史事件到内存
+    try {
+      await project.stateManager.loadHistoricalEvents()
+      logger.info(
+        `Loaded historical events for project: ${project.projectName}`
+      )
+    } catch (error: any) {
+      logger.error(
+        `Failed to load historical events for project ${project.projectName}:`,
+        error
+      )
+    }
+
     // 启动员工 EventLoop
     const messageClient = project.messageService.getClient("calculator")
     const opcodeClient = this.getOpencodeClient()

@@ -197,4 +197,50 @@ export class StateManager {
   getEventLogger(): EventLogger {
     return this.eventLogger
   }
+
+  /**
+   * 从持久化文件加载历史事件
+   * 在 StateManager 初始化后调用，恢复所有员工的历史事件到内存
+   */
+  async loadHistoricalEvents(): Promise<void> {
+    // 遍历所有已注册的员工
+    const employees = this.employeeRegistry.getAll()
+
+    for (const employee of employees) {
+      try {
+        // 从文件加载该员工的历史事件（最多 1000 条）
+        // EventLogger.getEvents 返回的是按时间顺序（旧→新）
+        const events = await this.eventLogger.getEvents(employee.name, 1000)
+
+        // 按时间顺序（旧→新）添加到 EventHistory
+        // EventHistory.add() 使用 unshift，所以最后添加的（最新的）会在数组开头
+        for (const event of events) {
+          this.eventHistory.add(event)
+
+          // 同步更新统计数据
+          if (event.type === "message" && event.employeeName) {
+            const count = this.messageCount.get(event.employeeName) || 0
+            this.messageCount.set(event.employeeName, count + 1)
+          }
+
+          if (
+            (event.type === "task_completed" || event.type === "task_failed") &&
+            event.employeeName
+          ) {
+            const count = this.taskCount.get(event.employeeName) || 0
+            this.taskCount.set(event.employeeName, count + 1)
+          }
+        }
+      } catch (error: any) {
+        // 如果某个员工的事件文件不存在或读取失败，跳过并继续
+        // 这是正常情况（新员工还没有事件历史）
+        if (error.code !== "ENOENT") {
+          console.warn(
+            `Failed to load events for employee ${employee.name}:`,
+            error.message
+          )
+        }
+      }
+    }
+  }
 }
