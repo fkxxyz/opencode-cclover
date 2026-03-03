@@ -28,4 +28,7 @@ coverage/
 # Lock files (using bun)
 package-lock.json
 yarn.lock
+
+# Git worktrees
+.worktrees/
 pnpm-lock.yaml
