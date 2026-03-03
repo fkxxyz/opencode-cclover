@@ -159,6 +159,7 @@ export class GlobalCcloverService {
       messageService,
       memoryManager,
       agentRegistry,
+      bossManager: this.bossManager!,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
     }
 

@@ -31,5 +31,6 @@ export interface ServerDependencies {
   memoryManager: any
   messageService: any
   agentRegistry: any
+  bossManager: any
   workspaceRoot: string
 }

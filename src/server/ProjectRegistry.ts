@@ -2,6 +2,7 @@ import type { StateManager } from "../state/StateManager"
 import type { MessageService } from "../core/MessageService"
 import type { MemoryManager } from "../core/MemoryManager"
 import type { AgentRegistry } from "../utils/AgentRegistry"
+import type { BossManager } from "../core/BossManager"
 import { createHash } from "node:crypto"
 
 /**
@@ -16,6 +17,7 @@ export interface ProjectInstance {
   messageService: MessageService
   memoryManager: MemoryManager
   agentRegistry: AgentRegistry
+  bossManager: BossManager
   eventLoopStarted: boolean // EventLoop 是否已启动
 }
 

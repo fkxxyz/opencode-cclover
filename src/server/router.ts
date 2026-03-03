@@ -61,6 +61,7 @@ export class Router {
           memoryManager: project.memoryManager,
           messageService: project.messageService,
           agentRegistry: project.agentRegistry,
+          bossManager: project.bossManager,
           workspaceRoot: project.workspaceRoot,
         }
 

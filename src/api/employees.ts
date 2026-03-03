@@ -10,6 +10,7 @@ import type {
   SuccessResponse,
   ErrorResponse,
 } from "../types/index"
+import type { BossManager } from "../core/BossManager"
 
 /**
  * 获取所有员工列表
@@ -22,6 +23,27 @@ export function getEmployees(
     success: true,
     data: {
       employees,
+    },
+  }
+}
+
+/**
+ * 获取所有 boss 列表
+ */
+export function getBosses(
+  stateManager: StateManager,
+  bossManager: BossManager
+): SuccessResponse<{ bosses: Employee[] }> {
+  const allEmployees = stateManager.getEmployees()
+  const bossNames = bossManager.getBosses()
+
+  // 过滤出 boss
+  const bosses = allEmployees.filter((emp) => bossNames.includes(emp.name))
+
+  return {
+    success: true,
+    data: {
+      bosses,
     },
   }
 }

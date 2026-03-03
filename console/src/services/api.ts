@@ -72,7 +72,12 @@ export class ApiClient {
     )
     return data.employees
   }
-
+  async getBosses(projectId: string): Promise<Employee[]> {
+    const data = await this.request<{ bosses: Employee[] }>(
+      `/projects/${projectId}/bosses`
+    )
+    return data.bosses
+  }
   async getEmployeeDetail(
     projectId: string,
     name: string

@@ -1,0 +1,154 @@
+import { useState, useEffect } from "react"
+import { useNavigate, useParams } from "react-router-dom"
+import Box from "@mui/material/Box"
+import Typography from "@mui/material/Typography"
+import IconButton from "@mui/material/IconButton"
+import { ExternalLink } from "lucide-react"
+import { apiClient } from "../../services"
+import type { Employee, EmployeeStatus } from "../../types"
+
+const STATUS_COLORS: Record<EmployeeStatus, string> = {
+  active: "#10b981",
+  idle: "#eab308",
+  error: "#ef4444",
+  inactive: "#6b7280",
+}
+
+const STATUS_LABELS: Record<EmployeeStatus, string> = {
+  active: "活跃",
+  idle: "空闲",
+  error: "错误",
+  inactive: "未启动",
+}
+
+export function BossList() {
+  const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
+  const [bosses, setBosses] = useState<Employee[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!projectId) return
+
+    apiClient
+      .getBosses(projectId)
+      .then(setBosses)
+      .catch((err: Error) => {
+        console.error("获取 boss 列表失败:", err)
+      })
+      .finally(() => setLoading(false))
+  }, [projectId])
+
+  if (loading || bosses.length === 0) {
+    return null
+  }
+
+  return (
+    <Box
+      sx={{
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+        overflow: "hidden",
+        backgroundColor: "background.paper",
+      }}
+    >
+      {bosses.map((boss, index) => (
+        <Box
+          key={boss.name}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            height: 56,
+            paddingX: 2,
+            borderBottom: index < bosses.length - 1 ? "1px solid" : "none",
+            borderColor: "divider",
+            "&:hover": {
+              backgroundColor: "action.hover",
+            },
+          }}
+        >
+          {/* 状态指示器 */}
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              backgroundColor: STATUS_COLORS[boss.status],
+              flexShrink: 0,
+              mr: 2,
+            }}
+            title={STATUS_LABELS[boss.status]}
+          />
+
+          {/* Boss 信息 */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              flexGrow: 1,
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                flexShrink: 0,
+                minWidth: 140,
+              }}
+            >
+              {boss.name}
+            </Typography>
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                flexShrink: 0,
+                minWidth: 120,
+              }}
+            >
+              {boss.role}
+            </Typography>
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                flexShrink: 0,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: STATUS_COLORS[boss.status],
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                {STATUS_LABELS[boss.status]}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* 查看详情按钮 */}
+          <IconButton
+            size="small"
+            onClick={() => navigate(`/projects/${projectId}/boss/${boss.name}`)}
+            sx={{
+              flexShrink: 0,
+              ml: 2,
+            }}
+            title="查看详情"
+          >
+            <ExternalLink size={16} />
+          </IconButton>
+        </Box>
+      ))}
+    </Box>
+  )
+}

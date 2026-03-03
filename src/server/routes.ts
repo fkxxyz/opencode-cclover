@@ -258,6 +258,39 @@ export const projectRoutes = new Map<string, RouteHandler>([
     "GET:/employees",
     (req, params, deps) => employees.getEmployees(deps.stateManager),
   ],
+  /**
+   * 获取 boss 列表
+   *
+   * @endpoint GET /api/projects/:projectId/bosses
+   * @description 获取指定项目的所有 boss 基本信息
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     bosses: [
+   *       {
+   *         name: "bayecao",
+   *         role: "Boss",
+   *         status: "active",
+   *         createdAt: "2026-03-01T10:00:00.000Z",
+   *         lastActiveAt: "2026-03-01T10:05:00.000Z"
+   *       }
+   *     ]
+   *   }
+   * }
+   *
+   * @example
+   * GET /api/projects/abc123/bosses
+   * Response: { success: true, data: { bosses: [...] } }
+   */
+  [
+    "GET:/bosses",
+    (req, params, deps) =>
+      employees.getBosses(deps.stateManager, deps.bossManager),
+  ],
 
   /**
    * 获取员工雇佣关系树

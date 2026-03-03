@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { Box } from "@mui/material"
 import { Layout } from "./components/layout/Layout"
-import { Overview, EmployeeDetail, ProjectManagement } from "./pages"
+import { Overview, EmployeeDetail, ProjectManagement, BossDetail } from "./pages"
 function App() {
   return (
     <BrowserRouter>
@@ -14,6 +14,10 @@ function App() {
             <Route
               path="/projects/:projectId/employee/:name"
               element={<EmployeeDetail />}
+            />
+            <Route
+              path="/projects/:projectId/boss/:name"
+              element={<BossDetail />}
             />
           </Routes>
         </Box>

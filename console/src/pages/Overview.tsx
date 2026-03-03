@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom"
 import { GlobalStats } from "../components/dashboard/GlobalStats"
 import { EventStream } from "../components/dashboard/EventStream"
 import { EmployeeTreeList } from "../components/visualizations/EmployeeTreeList"
+import { BossList } from "../components/dashboard/BossList"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Loader2 } from "lucide-react"
 import { apiClient } from "../services"
@@ -72,6 +73,16 @@ export function Overview() {
           <Typography variant="body2" color="text.secondary"></Typography>
         </Box>
         <GlobalStats projectId={projectId!} />
+        {/* Boss 列表 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Boss 列表</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BossList />
+          </CardContent>
+        </Card>
+        {/* 员工列表 */}
         {hierarchy && (
           <Card>
             <CardHeader>
