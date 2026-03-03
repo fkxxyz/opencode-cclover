@@ -87,8 +87,14 @@ export function MessageList({ projectId, employeeName, peer }: MessageListProps)
                     maxWidth: "70%",
                     borderRadius: 2,
                     p: 1.5,
-                    bgcolor: isSent ? "primary.main" : "grey.200",
-                    color: isSent ? "primary.contrastText" : "text.primary",
+                    bgcolor: isSent
+                      ? "primary.main"
+                      : (theme) =>
+                          theme.palette.mode === "dark" ? "grey.800" : "grey.200",
+                    color: isSent
+                      ? "primary.contrastText"
+                      : (theme) =>
+                          theme.palette.mode === "dark" ? "grey.100" : "grey.900",
                   }}
                 >
                   <Box
@@ -105,7 +111,12 @@ export function MessageList({ projectId, employeeName, peer }: MessageListProps)
                     <Typography
                       variant="caption"
                       sx={{
-                        color: isSent ? "primary.light" : "text.secondary",
+                        color: isSent
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "grey.400"
+                                : "text.secondary",
                       }}
                     >
                       {formatTimestamp(message.timestamp)}
