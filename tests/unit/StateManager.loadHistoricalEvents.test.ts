@@ -78,7 +78,10 @@ describe("StateManager.loadHistoricalEvents", () => {
 
     // 8. 验证事件已加载到内存
     const eventsAfterLoad = newStateManager.getEvents({ limit: 10 })
-    expect(eventsAfterLoad.length).toBe(2)
+    // 消息事件会记录到双方的文件中，所以 calculator 会有 2 个事件：
+    // 1. task_completed (只记录到 calculator)
+    // 2. message (记录到 calculator，因为他是接收方)
+    expect(eventsAfterLoad.length).toBe(3)
     expect(eventsAfterLoad[0].type).toBe("task_completed")
     expect(eventsAfterLoad[1].type).toBe("message")
   })
@@ -144,8 +147,11 @@ describe("StateManager.loadHistoricalEvents", () => {
     const aliceEvents = newStateManager.getEvents({ employeeName: "alice" })
     const bobEvents = newStateManager.getEvents({ employeeName: "bob" })
 
-    expect(aliceEvents.length).toBe(1)
-    expect(bobEvents.length).toBe(1)
+    // 每个员工都会有 2 个消息事件：
+    // alice: 1. bob 发送给她的消息, 2. 她发送给 bob 的消息
+    // bob: 1. alice 发送给他的消息, 2. 他发送给 alice 的消息
+    expect(aliceEvents.length).toBe(2)
+    expect(bobEvents.length).toBe(2)
   })
 
   test("应该正确处理没有历史事件的员工", async () => {

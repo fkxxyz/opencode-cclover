@@ -97,6 +97,16 @@ export class StateManager {
       await this.eventLogger.logEvent(event.employeeName, event)
     }
 
+    // 对于消息事件，同时记录到接收方的 events.jsonl
+    if (event.type === "message" && event.details) {
+      const from = event.details.from as string
+      const to = event.details.to as string
+      // 如果接收方不是发送方（避免重复记录）
+      if (to && to !== from) {
+        await this.eventLogger.logEvent(to, event)
+      }
+    }
+
     // 更新统计数据
     if (event.type === "message" && event.employeeName) {
       const count = this.messageCount.get(event.employeeName) || 0

@@ -47,7 +47,7 @@ export function useTimeline(
       }
 
       if (isRelevant) {
-        // 如果是消息事件，转换为消息格式
+        // 如果是消息事件，同时添加消息项和事件项
         if (
           event.type === "message" ||
           event.type === "message_sent" ||
@@ -68,8 +68,13 @@ export function useTimeline(
                   : ("receive" as const),
             },
           }
+          const eventItem: TimelineItem = {
+            type: "event",
+            timestamp: event.timestamp,
+            data: event,
+          }
           setTimeline((prev) => {
-            const newTimeline = [...prev, messageItem]
+            const newTimeline = [...prev, messageItem, eventItem]
             // 只保留最近的 MAX_TIMELINE_ITEMS 条
             return newTimeline.slice(-MAX_TIMELINE_ITEMS)
           })
