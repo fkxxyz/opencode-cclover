@@ -7,9 +7,11 @@ import {
   ProjectManagement,
   BossDetail,
 } from "./pages"
+import { Toaster } from "./lib/toast"
 function App() {
   return (
     <BrowserRouter>
+      <Toaster />
       <Layout>
         <Box sx={{ minHeight: "100vh" }}>
           <Routes>

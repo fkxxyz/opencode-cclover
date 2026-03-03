@@ -12,7 +12,9 @@ import Button from "@mui/material/Button"
 import { Send } from "lucide-react"
 import { apiClient } from "../../services/api"
 import { EventItem } from "./EventItem"
-import type { TimelineItem, Message, Event } from "../../types"
+import type { Message, Event } from "../../types"
+import { handleError, ValidationError } from "../../lib/error-handler"
+import { showSuccess } from "../../lib/toast"
 
 interface MessagePanelProps {
   projectId: string
@@ -82,14 +84,29 @@ export function MessagePanel({
   }, [peer])
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return
+    // 验证输入
+    if (!inputValue.trim()) {
+      handleError(
+        new ValidationError("消息不能为空", "请输入消息内容"),
+        "发送消息"
+      )
+      return
+    }
+
+    const messageContent = inputValue
+    setInputValue("") // 立即清空输入框（乐观更新）
+
     try {
-      await apiClient.sendMessage(projectId, employeeName, peer, inputValue)
-      setInputValue("")
-      // 消息会通过 WebSocket 自动更新
+      await apiClient.sendMessage(projectId, employeeName, peer, messageContent)
+      showSuccess("消息已发送")
     } catch (error) {
-      console.error("发送消息失败:", error)
-      alert(`发送失败: ${error instanceof Error ? error.message : "未知错误"}`)
+      // 统一错误处理
+      const appError = handleError(error, "发送消息")
+
+      // 如果可以重试，恢复输入框内容
+      if (appError.retryable) {
+        setInputValue(messageContent)
+      }
     }
   }
 

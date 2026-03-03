@@ -12,6 +12,7 @@ import type {
   ErrorResponse,
   TimelineItem,
 } from "../types/index"
+import { ApiError, NetworkError } from "../lib/error-handler"
 
 const API_BASE_URL = "http://localhost:4097/api"
 
@@ -29,42 +30,67 @@ export class ApiClient {
   }
 
   async addProject(name: string, path: string): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, path }),
-    })
-    const json = (await response.json()) as
-      | SuccessResponse<{ project: any }>
-      | ErrorResponse
-    if (!json.success) {
-      const error = json as ErrorResponse
-      throw new Error(error.error.message)
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, path }),
+      })
+      const json = (await response.json()) as
+        | SuccessResponse<{ project: any }>
+        | ErrorResponse
+      if (!json.success) {
+        const error = json as ErrorResponse
+        throw new ApiError(error.error.message, error.error.code)
+      }
+      return (json as SuccessResponse<{ project: any }>).data.project
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new NetworkError("无法连接到服务器")
+      }
+      throw error
     }
-    return (json as SuccessResponse<{ project: any }>).data.project
   }
 
   async deleteProject(path: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/projects/delete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path }),
-    })
-    const json = (await response.json()) as SuccessResponse<any> | ErrorResponse
-    if (!json.success) {
-      const error = json as ErrorResponse
-      throw new Error(error.error.message)
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      })
+      const json = (await response.json()) as
+        | SuccessResponse<any>
+        | ErrorResponse
+      if (!json.success) {
+        const error = json as ErrorResponse
+        throw new ApiError(error.error.message, error.error.code)
+      }
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new NetworkError("无法连接到服务器")
+      }
+      throw error
     }
   }
 
   private async request<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`)
-    const json = (await response.json()) as SuccessResponse<T> | ErrorResponse
-    if (!json.success) {
-      const error = json as ErrorResponse
-      throw new Error(error.error.message)
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`)
+      const json = (await response.json()) as SuccessResponse<T> | ErrorResponse
+      if (!json.success) {
+        const error = json as ErrorResponse
+        throw new ApiError(error.error.message, error.error.code)
+      }
+      return (json as SuccessResponse<T>).data
+    } catch (error) {
+      // 网络错误
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new NetworkError("无法连接到服务器")
+      }
+      // 重新抛出其他错误
+      throw error
     }
-    return (json as SuccessResponse<T>).data
   }
 
   async getEmployees(projectId: string): Promise<Employee[]> {
@@ -126,18 +152,27 @@ export class ApiClient {
     to: string,
     content: string
   ): Promise<void> {
-    const response = await fetch(
-      `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/messages`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to, content }),
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to, content }),
+        }
+      )
+      const json = (await response.json()) as
+        | SuccessResponse<any>
+        | ErrorResponse
+      if (!json.success) {
+        const error = json as ErrorResponse
+        throw new ApiError(error.error.message, error.error.code)
       }
-    )
-    const json = (await response.json()) as SuccessResponse<any> | ErrorResponse
-    if (!json.success) {
-      const error = json as ErrorResponse
-      throw new Error(error.error.message)
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new NetworkError("无法连接到服务器")
+      }
+      throw error
     }
   }
 
