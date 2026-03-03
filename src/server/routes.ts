@@ -289,52 +289,6 @@ export const projectRoutes = new Map<string, RouteHandler>([
   ["GET:/bosses", (req, params, deps) => employees.getBosses(deps.bossManager)],
 
   /**
-   * 获取 boss 详情
-   *
-   * @endpoint GET /api/projects/:projectId/boss/:name
-   * @description 获取指定 boss 的详细信息，包括记忆、任务、Agent 执行记录
-   *
-   * @pathParams
-   *   - projectId: 项目ID
-   *   - name: Boss 名称
-   *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     name: "bayecao",
-   *     role: "Boss",
-   *     status: "active",
-   *     createdAt: "2024-01-01T00:00:00.000Z",
-   *     lastActiveAt: "2024-01-01T12:00:00.000Z",
-   *     memory: {
-   *       knowledge: ["..."],
-   *       tasks: [...],
-   *       custom: {}
-   *     },
-   *     tasks: [...],
-   *     agents: [...]
-   *   }
-   * }
-   *
-   * @errors
-   *   - BOSS_NOT_FOUND: Boss 不存在
-   *   - FILE_READ_ERROR: 读取数据失败
-   *
-   * @example
-   * GET /api/projects/abc123/boss/bayecao
-   * Response: { success: true, data: { name: "bayecao", ... } }
-   */
-  [
-    "GET:/boss/:name",
-    async (req, params, deps) =>
-      await employees.getBossDetail(
-        params.name,
-        deps.bossManager,
-        deps.agentRegistry,
-        deps.workspaceRoot
-      ),
-  ],
-  /**
    * 获取员工雇佣关系树
    *
    * @endpoint GET /api/projects/:projectId/employees/hierarchy
@@ -525,6 +479,53 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         deps.workspaceRoot
       )
     },
+  ],
+
+  /**
+   * 获取 boss 详情
+   *
+   * @endpoint GET /api/projects/:projectId/boss/:name
+   * @description 获取指定 boss 的详细信息，包括记忆、任务、Agent 执行记录
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - name: Boss 名称
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     name: "bayecao",
+   *     role: "Boss",
+   *     status: "active",
+   *     createdAt: "2024-01-01T00:00:00.000Z",
+   *     lastActiveAt: "2024-01-01T12:00:00.000Z",
+   *     memory: {
+   *       knowledge: ["..."],
+   *       tasks: [...],
+   *       custom: {}
+   *     },
+   *     tasks: [...],
+   *     agents: [...]
+   *   }
+   * }
+   *
+   * @errors
+   *   - BOSS_NOT_FOUND: Boss 不存在
+   *   - FILE_READ_ERROR: 读取数据失败
+   *
+   * @example
+   * GET /api/projects/abc123/boss/bayecao
+   * Response: { success: true, data: { name: "bayecao", ... } }
+   */
+  [
+    "GET:/boss/:name",
+    async (req, params, deps) =>
+      await employees.getBossDetail(
+        params.name,
+        deps.bossManager,
+        deps.agentRegistry,
+        deps.workspaceRoot
+      ),
   ],
 
   /**
