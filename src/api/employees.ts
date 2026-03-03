@@ -31,14 +31,18 @@ export function getEmployees(
  * 获取所有 boss 列表
  */
 export function getBosses(
-  stateManager: StateManager,
   bossManager: BossManager
 ): SuccessResponse<{ bosses: Employee[] }> {
-  const allEmployees = stateManager.getEmployees()
   const bossNames = bossManager.getBosses()
 
-  // 过滤出 boss
-  const bosses = allEmployees.filter((emp) => bossNames.includes(emp.name))
+  // 为每个 boss 构造 Employee 对象
+  const bosses: Employee[] = bossNames.map((name) => ({
+    name,
+    role: "Boss",
+    status: "active" as const,
+    createdAt: new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+  }))
 
   return {
     success: true,
