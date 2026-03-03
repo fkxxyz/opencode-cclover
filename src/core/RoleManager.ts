@@ -2,9 +2,9 @@
  * Role 管理器
  *
  * 负责从多个位置加载 role 定义：
- * 1. 预设角色：src/roles/*.txt（代码仓库）
- * 2. 全局自定义角色：~/.config/opencode-cclover/roles/*.txt
- * 3. 项目自定义角色：<project>/.cclover/roles/*.txt
+ * 1. 预设角色：src/roles/*.md（代码仓库）
+ * 2. 全局自定义角色：~/.config/opencode-cclover/roles/*.md
+ * 3. 项目自定义角色：<project>/.cclover/roles/*.md
  *
  * 优先级：项目 > 全局 > 预设
  */
@@ -113,11 +113,11 @@ export class RoleManager {
       const files = await fs.readdir(dir)
 
       for (const file of files) {
-        if (!file.endsWith(".txt")) {
+        if (!file.endsWith(".md")) {
           continue
         }
 
-        const roleName = path.basename(file, ".txt")
+        const roleName = path.basename(file, ".md")
         const filePath = path.join(dir, file)
 
         try {

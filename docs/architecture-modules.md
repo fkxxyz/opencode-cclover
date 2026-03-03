@@ -306,9 +306,9 @@ class RoleManager {
 ```
 
 **Storage Locations**:
-- Preset: `src/roles/*.txt`
-- Global: `~/.config/opencode-cclover/roles/*.txt`
-- Project: `<project>/.cclover/roles/*.txt`
+- Preset: `src/roles/*.md`
+- Global: `~/.config/opencode-cclover/roles/*.md`
+- Project: `<project>/.cclover/roles/*.md`
 
 ## Tool Modules
 

@@ -55,9 +55,9 @@ export class RoleManager {
 
 // Priority: Project > Global > Preset
 // Locations:
-// - Preset: src/roles/*.txt
-// - Global: ~/.config/opencode-cclover/roles/*.txt
-// - Project: <project>/.cclover/roles/*.txt
+// - Preset: src/roles/*.md
+// - Global: ~/.config/opencode-cclover/roles/*.md
+// - Project: <project>/.cclover/roles/*.md
 ```
 
 ### Creating Employee with Role
@@ -90,16 +90,16 @@ await eventLoop.run()
 
 ### Role Storage
 
-**File Format**: Plain text files (`.txt`), filename is role name, content is system prompt.
+**File Format**: Plain text files (`.md`), filename is role name, content is system prompt.
 
 **Storage Locations** (priority order):
-1. **Project**: `<project>/.cclover/roles/<role_name>.txt` (highest priority)
-2. **Global**: `~/.config/opencode-cclover/roles/<role_name>.txt`
-3. **Preset**: `src/roles/<role_name>.txt` (lowest priority)
+1. **Project**: `<project>/.cclover/roles/<role_name>.md` (highest priority)
+2. **Global**: `~/.config/opencode-cclover/roles/<role_name>.md`
+3. **Preset**: `src/roles/<role_name>.md` (lowest priority)
 
 **Example**:
 ```
-src/roles/calculator.txt:
+src/roles/calculator.md:
 ---
 You are a calculator employee who only performs mathematical calculations.
 
@@ -116,7 +116,7 @@ You are a calculator employee who only performs mathematical calculations.
 **Implementation**:
 
 ```typescript
-// src/roles/calculator.txt (plain text file)
+// src/roles/calculator.md (plain text file)
 You are a calculator employee who only performs mathematical calculations.
 
 # Your Responsibilities
@@ -154,12 +154,12 @@ After receiving result, call send_message tool to reply
 
 ### Future Roles (Extension)
 
-Roles can be added by creating `.txt` files in any of the three locations. No code changes required.
+Roles can be added by creating `.md` files in any of the three locations. No code changes required.
 
 #### Coder Role Example
 
 ```
-src/roles/coder.txt:
+src/roles/coder.md:
 ---
 You are a programmer employee responsible for writing code and fixing bugs.
 
@@ -184,7 +184,7 @@ You are a programmer employee responsible for writing code and fixing bugs.
 #### PM Role Example
 
 ```
-src/roles/pm.txt:
+src/roles/pm.md:
 ---
 You are a project manager employee responsible for task assignment and coordination.
 
@@ -211,7 +211,7 @@ You are a project manager employee responsible for task assignment and coordinat
 #### Researcher Role Example
 
 ```
-src/roles/researcher.txt:
+src/roles/researcher.md:
 ---
 You are a researcher employee responsible for gathering information and analyzing data.
 
@@ -277,9 +277,9 @@ graph TD
     A[Create Role File] --> B[Write System Prompt]
     B --> C[Save to Location]
     C --> D{Location?}
-    D -->|Preset| E[src/roles/role_name.txt]
-    D -->|Global| F[~/.config/opencode-cclover/roles/role_name.txt]
-    D -->|Project| G[project/.cclover/roles/role_name.txt]
+    D -->|Preset| E[src/roles/role_name.md]
+    D -->|Global| F[~/.config/opencode-cclover/roles/role_name.md]
+    D -->|Project| G[project/.cclover/roles/role_name.md]
     E --> H[Call Refresh API]
     F --> H
     G --> H
@@ -402,12 +402,12 @@ describe('Calculator Role Behavior', () => {
 
 - [x] Role interface definition
 - [ ] RoleManager
-  - [ ] Load from preset (src/roles/*.txt)
-  - [ ] Load from global (~/.config/opencode-cclover/roles/*.txt)
-  - [ ] Load from project (<project>/.cclover/roles/*.txt)
+  - [ ] Load from preset (src/roles/*.md)
+  - [ ] Load from global (~/.config/opencode-cclover/roles/*.md)
+  - [ ] Load from project (<project>/.cclover/roles/*.md)
   - [ ] Priority-based merging
   - [ ] Refresh API
-- [ ] Convert Calculator.ts to calculator.txt
+- [ ] Convert Calculator.ts to calculator.md
 - [ ] HTTP API endpoint for refresh
 - [x] Tests
   - [x] Unit tests
@@ -431,7 +431,7 @@ interface Role {
 }
 ```
 
-Metadata can be added as YAML front matter in .txt files:
+Metadata can be added as YAML front matter in .md files:
 ```
 ---
 version: 1.0.0

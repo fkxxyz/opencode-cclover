@@ -66,7 +66,7 @@ opencode-cclover/
 │   │   ├── AgentRegistry.ts
 │   │   └── index.ts
 │   ├── roles/                                   - Role definitions
-│   │   ├── calculator.txt                       - Preset roles (plain text)
+│   │   ├── calculator.md                       - Preset roles (markdown)
 │   │   ├── RoleManager.ts                       - Role loading and management
 │   │   └── index.ts
 │   ├── server/                                  - HTTP server

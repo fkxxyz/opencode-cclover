@@ -17,7 +17,7 @@ describe("RoleManager", () => {
   test("should load preset roles", async () => {
     await roleManager.refresh()
 
-    // 应该加载 calculator.txt
+    // 应该加载 calculator.md
     const calculator = roleManager.getRole("calculator")
     expect(calculator).toBeDefined()
     expect(calculator?.name).toBe("calculator")
@@ -55,7 +55,7 @@ describe("RoleManager", () => {
 
     // 创建一个覆盖 calculator 的项目 role
     await fs.writeFile(
-      path.join(projectRolesDir, "calculator.txt"),
+      path.join(projectRolesDir, "calculator.md"),
       "Project-specific calculator role"
     )
 
@@ -76,7 +76,7 @@ describe("RoleManager", () => {
 
     // 创建自定义 role
     await fs.writeFile(
-      path.join(projectRolesDir, "custom-role.txt"),
+      path.join(projectRolesDir, "custom-role.md"),
       "Custom role prompt"
     )
 
