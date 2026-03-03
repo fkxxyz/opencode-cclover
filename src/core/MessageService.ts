@@ -44,15 +44,17 @@ export class MessageClient {
     const queue = this.service.getUnreadQueue(this.employeeName)
 
     if (queue.length > 0) {
-      // 2. 如果有未读消息，立即返回第一条
+      // 2. 如果有未读消息,立即返回第一条
       return queue.shift()!
     }
 
-    // 3. 如果没有未读消息，返回 Promise 并等待
+    // 3. 如果没有未读消息,返回 Promise 并等待
     return new Promise((resolve) => {
-      const listener = (message: Message) => {
+      const listener = () => {
         this.service.eventEmitter.off(`message:${this.employeeName}`, listener)
-        resolve(message)
+        // 从队列中获取消息(事件只是通知)
+        const queue = this.service.getUnreadQueue(this.employeeName)
+        resolve(queue.shift()!)
       }
       this.service.eventEmitter.on(`message:${this.employeeName}`, listener)
     })
@@ -157,7 +159,7 @@ export class MessageService {
     this.addToUnreadQueue(to, message)
 
     // 4. 触发事件通知接收方
-    this.notifyNewMessage(to, message)
+    this.notifyNewMessage(to)
 
     // 5. 发射事件到 StateManager
     this.stateManager?.addEvent({
@@ -280,8 +282,9 @@ export class MessageService {
 
   /**
    * 通知新消息
+   * 事件不传递消息数据,只作为唤醒信号
    */
-  private notifyNewMessage(to: string, message: Message): void {
-    this.eventEmitter.emit(`message:${to}`, message)
+  private notifyNewMessage(to: string): void {
+    this.eventEmitter.emit(`message:${to}`)
   }
 }

@@ -205,6 +205,12 @@ getUnreadQueue(employeeName: string): Message[] {
 }
 ```
 
+**Key Points**:
+- Unread queue is the single source of truth for pending messages
+- `getUnreadQueue()` returns the queue reference, allowing direct manipulation (e.g., `shift()`)
+- Messages are removed from queue when consumed via `recv()`
+- Queue maintains FIFO order for message delivery
+
 #### 1.5. Boss Identity Management
 
 ```typescript
@@ -227,10 +233,16 @@ private isBoss(name: string): boolean {
 ```typescript
 private eventEmitter = new EventEmitter()
 
-private notifyNewMessage(to: string, message: Message): void {
-  this.eventEmitter.emit(`message:${to}`, message)
+private notifyNewMessage(to: string): void {
+  this.eventEmitter.emit(`message:${to}`)
 }
 ```
+
+**Key Points**:
+- Event notification does NOT carry message data
+- Events serve as wake-up signals only
+- Messages are always retrieved from the unread queue (single source of truth)
+- This prevents duplicate message delivery
 
 #### 3. File Operations
 
@@ -371,7 +383,9 @@ sequenceDiagram
         Events-->>Service: Wait for event...
         Note over Events: (Blocking until message arrives)
         Events->>Service: Event "message:employee" fired
-        Service-->>Client: Resolve with message
+        Service->>Queue: Retrieve message from queue
+        Queue-->>Service: Return first message
+        Service-->>Client: Resolve with message from queue
     end
 ```
 
