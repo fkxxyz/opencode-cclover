@@ -286,6 +286,30 @@ class AgentRegistry {
 }
 ```
 
+### RoleManager
+
+**Location**: `src/roles/RoleManager.ts`
+
+**Responsibilities**:
+- Load roles from multiple sources (preset, global, project)
+- Apply priority-based merging (project > global > preset)
+- Provide role refresh mechanism
+
+**Interface**:
+```typescript
+class RoleManager {
+  constructor(projectPath: string)
+  async loadRoles(): Promise<void>
+  getRole(name: string): Role | undefined
+  listRoles(): string[]
+}
+```
+
+**Storage Locations**:
+- Preset: `src/roles/*.txt`
+- Global: `~/.config/opencode-cclover/roles/*.txt`
+- Project: `<project>/.cclover/roles/*.txt`
+
 ## Tool Modules
 
 ### SendMessageTool

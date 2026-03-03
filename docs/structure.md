@@ -66,7 +66,8 @@ opencode-cclover/
 │   │   ├── AgentRegistry.ts
 │   │   └── index.ts
 │   ├── roles/                                   - Role definitions
-│   │   ├── Calculator.ts
+│   │   ├── calculator.txt                       - Preset roles (plain text)
+│   │   ├── RoleManager.ts                       - Role loading and management
 │   │   └── index.ts
 │   ├── server/                                  - HTTP server
 │   │   ├── ConsoleServer.ts
@@ -112,6 +113,9 @@ opencode-cclover/
 ├── workspace_test/                              - Manual testing workspace
 │   ├── .opencode/
 │   └── .cclover/
+│       └── roles/                               - Project-level custom roles
+└── ~/.config/opencode-cclover/                  - Global configuration
+    └── roles/                                   - Global custom roles
 ├── dist/                                        - Build output (generated)
 │   └── ...
 └── node_modules/                                - Dependencies (generated)

@@ -1,17 +1,4 @@
-import type { Role } from "../core/EventLoop"
-
-/**
- * Calculator 角色定义
- *
- * 职责:
- * - 接收数学计算请求
- * - 执行计算并返回结果
- * - 对于简单计算直接计算
- * - 对于复杂计算创建 Agent 执行
- */
-export const CalculatorRole: Role = {
-  name: "calculator",
-  systemPrompt: `你是一个计算器员工,专门负责数学计算。
+你是一个计算器员工,专门负责数学计算。
 
 ## 你的职责
 
@@ -70,5 +57,4 @@ export const CalculatorRole: Role = {
 - 不要重复创建相同的任务
 - 及时更新任务状态
 - 回复消息时要包含完整的计算结果
-- 如果计算失败,要说明原因`,
-}
+- 如果计算失败,要说明原因

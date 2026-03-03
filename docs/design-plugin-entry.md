@@ -7,7 +7,7 @@ The plugin entry is the system's startup point, responsible for initializing all
 **Module Purpose**: Serve as the OpenCode plugin entry point, orchestrating initialization of core services (including boss management), tool registration, and employee lifecycle management.
 
 **Key Responsibilities**:
-- Initialize workspace and core services (including BossManager)
+- Initialize workspace and core services (including BossManager, RoleManager)
 - Register tools with OpenCode
 - Start employee event loops
 - Ensure .gitignore configuration
@@ -67,6 +67,7 @@ sequenceDiagram
     participant Plugin as CcloverPlugin
     participant WS as Workspace
     participant Config as BossManager
+    participant Roles as RoleManager
     participant MS as MessageService
     participant MM as MemoryManager
     participant Tools as Tool System
@@ -75,6 +76,8 @@ sequenceDiagram
     OC->>Plugin: Load plugin
     Plugin->>WS: Initialize workspace directory
     Plugin->>Config: new BossManager(configPath)
+    Plugin->>Roles: new RoleManager(projectPath)
+    Plugin->>Roles: loadRoles()
     Plugin->>MS: new MessageService(workspaceRoot, bossManager)
     Plugin->>Tools: Create tool instances
     Plugin->>WS: ensureGitignore()
@@ -92,6 +95,7 @@ import path from "path"
 import * as fs from "fs/promises"
 import { MessageService } from "./core/MessageService"
 import { BossManager } from "./core/BossManager"
+import { RoleManager } from "./roles/RoleManager"
 import { MemoryManager } from "./core/MemoryManager"
 
 export const CcloverPlugin: Plugin = async (ctx) => {
@@ -105,7 +109,10 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   const configPath = path.join(os.homedir(), '.config/opencode-cclover/config.yaml')
   const bossManager = new BossManager(configPath)
   
-  // 2. Initialize message service
+  // 1.6. Initialize role manager
+  const roleManager = new RoleManager(ctx.directory)
+  await roleManager.loadRoles()
+  
   // 2. Initialize message service (with boss manager)
   const messageService = new MessageService(workspaceRoot, bossManager)
   // 3. Initialize memory manager
@@ -121,7 +128,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   await ensureGitignore(ctx.directory)
   
   // 6. Start employees
-  startEmployees(ctx, messageService, memoryManager)
+  startEmployees(ctx, messageService, memoryManager, roleManager)
   
   console.log("[Cclover] Plugin initialized")
   
@@ -198,17 +205,24 @@ async function ensureGitignore(projectRoot: string): Promise<void> {
 async function startEmployees(
   ctx: PluginInput,
   messageService: MessageService,
-  memoryManager: MemoryManager
+  memoryManager: MemoryManager,
+  roleManager: RoleManager
 ): Promise<void> {
   const employees = [
-    { name: '', role: CalculatorRole }
+    { name: 'calculator', roleName: 'calculator' }
     // Future: Add more employees
   ]
   
   // Start all employees in parallel
   Promise.all(
-    employees.map(async ({ name, role }) => {
+    employees.map(async ({ name, roleName }) => {
       try {
+        const role = roleManager.getRole(roleName)
+        if (!role) {
+          console.error(`[Cclover] Role "${roleName}" not found`)
+          return
+        }
+        
         const messageClient = messageService.getClient(name)
         const eventLoop = new EventLoop(
           name,
@@ -485,6 +499,7 @@ opencode-cclover/
   - [x] Workspace creation
   - [x] ensureGitignore() function
   - [x] Boss manager initialization
+  - [ ] Role manager initialization
   - [x] startEmployees() function
 - [x] Error handling
   - [x] Try-catch in plugin entry

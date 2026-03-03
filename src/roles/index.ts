@@ -1,28 +1,16 @@
-import type { Role } from "../core/EventLoop"
-import { CalculatorRole } from "./Calculator"
-
 /**
- * 角色注册表
+ * Roles 目录
  *
- * 所有可用的角色定义
+ * 此目录包含预设角色的定义文件（.txt 格式）
+ * 每个 .txt 文件的文件名即为 role 名称，文件内容即为 systemPrompt
+ *
+ * 例如：
+ * - calculator.txt: 计算器角色
+ * - coder.txt: 程序员角色
+ * - pm.txt: 项目经理角色
+ *
+ * 这些预设角色会被 RoleManager 自动加载
  */
-export const Roles: Record<string, Role> = {
-  calculator: CalculatorRole,
-}
 
-/**
- * 根据名称获取角色
- */
-export function getRole(name: string): Role | undefined {
-  return Roles[name]
-}
-
-/**
- * 获取所有角色名称
- */
-export function getRoleNames(): string[] {
-  return Object.keys(Roles)
-}
-
-// 导出角色定义
-export { CalculatorRole }
+// 此文件仅用于说明，不导出任何内容
+export {}

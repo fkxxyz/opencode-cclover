@@ -8,6 +8,7 @@ import * as stats from "../api/stats"
 import * as health from "../api/health"
 import * as projectsApi from "../api/projects"
 import * as timeline from "../api/timeline"
+import * as roles from "../api/roles"
 
 /**
  * 路由处理器函数类型
@@ -400,6 +401,65 @@ export const projectRoutes = new Map<string, RouteHandler>([
     async (req, params, deps) =>
       stats.getStats(deps.stateManager, deps.memoryManager),
   ],
+
+  /**
+   * 刷新 role 列表
+   *
+   * @endpoint POST /api/projects/:projectId/roles/refresh
+   * @description 扫描三个位置（预设、全局、项目）并重新加载所有 role
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     message: "Roles refreshed successfully",
+   *     count: 3,
+   *     roles: [
+   *       { name: "calculator", source: "preset" },
+   *       { name: "coder", source: "global" },
+   *       { name: "custom-role", source: "project" }
+   *     ]
+   *   }
+   * }
+   *
+   * @example
+   * POST /api/projects/abc123/roles/refresh
+   * Response: { success: true, data: { message: "Roles refreshed successfully", count: 3, ... } }
+   */
+  [
+    "POST:/roles/refresh",
+    async (req, params, deps) => roles.refreshRoles(deps.roleManager),
+  ],
+
+  /**
+   * 获取所有 role
+   *
+   * @endpoint GET /api/projects/:projectId/roles
+   * @description 获取所有可用的 role 列表
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     roles: [
+   *       {
+   *         name: "calculator",
+   *         source: "preset",
+   *         systemPrompt: "你是一个计算器员工..."
+   *       }
+   *     ]
+   *   }
+   * }
+   *
+   * @example
+   * GET /api/projects/abc123/roles
+   * Response: { success: true, data: { roles: [...] } }
+   */
+  ["GET:/roles", async (req, params, deps) => roles.getRoles(deps.roleManager)],
 ])
 
 /**
@@ -778,5 +838,38 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         limit
       )
     },
+  ],
+
+  /**
+   * 获取指定 role
+   *
+   * @endpoint GET /api/projects/:projectId/roles/:name
+   * @description 获取指定名称的 role 详情
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - name: role 名称
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     role: {
+   *       name: "calculator",
+   *       source: "preset",
+   *       systemPrompt: "你是一个计算器员工..."
+   *     }
+   *   }
+   * }
+   *
+   * @errors
+   *   - ROLE_NOT_FOUND: role 不存在
+   *
+   * @example
+   * GET /api/projects/abc123/roles/calculator
+   * Response: { success: true, data: { role: {...} } }
+   */
+  [
+    "GET:/roles/:name",
+    async (req, params, deps) => roles.getRole(deps.roleManager, params.name),
   ],
 ])

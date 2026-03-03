@@ -115,7 +115,8 @@ graph TB
 │ │  ├─ MessageService                                       │
 │ │  ├─ MemoryManager                                        │
 │ │  ├─ StateManager                                         │
-│ │  └─ AgentRegistry                                        │
+│ │  ├─ AgentRegistry                                        │
+│ │  └─ RoleManager (loads from preset/global/project)      │
 │ ├─ Start employee EventLoops for each project              │
 │ └─ Provide HTTP/WebSocket API (port 4097)                  │
 └─────────────────────────────────────────────────────────────┘

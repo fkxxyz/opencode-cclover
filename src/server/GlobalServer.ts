@@ -9,9 +9,9 @@ import { StateManager } from "../state/StateManager"
 import { MessageService } from "../core/MessageService"
 import { MemoryManager } from "../core/MemoryManager"
 import { BossManager } from "../core/BossManager"
+import { RoleManager } from "../core/RoleManager"
 import { AgentRegistry } from "../utils/AgentRegistry"
 import { EventLoop } from "../core/EventLoop"
-import { CalculatorRole } from "../roles"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
 
@@ -148,6 +148,10 @@ export class GlobalCcloverService {
       projectId
     )
     const agentRegistry = new AgentRegistry()
+    const roleManager = new RoleManager(config.path)
+
+    // 初始化 roleManager（加载所有 role）
+    await roleManager.refresh()
 
     // 注册到 registry
     const projectInstance: ProjectInstance = {
@@ -160,6 +164,7 @@ export class GlobalCcloverService {
       memoryManager,
       agentRegistry,
       bossManager: this.bossManager!,
+      roleManager,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
     }
 
@@ -219,10 +224,18 @@ export class GlobalCcloverService {
     // 启动员工 EventLoop
     const messageClient = project.messageService.getClient("calculator")
     const opcodeClient = this.getOpencodeClient()
+
+    // 从 RoleManager 获取 role
+    const calculatorRole = project.roleManager.getRole("calculator")
+    if (!calculatorRole) {
+      logger.error("Calculator role not found in RoleManager")
+      return
+    }
+
     const eventLoop = new EventLoop(
       project.directory,
       "calculator",
-      CalculatorRole,
+      calculatorRole,
       messageClient,
       project.memoryManager,
       opcodeClient,

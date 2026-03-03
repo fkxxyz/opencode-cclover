@@ -8,9 +8,9 @@ Roles are templates for employees, defining system prompts and behavior patterns
 
 **Key Responsibilities**:
 - Define role system prompts
-- Specify role responsibilities and limitations
-- Provide workflow guidance for AI
-- Enable role extensibility
+- Load roles from multiple sources (preset, global, project)
+- Provide role refresh mechanism
+- Enable role extensibility through file system
 
 ## Architecture Reference
 
@@ -19,8 +19,9 @@ Implements the role concept specified in [Requirements - Core Concepts - Role](.
 **Design Principles**:
 - **Single Responsibility**: Each role focuses on a specific domain
 - **Clear Definition**: System prompts explicitly state responsibilities and limitations
-- **Extensibility**: Easy to add new roles without modifying existing code
+- **Extensibility**: Easy to add new roles via file system (no code changes)
 - **Template Pattern**: Roles are templates, employees are instances
+- **Priority-based Loading**: Project > Global > Preset
 
 ## Interface
 
@@ -37,30 +38,40 @@ interface Role {
 
 ```typescript
 // src/roles/index.ts
-export const roles = {
-  calculator: CalculatorRole,
-  coder: CoderRole,           // Future
-  pm: PMRole,                 // Future
-  researcher: ResearcherRole  // Future
+export class RoleManager {
+  private roles: Map<string, Role>
+  
+  constructor(private projectPath: string)
+  
+  // Load roles from all sources (preset, global, project)
+  async loadRoles(): Promise<void>
+  
+  // Get role by name
+  getRole(roleName: string): Role | undefined
+  
+  // List all available roles
+  listRoles(): string[]
 }
 
-export function getRole(roleName: string): Role {
-  const role = roles[roleName]
-  if (!role) {
-    throw new Error(`Role "${roleName}" not found`)
-  }
-  return role
-}
+// Priority: Project > Global > Preset
+// Locations:
+// - Preset: src/roles/*.txt
+// - Global: ~/.config/opencode-cclover/roles/*.txt
+// - Project: <project>/.cclover/roles/*.txt
 ```
 
 ### Creating Employee with Role
 
 ```typescript
-import { getRole } from './roles'
+import { RoleManager } from './roles'
 import { EventLoop } from './core/EventLoop'
 
+// Initialize role manager
+const roleManager = new RoleManager(projectPath)
+await roleManager.loadRoles()
+
 // Get role template
-const role = getRole('calculator')
+const role = roleManager.getRole('calculator')
 
 // Create employee instance with role
 const eventLoop = new EventLoop(
@@ -77,6 +88,27 @@ await eventLoop.run()
 
 ## Internal Design
 
+### Role Storage
+
+**File Format**: Plain text files (`.txt`), filename is role name, content is system prompt.
+
+**Storage Locations** (priority order):
+1. **Project**: `<project>/.cclover/roles/<role_name>.txt` (highest priority)
+2. **Global**: `~/.config/opencode-cclover/roles/<role_name>.txt`
+3. **Preset**: `src/roles/<role_name>.txt` (lowest priority)
+
+**Example**:
+```
+src/roles/calculator.txt:
+---
+You are a calculator employee who only performs mathematical calculations.
+
+# Your Responsibilities
+- Receive calculation requests
+- Execute mathematical calculations
+...
+```
+
 ### Calculator Role (Phase 1)
 
 **Purpose**: Perform mathematical calculations only
@@ -84,10 +116,7 @@ await eventLoop.run()
 **Implementation**:
 
 ```typescript
-// src/roles/Calculator.ts
-export const CalculatorRole: Role = {
-  name: 'Calculator',
-  systemPrompt: `
+// src/roles/calculator.txt (plain text file)
 You are a calculator employee who only performs mathematical calculations.
 
 # Your Responsibilities
@@ -121,19 +150,17 @@ After receiving result, call send_message tool to reply
 - send_message: Send message to other employees
 - edit_tasks: Manage your task list
 - create_agent: Create agent to execute complex calculations
-`.trim()
-}
 ```
 
 ### Future Roles (Extension)
 
-#### Coder Role
+Roles can be added by creating `.txt` files in any of the three locations. No code changes required.
 
-```typescript
-// src/roles/Coder.ts
-export const CoderRole: Role = {
-  name: 'Coder',
-  systemPrompt: `
+#### Coder Role Example
+
+```
+src/roles/coder.txt:
+---
 You are a programmer employee responsible for writing code and fixing bugs.
 
 # Your Responsibilities
@@ -152,17 +179,13 @@ You are a programmer employee responsible for writing code and fixing bugs.
 3. Create agents to implement each task
 4. Review and integrate results
 5. Report completion to requester
-`.trim()
-}
 ```
 
-#### PM Role
+#### PM Role Example
 
-```typescript
-// src/roles/PM.ts
-export const PMRole: Role = {
-  name: 'PM',
-  systemPrompt: `
+```
+src/roles/pm.txt:
+---
 You are a project manager employee responsible for task assignment and coordination.
 
 # Your Responsibilities
@@ -183,17 +206,13 @@ You are a project manager employee responsible for task assignment and coordinat
 4. Track progress through task updates
 5. Coordinate when dependencies exist
 6. Report project status to stakeholders
-`.trim()
-}
 ```
 
-#### Researcher Role
+#### Researcher Role Example
 
-```typescript
-// src/roles/Researcher.ts
-export const ResearcherRole: Role = {
-  name: 'Researcher',
-  systemPrompt: `
+```
+src/roles/researcher.txt:
+---
 You are a researcher employee responsible for gathering information and analyzing data.
 
 # Your Responsibilities
@@ -212,8 +231,6 @@ You are a researcher employee responsible for gathering information and analyzin
 3. Create agents to gather information
 4. Analyze and synthesize findings
 5. Write report and share results
-`.trim()
-}
 ```
 
 ### Role Selection Strategy
@@ -224,6 +241,7 @@ You are a researcher employee responsible for gathering information and analyzin
 - Role specified when hiring employee
 - PM can hire employees with specific roles
 - Role determines available tools and permissions
+- Roles can be added/customized via file system without code changes
 
 ## Data Flow
 
@@ -256,16 +274,22 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    A[Define New Role] --> B[Create Role File]
-    B --> C[Write System Prompt]
-    C --> D[Register in roles/index.ts]
-    D --> E[Test Role Behavior]
-    E --> F[Deploy]
+    A[Create Role File] --> B[Write System Prompt]
+    B --> C[Save to Location]
+    C --> D{Location?}
+    D -->|Preset| E[src/roles/role_name.txt]
+    D -->|Global| F[~/.config/opencode-cclover/roles/role_name.txt]
+    D -->|Project| G[project/.cclover/roles/role_name.txt]
+    E --> H[Call Refresh API]
+    F --> H
+    G --> H
+    H --> I[RoleManager Reloads]
+    I --> J[Role Available]
     
-    C --> G[Define Responsibilities]
-    C --> H[Define Limitations]
-    C --> I[Define Workflow]
-    C --> J[Provide Examples]
+    B --> K[Define Responsibilities]
+    B --> L[Define Limitations]
+    B --> M[Define Workflow]
+    B --> N[Provide Examples]
 ```
 
 ## Role Design Guidelines
@@ -306,22 +330,26 @@ graph TD
 ### Unit Tests
 
 ```typescript
-describe('Role System', () => {
-  test('get existing role', () => {
-    const role = getRole('calculator')
-    expect(role.name).toBe('Calculator')
-    expect(role.systemPrompt).toContain('calculator employee')
+describe('RoleManager', () => {
+  test('load roles from all sources', async () => {
+    const roleManager = new RoleManager(projectPath)
+    await roleManager.loadRoles()
+    
+    expect(roleManager.getRole('calculator')).toBeDefined()
   })
   
-  test('get non-existent role throws error', () => {
-    expect(() => getRole('nonexistent')).toThrow('Role "nonexistent" not found')
+  test('priority: project > global > preset', async () => {
+    // Create same role in all three locations
+    // Verify project version is loaded
+    const role = roleManager.getRole('test-role')
+    expect(role.systemPrompt).toContain('project version')
   })
   
-  test('calculator role has required sections', () => {
-    const role = getRole('calculator')
-    expect(role.systemPrompt).toContain('Responsibilities')
-    expect(role.systemPrompt).toContain('Limitations')
-    expect(role.systemPrompt).toContain('Workflow')
+  test('refresh reloads roles', async () => {
+    await roleManager.loadRoles()
+    // Modify role file
+    await roleManager.loadRoles()
+    // Verify new content loaded
   })
 })
 ```
@@ -373,71 +401,42 @@ describe('Calculator Role Behavior', () => {
 ## Implementation Checklist
 
 - [x] Role interface definition
-- [x] Calculator role
-  - [x] System prompt
-  - [x] Behavior definition
-  - [x] Tool usage examples
-- [ ] Future roles (optional)
-  - [ ] Coder role
-  - [ ] PM role
-  - [ ] Researcher role
-- [x] Role registry
-  - [x] roles object
-  - [x] getRole() function
+- [ ] RoleManager
+  - [ ] Load from preset (src/roles/*.txt)
+  - [ ] Load from global (~/.config/opencode-cclover/roles/*.txt)
+  - [ ] Load from project (<project>/.cclover/roles/*.txt)
+  - [ ] Priority-based merging
+  - [ ] Refresh API
+- [ ] Convert Calculator.ts to calculator.txt
+- [ ] HTTP API endpoint for refresh
 - [x] Tests
   - [x] Unit tests
+  - [ ] Priority tests
+  - [ ] Refresh tests
   - [ ] Behavioral tests (integration)
 
 ## Future Extensions
 
-### Role Hierarchy
+### Role Metadata
 
 ```typescript
 interface Role {
   name: string
   systemPrompt: string
-  parent?: string           // Parent role for inheritance
-  permissions: string[]     // Allowed tools
-  maxAgents?: number        // Concurrent agent limit
-}
-```
-
-### Role Specialization
-
-```typescript
-// Specialized calculator for financial calculations
-export const FinancialCalculatorRole: Role = {
-  name: 'FinancialCalculator',
-  parent: 'Calculator',
-  systemPrompt: `
-${CalculatorRole.systemPrompt}
-
-# Additional Specialization
-You specialize in financial calculations:
-- Interest rate calculations
-- Present/future value
-- Loan amortization
-- Investment returns
-`.trim()
-}
-```
-
-### Dynamic Role Loading
-
-```typescript
-// Load roles from configuration file
-async function loadRoles(configPath: string): Promise<Record<string, Role>> {
-  const config = await fs.readFile(configPath, 'utf-8')
-  const roleConfigs = yaml.parse(config)
-  
-  const roles: Record<string, Role> = {}
-  for (const [name, config] of Object.entries(roleConfigs)) {
-    roles[name] = {
-      name,
-      systemPrompt: config.systemPrompt
-    }
+  metadata?: {
+    version?: string
+    author?: string
+    description?: string
   }
-  
-  return roles
 }
+```
+
+Metadata can be added as YAML front matter in .txt files:
+```
+---
+version: 1.0.0
+author: team
+description: Financial calculator specialization
+---
+You are a financial calculator...
 ```
