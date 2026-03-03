@@ -105,6 +105,7 @@ export type EventType =
   | "message_received"
   | "task_updated"
   | "agent_updated"
+  | "*" // Wildcard for subscribing to all events
 
 export interface Event {
   projectId: string

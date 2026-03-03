@@ -12,13 +12,17 @@ export class WebSocketClient {
   private reconnectAttempts = 0
   private heartbeatInterval: NodeJS.Timeout | null = null
   private heartbeatTimeout: NodeJS.Timeout | null = null
+  private connecting = false
   connect(): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    // 如果已经连接或正在连接中，直接返回
+    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING || this.connecting) {
       return
     }
+    this.connecting = true
     this.ws = new WebSocket(WS_URL)
     this.ws.onopen = () => {
       console.log("WebSocket connected")
+      this.connecting = false
       this.reconnectAttempts = 0
       this.startHeartbeat()
     }
@@ -34,14 +38,17 @@ export class WebSocketClient {
     }
     this.ws.onerror = (error) => {
       console.error("WebSocket error:", error)
+      this.connecting = false
     }
     this.ws.onclose = () => {
       console.log("WebSocket disconnected")
+      this.connecting = false
       this.stopHeartbeat()
       this.reconnect()
     }
   }
   disconnect(): void {
+    this.connecting = false
     this.stopHeartbeat()
     this.ws?.close()
     this.ws = null
