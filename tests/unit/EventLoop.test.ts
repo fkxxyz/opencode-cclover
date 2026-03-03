@@ -83,6 +83,7 @@ describe("EventLoop", () => {
     test("should create EventLoop instance", () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -98,6 +99,7 @@ describe("EventLoop", () => {
     test("should create session on first event", async () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -114,6 +116,7 @@ describe("EventLoop", () => {
     test("should register session in SessionRegistry", async () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -143,6 +146,7 @@ describe("EventLoop", () => {
       })
 
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -181,6 +185,7 @@ describe("EventLoop", () => {
       })
 
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -209,6 +214,7 @@ describe("EventLoop", () => {
     test("should track agent completion", async () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -230,6 +236,7 @@ describe("EventLoop", () => {
     test("should get agent result from session messages", async () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -250,6 +257,7 @@ describe("EventLoop", () => {
     test("should not summarize when below threshold", async () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
@@ -281,6 +289,7 @@ describe("EventLoop", () => {
     test("should summarize when token threshold reached", async () => {
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
+        testWorkspace,
         "test-employee",
         testRole,
         messageClient,
