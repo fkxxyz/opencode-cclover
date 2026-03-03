@@ -32,3 +32,7 @@ yarn.lock
 # Git worktrees
 .worktrees/
 pnpm-lock.yaml
+
+# Optimization planning documents (internal use only)
+console/docs/optimization-plan.md
+console/docs/optimizations/
