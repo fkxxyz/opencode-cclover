@@ -54,7 +54,13 @@ export class MessageClient {
         this.service.eventEmitter.off(`message:${this.employeeName}`, listener)
         // 从队列中获取消息(事件只是通知)
         const queue = this.service.getUnreadQueue(this.employeeName)
-        resolve(queue.shift()!)
+        const message = queue.shift()
+        // 防御性检查：如果队列为空（竞态条件），递归调用 recv() 继续等待
+        if (message) {
+          resolve(message)
+        } else {
+          resolve(this.recv())
+        }
       }
       this.service.eventEmitter.on(`message:${this.employeeName}`, listener)
     })
