@@ -287,9 +287,12 @@ export class MemoryManager {
   async getExecutableTasks(employeeName: string): Promise<Task[]> {
     const memory = await this.read(employeeName)
 
-    // 获取所有 completed 任务的名称
-    const completedTasks = new Set(
-      memory.tasks.filter((t) => t.status === "completed").map((t) => t.name)
+    // 获取所有 completed 或 cancelled 任务的名称
+    // cancelled 任务也视为依赖已满足，避免阻塞依赖它的任务
+    const satisfiedTasks = new Set(
+      memory.tasks
+        .filter((t) => t.status === "completed" || t.status === "cancelled")
+        .map((t) => t.name)
     )
 
     // 找出所有依赖已满足的 pending 任务
@@ -298,8 +301,8 @@ export class MemoryManager {
         return false
       }
 
-      // 检查所有依赖是否都已完成
-      return task.dependencies.every((dep) => completedTasks.has(dep))
+      // 检查所有依赖是否都已完成或取消
+      return task.dependencies.every((dep) => satisfiedTasks.has(dep))
     })
   }
 

@@ -3,6 +3,12 @@ import { createTools } from "./tools"
 import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
 import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
+import { fileURLToPath } from "node:url"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 /**
  * OpenCode Cclover Plugin
@@ -61,6 +67,28 @@ export const CcloverPlugin: Plugin = async (ctx) => {
         hidden: true, // 隐藏，不在 UI 中显示
         description: "Internal agent for Cclover employee sessions",
       }
+
+      // 注册 role-creator agent
+      try {
+        const roleCreatorPromptPath = path.join(
+          __dirname,
+          "agents/role-creator.md"
+        )
+        const roleCreatorPrompt = await fs.readFile(
+          roleCreatorPromptPath,
+          "utf-8"
+        )
+        agents["role-creator"] = {
+          prompt: roleCreatorPrompt,
+          mode: "primary",
+          description: "Create, edit, delete, and manage employee roles",
+        }
+      } catch (error: any) {
+        logger.error(
+          `[Cclover] Failed to load role-creator agent prompt: ${error.message}`
+        )
+      }
+
       config.agent = agents
     },
   }

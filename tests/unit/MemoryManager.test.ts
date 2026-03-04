@@ -268,6 +268,26 @@ describe("MemoryManager", () => {
       const executable = await manager.getExecutableTasks("alice")
       expect(executable).toHaveLength(0)
     })
+
+    test("should return tasks when dependencies are cancelled", async () => {
+      await manager.addTask("alice", {
+        name: "task1",
+        status: "cancelled",
+        description: "Task 1",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "task2",
+        status: "pending",
+        description: "Task 2",
+        dependencies: ["task1"],
+      })
+
+      const executable = await manager.getExecutableTasks("alice")
+      expect(executable).toHaveLength(1)
+      expect(executable[0].name).toBe("task2")
+    })
   })
 
   describe("generateMermaid", () => {

@@ -2,19 +2,20 @@
 # 快速启动 OpenCode server 进行测试
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$SCRIPT_DIR/workspace_test"
 
 echo "🚀 Starting OpenCode server for cclover plugin testing..."
 echo ""
 echo "🔌 Port: 4099"
-echo "🔗 Config dir: workspace_test/.opencode"
+echo "📁 Working dir: workspace_test"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
 # 后台启动 OpenCode server，输出到临时文件
-LOG_FILE="/tmp/opencode-cclover-test-$$.log"
-CCLOVER_ENABLE=1 OPENCODE_CONFIG_DIR="$SCRIPT_DIR/workspace_test/.opencode" opencode serve --port 4099 > "$LOG_FILE" 2>&1 &
+LOG_FILE="/tmp/opencode-cclover-test-$.log"
+cd "$WORKSPACE_DIR" && CCLOVER_ENABLE=1 opencode serve --port 4099 > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 
 # 清理函数

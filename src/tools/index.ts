@@ -13,6 +13,7 @@ import { createSendMessageTool } from "./SendMessageTool"
 import { createEditTasksTool } from "./EditTasksTool"
 import { createCreateAgentTool } from "./CreateAgentTool"
 import { createHireEmployeeTool } from "./HireEmployeeTool"
+import { createRefreshRolesTool } from "./RefreshRolesTool"
 
 /**
  * 工具定义类型
@@ -45,6 +46,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   edit_tasks: true,
   create_agent: true,
   hire_employee: true, // 启用雇佣功能
+  refresh_roles: true,
 }
 
 /**
@@ -72,6 +74,7 @@ export { createSendMessageTool } from "./SendMessageTool"
 export { createEditTasksTool } from "./EditTasksTool"
 export { createCreateAgentTool } from "./CreateAgentTool"
 export { createHireEmployeeTool } from "./HireEmployeeTool"
+export { createRefreshRolesTool } from "./RefreshRolesTool"
 
 /**
  * 创建所有工具
@@ -98,5 +101,8 @@ export function createTools(deps: {
           deps.project
         )
       : createHireEmployeeTool(deps.stateManager, null as any, null as any), // fallback
+    refresh_roles: deps.project
+      ? createRefreshRolesTool(deps.project)
+      : (null as any), // fallback
   }
 }

@@ -1,0 +1,315 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "bayecao",
+  "model": "fkxxyz_home_kiro/claude-sonnet-4-5-20250929",
+  "provider": {
+    "fkxxyz_home_kiro": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "fkxxyz_home_kiro",
+      "options": {
+        "baseURL": "https://ai.home.fkxxyz.com/v1",
+        "apiKey": "sk-RkVILSr61id9BSNI8w5g7jh0NjqnSVz7g6Eg3l4VaJtDwnsu"
+      },
+      "models": {
+        "claude-sonnet-4-5-20250929": {
+          "name": "claude-sonnet-4-5-20250929",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 16000
+            }
+          }
+        },
+        "claude-haiku-4-5": {
+          "name": "claude-haiku-4-5",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 16000
+            }
+          }
+        }
+      }
+    },
+    "test_kiro": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "test_kiro",
+      "options": {
+        "baseURL": "http://localhost:3000/claude-kiro-oauth/v1",
+        "apiKey": "123456"
+      },
+      "models": {
+        "claude-sonnet-4-5-20250929": {
+          "name": "claude-sonnet-4-5-20250929",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 16000
+            }
+          }
+        },
+        "claude-haiku-4-5": {
+          "name": "claude-haiku-4-5",
+          "limit": {
+            "context": 200000,
+            "output": 64000
+          },
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 16000
+            }
+          }
+        }
+      }
+    },
+    "fkxxyz_home_kiro_pro": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "fkxxyz_home_kiro_pro",
+      "options": {
+        "baseURL": "https://ai.home.fkxxyz.com/v1",
+        "apiKey": "sk-uUCRYfNDzZmXBnLw3urJacxBBHobajJ8bA0t4H1egU1mLdKZ"
+      },
+      "models": {
+        "claude-opus-4-6": {
+          "name": "claude-opus-4-6",
+          "limit": {
+            "context": 200000,
+            "output": 128000
+          },
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 16000
+            }
+          }
+        }
+      }
+    },
+    "fkxxyz_home_free": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "fkxxyz_home_free",
+      "options": {
+        "baseURL": "https://ai.home.fkxxyz.com/v1",
+        "apiKey": "sk-yfJhqUgO6Ob6VDHPZPBDDEYjnvswrggTUwArKawEvwXDOF2e"
+      },
+      "models": {
+        "kimi-k2.5": {
+          "name": "kimi-k2.5",
+          "limit": {
+            "context": 256000,
+            "output": 64000
+          }
+        },
+        "gpt-oss-120b": {
+          "name": "gpt-oss-120b",
+          "limit": {
+            "context": 131072,
+            "output": 131072
+          }
+        },
+        "gpt-oss-20b": {
+          "name": "gpt-oss-20b",
+          "limit": {
+            "context": 131072,
+            "output": 131072
+          }
+        }
+      }
+    },
+    "fkxxyz_home_qq": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "fkxxyz_home_qq",
+      "options": {
+        "baseURL": "https://ai.home.fkxxyz.com/v1",
+        "apiKey": "sk-F4GvOxmgbTcIhKPKRRpHGuJgxdcUqTGRY3o5Z4jbIXxfnEC4"
+      },
+      "models": {
+        "qwen3.5-plus-2026-02-15": {
+          "name": "qwen3.5-plus-2026-02-15",
+          "limit": {
+            "context": 262144,
+            "output": 81920
+          }
+        },
+        "gpt-5.2-2025-12-11": {
+          "name": "gpt-5.2-2025-12-11",
+          "limit": {
+            "context": 400000,
+            "output": 128000
+          }
+        },
+        "gpt-4.1-mini-2025-04-14": {
+          "name": "gpt-4.1-mini-2025-04-14",
+          "limit": {
+            "context": 1047576,
+            "output": 32768
+          }
+        },
+        "gpt-4.1-nano-2025-04-14": {
+          "name": "gpt-4.1-nano-2025-04-14",
+          "limit": {
+            "context": 1047576,
+            "output": 32768
+          }
+        },
+        "gpt-4o-mini-2024-07-18": {
+          "name": "gpt-4o-mini-2024-07-18",
+          "limit": {
+            "context": 128000,
+            "output": 16384
+          }
+        },
+        "gpt-oss-120b": {
+          "name": "gpt-oss-120b",
+          "limit": {
+            "context": 131072,
+            "output": 131072
+          }
+        },
+        "gpt-oss-20b": {
+          "name": "gpt-oss-20b",
+          "limit": {
+            "context": 131072,
+            "output": 131072
+          }
+        }
+      }
+    },
+    "fkxxyz_home_local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "fkxxyz_home_local",
+      "options": {
+        "baseURL": "https://ai.home.fkxxyz.com/v1",
+        "apiKey": "sk-ardsSnRvq1Vbxpjx9x1MRRWOTSVXZsnuYNTUjGnPDJVZPYkF"
+      },
+      "models": {
+        "gpt-oss:20b": {
+          "name": "gpt-oss:20b",
+          "limit": {
+            "context": 131072,
+            "output": 131072
+          }
+        },
+        "qwen3.5:27b": {
+          "name": "qwen3.5:27b",
+          "limit": {
+            "context": 262144,
+            "output": 81920
+          }
+        }
+      }
+    },
+    "fkxxyz_home_codex": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "fkxxyz_home_codex",
+      "options": {
+        "baseURL": "https://ai.home.fkxxyz.com/v1",
+        "apiKey": "sk-9G8PfJxWbrOI4kgkOD6a4tyCemnQ2vARgO75ZVySVojdr9hX"
+      },
+      "models": {
+        "gpt-5.2-codex": {
+          "name": "gpt-5.2-codex",
+          "limit": {
+            "context": 400000,
+            "output": 128000
+          },
+          "variants": {
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh"
+            }
+          }
+        },
+        "gpt-5.3-codex": {
+          "name": "gpt-5.3-codex",
+          "limit": {
+            "context": 400000,
+            "output": 128000
+          },
+          "variants": {
+            "none": {
+              "reasoningEffort": "none"
+            },
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh"
+            }
+          }
+        }
+      }
+    }
+  },
+  "agent": {
+    "bayecao": {
+      "description": "八叶草 - 友好的AI助手，擅长代码开发和问题解答",
+      "model": "fkxxyz_home_kiro/claude-sonnet-4-5-20250929",
+      "mode": "primary",
+      "temperature": 0.7,
+      "prompt": "{file:~/.config/opencode/prompts/bayecao.md}",
+      "color": "#4CAF50"
+    },
+    "agent-creator": {
+      "description": "Agent Creator - Specialized assistant for creating new OpenCode agents",
+      "mode": "primary",
+      "prompt": "{file:~/.config/opencode/prompts/agent-creator.md}",
+      "color": "#FF9800",
+      "permission": {
+        "edit": "allow"
+      }
+    },
+    "liuyecao": {
+      "description": "六叶草 - 只读模式的AI助手，擅长代码分析和问题解答",
+      "model": "fkxxyz_home_kiro/claude-sonnet-4-5-20250929",
+      "mode": "primary",
+      "temperature": 0.7,
+      "prompt": "{file:~/.config/opencode/prompts/liuyecao.md}",
+      "color": "#2196F3",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow"
+      }
+    }
+  },
+  "plugin": [
+  ],
+  "mcp": {
+    "markitdown": {
+      "type": "remote",
+      "url": "http://127.0.0.1:3001/mcp",
+      "enabled": true,
+      "timeout": 30000
+    }
+  },
+  "server": {
+    "cors": ["http://nd-desktop:4444"]
+  }
+}
