@@ -8,13 +8,15 @@ import { tool } from "@opencode-ai/plugin"
 import type { StateManager } from "../state/StateManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { ProjectInstance } from "../server/ProjectRegistry"
+import type { BossManager } from "../core/BossManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 import { logger } from "../lib/logger"
 
 export function createHireEmployeeTool(
   stateManager: StateManager,
   roleManager: RoleManager,
-  project: ProjectInstance
+  project: ProjectInstance,
+  bossManager?: BossManager
 ) {
   return tool({
     description: "雇佣新员工",
@@ -25,9 +27,19 @@ export function createHireEmployeeTool(
     async execute(args, context) {
       try {
         // 1. 获取调用者身份
-        const hiredBy = sessionRegistry.getEmployeeName(context.sessionID)
+        let hiredBy: string | undefined
+        // 2. 首先尝试从 SessionRegistry 获取（员工）
+        hiredBy = sessionRegistry.getEmployeeName(context.sessionID)
+        // 3. 如果 SessionRegistry 中没有，尝试从 context.agent 获取（可能是 boss）
+        if (!hiredBy && context.agent) {
+          const agentName = context.agent
+          // 检查是否是 boss
+          if (bossManager?.isBoss(agentName)) {
+            hiredBy = agentName
+          }
+        }
         if (!hiredBy) {
-          return "错误：无法识别调用者身份"
+          return `错误：无法识别调用者身份 (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         }
 
         // 2. 验证角色是否存在

@@ -98,7 +98,8 @@ export function createTools(deps: {
       ? createHireEmployeeTool(
           deps.stateManager,
           deps.project.roleManager,
-          deps.project
+          deps.project,
+          deps.bossManager
         )
       : createHireEmployeeTool(deps.stateManager, null as any, null as any), // fallback
     refresh_roles: deps.project
