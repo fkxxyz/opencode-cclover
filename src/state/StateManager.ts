@@ -167,9 +167,7 @@ export class StateManager {
     todayMessages: number
   } {
     const employees = this.employeeRegistry.getAll()
-    const activeEmployees = employees.filter(
-      (e) => e.status === "active"
-    ).length
+    const activeEmployees = employees.filter((e) => e.status === "busy").length
 
     // 计算今日消息数(UTC时区)
     const now = new Date()

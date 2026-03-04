@@ -193,7 +193,7 @@ export class GlobalCcloverService {
       await project.stateManager.registerEmployee({
         name: "calculator",
         role: "calculator",
-        status: "inactive",
+        status: "offline",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
       })
@@ -206,7 +206,7 @@ export class GlobalCcloverService {
         await project.stateManager.registerEmployee({
           name: bossName,
           role: "Boss",
-          status: "inactive",
+          status: "offline",
           createdAt: new Date().toISOString(),
           lastActiveAt: new Date().toISOString(),
         })

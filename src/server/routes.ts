@@ -275,7 +275,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
    *       {
    *         name: "bayecao",
    *         role: "Boss",
-   *         status: "active",
+   *         status: "busy",
    *         createdAt: "2026-03-01T10:00:00.000Z",
    *         lastActiveAt: "2026-03-01T10:05:00.000Z"
    *       }
@@ -309,7 +309,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
    *         {
    *           name: "coder",
    *           role: "Coder",
-   *           status: "active",
+   *           status: "busy",
    *           children: []
    *         }
    *       ]
@@ -556,7 +556,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *   data: {
    *     name: "bayecao",
    *     role: "Boss",
-   *     status: "active",
+   *     status: "busy",
    *     createdAt: "2024-01-01T00:00:00.000Z",
    *     lastActiveAt: "2024-01-01T12:00:00.000Z",
    *     memory: {

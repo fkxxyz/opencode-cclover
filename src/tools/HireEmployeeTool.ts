@@ -46,7 +46,7 @@ export function createHireEmployeeTool(
         await stateManager.registerEmployee({
           name: args.name,
           role: args.role,
-          status: "inactive",
+          status: "offline",
           createdAt: new Date().toISOString(),
           lastActiveAt: new Date().toISOString(),
           hiredBy,

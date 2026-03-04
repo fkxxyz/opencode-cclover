@@ -20,9 +20,7 @@ export async function getStats(
     const employees = stateManager.getEmployees()
 
     // 计算活跃员工数
-    const activeEmployees = employees.filter(
-      (e) => e.status === "active"
-    ).length
+    const activeEmployees = employees.filter((e) => e.status === "busy").length
 
     // 计算待处理任务数
     let pendingTasks = 0

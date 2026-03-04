@@ -75,15 +75,28 @@ export class EventLoop {
     logger.info(
       `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`
     )
-    // 更新员工状态为 active
-    await this.stateManager?.updateEmployeeStatus(this.employeeName, "active")
+
+    // 启动时检查是否有立即可用的事件，决定初始状态
+    const hasImmediate = await this.hasImmediateEvent()
+    await this.stateManager?.updateEmployeeStatus(
+      this.employeeName,
+      hasImmediate ? "busy" : "idle"
+    )
 
     while (true) {
       try {
-        // 1. 更新状态为 idle（等待事件）
-        await this.stateManager?.updateEmployeeStatus(this.employeeName, "idle")
+        // 1. 检查是否有立即可用的事件
+        const hasImmediate = await this.hasImmediateEvent()
 
-        // 2. 等待事件
+        // 2. 只有在没有立即可用事件时，才设置为 idle
+        if (!hasImmediate) {
+          await this.stateManager?.updateEmployeeStatus(
+            this.employeeName,
+            "idle"
+          )
+        }
+
+        // 3. 等待事件
         const event = await this.waitForEvent()
         console.log(`[${this.employeeName}] Received event:`, event.type)
         if (event.type === "message") {
@@ -96,16 +109,13 @@ export class EventLoop {
           )
         }
 
-        // 3. 更新状态为 active（处理事件）
-        await this.stateManager?.updateEmployeeStatus(
-          this.employeeName,
-          "active"
-        )
+        // 4. 更新状态为 busy（处理事件）
+        await this.stateManager?.updateEmployeeStatus(this.employeeName, "busy")
 
-        // 4. 处理事件
+        // 5. 处理事件
         await this.handleEvent(event)
 
-        // 5. 检查是否需要总结
+        // 6. 检查是否需要总结
         await this.summarizeIfNeeded()
       } catch (error) {
         console.error(`[${this.employeeName}] Error in event loop:`, error)
@@ -134,6 +144,26 @@ export class EventLoop {
       // 3. 检查可执行任务
       this.waitForTaskAvailable(),
     ])
+  }
+
+  /**
+   * 检查是否有立即可用的事件
+   * 用于避免不必要的 idle 状态切换
+   */
+  private async hasImmediateEvent(): Promise<boolean> {
+    // 1. 检查未读消息
+    const messageService = (this.messageClient as any).service
+    const unreadQueue = messageService.getUnreadQueue(this.employeeName)
+    if (unreadQueue.length > 0) return true
+
+    // 2. 检查可执行任务
+    const executableTasks = await this.memoryManager.getExecutableTasks(
+      this.employeeName
+    )
+    if (executableTasks.length > 0) return true
+
+    // 3. Agent 完成事件无法提前检查，只能等待
+    return false
   }
 
   /**

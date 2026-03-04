@@ -39,7 +39,7 @@ export function getBosses(
   const bosses: Employee[] = bossNames.map((name) => ({
     name,
     role: "Boss",
-    status: "active" as const,
+    status: "busy" as const,
     createdAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
   }))
@@ -172,7 +172,7 @@ export async function getBossDetail(
     const detail: EmployeeDetail = {
       name,
       role: "Boss",
-      status: "active" as const,
+      status: "busy" as const,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       memory,
