@@ -1,9 +1,12 @@
 import { useEvents } from "../../hooks/useEvents"
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
-import type { EventType } from "../../types/index"
+import type { EventType, Project } from "../../types/index"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
+import { SessionLink } from "../ui/SessionLink"
+import { apiClient } from "../../services"
+import { useEffect, useState } from "react"
 
 const eventTypeColors: Partial<
   Record<EventType, { bg: string; text: string }>
@@ -76,8 +79,9 @@ function formatTimestamp(timestamp: string): string {
 function getEventDescription(
   type: EventType,
   details: Record<string, unknown>,
+  projectPath: string,
   employeeName?: string
-): string {
+): React.ReactNode {
   switch (type) {
     case "message":
     case "message_sent":
@@ -98,13 +102,49 @@ function getEventDescription(
     case "agent_created":
       return `创建 Agent 执行任务 "${details.taskName}"`
     case "session_created":
-      return `创建会话 (${String(details.sessionId).slice(0, 8)}...)`
+      return (
+        <>
+          创建会话 (
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          )
+        </>
+      )
     case "session_prompt_started":
-      return `AI请求开始 (会话: ${String(details.sessionId).slice(0, 8)}..., 事件: ${details.eventType})`
+      return (
+        <>
+          AI请求开始 (会话:{" "}
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , 事件: {String(details.eventType)})
+        </>
+      )
     case "session_prompt_completed":
-      return `AI响应完成 (会话: ${String(details.sessionId).slice(0, 8)}..., 消息数: ${details.messageCount})`
+      return (
+        <>
+          AI响应完成 (会话:{" "}
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , 消息数: {String(details.messageCount)})
+        </>
+      )
     case "session_summary_started":
-      return `开始总结会话 (${String(details.sessionId).slice(0, 8)}..., ${details.messageCount} 条消息)`
+      return (
+        <>
+          开始总结会话 (
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , {String(details.messageCount)} 条消息)
+        </>
+      )
     case "session_summary_completed":
       return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     case "employee_hired":
@@ -127,6 +167,20 @@ interface EventStreamProps {
 }
 export function EventStream({ projectId }: EventStreamProps) {
   const { events, loading } = useEvents(projectId, { limit: 50 })
+  const [project, setProject] = useState<Project | null>(null)
+
+  // 获取项目信息以获得 directory
+  useEffect(() => {
+    apiClient
+      .getProjects()
+      .then((projects) => {
+        const found = projects.find((p) => p.projectId === projectId)
+        if (found) {
+          setProject(found)
+        }
+      })
+      .catch((err) => console.error("获取项目信息失败:", err))
+  }, [projectId])
 
   if (loading) {
     return (
@@ -228,11 +282,13 @@ export function EventStream({ projectId }: EventStreamProps) {
                     color="text.secondary"
                     sx={{ wordBreak: "break-word" }}
                   >
-                    {getEventDescription(
-                      event.type,
-                      event.details,
-                      event.employeeName
-                    )}
+                    {project &&
+                      getEventDescription(
+                        event.type,
+                        event.details,
+                        project.directory,
+                        event.employeeName
+                      )}
                   </Typography>
                 </Box>
               </Box>

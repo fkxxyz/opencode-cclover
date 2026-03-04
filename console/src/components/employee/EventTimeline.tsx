@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Box, Typography } from "@mui/material"
 import { useEvents } from "../../hooks/useEvents"
 import { Badge } from "../ui/badge"
@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select"
-import type { EventType } from "../../types/index"
+import type { EventType, Project } from "../../types/index"
+import { SessionLink } from "../ui/SessionLink"
+import { apiClient } from "../../services"
 
 interface EventTimelineProps {
   projectId: string
@@ -78,8 +80,9 @@ function formatTimestamp(timestamp: string): string {
 
 function getEventDescription(
   type: EventType,
-  details: Record<string, unknown>
-): string {
+  details: Record<string, unknown>,
+  projectPath: string
+): React.ReactNode {
   switch (type) {
     case "message":
     case "message_sent":
@@ -103,6 +106,52 @@ function getEventDescription(
       return `Agent ${details.agentId} 状态更新`
     case "timer":
       return `定时器触发 (间隔: ${details.interval}ms)`
+    case "session_created":
+      return (
+        <>
+          创建会话 (
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          )
+        </>
+      )
+    case "session_prompt_started":
+      return (
+        <>
+          AI请求开始 (会话:{" "}
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , 事件: {String(details.eventType)})
+        </>
+      )
+    case "session_prompt_completed":
+      return (
+        <>
+          AI响应完成 (会话:{" "}
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , 消息数: {String(details.messageCount)})
+        </>
+      )
+    case "session_summary_started":
+      return (
+        <>
+          开始总结会话 (
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , {String(details.messageCount)} 条消息)
+        </>
+      )
+    case "session_summary_completed":
+      return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     default:
       return JSON.stringify(details)
   }
@@ -111,6 +160,20 @@ function getEventDescription(
 export function EventTimeline({ projectId, employeeName }: EventTimelineProps) {
   const { events, loading } = useEvents(projectId, { employeeName })
   const [filterType, setFilterType] = useState<EventType | "all">("all")
+  const [project, setProject] = useState<Project | null>(null)
+
+  // 获取项目信息以获得 directory
+  useEffect(() => {
+    apiClient
+      .getProjects()
+      .then((projects) => {
+        const found = projects.find((p) => p.projectId === projectId)
+        if (found) {
+          setProject(found)
+        }
+      })
+      .catch((err) => console.error("获取项目信息失败:", err))
+  }, [projectId])
 
   const filteredEvents =
     filterType === "all"
@@ -245,7 +308,12 @@ export function EventTimeline({ projectId, employeeName }: EventTimelineProps) {
                         color="text.secondary"
                         sx={{ wordBreak: "break-word" }}
                       >
-                        {getEventDescription(event.type, event.details)}
+                        {project &&
+                          getEventDescription(
+                            event.type,
+                            event.details,
+                            project.directory
+                          )}
                       </Typography>
                     </Box>
                   </Box>

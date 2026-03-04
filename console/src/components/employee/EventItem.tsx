@@ -1,8 +1,10 @@
 import { Box, Typography } from "@mui/material"
 import type { Event, EventType } from "../../types"
+import { SessionLink } from "../ui/SessionLink"
 
 interface EventItemProps {
   event: Event
+  projectPath: string
 }
 
 // 事件图标映射
@@ -30,7 +32,10 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
 }
 
 // 生成事件描述
-function getEventDescription(event: Event): string {
+function getEventDescription(
+  event: Event,
+  projectPath: string
+): React.ReactNode {
   const { type, details } = event
 
   switch (type) {
@@ -38,16 +43,52 @@ function getEventDescription(event: Event): string {
       return `状态变化: ${details.oldStatus} → ${details.newStatus}`
 
     case "session_created":
-      return `会话创建 (${String(details.sessionId).slice(0, 8)}...)`
+      return (
+        <>
+          会话创建 (
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          )
+        </>
+      )
 
     case "session_prompt_started":
-      return `AI请求开始 (会话: ${String(details.sessionId).slice(0, 8)}..., 事件: ${details.eventType})`
+      return (
+        <>
+          AI请求开始 (会话:{" "}
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          , 事件: {String(details.eventType)})
+        </>
+      )
 
     case "session_prompt_completed":
-      return `AI响应完成 (会话: ${String(details.sessionId).slice(0, 8)}...)`
+      return (
+        <>
+          AI响应完成 (会话:{" "}
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          )
+        </>
+      )
 
     case "session_summary_started":
-      return `开始总结会话 (${String(details.sessionId).slice(0, 8)}...)`
+      return (
+        <>
+          开始总结会话 (
+          <SessionLink
+            sessionId={String(details.sessionId)}
+            projectPath={projectPath}
+          />
+          )
+        </>
+      )
 
     case "session_summary_completed":
       return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
@@ -95,9 +136,9 @@ function getEventDescription(event: Event): string {
   }
 }
 
-export function EventItem({ event }: EventItemProps) {
+export function EventItem({ event, projectPath }: EventItemProps) {
   const icon = EVENT_ICONS[event.type] || "📌"
-  const description = getEventDescription(event)
+  const description = getEventDescription(event, projectPath)
   const timestamp = new Date(event.timestamp).toLocaleString("zh-CN", {
     month: "short",
     day: "numeric",

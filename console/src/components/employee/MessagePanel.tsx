@@ -12,7 +12,7 @@ import Button from "@mui/material/Button"
 import { Send } from "lucide-react"
 import { apiClient } from "../../services/api"
 import { EventItem } from "./EventItem"
-import type { Message, Event } from "../../types"
+import type { Message, Event, Project } from "../../types"
 import { handleError, ValidationError } from "../../lib/error-handler"
 import { showSuccess } from "../../lib/toast"
 
@@ -45,6 +45,20 @@ export function MessagePanel({
   const [inputValue, setInputValue] = useState("")
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isInitialLoadRef = useRef(true)
+  const [project, setProject] = useState<Project | null>(null)
+
+  // 获取项目信息以获得 directory
+  useEffect(() => {
+    apiClient
+      .getProjects()
+      .then((projects) => {
+        const found = projects.find((p) => p.projectId === projectId)
+        if (found) {
+          setProject(found)
+        }
+      })
+      .catch((err) => console.error("获取项目信息失败:", err))
+  }, [projectId])
 
   // 过滤只显示与当前 peer 的消息和事件
   const filteredTimeline =
@@ -185,6 +199,7 @@ export function MessagePanel({
                 <EventItem
                   key={`event-${item.timestamp}-${index}`}
                   event={item.data as Event}
+                  projectPath={project?.directory || ""}
                 />
               )
             }

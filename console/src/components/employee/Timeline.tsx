@@ -2,7 +2,9 @@ import { Box, Typography, CircularProgress } from "@mui/material"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { useTimeline } from "../../hooks"
 import { EventItem } from "./EventItem"
-import type { TimelineItem, Message, Event } from "../../types"
+import type { TimelineItem, Message, Event, Project } from "../../types"
+import { apiClient } from "../../services"
+import { useState, useEffect } from "react"
 
 interface TimelineProps {
   projectId: string
@@ -84,12 +86,18 @@ function MessageBubble({ message }: { message: Message }) {
 }
 
 // Timeline 项组件
-function TimelineItemComponent({ item }: { item: TimelineItem }) {
+function TimelineItemComponent({
+  item,
+  projectPath,
+}: {
+  item: TimelineItem
+  projectPath: string
+}) {
   if (item.type === "message") {
     return <MessageBubble message={item.data as Message} />
   }
 
-  return <EventItem event={item.data as Event} />
+  return <EventItem event={item.data as Event} projectPath={projectPath} />
 }
 
 export function Timeline({
@@ -99,6 +107,20 @@ export function Timeline({
   limit,
 }: TimelineProps) {
   const { timeline, loading } = useTimeline(projectId, employeeName, limit)
+  const [project, setProject] = useState<Project | null>(null)
+
+  // 获取项目信息以获得 directory
+  useEffect(() => {
+    apiClient
+      .getProjects()
+      .then((projects) => {
+        const found = projects.find((p) => p.projectId === projectId)
+        if (found) {
+          setProject(found)
+        }
+      })
+      .catch((err) => console.error("获取项目信息失败:", err))
+  }, [projectId])
 
   // 如果指定了 peer，过滤只显示与该 peer 的消息和事件
   const filteredTimeline = peer
@@ -167,12 +189,14 @@ export function Timeline({
             overflowY: "auto",
           }}
         >
-          {filteredTimeline.map((item, index) => (
-            <TimelineItemComponent
-              key={`${item.type}-${item.timestamp}-${index}`}
-              item={item}
-            />
-          ))}
+          {project &&
+            filteredTimeline.map((item, index) => (
+              <TimelineItemComponent
+                key={`${item.type}-${item.timestamp}-${index}`}
+                item={item}
+                projectPath={project.directory}
+              />
+            ))}
         </Box>
       </CardContent>
     </Card>
