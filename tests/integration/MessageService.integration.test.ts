@@ -17,7 +17,7 @@ describe("MessageService Integration", () => {
   beforeEach(async () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-    
+
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     await stateManager.registerEmployee({
@@ -55,7 +55,7 @@ describe("MessageService Integration", () => {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
-    
+
     service = new MessageService(TEST_WORKSPACE, stateManager)
   })
 

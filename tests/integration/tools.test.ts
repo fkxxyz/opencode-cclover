@@ -31,7 +31,7 @@ describe("Tools Integration", () => {
 
     // 初始化服务
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
-    
+
     // 注册测试员工
     await stateManager.registerEmployee({
       name: "alice",
@@ -47,7 +47,7 @@ describe("Tools Integration", () => {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
-    
+
     messageService = new MessageService(TEST_WORKSPACE, stateManager)
     memoryManager = new MemoryManager(TEST_WORKSPACE)
 

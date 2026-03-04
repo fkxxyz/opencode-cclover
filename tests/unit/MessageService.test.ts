@@ -20,7 +20,7 @@ describe("MessageService", () => {
     // 创建 StateManager 和 BossManager
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     bossManager = new BossManager()
-    
+
     // 注册测试员工
     await stateManager.registerEmployee({
       name: "alice",
@@ -36,12 +36,17 @@ describe("MessageService", () => {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
-    
+
     // 添加测试 boss
     bossManager.addBoss("bayecao")
 
     // 创建服务实例
-    service = new MessageService(TEST_WORKSPACE, stateManager, undefined, bossManager)
+    service = new MessageService(
+      TEST_WORKSPACE,
+      stateManager,
+      undefined,
+      bossManager
+    )
   })
 
   afterEach(async () => {

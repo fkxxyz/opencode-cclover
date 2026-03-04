@@ -22,17 +22,28 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
             action: tool.schema
               .enum(["add", "update", "delete"])
               .describe("操作类型"),
-            name: tool.schema.string().optional().describe("任务名称"),
-            description: tool.schema.string().optional().describe("任务描述"),
+            name: tool.schema
+              .string()
+              .optional()
+              .describe(
+                "任务名称（add/update/delete 操作必需，作为任务的唯一标识）"
+              ),
+            description: tool.schema
+              .string()
+              .optional()
+              .describe("任务描述（add 操作必需，update 操作可选）"),
             dependencies: tool.schema
               .array(tool.schema.string())
               .optional()
-              .describe("依赖任务列表"),
+              .describe("依赖任务列表（add/update 操作可选）"),
             status: tool.schema
               .enum(["pending", "in_progress", "completed", "cancelled"])
               .optional()
-              .describe("任务状态"),
-            result: tool.schema.string().optional().describe("任务结果"),
+              .describe("任务状态（update 操作可选）"),
+            result: tool.schema
+              .string()
+              .optional()
+              .describe("任务结果（update 操作可选）"),
           })
         )
         .describe("操作列表"),
@@ -74,6 +85,10 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
             const updates: any = {}
             if (op.status) updates.status = op.status
             if (op.result !== undefined) updates.result = op.result
+            if (op.description !== undefined)
+              updates.description = op.description
+            if (op.dependencies !== undefined)
+              updates.dependencies = op.dependencies
             if (op.status === "completed" && !updates.completed) {
               updates.completed = new Date().toISOString()
             }
