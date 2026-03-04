@@ -40,6 +40,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     opcodeClient: ctx.client,
     bossManager: globalService.getBossManager() || undefined,
     stateManager: project.stateManager,
+    project: project,
   })
 
   // 5. 启动 EventLoop (在 tools 注册之后)

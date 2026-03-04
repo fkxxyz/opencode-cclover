@@ -43,6 +43,7 @@ opencode-cclover/
 │   │   ├── MemoryManager.ts
 │   │   ├── EventLoop.ts
 │   │   ├── BossManager.ts
+│   │   ├── RoleManager.ts
 │   │   └── index.ts
 │   ├── config/                                  - Configuration management
 │   │   ├── ConfigManager.ts
@@ -51,6 +52,7 @@ opencode-cclover/
 │   ├── state/                                   - State management
 │   │   ├── StateManager.ts
 │   │   ├── EmployeeRegistry.ts
+│   │   ├── EmployeePersistence.ts               - Employee list persistence
 │   │   ├── EventHistory.ts
 │   │   └── index.ts
 │   ├── tools/                                   - Tool implementations

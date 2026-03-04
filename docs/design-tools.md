@@ -84,17 +84,17 @@ Implements the tool system requirements specified in [Requirements - Tool System
 
 #### 4. hire_employee
 
-**Purpose**: Hire new employee (future extension)
+**Purpose**: Hire new employee with specified role
 
 **Parameters**:
 ```typescript
 {
-  name: string  // Employee name
-  role: string  // Role type
+  name: string  // Employee name (must be unique)
+  role: string  // Role type (must exist in RoleManager)
 }
 ```
 
-**Returns**: Not implemented in Phase 1
+**Returns**: Success confirmation with employee name and role
 
 ### Tool Registration
 
@@ -133,8 +133,8 @@ await this.opcodeClient.session.prompt({
     tools: {
       'send_message': true,
       'edit_tasks': true,
-      'create_agent': true
-      // 'hire_employee' not included - employee cannot hire
+      'create_agent': true,
+      'hire_employee': true  // Enabled for all employees
     }
   }
 })
@@ -320,17 +320,43 @@ export function createCreateAgentTool(opcodeClient: OpencodeClient) {
 ```typescript
 // src/tools/HireEmployeeTool.ts
 import { tool } from "@opencode-ai/plugin"
+import type { StateManager } from "../state/StateManager"
+import type { ProjectInstance } from "../server/GlobalServer"
+import { sessionRegistry } from "../utils/SessionRegistry"
 
-export function createHireEmployeeTool() {
+export function createHireEmployeeTool(
+  stateManager: StateManager,
+  project: ProjectInstance
+) {
   return tool({
-    description: "Hire new employee",
+    description: "Hire new employee with specified role",
     args: {
-      name: tool.schema.string().describe("Employee name"),
-      role: tool.schema.string().describe("Role type")
+      name: tool.schema.string().describe("Employee name (must be unique)"),
+      role: tool.schema.string().describe("Role type (must exist)")
     },
     async execute(args, context) {
-      // Phase 1: Not implemented
-      return `Hiring functionality not yet implemented`
+      const hiredBy = sessionRegistry.getEmployeeName(context.sessionID)
+      
+      // 1. Validate role exists
+      const roleDefinition = project.roleManager.getRole(args.role)
+      if (!roleDefinition) {
+        throw new Error(`Role '${args.role}' not found`)
+      }
+      
+      // 2. Register employee (auto-persists via StateManager)
+      await stateManager.registerEmployee({
+        name: args.name,
+        role: args.role,
+        status: "inactive",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        hiredBy
+      })
+      
+      // 3. Start EventLoop for new employee
+      await project.startEmployee(args.name, args.role)
+      
+      return `Successfully hired '${args.name}' as ${args.role}`
     }
   })
 }

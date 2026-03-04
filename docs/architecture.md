@@ -183,14 +183,16 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
 - MessageService: Message synchronization (supports boss-employee communication)
 - MemoryManager: Memory and task management
 - StateManager: Employee state tracking
+- EmployeePersistence: Employee list persistence (employees.yaml)
 - EventLoop: Employee runtime
 - AgentRegistry: Background agent tracking
+- RoleManager: Role loading and management
 
 **Tool Modules**:
 - SendMessageTool: send_message implementation
 - EditTasksTool: edit_tasks implementation
 - CreateAgentTool: create_agent implementation
-- HireEmployeeTool: hire_employee implementation
+- HireEmployeeTool: hire_employee implementation (any employee can hire any role)
 
 **Server Modules**:
 - ConsoleServer: HTTP server for Console UI

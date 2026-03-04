@@ -4,6 +4,7 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { AgentRegistry } from "../utils/AgentRegistry"
 import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
+import type { EventLoop } from "../core/EventLoop"
 import { createHash } from "node:crypto"
 import EventEmitter from "eventemitter3"
 
@@ -22,6 +23,7 @@ export interface ProjectInstance {
   bossManager: BossManager
   roleManager: RoleManager
   eventLoopStarted: boolean // EventLoop 是否已启动
+  eventLoops: Map<string, EventLoop> // 员工名称 -> EventLoop 实例
 }
 
 /**

@@ -166,6 +166,7 @@ export class GlobalCcloverService {
       bossManager: this.bossManager!,
       roleManager,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
+      eventLoops: new Map(), // 初始化 EventLoop Map
     }
 
     this.projectRegistry.register(projectInstance)
@@ -183,21 +184,26 @@ export class GlobalCcloverService {
     if (project.eventLoopStarted) {
       return
     }
-    // 注册初始员工
-    project.stateManager.registerEmployee({
-      name: "calculator",
-      role: "calculator",
-      status: "inactive",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
-    // 注册所有 boss 为员工
+
+    // 1. 从持久化文件加载员工列表
+    await project.stateManager.loadEmployees()
+
+    // 2. 注册初始员工（如果不存在）
+    if (!project.stateManager.getEmployee("calculator")) {
+      await project.stateManager.registerEmployee({
+        name: "calculator",
+        role: "calculator",
+        status: "inactive",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+      })
+    }
+
+    // 3. 注册所有 boss 为员工（如果不存在）
     const bossNames = this.bossManager?.getBosses() || []
     for (const bossName of bossNames) {
-      // 检查是否已经注册
-      const existing = project.stateManager.getEmployee(bossName)
-      if (!existing) {
-        project.stateManager.registerEmployee({
+      if (!project.stateManager.getEmployee(bossName)) {
+        await project.stateManager.registerEmployee({
           name: bossName,
           role: "Boss",
           status: "inactive",
@@ -208,7 +214,7 @@ export class GlobalCcloverService {
       }
     }
 
-    // 加载历史事件到内存
+    // 4. 加载历史事件到内存
     try {
       await project.stateManager.loadHistoricalEvents()
       logger.info(
@@ -221,33 +227,46 @@ export class GlobalCcloverService {
       )
     }
 
-    // 启动员工 EventLoop
-    const messageClient = project.messageService.getClient("calculator")
+    // 5. 为所有员工启动 EventLoop
+    const employees = project.stateManager.getEmployees()
     const opcodeClient = this.getOpencodeClient()
 
-    // 从 RoleManager 获取 role
-    const calculatorRole = project.roleManager.getRole("calculator")
-    if (!calculatorRole) {
-      logger.error("Calculator role not found in RoleManager")
-      return
+    for (const employee of employees) {
+      // 从 RoleManager 获取 role
+      const role = project.roleManager.getRole(employee.role)
+      if (!role) {
+        logger.warn(
+          `Role '${employee.role}' not found for employee '${employee.name}', skipping`
+        )
+        continue
+      }
+
+      const messageClient = project.messageService.getClient(employee.name)
+
+      const eventLoop = new EventLoop(
+        project.directory,
+        employee.name,
+        role,
+        messageClient,
+        project.memoryManager,
+        opcodeClient,
+        project.stateManager
+      )
+
+      // 存储到 project.eventLoops
+      project.eventLoops.set(employee.name, eventLoop)
+
+      // 后台运行
+      eventLoop.run().catch((error) => {
+        logger.error(`[${employee.name}] EventLoop crashed:`, error)
+      })
+
+      logger.info(`EventLoop started for employee: ${employee.name}`)
     }
 
-    const eventLoop = new EventLoop(
-      project.directory,
-      "calculator",
-      calculatorRole,
-      messageClient,
-      project.memoryManager,
-      opcodeClient,
-      project.stateManager
-    )
     // 标记为已启动
     project.eventLoopStarted = true
-    // 后台运行
-    eventLoop.run().catch((error) => {
-      logger.error(`[calculator] EventLoop crashed:`, error)
-    })
-    logger.info(`EventLoop started for project: ${project.projectName}`)
+    logger.info(`All EventLoops started for project: ${project.projectName}`)
   }
 
   /**

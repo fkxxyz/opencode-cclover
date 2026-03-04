@@ -1,6 +1,7 @@
 import { EmployeeRegistry } from "./EmployeeRegistry"
 import { EventHistory } from "./EventHistory"
 import { EventLogger } from "./EventLogger"
+import { EmployeePersistence } from "./EmployeePersistence"
 import type { Employee, EmployeeStatus, Event, EventType } from "../types/index"
 import EventEmitter from "eventemitter3"
 
@@ -12,18 +13,22 @@ export class StateManager {
   private projectId: string
   private workspaceRoot: string
   private employeeRegistry: EmployeeRegistry
+  private employeePersistence: EmployeePersistence | null
   private eventHistory: EventHistory
   private eventLogger: EventLogger
   private taskCount: Map<string, number>
   private messageCount: Map<string, number>
   private emitter: EventEmitter
 
-  constructor(projectId: string, workspaceRoot: string) {
+  constructor(projectId: string = "default", workspaceRoot?: string) {
     this.projectId = projectId
-    this.workspaceRoot = workspaceRoot
+    this.workspaceRoot = workspaceRoot || ""
     this.employeeRegistry = new EmployeeRegistry()
+    this.employeePersistence = workspaceRoot
+      ? new EmployeePersistence(workspaceRoot)
+      : null
     this.eventHistory = new EventHistory()
-    this.eventLogger = new EventLogger(workspaceRoot)
+    this.eventLogger = new EventLogger(workspaceRoot || "")
     this.taskCount = new Map()
     this.messageCount = new Map()
     this.emitter = new EventEmitter()
@@ -46,10 +51,14 @@ export class StateManager {
   /**
    * 注册员工
    */
-  registerEmployee(employee: Employee): void {
+  async registerEmployee(employee: Employee): Promise<void> {
     this.employeeRegistry.register(employee)
     this.taskCount.set(employee.name, 0)
     this.messageCount.set(employee.name, 0)
+    // 持久化到文件（如果有 persistence）
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
   }
 
   /**
@@ -281,5 +290,23 @@ export class StateManager {
    */
   emit(event: string, ...args: any[]): void {
     this.emitter.emit(event, ...args)
+  }
+
+  /**
+   * 从持久化文件加载员工列表
+   */
+  async loadEmployees(): Promise<void> {
+    if (!this.employeePersistence) {
+      return
+    }
+    const employees = await this.employeePersistence.load()
+    for (const employee of employees) {
+      // 检查是否已经注册（避免重复）
+      if (!this.employeeRegistry.get(employee.name)) {
+        this.employeeRegistry.register(employee)
+        this.taskCount.set(employee.name, 0)
+        this.messageCount.set(employee.name, 0)
+      }
+    }
   }
 }

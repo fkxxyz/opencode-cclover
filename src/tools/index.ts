@@ -8,10 +8,11 @@ import type { MessageService } from "../core/MessageService"
 import type { MemoryManager } from "../core/MemoryManager"
 import type { BossManager } from "../core/BossManager"
 import type { OpencodeClient } from "@opencode-ai/sdk"
+import type { ProjectInstance } from "../server/ProjectRegistry"
 import { createSendMessageTool } from "./SendMessageTool"
 import { createEditTasksTool } from "./EditTasksTool"
 import { createCreateAgentTool } from "./CreateAgentTool"
-import { hireEmployeeTool } from "./HireEmployeeTool"
+import { createHireEmployeeTool } from "./HireEmployeeTool"
 
 /**
  * 工具定义类型
@@ -37,13 +38,13 @@ export interface ToolPermissions {
 /**
  * 默认工具权限
  *
- * 第一版所有员工都可以使用所有工具（除了 hire_employee）
+ * 所有员工都可以使用所有工具
  */
 export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   send_message: true,
   edit_tasks: true,
   create_agent: true,
-  hire_employee: false, // 第一版不开放
+  hire_employee: true, // 启用雇佣功能
 }
 
 /**
@@ -70,7 +71,7 @@ export function getToolPermissions(
 export { createSendMessageTool } from "./SendMessageTool"
 export { createEditTasksTool } from "./EditTasksTool"
 export { createCreateAgentTool } from "./CreateAgentTool"
-export { hireEmployeeTool } from "./HireEmployeeTool"
+export { createHireEmployeeTool } from "./HireEmployeeTool"
 
 /**
  * 创建所有工具
@@ -84,11 +85,18 @@ export function createTools(deps: {
   opcodeClient: OpencodeClient
   bossManager?: BossManager
   stateManager?: any
+  project?: ProjectInstance
 }): ToolRegistry {
   return {
     send_message: createSendMessageTool(deps.messageService, deps.bossManager),
     edit_tasks: createEditTasksTool(deps.memoryManager),
     create_agent: createCreateAgentTool(deps.opcodeClient, deps.stateManager),
-    hire_employee: hireEmployeeTool,
+    hire_employee: deps.project
+      ? createHireEmployeeTool(
+          deps.stateManager,
+          deps.project.roleManager,
+          deps.project
+        )
+      : createHireEmployeeTool(deps.stateManager, null as any, null as any), // fallback
   }
 }

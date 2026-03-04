@@ -142,14 +142,14 @@
 ```typescript
 {
   name: string,  // Employee name (must be unique)
-  role: string   // Role type (must be valid role)
+  role: string   // Role type (must exist in RoleManager)
 }
 ```
 
 **Usage Example**:
 ```json
 {
-  "name": "bob",
+  "name": "coder-001",
   "role": "coder"
 }
 ```
@@ -159,15 +159,15 @@
 - Failure: Error message (e.g., name already exists, invalid role)
 
 **Behavior**:
-- Creates employee workspace directory
-- Initializes memory file with default values
-- Starts employee event loop
-- Registers employee in state manager
+- Validates role exists in RoleManager
+- Registers employee in StateManager (auto-persists to employees.yaml)
+- Starts employee EventLoop in ProjectInstance
+- Records hiredBy relationship
 
 **Requirements**:
 - Employee name must be unique
-- Role must be valid (defined in system)
-- Sufficient permissions (role-dependent)
+- Role must exist in RoleManager
+- Any employee can hire any role (no permission restrictions)
 
 ## Tool Design Principles
 
