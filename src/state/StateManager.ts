@@ -73,6 +73,12 @@ export class StateManager {
       throw new Error(`员工 '${name}' 不存在`)
     }
     const oldStatus = employee.status
+
+    // 如果状态没有变化，直接返回，不触发事件
+    if (oldStatus === status) {
+      return
+    }
+
     this.employeeRegistry.updateStatus(name, status)
     // 记录状态变化事件
     const event = {
