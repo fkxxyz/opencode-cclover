@@ -200,7 +200,25 @@ Records task cancellation.
 
 **Trigger**: When `MemoryManager.updateTask()` changes status to "cancelled"
 
-### 10. Task Deleted
+### 10. Task Blocked
+
+Records task being blocked waiting for external input.
+
+```typescript
+{
+  type: "task_blocked",
+  timestamp: "2026-03-03T10:16:00.000Z",
+  employeeName: "calculator",
+  details: {
+    taskName: "Task3",
+    reason: "Waiting for user's decision on calculation method"
+  }
+}
+```
+
+**Trigger**: When `MemoryManager.updateTask()` changes status to "blocked"
+
+### 11. Task Deleted
 
 Records task deletion with dependency cleanup.
 
@@ -219,7 +237,7 @@ Records task deletion with dependency cleanup.
 
 **Trigger**: When `MemoryManager.deleteTaskWithCleanup()` deletes task
 
-### 11. Task Decomposed
+### 12. Task Decomposed
 
 Records task decomposition into subtasks.
 
@@ -573,11 +591,12 @@ Concise descriptions for each event type:
 | session_created         | `Session created ({sessionId})`                                     |
 | session_summarized      | `Session summarized ({messageCount} messages, {tokenCount} tokens)` |
 | agent_created           | `Agent created: {taskName}`                                         |
-| agent_completed         | pleted: {taskName}`                                                 |
+| agent_completed         | `Agent completed: {taskName}`                                       |
 | task_created            | `Task created: {taskName}`                                          |
 | task_modified           | `Task modified: {taskName}`                                         |
 | task_completed          | `Task completed: {taskName}`                                        |
 | task_cancelled          | `Task cancelled: {taskName}`                                        |
+| task_blocked            | `Task blocked: {taskName} - {reason}`                               |
 | task_deleted            | `Task deleted: {taskName}`                                          |
 | task_decomposed         | `Task decomposed: {originalTask} → {subtaskCount} subtasks`         |
 

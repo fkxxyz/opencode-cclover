@@ -23,6 +23,7 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   task_cancelled: "🚫",
   task_deleted: "🗑️",
   task_decomposed: "🔀",
+  task_blocked: "🚧",
   message: "💬",
   agent_failed: "❌",
   timer: "⏰",
@@ -118,6 +119,9 @@ function getEventDescription(
 
     case "task_decomposed":
       return `任务分解: ${details.originalTask} → ${details.subtaskCount} 个子任务`
+
+    case "task_blocked":
+      return `任务阻塞: ${details.taskName} - ${details.reason || "blocked"}`
 
     case "agent_failed":
       return `Agent 失败: ${details.taskName}`

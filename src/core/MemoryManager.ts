@@ -7,7 +7,12 @@ import type { StateManager } from "../state/StateManager"
 /**
  * 任务状态
  */
-export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled"
+export type TaskStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "blocked"
 
 /**
  * 任务对象
@@ -16,7 +21,8 @@ export interface Task {
   name: string // 任务名称（唯一标识，AI 自己命名）
   status: TaskStatus // 任务状态
   description: string // 任务描述
-  result?: string // 任务结果（完成时填写）
+  result?: string // 任务结果（只记录任务完成时的结果）
+  statusReason?: string // 状态变更的原因（适用于所有状态）
   dependencies: string[] // 依赖的任务名称列表
   created: string // 创建时间（ISO 8601）
   completed?: string // 完成时间（ISO 8601，可选）
@@ -238,12 +244,28 @@ export class MemoryManager {
         employeeName,
         details: {
           taskName,
-          reason: updates.result || "cancelled by user",
+          reason: updates.statusReason || "cancelled by user",
+        },
+      })
+    } else if (updates.status === "blocked") {
+      // 新增：blocked 状态的事件
+      this.stateManager?.addEvent({
+        projectId: this.projectId,
+        type: "task_blocked",
+        timestamp,
+        employeeName,
+        details: {
+          taskName,
+          reason: updates.statusReason || "blocked",
         },
       })
     }
-    // 记录 task 修改事件（除了 completed/cancelled 状态变化）
-    if (updates.status !== "completed" && updates.status !== "cancelled") {
+    // 记录 task 修改事件（除了 completed/cancelled/blocked 状态变化）
+    if (
+      updates.status !== "completed" &&
+      updates.status !== "cancelled" &&
+      updates.status !== "blocked"
+    ) {
       await this.stateManager?.addEvent({
         projectId: this.projectId,
         type: "task_modified",
@@ -444,6 +466,15 @@ export class MemoryManager {
       // 检查所有依赖是否都已完成或取消
       return task.dependencies.every((dep) => satisfiedTasks.has(dep))
     })
+  }
+
+  /**
+   * 获取正在进行的任务
+   * 返回所有状态为 in_progress 的任务
+   */
+  async getInProgressTasks(employeeName: string): Promise<Task[]> {
+    const memory = await this.read(employeeName)
+    return memory.tasks.filter((task) => task.status === "in_progress")
   }
 
   /**

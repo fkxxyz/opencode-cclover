@@ -56,6 +56,8 @@ Based on backend event tracing design ([Backend Events Design](../../docs/design
 | task_created            | 📋   | Blue   |
 | task_modified           | ✏️   | Orange |
 | task_completed          | ✅   | Green  |
+| task_blocked            | 🚫   | Orange |
+| task_cancelled          | ❌   | Red    |
 
 ### Event Descriptions
 
@@ -81,6 +83,10 @@ const EVENT_DESCRIPTIONS = {
   task_modified: (details) => `Task modified: ${details.taskName}`,
 
   task_completed: (details) => `Task completed: ${details.taskName}`,
+
+  task_blocked: (details) => `Task blocked: ${details.taskName} - ${details.reason}`,
+
+  task_cancelled: (details) => `Task cancelled: ${details.taskName}`,
 }
 ```
 

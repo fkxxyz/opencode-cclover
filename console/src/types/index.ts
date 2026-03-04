@@ -100,6 +100,7 @@ export type EventType =
   | "task_decomposed"
   | "task_created"
   | "task_modified"
+  | "task_blocked"
   | "agent_completed"
   | "agent_failed"
   | "agent_created"

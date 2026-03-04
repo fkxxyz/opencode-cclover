@@ -47,7 +47,7 @@ class EventLoop {
 #### Event Types
 
 ```typescript
-type Event = MessageEvent | AgentEvent
+type Event = MessageEvent | AgentEvent | TaskAvailableEvent | TaskReminderEvent
 
 interface MessageEvent {
   type: 'message'
@@ -61,6 +61,18 @@ interface AgentEvent {
   agentId: string
   taskName: string
   result: string
+  timestamp: string
+}
+
+interface TaskAvailableEvent {
+  type: 'task_available'
+  tasks: Task[]
+  timestamp: string
+}
+
+interface TaskReminderEvent {
+  type: 'task_reminder'
+  tasks: Task[]
   timestamp: string
 }
 ```
@@ -136,49 +148,67 @@ async run(): Promise<void> {
 }
 ```
 
-#### 2. aiting
+#### 2. Event Waiting
+
+**Priority Order**: Messages > Agent Completion > Executable Tasks > In-Progress Tasks
 
 ```typescript
 private async waitForEvent(): Promise<Event> {
-  // Race between multiple event sources
-  return Promise.race([
-    // Wait for new message
-    this.messageClient.recv().then(msg => ({
+  // 1. Non-blocking check for unread messages
+  const messageService = (this.messageClient as any).service
+  const unreadQueue = messageService.getUnreadQueue(this.employeeName)
+  if (unreadQueue.length > 0) {
+    const msg = unreadQueue.shift()!
+    return {
       type: 'message' as const,
       from: msg.from,
       content: msg.content,
       timestamp: msg.timestamp
-    })),
-    
-    // Wait for agent completion
-    this.waitForAgentCompletion()
-  ])
-}
+    }
+  }
 
-private async waitForAgentCompletion(): Promise<AgentEvent> {
-  // Subscribe to OpenCode event stream
-  const events = await this.opcodent.event.subscribe()
-  
-  for await (const event of events.stream) {
-    if (event.payload.type === 'session.status') {
-      const sessionId = event.payload.properties.sessionID
-      
-      // Check if this is our agent
-      if (agentRegistry.isOurAgent(sessionId)) {
-        const info = agentRegistry.getInfo(sessionId)!
-        
-        return {
-          type: 'agent_completed',
-          agentId: sessionId,
-          taskName: info.taskName,
-          result: await this.getAgentResult(sessionId),
-          timestamp: new Date().toISOString()
-        }
+  // 2. Non-blocking check for agent completion queue
+  const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
+  if (completedAgent) {
+    return completedAgent
+  }
+
+  // 3. Check if there are running agents
+  const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+  const hasRunningAgent = runningAgents.length > 0
+
+  // Only check tasks if no running agents
+  if (!hasRunningAgent) {
+    // 4. Check for executable tasks
+    const executableTasks = await this.memoryManager.getExecutableTasks(
+      this.employeeName
+    )
+    if (executableTasks.length > 0) {
+      return {
+        type: 'task_available',
+        tasks: executableTasks,
+        timestamp: new Date().toISOString()
+      }
+    }
+
+    // 5. Check for in_progress tasks (reminder to continue or block)
+    const inProgressTasks = await this.memoryManager.getInProgressTasks(
+      this.employeeName
+    )
+    if (inProgressTasks.length > 0) {
+      return {
+        type: 'task_reminder',
+        tasks: inProgressTasks,
+        timestamp: new Date().toISOString()
       }
     }
   }
-  
-  throw new Error('Unexpected end of event stream')
+
+  // 6. Block and wait for events
+  return Promise.race([
+    this.waitForMessage(),
+    this.waitForAgentCompletion()
+  ])
 }
 ```
 
@@ -289,29 +319,24 @@ private async buildSystemPrompt(): Promise<string> {
   )
 }
 
-private buildEventMessage(event: Event): string {
-  if (event.type === 'message') {
-    return `
-# Current Event
-Type: Message Event
-Sender: ${event.from}
-Content: ${event.content}
-Time: ${event.timestamp}
-`.trim()
+export function buildEventMessage(event: Event): string {
+  switch (event.type) {
+    case 'message':
+      return `收到来自 ${event.from} 的消息：\n\n${event.content}`
+
+    case 'agent_completed':
+      return `你创建的 Agent 已完成任务 "${event.taskName}"。\n\n结果：\n${event.result}`
+
+    case 'task_available':
+      const taskList = event.tasks.map((t) => `- ${t.name}: ${t.description}`).join("\n")
+      return `有 ${event.tasks.length} 个任务的依赖已满足，可以开始执行：\n\n${taskList}\n\n请选择一个任务开始执行，或创建 Agent 来并行处理。`
+
+    case 'task_reminder':
+      return `你有 ${event.tasks.length} 个正在进行的任务。\n- 如果可以继续，请继续完成任务\n- 如果需要等待其他员工的消息或决策，请使用 edit_tasks 将任务状态设为 blocked 并说明原因`
+
+    default:
+      return "未知事件类型"
   }
-  
-  if (event.type === 'agent_completed') {
-    return `
-# Current Event
-Type: Agent Completion Event
-Agent ID: ${event.agentId}
-Related Task: ${event.taskName}
-Execution Result: ${event.result}
-Time: ${event.timestamp}
-`.trim()
-  }
-  
-  return ''
 }
 ```
 
@@ -401,25 +426,66 @@ private async requestSummary(): Promise<{ knowledge: string[], custom: Record<st
 ### Event Processing Flow
 
 ```mermaid
-sequenceDiagram
-    participant Loop as EventLoop
-    participant Client as MessageClient
-    participant Session as OpenCode Session
-    participant Tools as Tool System
-    participant Memory as MemoryManager
+flowchart TD
+    Start([EventLoop.run 启动]) --> CheckImmediate1{hasImmediateEvent?}
+    CheckImmediate1 -->|有事件| SetBusy1[设置状态为 busy]
+    CheckImmediate1 -->|无事件| SetIdle[设置状态为 idle]
     
-    Loop->>Client: recv() (blocking)
-    Client-->>Loop: MessageEvent
-    Loop->>Loop: ensureSession()
-    Loop->>Loop: buildEventMessage()
-    Loop->>Session: prompt(event + tools)
-    Session->>Session: AI processes event
-    Session->>Tools: Call send_message
-    Tools->>Tools: Execute tool
-    Tools-->>Session: Tool result
-    Session-->>Loop: Prompt complete
-    Loop->>Loop: summarizeIfNeeded()
-    Loop->>Client: recv() (next iteration)
+    SetBusy1 --> WaitEvent
+    SetIdle --> WaitEvent[waitForEvent]
+    
+    WaitEvent --> CheckUnread{1. 检查未读消息<br/>非阻塞}
+    CheckUnread -->|有| ReturnMessage[返回 MessageEvent]
+    CheckUnread -->|无| CheckAgentQueue{2. 检查 Agent 完成队列<br/>非阻塞}
+    
+    CheckAgentQueue -->|有| ReturnAgent[返回 AgentEvent]
+    CheckAgentQueue -->|无| HasRunningAgent{有运行中的 Agent?}
+    
+    HasRunningAgent -->|是| BlockWait[阻塞等待]
+    HasRunningAgent -->|否| CheckExecutable{3. 检查可执行任务}
+    
+    CheckExecutable -->|有| ReturnTaskAvailable[返回 TaskAvailableEvent]
+    CheckExecutable -->|无| CheckInProgress{4. 检查 in_progress 任务}
+    
+    CheckInProgress -->|有| ReturnTaskReminder[返回 TaskReminderEvent]
+    CheckInProgress -->|无| BlockWait
+    
+    BlockWait --> Race[Promise.race]
+    Race --> WaitMsg[waitForMessage<br/>阻塞等待新消息]
+    Race --> WaitAgentComplete[waitForAgentCompletion<br/>阻塞等待 Agent 完成]
+    
+    WaitMsg -->|收到消息| ReturnMessage2[返回 MessageEvent]
+    WaitAgentComplete -->|Agent 完成| ReturnAgent2[返回 AgentEvent]
+    
+    ReturnMessage --> SetBusy2[设置状态为 busy]
+    ReturnAgent --> SetBusy2
+    ReturnTaskAvailable --> SetBusy2
+    ReturnTaskReminder --> SetBusy2
+    ReturnMessage2 --> SetBusy2
+    ReturnAgent2 --> SetBusy2
+    
+    SetBusy2 --> HandleEvent[handleEvent<br/>处理事件]
+    HandleEvent --> EnsureSession[ensureSession<br/>确保 Session 存在]
+    EnsureSession --> ReadMemory[读取记忆]
+    ReadMemory --> BuildPrompt[构建系统提示词<br/>包含 in_progress 任务列表]
+    BuildPrompt --> SendToAI[发送给 AI]
+    SendToAI --> CheckSummary{需要总结?}
+    
+    CheckSummary -->|是| Summarize[总结记忆]
+    CheckSummary -->|否| CheckImmediate2
+    Summarize --> CloseSession[关闭 Session]
+    CloseSession --> CheckImmediate2{hasImmediateEvent?}
+    
+    CheckImmediate2 -->|有事件| SetBusy1
+    CheckImmediate2 -->|无事件| SetIdle
+    
+    style Start fill:#e1f5e1
+    style CheckUnread fill:#fff4e6
+    style CheckAgentQueue fill:#fff4e6
+    style CheckExecutable fill:#fff4e6
+    style CheckInProgress fill:#fff4e6
+    style BlockWait fill:#ffe6e6
+    style HandleEvent fill:#e6f3ff
 ```
 
 ### Session Lifecycle

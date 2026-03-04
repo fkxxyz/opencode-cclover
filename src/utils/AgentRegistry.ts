@@ -5,6 +5,8 @@
  * 用于跟踪由员工创建的 Agent 及其关联任务
  */
 
+import type { AgentEvent } from "../core/EventLoop"
+
 export interface AgentInfo {
   employeeName: string // 创建该 Agent 的员工名称
   taskName: string // Agent 关联的任务名称
@@ -12,6 +14,7 @@ export interface AgentInfo {
 
 export class AgentRegistry {
   private agents = new Map<string, AgentInfo>()
+  private completedQueues = new Map<string, AgentEvent[]>() // 按员工分组的完成队列
 
   /**
    * 注册 Agent 信息
@@ -55,10 +58,40 @@ export class AgentRegistry {
   }
 
   /**
-   * 清空所有注册
+   * 添加完成事件到队列
+   */
+  addCompletedEvent(employeeName: string, event: AgentEvent): void {
+    if (!this.completedQueues.has(employeeName)) {
+      this.completedQueues.set(employeeName, [])
+    }
+    this.completedQueues.get(employeeName)!.push(event)
+  }
+
+  /**
+   * 非阻塞取出完成事件
+   * 返回 null 表示队列为空
+   */
+  getCompletedEvent(employeeName: string): AgentEvent | null {
+    const queue = this.completedQueues.get(employeeName)
+    if (!queue || queue.length === 0) {
+      return null
+    }
+    return queue.shift()!
+  }
+
+  /**
+   * 清空某个员工的完成队列
+   */
+  clearCompletedQueue(employeeName: string): void {
+    this.completedQueues.delete(employeeName)
+  }
+
+  /**
+   * 清空所有注册（包括完成队列）
    */
   clear(): void {
     this.agents.clear()
+    this.completedQueues.clear()
   }
 }
 

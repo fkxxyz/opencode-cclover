@@ -18,7 +18,11 @@ export interface Role {
 /**
  * 事件类型
  */
-export type Event = MessageEvent | AgentEvent | TaskAvailableEvent
+export type Event =
+  | MessageEvent
+  | AgentEvent
+  | TaskAvailableEvent
+  | TaskReminderEvent
 
 export interface MessageEvent {
   type: "message"
@@ -37,6 +41,12 @@ export interface AgentEvent {
 
 export interface TaskAvailableEvent {
   type: "task_available"
+  tasks: Task[]
+  timestamp: string
+}
+
+export interface TaskReminderEvent {
+  type: "task_reminder"
   tasks: Task[]
   timestamp: string
 }
@@ -75,6 +85,11 @@ export class EventLoop {
     logger.info(
       `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`
     )
+
+    // 启动 Agent 监听器（后台运行，不阻塞）
+    this.waitForAgentCompletion().catch((error) => {
+      console.error(`[${this.employeeName}] Agent listener error:`, error)
+    })
 
     // 启动时检查是否有立即可用的事件，决定初始状态
     const hasImmediate = await this.hasImmediateEvent()
@@ -131,19 +146,61 @@ export class EventLoop {
 
   /**
    * 等待事件
-   * 并发等待多种事件源
+   * 按优先级顺序检查：消息 > Agent完成 > 可执行任务 > in_progress任务
    */
   private async waitForEvent(): Promise<Event> {
-    return Promise.race([
-      // 1. 等待新消息
-      this.waitForMessage(),
+    // 1. 非阻塞检查未读消息
+    const messageService = (this.messageClient as any).service
+    const unreadQueue = messageService.getUnreadQueue(this.employeeName)
+    if (unreadQueue.length > 0) {
+      const msg = unreadQueue.shift()!
+      return {
+        type: "message",
+        from: msg.from,
+        content: msg.content,
+        timestamp: msg.timestamp,
+      }
+    }
 
-      // 2. 等待 Agent 完成
-      this.waitForAgentCompletion(),
+    // 2. 非阻塞检查 Agent 完成队列
+    const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
+    if (completedAgent) {
+      return completedAgent
+    }
 
-      // 3. 检查可执行任务
-      this.waitForTaskAvailable(),
-    ])
+    // 3. 检查是否有运行中的 Agent
+    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+    const hasRunningAgent = runningAgents.length > 0
+
+    // 只有在没有运行中的 Agent 时才检查任务
+    if (!hasRunningAgent) {
+      // 4. 检查可执行任务
+      const executableTasks = await this.memoryManager.getExecutableTasks(
+        this.employeeName
+      )
+      if (executableTasks.length > 0) {
+        return {
+          type: "task_available",
+          tasks: executableTasks,
+          timestamp: new Date().toISOString(),
+        }
+      }
+
+      // 5. 检查 in_progress 任务
+      const inProgressTasks = await this.memoryManager.getInProgressTasks(
+        this.employeeName
+      )
+      if (inProgressTasks.length > 0) {
+        return {
+          type: "task_reminder",
+          tasks: inProgressTasks,
+          timestamp: new Date().toISOString(),
+        }
+      }
+    }
+
+    // 6. 以上都没有，阻塞等待
+    return Promise.race([this.waitForMessage(), this.waitForAgentCompletion()])
   }
 
   /**
@@ -156,13 +213,33 @@ export class EventLoop {
     const unreadQueue = messageService.getUnreadQueue(this.employeeName)
     if (unreadQueue.length > 0) return true
 
-    // 2. 检查可执行任务
-    const executableTasks = await this.memoryManager.getExecutableTasks(
-      this.employeeName
-    )
-    if (executableTasks.length > 0) return true
+    // 2. 检查 Agent 完成队列
+    const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
+    if (completedAgent) {
+      // 放回队列（因为只是检查，不是真正取出）
+      agentRegistry.addCompletedEvent(this.employeeName, completedAgent)
+      return true
+    }
 
-    // 3. Agent 完成事件无法提前检查，只能等待
+    // 3. 检查是否有运行中的 Agent
+    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+    const hasRunningAgent = runningAgents.length > 0
+
+    // 只有在没有运行中的 Agent 时才检查任务
+    if (!hasRunningAgent) {
+      // 4. 检查可执行任务
+      const executableTasks = await this.memoryManager.getExecutableTasks(
+        this.employeeName
+      )
+      if (executableTasks.length > 0) return true
+
+      // 5. 检查 in_progress 任务
+      const inProgressTasks = await this.memoryManager.getInProgressTasks(
+        this.employeeName
+      )
+      if (inProgressTasks.length > 0) return true
+    }
+
     return false
   }
 
@@ -182,6 +259,7 @@ export class EventLoop {
   /**
    * 等待 Agent 完成
    * 订阅 OpenCode 事件流，监听 session 状态变化
+   * 将完成的 agent 放入队列，而不是直接返回
    */
   private async waitForAgentCompletion(): Promise<AgentEvent> {
     // 订阅 OpenCode 事件流
@@ -196,17 +274,27 @@ export class EventLoop {
 
           // 检查是否是我们创建的 agent
           const agentInfo = agentRegistry.getInfo(sessionId)
-          if (agentInfo && agentInfo.employeeName === this.employeeName) {
+          if (agentInfo) {
             // 获取 agent 的最后一条消息作为结果
             const result = await this.getAgentResult(sessionId)
 
             // 取消注册
             agentRegistry.unregister(sessionId)
+
+            // 创建事件对象
+            const agentEvent: AgentEvent = {
+              type: "agent_completed",
+              agentId: sessionId,
+              taskName: agentInfo.taskName,
+              result,
+              timestamp: new Date().toISOString(),
+            }
+
             // 记录 agent 完成事件
             await this.stateManager?.addEvent({
               projectId: "",
               type: "agent_completed",
-              timestamp: new Date().toISOString(),
+              timestamp: agentEvent.timestamp,
               employeeName: this.employeeName,
               details: {
                 agentId: sessionId,
@@ -215,13 +303,12 @@ export class EventLoop {
               },
             })
 
-            return {
-              type: "agent_completed",
-              agentId: sessionId,
-              taskName: agentInfo.taskName,
-              result,
-              timestamp: new Date().toISOString(),
+            // 如果是当前员工的 agent，放入队列
+            if (agentInfo.employeeName === this.employeeName) {
+              agentRegistry.addCompletedEvent(this.employeeName, agentEvent)
             }
+
+            // 继续监听（不返回，让 waitForEvent 从队列中取）
           }
         }
       }
@@ -229,27 +316,6 @@ export class EventLoop {
 
     // 永远不会到达这里（for await 会一直等待）
     throw new Error("Unexpected end of event stream")
-  }
-  /**
-   * 等待可执行任务
-   * 延迟检查，避免和消息/Agent事件竞争
-   */
-  private async waitForTaskAvailable(): Promise<TaskAvailableEvent> {
-    // 延迟 1 秒再检查，让消息和 Agent 完成事件优先触发
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    // 检查是否有可执行任务
-    const executableTasks = await this.memoryManager.getExecutableTasks(
-      this.employeeName
-    )
-    if (executableTasks.length > 0) {
-      return {
-        type: "task_available",
-        tasks: executableTasks,
-        timestamp: new Date().toISOString(),
-      }
-    }
-    // 如果没有可执行任务，继续等待
-    return this.waitForTaskAvailable()
   }
 
   /**

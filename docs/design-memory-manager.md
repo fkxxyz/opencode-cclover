@@ -70,12 +70,13 @@ interface Task {
   status: TaskStatus               // Task status
   description: string              // Task description
   result?: string                  // Task result (filled when completed)
+  statusReason?: string            // Reason for status change (e.g., why blocked)
   dependencies: string[]           // List of dependency task names
   created: string                  // Creation timestamp (ISO 8601)
   completed?: string               // Completion timestamp (ISO 8601, optional)
 }
 
-type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
+type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked'
 ```
 
 ### Creating Instance
@@ -160,6 +161,13 @@ tasks:
     description: Add results from "Calculate1+1" and "Calculate3+4"
     dependencies: ["Calculate1+1", "Calculate3+4"]
     created: 2026-03-01T10:02:00Z
+    
+  - name: "WaitingForDecision"
+    status: blocked
+    description: Waiting for user to decide on calculation method
+    statusReason: "Need user input on whether to use approximation or exact calculation"
+    dependencies: []
+    created: 2026-03-01T10:03:00Z
 
 # Role-specific custom fields
 custom:
@@ -245,6 +253,7 @@ async generateMermaid(employeeName: string): Promise<string> {
     const statusIcon = {
       'pending': '⏳',
       'in_progress': '🔄',
+      'blocked': '🚫',
       'completed': '✅',
       'cancelled': '❌'
     }[task.status]

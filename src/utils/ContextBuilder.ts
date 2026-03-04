@@ -37,7 +37,19 @@ export function buildSystemPrompt(rolePrompt: string, memory: Memory): string {
     sections.push("")
   }
 
-  // 3. 自定义字段
+  // 3. 正在进行的任务（新增）
+  const inProgressTasks = memory.tasks.filter((t) => t.status === "in_progress")
+  if (inProgressTasks.length > 0) {
+    const taskNames = inProgressTasks.map((t) => t.name).join(", ")
+    sections.push("## 正在进行的任务")
+    sections.push(
+      `你当前正在进行 ${inProgressTasks.length} 个任务：${taskNames}`
+    )
+    sections.push("请继续完成这些任务。")
+    sections.push("")
+  }
+
+  // 4. 自定义字段
   if (Object.keys(memory.custom).length > 0) {
     sections.push("## 自定义数据")
     sections.push("```json")
@@ -46,13 +58,13 @@ export function buildSystemPrompt(rolePrompt: string, memory: Memory): string {
     sections.push("")
   }
 
-  // 4. 任务状态（Mermaid 图）
+  // 5. 任务状态（Mermaid 图）
   if (memory.tasks.length > 0) {
     sections.push("# 任务状态")
     sections.push(generateMermaid(memory.tasks))
     sections.push("")
 
-    // 5. 可执行的任务
+    // 6. 可执行的任务
     const executableTasks = getExecutableTasks(memory.tasks)
     if (executableTasks.length > 0) {
       sections.push("# 可执行的任务")
@@ -95,6 +107,11 @@ export function buildEventMessage(event: Event): string {
       sections.push(`- ${task.name}: ${task.description}`)
     }
     sections.push(`时间: ${event.timestamp}`)
+  } else if (event.type === "task_reminder") {
+    // 新增：task_reminder 事件的处理
+    sections.push(
+      `你有 ${event.tasks.length} 个正在进行的任务。\n- 如果可以继续，请继续完成任务\n- 如果需要等待其他员工的消息或决策，请使用 edit_tasks 将任务状态设为 blocked 并说明原因`
+    )
   } else {
     // 通用处理：输出所有字段
     for (const [key, value] of Object.entries(event)) {

@@ -51,13 +51,15 @@
 - Task name (identifier)
 - New status (optional)
 - Result (optional, required when status becomes `completed`)
+- Status reason (optional, recommended for `blocked` and `cancelled`)
 - Completion timestamp (optional, set when status becomes `completed`)
 
 **Validation**:
 - Task must exist
 - Status transitions must be valid:
-  - `pending` → `in_progress` | `cancelled`
-  - `in_progress` → `completed` | `cancelled`
+  - `pending` → `in_progress` | `cancelled` | `blocked`
+  - `in_progress` → `completed` | `cancelled` | `blocked`
+  - `blocked` → `in_progress` | `cancelled`
   - `completed` → (no transitions)
   - `cancelled` → (no transitions)
 
@@ -117,6 +119,12 @@
       "result": "2"
     },
     {
+      "action": "update",
+      "name": "WaitingTask",
+      "status": "blocked",
+      "statusReason": "Waiting for user's decision on approach"
+    },
+    {
       "action": "delete",
       "name": "CancelledTask"
     },
@@ -144,12 +152,16 @@
 
 ```mermaid
 stateDiagram-v2
-    [*[*] --> pending: Create/Decompose
+    [*] --> pending: Create/Decompose
     pending --> in_progress: Start
     pending --> cancelled: Cancel
+    pending --> blocked: Block
     in_progress --> completed: Finish
     in_progress --> cancelled: Cancel
+    in_progress --> blocked: Block
     in_progress --> pending: Decompose
+    blocked --> in_progress: Resume
+    blocked --> cancelled: Cancel
     completed --> [*]
     cancelled --> [*]
 ```
@@ -181,6 +193,7 @@ TaskC depends on TaskA  ← Circular dependency!
 **Executable Task Criteria**:
 - Task status is `pending`
 - All dependencies have status `completed`
+- Note: `blocked` tasks are not considered executable
 
 **Example**:
 `1: completed
@@ -197,6 +210,7 @@ Task4: pending, depends on [Task3]         ← Not executable yet
 - Status colors (if supported):
   - `pending`: default
   - `in_progress`: yellow
+  - `blocked`: orange
   - `completed`: green
   - `cancelled`: red
 
@@ -225,9 +239,10 @@ graph TD
 ```typescript
 interface Task {
   name: string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked'
   description: string
-  result?: string
+  result?: string              // Only for completed tasks
+  statusReason?: string        // Reason for status change (e.g., why blocked)
   dependencies: string[]
   created: string  // ISO 8601
   completed?: string  // ISO 8601

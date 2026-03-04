@@ -29,6 +29,7 @@ const eventTypeColors: Partial<
   task_decomposed: { backgroundColor: "#e0e7ff", color: "#4338ca" },
   task_created: { backgroundColor: "#e0f2fe", color: "#075985" },
   task_modified: { backgroundColor: "#fef3c7", color: "#92400e" },
+  task_blocked: { backgroundColor: "#fed7aa", color: "#9a3412" },
   agent_completed: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
   agent_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
   agent_created: { backgroundColor: "#ede9fe", color: "#5b21b6" },
@@ -54,6 +55,7 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   task_decomposed: "任务分解",
   task_created: "任务创建",
   task_modified: "任务修改",
+  task_blocked: "任务阻塞",
   agent_completed: "Agent完成",
   agent_failed: "Agent失败",
   agent_created: "Agent创建",
@@ -100,6 +102,8 @@ function getEventDescription(
       return `任务 "${details.taskName}" 已删除${details.affectedCount ? ` (清理了 ${details.affectedCount} 个任务的依赖)` : ""}`
     case "task_decomposed":
       return `任务 "${details.originalTask}" 分解为 ${details.subtaskCount} 个子任务`
+    case "task_blocked":
+      return `任务 "${details.taskName}" 被阻塞: ${details.reason || "blocked"}`
     case "agent_completed":
       return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
     case "agent_failed":

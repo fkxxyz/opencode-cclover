@@ -46,7 +46,12 @@ export interface PeerWithLastMessage {
 }
 
 // 任务状态类型
-export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled"
+export type TaskStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "blocked"
 
 // 任务
 export interface Task {
@@ -54,6 +59,7 @@ export interface Task {
   status: TaskStatus
   description: string
   result?: string
+  statusReason?: string
   dependencies: string[]
   created: string
   completed?: string
@@ -90,6 +96,7 @@ export type EventType =
   | "message"
   | "task_completed"
   | "task_cancelled"
+  | "task_blocked"
   | "task_deleted"
   | "task_decomposed"
   | "agent_completed"

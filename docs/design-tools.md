@@ -57,8 +57,9 @@ Implements the tool system requirements specified in [Requirements - Tool System
     
     // For 'update' action
     name?: string
-    status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+    status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked'
     result?: string
+    statusReason?: string
     
     // For 'delete' action
     name?: string
@@ -220,8 +221,9 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
           name: tool.schema.string().optional().describe("Task name"),
           description: tool.schema.string().optional().describe("Task description"),
           dependencies: tool.schema.array(tool.schema.string()).optional().describe("Dependency task names"),
-          status: tool.schema.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional().describe("Task status"),
-          result: tool.schema.string().optional().describe("Task result"),
+          status: tool.schema.enum(['pending', 'in_progress', 'completed', 'cancelled', 'blocked']).optional().describe("Task status"),
+          result: tool.schema.string().optional().describe("Task result (only for completed tasks)"),
+          statusReason: tool.schema.string().optional().describe("Reason for status change (e.g., why blocked or cancelled)"),
           subtasks: tool.schema.array(
             tool.schema.object({
               name: tool.schema.string().describe("Subtask name"),
@@ -254,7 +256,8 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
         else if (op.action === 'update') {
           await memoryManager.updateTask(employeeName, op.name!, {
             status: op.status,
-            result: op.result
+            result: op.result,
+            statusReason: op.statusReason
           })
           results.push(`Updated task: ${op.name}`)
         }
