@@ -60,7 +60,7 @@ Build a multi-agent autonomous collaboration system based on OpenCode SDK, simul
       timestamp: "2026-03-01T10:00:00Z"
     }
     ```
-  - `TaskEvent`: Task status change (completed, failed, etc.)
+  - `TaskEvent`: Task status change (completed, cancelled, etc.)
     ```typescript
     {
       type: "task_completed",
@@ -119,7 +119,9 @@ See [Task Management Requirements](./requirements-tasks.md) for detailed specifi
 - Task names as unique identifiers (AI-generated, semantic)
 - Automatic calculation of executable tasks (dependencies satisfied)
 - Mermaid visualization for AI context
-- Batch operations: add, update, delete tasks
+- Batch operations: add, update, delete, decompose tasks
+- Smart deletion: automatically cleans dependencies when deleting tasks
+- Task decomposition: break complex tasks into subtasks with dependency inheritance
 
 ### Tool System
 

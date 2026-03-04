@@ -20,27 +20,28 @@ graph TD
     A --> C[State Management]
     A --> D[Custom Hooks]
     A --> E[Component Layer]
-    
+
     B --> F[API Client]
     B --> G[WebSocket Client]
-    
+
     C --> H[ProjectContext]
-    
+
     D --> I[useEmployees]
     D --> J[useMessages]
     D --> K[useTasks]
     D --> L[useEvents]
     D --> M[useWebSocket]
-    
+
     E --> N[Pages]
     E --> O[Feature Components]
     E --> P[UI Components]
-    
+
     F --> Q[Backend API]
     G --> Q
 ```
 
 **Key Design Principles**:
+
 - **Separation of Concerns**: Clear boundaries between services, state, hooks, and components
 - **Real-time Updates**: WebSocket-based event streaming with automatic reconnection
 - **Type Safety**: Shared TypeScript types between frontend and backend
@@ -58,6 +59,7 @@ Handles external communication with backend API and WebSocket server.
 **Detailed Design**: [Services Layer Design](./design-services.md)
 
 **Modules**:
+
 - **API Client**: HTTP client for REST API interactions
 - **WebSocket Client**: Real-time event streaming with reconnection and filtering
 
@@ -68,6 +70,7 @@ Manages global application state and context.
 **Detailed Design**: [State Management and Custom Hooks Design](./design-state-hooks.md)
 
 **Modules**:
+
 - **ProjectContext**: Global project selection state
 - **Custom Hooks**: Data fetching and real-time update hooks
 
@@ -78,6 +81,7 @@ UI components organized by feature and reusability.
 **Detailed Design**: [Component Layer Design](./design-components.md)
 
 **Modules**:
+
 - **Pages**: Route-level components (Overview, EmployeeDetail, ProjectManagement)
 - **Feature Components**: Employee, dashboard, visualization components
 - **UI Components**: Reusable UI primitives (shadcn/ui)
@@ -89,6 +93,7 @@ Common patterns for API integration, error handling, and performance optimizatio
 **Detailed Design**: [Integration Patterns and Optimization](./design-patterns.md)
 
 **Topics**:
+
 - API Integration Patterns (initial load + real-time, polling, on-demand)
 - Error Handling (API errors, WebSocket errors, error boundaries)
 - Performance Optimization (memoization, lazy loading, virtual scrolling, debouncing)
@@ -100,10 +105,12 @@ Visual representation of employee lifecycle events embedded in message timeline.
 **Detailed Design**: [Event Timeline Display Design](./design-event-timeline.md)
 
 **Topics**:
+
 - Event display components (EventItem, Timeline)
 - Timeline merging logic (messages + events)
 - Visual styling (QQ-style system messages)
 - Real-time event updates
+
 ### Testing Strategy
 
 Comprehensive testing approach covering unit, integration, and E2E tests.
@@ -111,6 +118,7 @@ Comprehensive testing approach covering unit, integration, and E2E tests.
 **Detailed Design**: [Testing Strategy](./design-testing.md)
 
 **Topics**:
+
 - Unit Tests (hooks, services)
 - Integration Tests (component + hook integration)
 - E2E Tests (complete user workflows)
@@ -166,18 +174,18 @@ graph TD
     B --> D[useMessages]
     B --> E[useTasks]
     B --> F[useEvents]
-    
+
     G[WebSocketClient] --> H[useWebSocket]
     H --> C
     H --> D
     H --> E
     H --> F
-    
+
     I[ApiClient] --> C
     I --> D
     I --> E
     I --> F
-    
+
     C --> J[EmployeeCard]
     D --> K[MessageList]
     E --> L[TaskList]

@@ -37,6 +37,7 @@ export function useDataWithRealtime() {
 ```
 
 **Rationale**:
+
 - Initial load provides complete dataset
 - WebSocket updates keep data fresh
 - Avoids polling overhead
@@ -62,6 +63,7 @@ export function useStats() {
 ```
 
 **Rationale**:
+
 - Statistics are computed on-demand (not stored)
 - Polling is simpler than event-based updates
 - 5-second interval balances freshness and load
@@ -83,6 +85,7 @@ export function useEmployeeDetail(name: string) {
 ```
 
 **Rationale**:
+
 - Data is fetched only when needed
 - Refetches when parameter changes
 - No caching (data may be stale)
@@ -102,6 +105,7 @@ if (error) {
 ```
 
 **Error Display**:
+
 - Show user-friendly error message
 - Provide retry button
 - Log error to console for debugging
@@ -119,6 +123,7 @@ if (!isConnected) {
 ```
 
 **Connection Warning**:
+
 - Show "Reconnecting..." message
 - Display reconnection attempt count
 - Provide manual reconnect button
@@ -134,6 +139,7 @@ React Error Boundaries catch rendering errors and display fallback UI:
 ```
 
 **Error Fallback**:
+
 - Show error message
 - Provide "Reset" button to remount component
 - Log error to error tracking service (future)
@@ -151,6 +157,7 @@ export const EmployeeCard = React.memo(({ employee }) => {
 ```
 
 **When to use**:
+
 - Component renders frequen
 - Props rarely change
 - Rendering is expensive (complex calculations, large lists)
@@ -160,11 +167,12 @@ export const EmployeeCard = React.memo(({ employee }) => {
 Code-split routes with `React.lazy`:
 
 ```typescript
-const Overview = React.lazy(() => import('./pages/Overview'))
-const EmployeeDetail = React.lazy(() => import('./pages/EmployeeDetail'))
+const Overview = React.lazy(() => import("./pages/Overview"))
+const EmployeeDetail = React.lazy(() => import("./pages/EmployeeDetail"))
 ```
 
 **Benefits**:
+
 - Smaller initial bundle size
 - Faster initial page load
 - Routes loaded on-demand
@@ -188,6 +196,7 @@ import { FixedSizeList } from 'react-window'
 ```
 
 **Benefits**:
+
 - Only renders visible items
 - Constant memory usage
 - Smooth scrolling for 1000+ items
@@ -197,9 +206,9 @@ import { FixedSizeList } from 'react-window'
 Debounce search and filter inputs:
 
 ```typescript
-import { useDebouncedValue } from './hooks/useDebouncedValue'
+import { useDebouncedValue } from "./hooks/useDebouncedValue"
 
-const [search, setSearch] = useState('')
+const [search, setSearch] = useState("")
 const debouncedSearch = useDebouncedValue(search, 300)
 
 useEffect(() => {
@@ -208,6 +217,7 @@ useEffect(() => {
 ```
 
 **Benefits**:
+
 - Reduces API calls
 - Improves input responsiveness
 - Prevents excessive re-renders
@@ -228,17 +238,18 @@ useEffect(() => {
 
 useEffect(() => {
   if (pendingEvents.length === 0) return
-  
+
   const timer = setTimeout(() => {
     setData((prev) => applyEvents(prev, pendingEvents))
     setPendingEvents([])
   }, 100)
-  
+
   return () => clearTimeout(timer)
 }, [pendingEvents])
 ```
 
 **Benefits**:
+
 - Reduces re-render frequency
 - Batches multiple updates into one
 - Improves UI responsiveness during event storms

@@ -89,7 +89,9 @@ export interface AgentExecution {
 export type EventType =
   | "message"
   | "task_completed"
-  | "task_failed"
+  | "task_cancelled"
+  | "task_deleted"
+  | "task_decomposed"
   | "agent_completed"
   | "agent_failed"
   | "timer"

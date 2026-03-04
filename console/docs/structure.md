@@ -5,6 +5,7 @@ Console module file structure documentation.
 ## Directory Tree
 
 console/
+
 - docs/ - Documentation directory
   - structure.md - This file
   - requirements.md - Console requirements
@@ -37,11 +38,13 @@ Note: Frontend (src/) is fully implemented. Backend is provided by the OpenCode 
 ✅ **Fully Implemented**
 
 **Pages**:
+
 - Overview.tsx - Main dashboard with global stats, hierarchy tree, employee list, and event stream
 - EmployeeDetail.tsx - Detailed employee dashboard with tabs (messages, tasks, memory, agents, events)
 - ProjectManagement.tsx - Project switching interface
 
 **Components**:
+
 - dashboard/ - GlobalStats, EventStream
 - employee/ - EmployeeCard, MessageList, TaskList, MemoryView, AgentList, EventTimeline
 - visualizations/ - HierarchyTree (D3.js), TaskDAG (D3.js)
@@ -49,10 +52,12 @@ Note: Frontend (src/) is fully implemented. Backend is provided by the OpenCode 
 - ui/ - Base UI components (shadcn/ui)
 
 **Services**:
+
 - api.ts - HTTP API client
 - websocket.ts - WebSocket client for real-time updates
 
 **Hooks**:
+
 - useEmployees.ts - Employee data management
 - useMessages.ts - Message history management
 - useTasks.ts - Task management
@@ -62,6 +67,7 @@ Note: Frontend (src/) is fully implemented. Backend is provided by the OpenCode 
 - useProjects.ts - Project list management
 
 **Contexts**:
+
 - ProjectContext.tsx - Multi-project support
 
 ### Backend
@@ -69,6 +75,7 @@ Note: Frontend (src/) is fully implemented. Backend is provided by the OpenCode 
 ✅ **Implemented via OpenCode Plugin**
 
 The backend is provided by the main OpenCode plugin's GlobalServer (port 4097):
+
 - HTTP API endpoints for employees, messages, tasks, memory, etc.
 - WebSocket server for real-time event streaming
 - Multi-project workspace management
@@ -84,5 +91,6 @@ See main project README for backend details.
 5. **Click any employee card**: Opens the detailed employee dashboard at `/employee/:name`
 
 **Alternative navigation**:
+
 - Click nodes in the hierarchy tree visualization
 - Direct URL: `http://localhost:5173/employee/{employee-name}`

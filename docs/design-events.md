@@ -182,11 +182,68 @@ Records task completion.
 
 **Trigger**: When `MemoryManager.updateTask()` changes status to "completed"
 
+### 9. Task Cancelled
+
+Records task cancellation.
+
+```typescript
+{
+  type: "task_cancelled",
+  timestamp: "2026-03-03T10:15:00.000Z",
+  employeeName: "calculator",
+  details: {
+    taskName: "Task2",
+    reason: "No longer needed"
+  }
+}
+```
+
+**Trigger**: When `MemoryManager.updateTask()` changes status to "cancelled"
+
+### 10. Task Deleted
+
+Records task deletion with dependency cleanup.
+
+```typescript
+{
+  type: "task_deleted",
+  timestamp: "2026-03-03T10:20:00.000Z",
+  employeeName: "calculator",
+  details: {
+    taskName: "Task3",
+    affectedTasks: ["Task4", "Task5"],
+    affectedCount: 2
+  }
+}
+```
+
+**Trigger**: When `MemoryManager.deleteTaskWithCleanup()` deletes task
+
+### 11. Task Decomposed
+
+Records task decomposition into subtasks.
+
+```typescript
+{
+  type: "task_decomposed",
+  timestamp: "2026-03-03T10:25:00.000Z",
+  employeeName: "calculator",
+  details: {
+    originalTask: "ComplexTask",
+    subtasks: ["Subtask1", "Subtask2", "Subtask3"],
+    subtaskCount: 3
+  }
+}
+```
+
+**Trigger**: When `MemoryManager.decomposeTask()` breaks down task
+
 ## Storage Design
 
 ### File Format
 
 **Format**: JSONL (JSON Lines)
+
 - Each line is a complete JSON object
 - No commas between lines
 - Easy to append, tail, grep
@@ -194,6 +251,7 @@ Records task completion.
 **File Path**: `{workspaceRoot}/employees/{employeeName}/events.jsonl`
 
 **Example File**:
+
 ```jsonl
 {"type":"employee_status_changed","timestamp":"2026-03-03T10:00:00.000Z","employeeName":"calculator","details":{"oldStatus":"idle","newStatus":"active"}}
 {"type":"session_created","timestamp":"2026-03-03T10:00:01.000Z","employeeName":"calculator","d:{"sessionId":"ses_abc123"}}
@@ -202,17 +260,15 @@ Records task completion.
 {"type":"session_summarized","timestamp":"2026-03-03T10:30:00.000Z","employeeName":"calculator","details":{"sessionId":"ses_abc123","messageCount":15,"tokenCount":85000}}
 ```
 
-### File OperAppend Operation**:
+### File OperAppend Operation\*\*:
+
 ```typescript
 // Append single event
-await fs.appendFile(
-  eventFilePath,
-  JSON.stringify(event) + '\n',
-  'utf-8'
-)
+await fs.appendFile(eventFilePath, JSON.stringify(event) + "\n", "utf-8")
 ```
 
 **Read Operations**:
+
 ```bash
 # View last 5 events
 tail -n 5 employees/calculator/events.jsonl
@@ -236,11 +292,11 @@ import * as lockfile from "proper-lockfile"
 
 const release = await lock(eventFilePath, {
   retries: { retries: 5, minTimeout: 100, maxTimeout: 1000 },
-  stale: 5000
+  stale: 5000,
 })
 
 try {
-  await fs.appendFile(eventFilePath, JSON.stringify(event) + '\n', 'utf-8')
+  await fs.appendFile(eventFilePath, JSON.stringify(event) + "\n", "utf-8")
 } finally {
   await release()
 }
@@ -264,28 +320,28 @@ export class EventLogger {
   /**
    * Log event to JSONL file
    */
-  async log(event: Omit<Event, 'employeeName'>): Promise<void> {
+  async log(event: Omit<Event, "employeeName">): Promise<void> {
     const fullEvent = {
       ...event,
-      employeeName: this.employeeName
+      employeeName: this.employeeName,
     }
-    
+
     const eventFilePath = this.getEventFilePath()
-    
+
     // Ensure directory exists
     await fs.mkdir(path.dirname(eventFilePath), { recursive: true })
-    
+
     // Acquire lock and append
     const release = await lockfile.lock(eventFilePath, {
       retries: { retries: 5, minTimeout: 100, maxTimeout: 1000 },
-      stale: 5000
+      stale: 5000,
     })
-    
+
     try {
       await fs.appendFile(
         eventFilePath,
-        JSON.stringify(fullEvent) + '\n',
-        'utf-8'
+        JSON.stringify(fullEvent) + "\n",
+        "utf-8"
       )
     } finally {
       await release()
@@ -297,16 +353,14 @@ export class EventLogger {
    */
   async readRecent(limit: number = 50): Promise<Event[]> {
     const eventFilePath = this.getEventFilePath()
-    
+
     try {
-      const content = await fs.readFile(eventFilePath, 'utf-8')
-      const lines = content.trim().split('\n')
-      const events = lines
-        .slice(-limit)
-        .map(line => JSON.parse(line))
+      const content = await fs.readFile(eventFilePath, "utf-8")
+      const lines = content.trim().split("\n")
+      const events = lines.slice(-limit).map((line) => JSON.parse(line))
       return events
     } catch (error: any) {
-      if (error.code === 'ENOENT') {
+      if (error.code === "ENOENT") {
         return []
       }
       throw error
@@ -316,9 +370,9 @@ export class EventLogger {
   private getEventFilePath(): string {
     return path.join(
       this.workspaceRoot,
-      'employees',
+      "employees",
       this.employeeName,
-      'events.jsonl'
+      "events.jsonl"
     )
   }
 }
@@ -347,12 +401,12 @@ export class StateManager {
   async addEvent(event: Event): Promise<void> {
     // Existing in-memory logic
     this.eventHistory.add(event)
-    
+
     // NEW: Persist to file
     if (event.employeeName) {
       const logger = this.getEventLogger(event.employeeName)
       await logger.log(event)
-   ```
+```
 
 #### 2. EventLoop Integration
 
@@ -471,7 +525,7 @@ async updateTask(employeeName: string, taskName: string, updates: Partial<Task>)
     })
   }
 
-  // Existing task_completed/task_failed events remain unchanged
+  // Existing task_completed/task_cancelled events remain unchanged
 }
 ```
 
@@ -482,12 +536,14 @@ async updateTask(employeeName: string, taskName: string, updates: Partial<Task>)
 Events are displayed inline with messages in the employee detail page.
 
 **Visual Design**:
+
 - Small gray text (12px, #999)
 - Center-aligned
 - Icon prefix (optional)
 - Timestamp on hover
 
 **Example Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │ [10:00:00] calculator → user        │
@@ -511,27 +567,31 @@ Events are displayed inline with messages in the employee detail page.
 
 Concise descriptions for each event type:
 
-| Event Type | Description Template |
-|------------|---------------------|
-| employee_status_changed | `Status: {oldStatus} → {newStatus}` |
-| session_created | `Session created ({sessionId})` |
-| session_summarized | `Session summarized ({messageCount} messages, {tokenCount} tokens)` |
-| agent_created | `Agent created: {taskName}` |
-| agent_completed | pleted: {taskName}` |
-| task_created | `Task created: {taskName}` |
-| task_modified | `Task modified: {taskName}` |
-| task_completed | `Task completed: {taskName}` |
+| Event Type              | Description Template                                                |
+| ----------------------- | ------------------------------------------------------------------- |
+| employee_status_changed | `Status: {oldStatus} → {newStatus}`                                 |
+| session_created         | `Session created ({sessionId})`                                     |
+| session_summarized      | `Session summarized ({messageCount} messages, {tokenCount} tokens)` |
+| agent_created           | `Agent created: {taskName}`                                         |
+| agent_completed         | pleted: {taskName}`                                                 |
+| task_created            | `Task created: {taskName}`                                          |
+| task_modified           | `Task modified: {taskName}`                                         |
+| task_completed          | `Task completed: {taskName}`                                        |
+| task_cancelled          | `Task cancelled: {taskName}`                                        |
+| task_deleted            | `Task deleted: {taskName}`                                          |
+| task_decomposed         | `Task decomposed: {originalTask} → {subtaskCount} subtasks`         |
 
 ### API Endpoint
 
 **Endpoint**: `GET /api/projects/:projectId/employees/:employeeName/timeline`
 
 **Response**:
+
 ```typescript
 {
   items: Array<{
-    type: "message" | "event",
-    timestamp: string,
+    type: "message" | "event"
+    timestamp: string
     data: Message | Event
   }>
 }
@@ -553,7 +613,7 @@ describe('EventLogger', () => {
       timestamp: '2026-03-03T10:00:00.000Z',
       details: { sessionId: 'ses_abc' }
     })
-    
+
     const content = await fs.readFile(eventFilePath, 'utf-8')
     expect(content).toContain('"type":"session_created"')
   })
@@ -573,15 +633,15 @@ describe('EventLogger', () => {
 **Test File**: `tests/integration/EventTracing.integration.test.ts`
 
 ```typescript
-describe('Event Tracing Integration', () => {
-  it('should log session lifecycle events', async () => {
+describe("Event Tracing Integration", () => {
+  it("should log session lifecycle events", async () => {
     // Create EventLoop, trigger session creation
     // Verify session_created event logged
     // Trigger summarization
     // Verify session_summarized event logged
   })
 
-  it('should log task lifecycle events', async () => {
+  it("should log task lifecycle events", async () => {
     // Add task via MemoryManager
     // Verify task_created event logged
     // Update task
@@ -615,6 +675,7 @@ grep '"type":"session_created"' workspace_test/.cclover/workspace/employees/calc
 **Problem**: s grow indefinitely
 
 **Solutions** (Future):
+
 1. **Log Rotation**: Rotate files when size exceeds threshold (e.g., 10MB)
 2. **Archiving**: Move old events to archive files
 3. **Compression**: Compress archived files
@@ -624,6 +685,7 @@ grep '"type":"session_created"' workspace_test/.cclover/workspace/employees/calc
 **Problem**: Multiple events logged simultaneously
 
 **Solution**: File locking with `proper-lockfile`
+
 - Retry mechanism (5 retries, 100-1000ms timeout)
 - Stale lock detection (5 seconds)
 
@@ -632,6 +694,7 @@ grep '"type":"session_created"' workspace_test/.cclover/workspace/employees/calc
 **Problem**: Reading large JSONL files
 
 **Solutions**:
+
 1. **Tail Reading**: Only read last N lines for recent events
 2. **Streaming**: Use streaming for large file processing
 3. **Indexing**: Build index file for fast lookups (future)

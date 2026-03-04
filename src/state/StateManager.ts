@@ -129,7 +129,7 @@ export class StateManager {
     }
 
     if (
-      (event.type === "task_completed" || event.type === "task_failed") &&
+      (event.type === "task_completed" || event.type === "task_cancelled") &&
       event.employeeName
     ) {
       const count = this.taskCount.get(event.employeeName) || 0
@@ -255,7 +255,8 @@ export class StateManager {
           }
 
           if (
-            (event.type === "task_completed" || event.type === "task_failed") &&
+            (event.type === "task_completed" ||
+              event.type === "task_cancelled") &&
             event.employeeName
           ) {
             const count = this.taskCount.get(event.employeeName) || 0

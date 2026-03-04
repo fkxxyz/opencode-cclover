@@ -14,7 +14,6 @@ import { apiClient } from "../../services/api"
 import { EventItem } from "./EventItem"
 import type { Message, Event, Project } from "../../types"
 import { handleError, ValidationError } from "../../lib/error-handler"
-import { showSuccess } from "../../lib/toast"
 
 interface MessagePanelProps {
   projectId: string

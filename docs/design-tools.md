@@ -212,16 +212,23 @@ import { sessionRegistry } from "../utils/SessionRegistry"
 
 export function createEditTasksTool(memoryManager: MemoryManager) {
   return tool({
-    description: "Batch edit task list (add, update, delete tasks)",
+    description: "Batch edit task list (add, update, delete, decompose tasks)",
     args: {
       operations: tool.schema.array(
         tool.schema.object({
-          action: tool.schema.enum(['add', 'update', 'delete']).describe("Operation type"),
+          action: tool.schema.enum(['add', 'update', 'delete', 'decompose']).describe("Operation type"),
           name: tool.schema.string().optional().describe("Task name"),
           description: tool.schema.string().optional().describe("Task description"),
           dependencies: tool.schema.array(tool.schema.string()).optional().describe("Dependency task names"),
           status: tool.schema.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional().describe("Task status"),
-          result: tool.schema.string().optional().describe("Task result")
+          result: tool.schema.string().optional().describe("Task result"),
+          subtasks: tool.schema.array(
+            tool.schema.object({
+              name: tool.schema.string().describe("Subtask name"),
+              description: tool.schema.string().describe("Subtask description"),
+              dependencies: tool.schema.array(tool.schema.string()).optional().describe("Additional dependencies")
+            })
+          ).optional().describe("Subtasks for decompose operation")
         })
       ).describe("List of operations")
     },
@@ -252,8 +259,16 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
           results.push(`Updated task: ${op.name}`)
         }
         else if (op.action === 'delete') {
-          await memoryManager.deleteTask(employeeName, op.name!)
-          results.push(`Deleted task: ${op.name}`)
+          const { affectedTasks } = await memoryManager.deleteTaskWithCleanup(employeeName, op.name!)
+          if (affectedTasks.length > 0) {
+            results.push(`Deleted task: ${op.name} (cleaned dependencies for ${affectedTasks.length} tasks)`)
+          } else {
+            results.push(`Deleted task: ${op.name}`)
+          }
+        }
+        else if (op.action === 'decompose') {
+          await memoryManager.decomposeTask(employeeName, op.name!, op.subtasks!)
+          results.push(`Decomposed task: ${op.name} into ${op.subtasks!.length} subtasks`)
         }
       }
       

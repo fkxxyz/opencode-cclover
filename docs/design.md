@@ -20,28 +20,29 @@ graph TD
     A --> C[MemoryManager]
     A --> D[Tool System]
     A --> E[EventLoop]
-    
+
     B --> F[YAML Storage]
     C --> F
-    
+
     D --> G[send_message]
     D --> H[edit_tasks]
     D --> I[create_agent]
     D --> J[hire_employee]
-    
+
     E --> K[Role: Calculator]
     E --> L[Role: Coder]
     E --> M[Role: PM]
-    
+
     E --> B
     E --> C
     E --> D
     E --> N[OpenCode SDK]
-    
+
     N --> O[AI Sessions]
 ```
 
 **Key Design Principles**:
+
 - **Event-Driven**: Employee actions triggered by events (messages, task completion)
 - **Decentralized Storage**: Each employee stores their own data locally
 - **Centralized Coordination**: Services coordinate communication and state
@@ -63,13 +64,13 @@ Handles message communication between employees.
 **Detailed Design**: [MessageService Design](./design-message-service.md)
 
 ```typescript
-import { MessageService } from './core/MessageService'
+import { MessageService } from "./core/MessageService"
 
 const messageService = new MessageService(workspaceRoot)
-const client = messageService.getClient('employeeName')
+const client = messageService.getClient("employeeName")
 
 // Send message
-await client.send('recipient', 'Hello!')
+await client.send("recipient", "Hello!")
 
 // Receive message (blocking)
 const message = await client.recv()
@@ -84,23 +85,23 @@ Manages employee memory including knowledge, tasks (DAG), and custom data.
 **Detailed Design**: [MemoryManager Design](./design-memory-manager.md)
 
 ```typescript
-import { MemoryManager } from './core/MemoryManager'
+import { MemoryManager } from "./core/MemoryManager"
 
 const memoryManager = new MemoryManager(workspaceRoot)
 
 // Read memory
-const memory = await memoryManager.read('employeeName')
+const memory = await memoryManager.read("employeeName")
 
 // Add task
-await memoryManager.addTask('employeeName', {
-  name: 'TaskName',
-  status: 'pending',
-  description: 'Task description',
-  dependencies: []
+await memoryManager.addTask("employeeName", {
+  name: "TaskName",
+  status: "pending",
+  description: "Task description",
+  dependencies: [],
 })
 
 // Get executable tasks
-const tasks = await memoryManager.getExecutableTasks('employeeName')
+const tasks = await memoryManager.getExecutableTasks("employeeName")
 ```
 
 #### EventLoop
@@ -112,7 +113,7 @@ Implements the employee runtime, processing events and invoking AI.
 **Detailed Design**: [EventLoop Design](./design-event-loop.md)
 
 ```typescript
-import { EventLoop } from './core/EventLoop'
+import { EventLoop } from "./core/EventLoop"
 
 const eventLoop = new EventLoop(
   employeeName,
@@ -135,8 +136,9 @@ Tools enable AI employees to perform actions.
 **Detailed Design**: [Tool System Design](./design-tools.md)
 
 **Available Tools**:
+
 - `send_message`: Send message to another employee
-- `edit_tasks`: Batch edit task list (add, update, delete)
+- ``edit_tasks`: Batch edit task list (add, update, delete, decompose)
 - `create_agent`: Create OpenCode agent to execute task
 - `hire_employee`: Hire new employee (future)
 
@@ -149,6 +151,7 @@ Roles define employee behavior through system prompts.
 **Detailed Design**: [Role Definition Design](./design-roles.md)
 
 **Available Roles**:
+
 - `Calculator`: Performs mathematical calculations only
 - `Coder`: Writes code and fixes bugs (future)
 - `PM`: Manages projects and assigns tasks (future)
@@ -163,7 +166,7 @@ The OpenCode plugin entry point that initializes the system.
 **Detailed Design**: [Plugin Entry Design](./design-plugin-entry.md)
 
 ```typescript
-import { CcloverPlugin } from 'opencode-cclover'
+import { CcloverPlugin } from "opencode-cclover"
 
 // Plugin is automatically loaded by OpenCode
 // No manual initialization needed
@@ -179,22 +182,22 @@ graph LR
     B --> C[MessageService]
     B --> D[MemoryManager]
     B --> E[Tool System]
-    
+
     A --> F[Start Employees]
     F --> G[EventLoop 1]
     F --> H[EventLoop 2]
     F --> I[EventLoop N]
-    
+
     G --> C
     G --> D
     G --> E
     G --> J[OpenCode SDK]
-    
+
     H --> C
     H --> D
     H --> E
     H --> J
-    
+
     I --> C
     I --> D
     I --> E
@@ -210,7 +213,7 @@ sequenceDiagram
     participant A as Employee A
     participant MS as MessageService
     participant B as Employee B
-    
+
     A->>MS: send("B", "Hello")
     MS->>MS: Write to both message files
     MS->>MS: Add to B's unread queue
@@ -229,7 +232,7 @@ sequenceDiagram
     participant Tool as edit_tasks
     participant MM as MemoryManager
     participant FS as File System
-    
+
     AI->>Tool: Add task
     Tool->>MM: addTask()
     MM->>FS: Read memory.yaml
@@ -249,16 +252,16 @@ sequenceDiagram
     participant Tool as create_agent
     participant SDK as OpenCode SDK
     participant Agent as Agent Session
-    
+
     E->>Tool: create_agent(task, prompt)
     Tool->>SDK: session.create()
     SDK-->>Tool: session.id
     Tool->>SDK: session.prompt(prompt)
     SDK->>Agent: Start execution
     Tool-->>E: Agent created
-    
+
     Note over Agent: Agent works in background
-    
+
     Agent-->>SDK: Completion event
     SDK-->>E: AgentEvent
     E->>E: Process result
@@ -266,7 +269,7 @@ sequenceDiagram
 
 ### File Structure
 
-```
+````
 {projectRoot}/.cclover/workspace/
 ├── employees/           # Employee directory
 │   ├── calculator/
@@ -298,9 +301,10 @@ sequenceDiagram
 - timestamp: 2026-03-01T10:00:05Z
   direction: receive
   content: Hi there!
-```
+````
 
 **Memory File Format** (`memory.yaml`):
+
 ```yaml
 knowledge:
   - Experience item 1
@@ -318,7 +322,7 @@ tasks:
 custom:
   custom_field: custom_value
 
-sessionId: ses_abc123xyz  # Optional: current session ID for recovery
+sessionId: ses_abc123xyz # Optional: current session ID for recovery
 ```
 
 ## Creating Instance
@@ -341,9 +345,7 @@ opencode serve
 ```json
 // opencode.json
 {
-  "plugin": [
-    "file:///absolute/path/to/opencode-cclover/src/index.ts"
-  ]
+  "plugin": ["file:///absolute/path/to/opencode-cclover/src/index.ts"]
 }
 ```
 
@@ -370,7 +372,7 @@ Once the plugin is loaded, tools are automatically available:
 // Send message to calculator employee
 await tools.send_message({
   to: "calculator",
-  content: "Calculate 1+1"
+  content: "Calculate 1+1",
 })
 
 // Manage tasks
@@ -380,15 +382,15 @@ await tools.edit_tasks({
       action: "add",
       name: "MyTask",
       description: "Task description",
-      dependencies: []
-    }
-  ]
+      dependencies: [],
+    },
+  ],
 })
 
 // Create agent
 await tools.create_agent({
   task_name: "ComplexTask",
-  prompt: "Execute this complex task..."
+  prompt: "Execute this complex task...",
 })
 ```
 
@@ -504,6 +506,7 @@ See [workspace_test/README.md](../workspace_test/README.md) for manual testing g
 ## Implementation Status
 
 ### Phase 1: Infrastructure ✅ Completed
+
 - [x] MessageService
 - [x] MemoryManager
 - [x] Tool System Framework
@@ -511,17 +514,20 @@ See [workspace_test/README.md](../workspace_test/README.md) for manual testing g
 - [x] Unit Tests
 
 ### Phase 2: Core Logic ✅ Completed
+
 - [x] Tool Implementations
 - [x] EventLoop
 - [x] Calculator Role
 - [x] Integration Tests
 
 ### Phase 3: Integration ✅ Completed
+
 - [x] Plugin Entry
 - [x] End-to-End Testing
 - [x] Documentation
 
 ### Phase 4: Console (Planned)
+
 - [ ] Web Management Console
 - [ ] HTTP API Server
 - [ ] WebSocket Real-time Updates

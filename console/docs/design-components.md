@@ -19,6 +19,7 @@ Implements the Component Layer described in [Architecture - Frontend Modules](./
 Dashboard with global statistics, employee list, and real-time event stream.
 
 **Features**:
+
 - Global statistics cards (total employees, active employees, pending tasks, today's messages)
 - Employee list with status indicators
 - Real-time event stream with filtering
@@ -32,6 +33,7 @@ Dashboard with global statistics, employee list, and real-time event stream.
 Detailed view of a single employee with tabs for different data views.
 
 **Features**:
+
 - Employee header with status and metadata
 - Tabs: Messages, Tasks, Agents, Memory
 - Employee-specific event timeline
@@ -45,6 +47,7 @@ Detailed view of a single employee with tabs for different data views.
 Project management interface for adding, configuring, and removing projects.
 
 **Features**:
+
 - Project list with enable/disable toggles
 - Add project from candidate list
 - Delete project with confirmation
@@ -63,6 +66,7 @@ Project management interface for adding, configuring, and removing projects.
 Main application layout with sidebar and content area.
 
 **Features**:
+
 - Responsive design (mobile/desktop)
 - Sidebar navigation
 - Content area with routing
@@ -74,6 +78,7 @@ Main application layout with sidebar and content area.
 Navigation sidebar with project selector.
 
 **Features**:
+
 - Navigation menu with active route highlighting
 - Project selector dropdown
 - Collapsible on mobile
@@ -87,12 +92,14 @@ Navigation sidebar with project selector.
 **Location**: [`dashboard/`](../src/components/dashboard/)
 
 **GlobalStats.tsx**: Statistics cards displaying:
+
 - Total employees count
 - Active employees count
 - Pending tasks count
 - Today's messages count
 
 **EventStream.tsx**: Real-time event list with:
+
 - Event type filtering
 - Timestamp display
 - Employee name linking
@@ -103,35 +110,41 @@ Navigation sidebar with project selector.
 **Location**: [`employee/`](../src/components/employee/)
 
 **EmployeeCard.tsx**: Employee summary card with:
+
 - Employee name and role
 - Status badge (active/idle/busy)
 - Last active timestamp
 - Click to navigate to detail page
 
 **MessageList.tsx**: Message history display with:
+
 - Sender/receiver indicators
 - Message content
 - Timestamp
 - Pagination for long histories
 
 **TaskList.tsx**: Task list with:
+
 - Task name and description
 - Status badges (pending/in_progress/completed/failed)
 - Dependency visualization
 - Executable task highlighting
 
 **AgentList.tsx**: Agent execution records with:
+
 - Agent ID and creation time
 - Status (running/completed/failed)
 - Result display
 - Error messages
 
 **MemoryView.tsx**: Employee memory display with:
+
 - Knowledge list (key-value pairs)
 - Custom data JSON viewer
 - Edit capabilities (future)
 
 **EventTimeline.tsx**: Employee-specific event timeline with:
+
 - Chronological event list
 - Event type icons
 - Event details expansion
@@ -142,11 +155,13 @@ Navigation sidebar with project selector.
 **Location**: [`visualizations/`](../src/components/visualizations/)
 
 **HierarchyTree.tsx**: Employee hierarchy visualization using Mermaid:
+
 - Tree structure showing parent-child relationships
 - Interactive node clicking
 - Zoom and pan controls
 
 **TaskDAG.tsx**: Task dependency graph using Mermaid:
+
 - Directed acyclic graph of task dependencies
 - Executable tasks highlighted
 - Completed tasks grayed out

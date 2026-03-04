@@ -68,13 +68,36 @@
 
 **Validation**:
 - Task must exist
-- No other tasks depend on this task (or cascade delete)
+
+**Behavior**:
+- Automatically removes deleted task from dependencies of all dependent tasks
+- Dependent tasks continue to exist with updated dependencies
+
+**Validation**:
+- Task must exist
+
+### Decompose Task
+
+**Requirements**:
+- Original task name (identifier)
+- List of subtasks with names, descriptions, and optional additional dependencies
+
+**Behavior**:
+- Original task remains and depends on all subtasks
+- Each subtask inherits original task's dependencies
+- Subtasks can specify additional dependencies
+- All tasks (original + subtasks) reset to `pending` status
+
+**Validation**:
+- Original task must exist
+- Subtask names must be unique
+- No circular dependencies created
 
 ### Batch Operations
 
 **Requirements**:
 - Support multiple operations in single call
-- Operations: add, update, delete
+- Operations: add, update, delete, decompose
 - Atomic execution (all or nothing)
 
 **Example**:
@@ -96,6 +119,22 @@
     {
       "action": "delete",
       "name": "CancelledTask"
+    },
+    {
+      "action": "decompose",
+      "name": "ComplexTask",
+      "subtasks": [
+        {
+          "name": "Subtask1",
+          "description": "First part",
+          "dependencies": []
+        },
+        {
+          "name": "Subtask2",
+          "description": "Second part",
+          "dependencies": ["Subtask1"]
+        }
+      ]
     }
   ]
 }
@@ -105,11 +144,12 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending: Create
+    [*[*] --> pending: Create/Decompose
     pending --> in_progress: Start
     pending --> cancelled: Cancel
     in_progress --> completed: Finish
     in_progress --> cancelled: Cancel
+    in_progress --> pending: Decompose
     completed --> [*]
     cancelled --> [*]
 ```

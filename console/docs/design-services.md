@@ -17,7 +17,7 @@ The `ApiClient` class provides a centralized HTTP client for all backend API int
 ### Creating Instance
 
 ```typescript
-import { ApiClient } from './services/api'
+import { ApiClient } from "./services/api"
 
 const apiClient = new ApiClient()
 apiClient.setProject(projectId)
@@ -44,12 +44,14 @@ apiClient.setProject(projectId)
 The API client uses two private methods for HTTP requests:
 
 **GET requests** (`request<T>(endpoint)`):
+
 - Constructs full URL from base URL and endpoint
 - Parses JSON response
 - Throws error if `success: false`
 - Returns typed data
 
 **POST requests** (`requestWithBody<T>(endpoint, method, body)`):
+
 - Adds `Content-Type: application/json` header
 - Serializes body to JSON
 - Same error handling as GET
@@ -57,6 +59,7 @@ The API client uses two private methods for HTTP requests:
 **Project Scoping**:
 
 All employee/message/task/event endpoints require `currentProjectId`:
+
 ```typescript
 if (!this.currentProjectId) {
   throw new Error("No project selected")
@@ -74,7 +77,7 @@ The `WebSocketClient` class manages real-time event streaming from the backend w
 ### Creating Instance
 
 ```typescript
-import { WebSocketClient } from './services/websocket'
+import { WebSocketClient } from "./services/websocket"
 
 const wsClient = new WebSocketClient()
 wsClient.setProject(projectId)
@@ -124,6 +127,7 @@ Client                                Server
 - Triggers reconnection on close
 
 **Client Code Example**:
+
 ```typescript
 const ws = new WebSocket("ws://localhost:4097/ws")
 
@@ -145,11 +149,13 @@ ws.onclose = (event) => {
 **Purpose**: Keep connection alive and detect disconnections
 
 **Implementation**:
+
 - Client sends Ping frame every 30 seconds
 - Server responds with Pong frame immediately
 - If no Pong received within 60 seconds, client considers connection dead and reconnects
 
 **Client Code Example**:
+
 ```typescript
 let pingInterval: NodeJS.Timeout
 
@@ -173,11 +179,13 @@ ws.onclose = () => {
 **Strategy**: Exponential backoff reconnection
 
 **Implementation**:
+
 - Exponential backoff: `delay = 1000 * 2^attempts`
 - Maximum 10 reconnection attempts
 - Resets attempt counter on successful connection
 
 **Client Code Example**:
+
 ```typescript
 let reconnectAttempts = 0
 const maxReconnectAttempts = 10
@@ -185,11 +193,11 @@ const baseDelay = 1000 // 1 second
 
 function connect() {
   const ws = new WebSocket("ws://localhost:4097/ws")
-  
+
   ws.onopen = () => {
     reconnectAttempts = 0 // Reset reconnection counter
   }
-  
+
   ws.onclose = () => {
     if (reconnectAttempts < maxReconnectAttempts) {
       const delay = baseDelay * Math.pow(2, reconnectAttempts)
@@ -223,8 +231,8 @@ All server-pushed messages follow a unified format:
 
 ```typescript
 interface WebSocketMessage {
-  type: "event"           // Message type (currently only event)
-  data: Event             // Event data
+  type: "event" // Message type (currently only event)
+  data: Event // Event data
 }
 ```
 
@@ -232,25 +240,27 @@ interface WebSocketMessage {
 
 ```typescript
 interface Event {
-  type: EventType             // Event type
-  timestamp: string           // Event timestamp (ISO 8601)
-  employeeName?: string       // Related employee name (optional)
-  details: Record<string, any>  // Event details
+  type: EventType // Event type
+  timestamp: string // Event timestamp (ISO 8601)
+  employeeName?: string // Related employee name (optional)
+  details: Record<string, any> // Event details
 }
 
-type EventType = 
-  | "message"                 // Message event
-  | "task_completed"          // Task completed
-  | "task_failed"             // Task failed
-  | "agent_completed"         // Agent completed
-  | "agent_failed"            // Agent failed
-  | "timer"                   // Timer event
-  | "employee_hired"          // Employee hired
+type EventType =
+  | "message" // Message event
+  | "task_completed" // Task completed
+  | "task_cancelled" // Task cancelled
+  | "task_deleted" // Task deleted
+  | "task_decomposed" // Task decomposed
+  | "agent_completed" // Agent completed
+  | "agent_failed" // Agent failed
+  | "timer" // Timer event
+  | "employee_hired" // Employee hired
   | "employee_status_changed" // Employee status changed
-  | "message_sent"            // Message sent
-  | "message_received"        // Message received
-  | "task_updated"            // Task status updated
-  | "agent_updated"           // Agent status updated
+  | "message_sent" // Message sent
+  | "message_received" // Message received
+  | "task_updated" // Task status updated
+  | "agent_updated" // Agent status updated
 ```
 
 ### Event Types
@@ -260,6 +270,7 @@ type EventType =
 **Trigger**: When employee receives or sends a message
 
 **Message Example**:
+
 ```json
 {
   "type": "event",
@@ -277,6 +288,7 @@ type EventType =
 ```
 
 **details fields**:
+
 - `from`: Sender name
 - `to`: Receiver name
 - `content`: Message content
@@ -286,6 +298,7 @@ type EventType =
 **Trigger**: When employee completes a task
 
 **Message Example**:
+
 ```json
 {
   "type": "event",
@@ -302,6 +315,7 @@ type EventType =
 ```
 
 **details fields**:
+
 - `taskName`: Task name
 - `result`: Task result
 
@@ -310,6 +324,7 @@ type EventType =
 **Trigger**: When employee status changes
 
 **Message Example**:
+
 ```json
 {
   "type": "event",
@@ -326,6 +341,7 @@ type EventType =
 ```
 
 **details fields**:
+
 - `oldStatus`: Old status
 - `newStatus`: New status
 
@@ -427,7 +443,7 @@ const server = Bun.serve({
   port: 4097,
   fetch(req, server) {
     const url = new URL(req.url)
-    
+
     if (url.pathname === "/ws") {
       const success = server.upgrade(req)
       if (success) {
@@ -435,7 +451,7 @@ const server = Bun.serve({
       }
       return new Response("WebSocket upgrade failed", { status: 500 })
     }
-    
+
     return handleHttpRequest(req)
   },
   websocket: {
@@ -460,7 +476,7 @@ function broadcastEvent(event: Event) {
     data: event,
   }
   const json = JSON.stringify(message)
-  
+
   for (const client of clients) {
     client.send(json)
   }

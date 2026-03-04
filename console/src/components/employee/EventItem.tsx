@@ -20,8 +20,10 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   task_created: "📋",
   task_modified: "✏️",
   task_completed: "✅",
+  task_cancelled: "🚫",
+  task_deleted: "🗑️",
+  task_decomposed: "🔀",
   message: "💬",
-  task_failed: "❌",
   agent_failed: "❌",
   timer: "⏰",
   employee_hired: "👤",
@@ -108,8 +110,14 @@ function getEventDescription(
     case "task_completed":
       return `任务完成: ${details.taskName}`
 
-    case "task_failed":
-      return `任务失败: ${details.taskName}`
+    case "task_cancelled":
+      return `任务取消: ${details.taskName}`
+
+    case "task_deleted":
+      return `任务删除: ${details.taskName}${details.affectedCount ? ` (清理了 ${details.affectedCount} 个任务的依赖)` : ""}`
+
+    case "task_decomposed":
+      return `任务分解: ${details.originalTask} → ${details.subtaskCount} 个子任务`
 
     case "agent_failed":
       return `Agent 失败: ${details.taskName}`

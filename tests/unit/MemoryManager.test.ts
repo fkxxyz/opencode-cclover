@@ -436,4 +436,245 @@ describe("MemoryManager", () => {
       expect(hasCycle).toBe(true)
     })
   })
+
+  describe("deleteTaskWithCleanup", () => {
+    test("should delete task with no dependents", async () => {
+      await manager.addTask("alice", {
+        name: "task1",
+        status: "pending",
+        description: "Task 1",
+        dependencies: [],
+      })
+
+      const result = await manager.deleteTaskWithCleanup("alice", "task1")
+
+      expect(result.affectedTasks).toEqual([])
+      const memory = await manager.read("alice")
+      expect(memory.tasks).toHaveLength(0)
+    })
+
+    test("should delete task and clean dependencies", async () => {
+      await manager.addTask("alice", {
+        name: "taskA",
+        status: "pending",
+        description: "Task A",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "taskB",
+        status: "pending",
+        description: "Task B",
+        dependencies: ["taskA"],
+      })
+
+      await manager.addTask("alice", {
+        name: "taskC",
+        status: "pending",
+        description: "Task C",
+        dependencies: ["taskA"],
+      })
+
+      const result = await manager.deleteTaskWithCleanup("alice", "taskA")
+
+      expect(result.affectedTasks).toEqual(["taskB", "taskC"])
+      const memory = await manager.read("alice")
+      expect(memory.tasks).toHaveLength(2)
+
+      const taskB = memory.tasks.find((t) => t.name === "taskB")
+      const taskC = memory.tasks.find((t) => t.name === "taskC")
+
+      expect(taskB?.dependencies).toEqual([])
+      expect(taskC?.dependencies).toEqual([])
+    })
+
+    test("should throw error when deleting non-existent task", async () => {
+      await expect(
+        manager.deleteTaskWithCleanup("alice", "nonexistent")
+      ).rejects.toThrow('Task "nonexistent" not found')
+    })
+
+    test("should handle multiple dependents correctly", async () => {
+      await manager.addTask("alice", {
+        name: "base",
+        status: "pending",
+        description: "Base task",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "dep1",
+        status: "pending",
+        description: "Dependent 1",
+        dependencies: ["base"],
+      })
+
+      await manager.addTask("alice", {
+        name: "dep2",
+        status: "pending",
+        description: "Dependent 2",
+        dependencies: ["base", "dep1"],
+      })
+
+      const result = await manager.deleteTaskWithCleanup("alice", "base")
+
+      expect(result.affectedTasks).toContain("dep1")
+      expect(result.affectedTasks).toContain("dep2")
+
+      const memory = await manager.read("alice")
+      const dep2 = memory.tasks.find((t) => t.name === "dep2")
+      expect(dep2?.dependencies).toEqual(["dep1"])
+    })
+  })
+
+  describe("decomposeTask", () => {
+    test("should decompose task with no original dependencies", async () => {
+      await manager.addTask("alice", {
+        name: "parent",
+        status: "in_progress",
+        description: "Parent task",
+        dependencies: [],
+      })
+
+      await manager.decomposeTask("alice", "parent", [
+        { name: "sub1", description: "Subtask 1" },
+        { name: "sub2", description: "Subtask 2" },
+      ])
+
+      const memory = await manager.read("alice")
+      expect(memory.tasks).toHaveLength(3)
+
+      const parent = memory.tasks.find((t) => t.name === "parent")
+      const sub1 = memory.tasks.find((t) => t.name === "sub1")
+      const sub2 = memory.tasks.find((t) => t.name === "sub2")
+
+      expect(parent?.status).toBe("pending")
+      expect(parent?.dependencies).toEqual(["sub1", "sub2"])
+      expect(parent?.completed).toBeUndefined()
+
+      expect(sub1?.status).toBe("pending")
+      expect(sub1?.dependencies).toEqual([])
+
+      expect(sub2?.status).toBe("pending")
+      expect(sub2?.dependencies).toEqual([])
+    })
+
+    test("should decompose task with original dependencies", async () => {
+      await manager.addTask("alice", {
+        name: "dep1",
+        status: "completed",
+        description: "Dependency 1",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "dep2",
+        status: "completed",
+        description: "Dependency 2",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "parent",
+        status: "in_progress",
+        description: "Parent task",
+        dependencies: ["dep1", "dep2"],
+      })
+
+      await manager.decomposeTask("alice", "parent", [
+        { name: "sub1", description: "Subtask 1" },
+        { name: "sub2", description: "Subtask 2" },
+      ])
+
+      const memory = await manager.read("alice")
+      const sub1 = memory.tasks.find((t) => t.name === "sub1")
+      const sub2 = memory.tasks.find((t) => t.name === "sub2")
+
+      expect(sub1?.dependencies).toEqual(["dep1", "dep2"])
+      expect(sub2?.dependencies).toEqual(["dep1", "dep2"])
+    })
+
+    test("should handle subtask additional dependencies", async () => {
+      await manager.addTask("alice", {
+        name: "dep1",
+        status: "completed",
+        description: "Dependency 1",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "parent",
+        status: "pending",
+        description: "Parent task",
+        dependencies: ["dep1"],
+      })
+
+      await manager.decomposeTask("alice", "parent", [
+        { name: "sub1", description: "Subtask 1" },
+        { name: "sub2", description: "Subtask 2", dependencies: ["sub1"] },
+      ])
+
+      const memory = await manager.read("alice")
+      const sub1 = memory.tasks.find((t) => t.name === "sub1")
+      const sub2 = memory.tasks.find((t) => t.name === "sub2")
+
+      expect(sub1?.dependencies).toEqual(["dep1"])
+      expect(sub2?.dependencies).toEqual(["dep1", "sub1"])
+    })
+
+    test("should throw error when decomposing non-existent task", async () => {
+      await expect(
+        manager.decomposeTask("alice", "nonexistent", [
+          { name: "sub1", description: "Subtask 1" },
+        ])
+      ).rejects.toThrow('Task "nonexistent" not found')
+    })
+
+    test("should throw error when subtask name already exists", async () => {
+      await manager.addTask("alice", {
+        name: "parent",
+        status: "pending",
+        description: "Parent task",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "existing",
+        status: "pending",
+        description: "Existing task",
+        dependencies: [],
+      })
+
+      await expect(
+        manager.decomposeTask("alice", "parent", [
+          { name: "existing", description: "Subtask 1" },
+        ])
+      ).rejects.toThrow('Subtask name "existing" already exists')
+    })
+
+    test("should preserve other tasks dependencies on parent", async () => {
+      await manager.addTask("alice", {
+        name: "parent",
+        status: "pending",
+        description: "Parent task",
+        dependencies: [],
+      })
+
+      await manager.addTask("alice", {
+        name: "dependent",
+        status: "pending",
+        description: "Dependent task",
+        dependencies: ["parent"],
+      })
+
+      await manager.decomposeTask("alice", "parent", [
+        { name: "sub1", description: "Subtask 1" },
+      ])
+
+      const memory = await manager.read("alice")
+      const dependent = memory.tasks.find((t) => t.name === "dependent")
+
+      expect(dependent?.dependencies).toEqual(["parent"])
+    })
+  })
 })

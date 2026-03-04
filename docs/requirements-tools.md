@@ -10,14 +10,14 @@
 
 ### 1. edit_tasks - Batch Edit Tasks
 
-**Purpose**: Add, update, or delete tasks in batch
+**Purpose**: Add, update, delete, or decompose tasks in batch
 
 **Parameters**:
 ```typescript
 {
   operations: [
     {
-      action: "add" | "update" | "delete",
+      action: "add" | "update" | "delete" | "decompose",
       
       // Required for "add"
       name?: string,
@@ -30,7 +30,15 @@
       result?: string,
       
       // Required for "delete"
-      name?: string
+      name?: string,
+      
+      // Required for "decompose"
+      name?: string,
+      subtasks?: Array<{
+        name: string,
+        description: string,
+        dependencies?: string[]
+      }>
     }
   ]
 }
@@ -55,6 +63,21 @@
     {
       "action": "delete",
       "name": "CancelledTask"
+    },
+    {
+      "action": "decompose",
+      "name": "ComplexTask",
+      "subtasks": [
+        {
+          "name": "Subtask1",
+          "description": "First part"
+        },
+        {
+          "name": "Subtask2",
+          "description": "Second part",
+          "dependencies": ["Subtask1"]
+        }
+      ]
     }
   ]
 }

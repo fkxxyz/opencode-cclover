@@ -24,7 +24,9 @@ const eventTypeColors: Partial<
 > = {
   message: { backgroundColor: "#dbeafe", color: "#1e40af" },
   task_completed: { backgroundColor: "#dcfce7", color: "#166534" },
-  task_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  task_cancelled: { backgroundColor: "#fef3c7", color: "#92400e" },
+  task_deleted: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  task_decomposed: { backgroundColor: "#e0e7ff", color: "#4338ca" },
   task_created: { backgroundColor: "#e0f2fe", color: "#075985" },
   task_modified: { backgroundColor: "#fef3c7", color: "#92400e" },
   agent_completed: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
@@ -47,7 +49,9 @@ const eventTypeColors: Partial<
 const eventTypeLabels: Partial<Record<EventType, string>> = {
   message: "消息",
   task_completed: "任务完成",
-  task_failed: "任务失败",
+  task_cancelled: "任务取消",
+  task_deleted: "任务删除",
+  task_decomposed: "任务分解",
   task_created: "任务创建",
   task_modified: "任务修改",
   agent_completed: "Agent完成",
@@ -90,8 +94,12 @@ function getEventDescription(
       return `${details.from} → ${details.to}: ${details.content}`
     case "task_completed":
       return `任务 "${details.taskName}" 已完成`
-    case "task_failed":
-      return `任务 "${details.taskName}" 失败: ${details.error}`
+    case "task_cancelled":
+      return `任务 "${details.taskName}" 已取消: ${details.reason || "用户取消"}`
+    case "task_deleted":
+      return `任务 "${details.taskName}" 已删除${details.affectedCount ? ` (清理了 ${details.affectedCount} 个任务的依赖)` : ""}`
+    case "task_decomposed":
+      return `任务 "${details.originalTask}" 分解为 ${details.subtaskCount} 个子任务`
     case "agent_completed":
       return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
     case "agent_failed":

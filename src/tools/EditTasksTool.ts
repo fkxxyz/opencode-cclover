@@ -20,13 +20,13 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
         .array(
           tool.schema.object({
             action: tool.schema
-              .enum(["add", "update", "delete"])
+              .enum(["add", "update", "delete", "decompose"])
               .describe("操作类型"),
             name: tool.schema
               .string()
               .optional()
               .describe(
-                "任务名称（add/update/delete 操作必需，作为任务的唯一标识）"
+                "任务名称（add/update/delete/decompose 操作必需，作为任务的唯一标识）"
               ),
             description: tool.schema
               .string()
@@ -44,6 +44,19 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
               .string()
               .optional()
               .describe("任务结果（update 操作可选）"),
+            subtasks: tool.schema
+              .array(
+                tool.schema.object({
+                  name: tool.schema.string().describe("子任务名称"),
+                  description: tool.schema.string().describe("子任务描述"),
+                  dependencies: tool.schema
+                    .array(tool.schema.string())
+                    .optional()
+                    .describe("子任务额外依赖（可选）"),
+                })
+              )
+              .optional()
+              .describe("子任务列表（decompose 操作必需）"),
           })
         )
         .describe("操作列表"),
@@ -96,14 +109,58 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
             await memoryManager.updateTask(employeeName, op.name, updates)
             results.push(`✓ 已更新任务: ${op.name}`)
           } else if (op.action === "delete") {
-            // 删除任务
+            // 删除任务并清理依赖
             if (!op.name) {
               results.push(`错误: delete 操作需要 name 字段`)
               continue
             }
 
-            await memoryManager.deleteTask(employeeName, op.name)
-            results.push(`✓ 已删除任务: ${op.name}`)
+            const { affectedTasks } = await memoryManager.deleteTaskWithCleanup(
+              employeeName,
+              op.name
+            )
+
+            if (affectedTasks.length > 0) {
+              results.push(
+                `✓ 已删除任务: ${op.name} (自动清理了 ${affectedTasks.length} 个任务的依赖: ${affectedTasks.join(", ")})`
+              )
+            } else {
+              results.push(`✓ 已删除任务: ${op.name}`)
+            }
+          } else if (op.action === "decompose") {
+            // 分解任务
+            if (!op.name) {
+              results.push(`错误: decompose 操作需要 name 字段`)
+              continue
+            }
+
+            if (!op.subtasks || op.subtasks.length === 0) {
+              results.push(`错误: decompose 操作需要非空的 subtasks 列表`)
+              continue
+            }
+
+            // 验证每个子任务
+            let hasError = false
+            for (const subtask of op.subtasks) {
+              if (!subtask.name || !subtask.description) {
+                results.push(`错误: 每个子任务都需要 name 和 description 字段`)
+                hasError = true
+                break
+              }
+            }
+
+            if (hasError) {
+              continue
+            }
+
+            await memoryManager.decomposeTask(
+              employeeName,
+              op.name,
+              op.subtasks
+            )
+            results.push(
+              `✓ 已分解任务: ${op.name} 为 ${op.subtasks.length} 个子任务`
+            )
           }
         } catch (error) {
           results.push(

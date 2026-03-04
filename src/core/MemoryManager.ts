@@ -233,12 +233,12 @@ export class MemoryManager {
     } else if (updates.status === "cancelled") {
       this.stateManager?.addEvent({
         projectId: this.projectId,
-        type: "task_failed",
+        type: "task_cancelled",
         timestamp,
         employeeName,
         details: {
           taskName,
-          reason: "cancelled",
+          reason: updates.result || "cancelled by user",
         },
       })
     }
@@ -270,6 +270,146 @@ export class MemoryManager {
 
     memory.tasks.splice(taskIndex, 1)
     await this.write(employeeName, memory)
+  }
+
+  /**
+   * 删除任务并清理依赖
+   * 自动从所有依赖该任务的任务中移除该依赖
+   * @returns 受影响的任务名称列表
+   */
+  async deleteTaskWithCleanup(
+    employeeName: string,
+    taskName: string
+  ): Promise<{ affectedTasks: string[] }> {
+    const memory = await this.read(employeeName)
+
+    // 1. 检查任务是否存在
+    const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
+    if (taskIndex === -1) {
+      throw new Error(`Task "${taskName}" not found`)
+    }
+
+    // 2. 找出所有依赖该任务的任务
+    const affectedTasks: string[] = []
+    for (const task of memory.tasks) {
+      if (task.dependencies.includes(taskName)) {
+        affectedTasks.push(task.name)
+        // 从依赖列表中移除该任务
+        task.dependencies = task.dependencies.filter((dep) => dep !== taskName)
+      }
+    }
+
+    // 3. 删除目标任务
+    memory.tasks.splice(taskIndex, 1)
+
+    // 4. 写入更新后的记忆
+    await this.write(employeeName, memory)
+
+    // 5. 记录 task_deleted 事件
+    const timestamp = new Date().toISOString()
+    await this.stateManager?.addEvent({
+      projectId: this.projectId,
+      type: "task_deleted",
+      timestamp,
+      employeeName,
+      details: {
+        taskName,
+        affectedTasks,
+        affectedCount: affectedTasks.length,
+      },
+    })
+
+    return { affectedTasks }
+  }
+
+  /**
+   * 分解任务为多个子任务
+   * 原任务保留并依赖所有子任务,子任务继承原任务的依赖
+   * @param employeeName 员工名称
+   * @param taskName 要分解的任务名称
+   * @param subtasks 子任务列表
+   */
+  async decomposeTask(
+    employeeName: string,
+    taskName: string,
+    subtasks: Array<{
+      name: string
+      description: string
+      dependencies?: string[]
+    }>
+  ): Promise<void> {
+    const memory = await this.read(employeeName)
+
+    // 1. 找到原任务
+    const originalTask = memory.tasks.find((t) => t.name === taskName)
+    if (!originalTask) {
+      throw new Error(`Task "${taskName}" not found`)
+    }
+
+    // 2. 获取原任务的依赖
+    const originalDeps = originalTask.dependencies
+
+    // 3. 创建子任务
+    const timestamp = new Date().toISOString()
+    const subtaskNames: string[] = []
+
+    for (const subtask of subtasks) {
+      // 检查子任务名称是否已存在
+      if (memory.tasks.some((t) => t.name === subtask.name)) {
+        throw new Error(`Subtask name "${subtask.name}" already exists`)
+      }
+
+      // 合并依赖: 原任务依赖 + 子任务额外依赖
+      const finalDeps = [
+        ...originalDeps,
+        ...(subtask.dependencies || []),
+      ].filter((dep, index, self) => self.indexOf(dep) === index) // 去重
+
+      // 创建子任务
+      const newSubtask: Task = {
+        name: subtask.name,
+        description: subtask.description,
+        status: "pending",
+        dependencies: finalDeps,
+        created: timestamp,
+      }
+
+      memory.tasks.push(newSubtask)
+      subtaskNames.push(subtask.name)
+
+      // 记录 task_created 事件
+      await this.stateManager?.addEvent({
+        projectId: this.projectId,
+        type: "task_created",
+        timestamp,
+        employeeName,
+        details: {
+          taskName: subtask.name,
+          description: subtask.description,
+        },
+      })
+    }
+
+    // 4. 更新原任务: 状态改为 pending, 依赖改为所有子任务
+    originalTask.status = "pending"
+    originalTask.dependencies = subtaskNames
+    originalTask.completed = undefined // 清除完成时间
+
+    // 5. 写入更新后的记忆
+    await this.write(employeeName, memory)
+
+    // 6. 记录 task_decomposed 事件
+    await this.stateManager?.addEvent({
+      projectId: this.projectId,
+      type: "task_decomposed",
+      timestamp,
+      employeeName,
+      details: {
+        originalTask: taskName,
+        subtasks: subtaskNames,
+        subtaskCount: subtaskNames.length,
+      },
+    })
   }
 
   /**
