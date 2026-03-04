@@ -2,23 +2,22 @@ import { StrictMode, useMemo } from "react"
 import { createRoot } from "react-dom/client"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import CssBaseline from "@mui/material/CssBaseline"
-import useMediaQuery from "@mui/material/useMediaQuery"
 import "./index.css"
 import App from "./App.tsx"
+import { SettingsProvider, useSettings } from "./contexts/SettingsContext"
 
 function ThemedApp() {
-  // 检测系统主题偏好
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)")
+  const { resolvedTheme } = useSettings()
 
   const theme = useMemo(
     () =>
       createTheme({
         palette: {
-          mode: prefersDarkMode ? "dark" : "light",
+          mode: resolvedTheme,
           primary: {
             main: "#1976d2",
           },
-          ...(prefersDarkMode
+          ...(resolvedTheme === "dark"
             ? {
                 // 暗色模式配置
                 background: {
@@ -54,7 +53,7 @@ function ThemedApp() {
           },
         },
       }),
-    [prefersDarkMode]
+    [resolvedTheme]
   )
 
   return (
@@ -67,6 +66,8 @@ function ThemedApp() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemedApp />
+    <SettingsProvider>
+      <ThemedApp />
+    </SettingsProvider>
   </StrictMode>
 )

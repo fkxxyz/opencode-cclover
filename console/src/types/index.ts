@@ -157,3 +157,7 @@ export interface TimelineItem {
   timestamp: string
   data: Message | Event
 }
+
+// Settings types
+export type { ThemeMode, Settings } from "./settings"
+export { DEFAULT_SETTINGS } from "./settings"
