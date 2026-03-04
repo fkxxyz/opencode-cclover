@@ -112,7 +112,6 @@ export function MessagePanel({
 
     try {
       await apiClient.sendMessage(projectId, employeeName, peer, messageContent)
-      showSuccess("消息已发送")
     } catch (error) {
       // 统一错误处理
       const appError = handleError(error, "发送消息")
