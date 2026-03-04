@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
+import { StateManager } from "../../src/state/StateManager"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -13,6 +14,7 @@ const TEST_WORKSPACE = path.join(
 describe("Boss Message Integration", () => {
   let bossManager: BossManager
   let messageService: MessageService
+  let stateManager: StateManager
 
   beforeEach(async () => {
     // 清理测试工作空间
@@ -26,10 +28,27 @@ describe("Boss Message Integration", () => {
     }
     bossManager = new BossManager(config)
 
+    // 创建 StateManager 并注册测试员工
+    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    await stateManager.registerEmployee({
+      name: "alice",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bob",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+
     // 创建 MessageService
     messageService = new MessageService(
       TEST_WORKSPACE,
-      undefined,
+      stateManager,
       "test-project",
       bossManager
     )

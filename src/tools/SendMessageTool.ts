@@ -39,16 +39,14 @@ export function createSendMessageTool(
         }
       }
       if (!from) {
-        return `错误: 无法识别调用者身份 (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
+        throw new Error(
+          `无法识别调用者身份 (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
+        )
       }
 
-      // 2. 调用消息服务
-      try {
-        await messageService.send(from, args.to, args.content)
-        return `消息已发送给 ${args.to}`
-      } catch (error) {
-        return `发送消息失败: ${error instanceof Error ? error.message : String(error)}`
-      }
+      // 2. 调用消息服务（让异常自然抛出）
+      await messageService.send(from, args.to, args.content)
+      return `消息已发送给 ${args.to}`
     },
   })
 }

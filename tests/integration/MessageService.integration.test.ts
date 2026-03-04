@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
+import { StateManager } from "../../src/state/StateManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as yaml from "yaml"
@@ -11,11 +12,51 @@ const TEST_WORKSPACE = path.join(
 
 describe("MessageService Integration", () => {
   let service: MessageService
+  let stateManager: StateManager
 
   beforeEach(async () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-    service = new MessageService(TEST_WORKSPACE)
+    
+    // 创建 StateManager 并注册测试员工
+    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    await stateManager.registerEmployee({
+      name: "calculator",
+      role: "calculator",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bayecao",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bob",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "alice",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "charlie",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    service = new MessageService(TEST_WORKSPACE, stateManager)
   })
 
   afterEach(async () => {

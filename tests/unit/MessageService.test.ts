@@ -1,5 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
+import { StateManager } from "../../src/state/StateManager"
+import { BossManager } from "../../src/core/BossManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 
@@ -7,14 +9,39 @@ const TEST_WORKSPACE = path.join(import.meta.dir, "../fixtures/test-workspace")
 
 describe("MessageService", () => {
   let service: MessageService
+  let stateManager: StateManager
+  let bossManager: BossManager
 
   beforeEach(async () => {
     // 清理测试工作空间
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
 
+    // 创建 StateManager 和 BossManager
+    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    bossManager = new BossManager()
+    
+    // 注册测试员工
+    await stateManager.registerEmployee({
+      name: "alice",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bob",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    // 添加测试 boss
+    bossManager.addBoss("bayecao")
+
     // 创建服务实例
-    service = new MessageService(TEST_WORKSPACE)
+    service = new MessageService(TEST_WORKSPACE, stateManager, undefined, bossManager)
   })
 
   afterEach(async () => {
@@ -220,7 +247,7 @@ describe("MessageService", () => {
     })
 
     test("should send message from boss to employee", async () => {
-      const bossManager = {
+      const testBossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
         reload: async () => {},
@@ -229,9 +256,9 @@ describe("MessageService", () => {
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,
-        undefined,
+        stateManager,
         "test-project",
-        bossManager
+        testBossManager
       )
       const boss = serviceWithBoss.getClient("bayecao")
       const employee = serviceWithBoss.getClient("alice")
@@ -244,7 +271,7 @@ describe("MessageService", () => {
     })
 
     test("should send message from employee to boss", async () => {
-      const bossManager = {
+      const testBossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
         reload: async () => {},
@@ -253,9 +280,9 @@ describe("MessageService", () => {
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,
-        undefined,
+        stateManager,
         "test-project",
-        bossManager
+        testBossManager
       )
       const boss = serviceWithBoss.getClient("bayecao")
       const employee = serviceWithBoss.getClient("alice")
@@ -268,7 +295,7 @@ describe("MessageService", () => {
     })
 
     test("should query boss-employee message history", async () => {
-      const bossManager = {
+      const testBossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
         reload: async () => {},
@@ -277,9 +304,9 @@ describe("MessageService", () => {
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,
-        undefined,
+        stateManager,
         "test-project",
-        bossManager
+        testBossManager
       )
       const boss = serviceWithBoss.getClient("bayecao")
       const employee = serviceWithBoss.getClient("alice")
@@ -298,6 +325,40 @@ describe("MessageService", () => {
       expect(employeeHistory[0].from).toBe("bayecao")
       expect(employeeHistory[1].from).toBe("alice")
       expect(employeeHistory[2].from).toBe("bayecao")
+    })
+  })
+
+  describe("Message validation", () => {
+    test("should throw error when sending to self", async () => {
+      const alice = service.getClient("alice")
+      await expect(alice.send("alice", "Hello myself")).rejects.toThrow(
+        "不能向自己发送消息"
+      )
+    })
+
+    test("should throw error when sending to non-existent employee", async () => {
+      const alice = service.getClient("alice")
+      await expect(alice.send("nonexistent", "Hello")).rejects.toThrow(
+        "目标 'nonexistent' 不存在"
+      )
+    })
+
+    test("should allow sending to existing employee", async () => {
+      const alice = service.getClient("alice")
+      await alice.send("bob", "Hello Bob")
+      // 如果没有抛出异常，测试通过
+      const bob = service.getClient("bob")
+      const message = await bob.recv()
+      expect(message.from).toBe("alice")
+    })
+
+    test("should allow sending to boss", async () => {
+      const alice = service.getClient("alice")
+      await alice.send("bayecao", "Hello Boss")
+      // 如果没有抛出异常，测试通过
+      const boss = service.getClient("bayecao")
+      const message = await boss.recv()
+      expect(message.from).toBe("alice")
     })
   })
 })

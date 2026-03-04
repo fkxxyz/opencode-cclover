@@ -146,6 +146,19 @@ export class MessageService {
    * 同时写入双方的消息文件，并通知接收方
    */
   async send(from: string, to: string, content: string): Promise<void> {
+    // 1. 校验：不能向自己发送
+    if (from === to) {
+      throw new Error(`不能向自己发送消息`)
+    }
+
+    // 2. 校验：目标必须存在（员工或 boss）
+    const isEmployee = this.stateManager?.getEmployee(to) !== undefined
+    const isBoss = this.bossManager?.isBoss(to) === true
+
+    if (!isEmployee && !isBoss) {
+      throw new Error(`目标 '${to}' 不存在`)
+    }
+
     const timestamp = new Date().toISOString()
     const message: Message = { from, content, timestamp }
 

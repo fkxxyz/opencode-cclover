@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
+import { StateManager } from "../../src/state/StateManager"
 import { createSendMessageTool } from "../../src/tools/SendMessageTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import * as fs from "node:fs/promises"
@@ -14,6 +15,7 @@ const TEST_WORKSPACE = path.join(
 describe("SendMessageTool with Boss", () => {
   let bossManager: BossManager
   let messageService: MessageService
+  let stateManager: StateManager
   let sendMessageTool: any
 
   beforeEach(async () => {
@@ -28,10 +30,27 @@ describe("SendMessageTool with Boss", () => {
     }
     bossManager = new BossManager(config)
 
+    // 创建 StateManager 并注册测试员工
+    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    await stateManager.registerEmployee({
+      name: "alice",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bob",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+
     // 创建 MessageService
     messageService = new MessageService(
       TEST_WORKSPACE,
-      undefined,
+      stateManager,
       "test-project",
       bossManager
     )
@@ -76,16 +95,15 @@ describe("SendMessageTool with Boss", () => {
       agent: "unknown-agent", // 不是 boss
     }
 
-    const result = await sendMessageTool.execute(
-      {
-        to: "alice",
-        content: "Hello",
-      },
-      context
-    )
-
-    expect(result).toContain("错误: 无法识别调用者身份")
-    expect(result).toContain("unknown-agent")
+    await expect(
+      sendMessageTool.execute(
+        {
+          to: "alice",
+          content: "Hello",
+        },
+        context
+      )
+    ).rejects.toThrow("无法识别调用者身份")
   })
 
   test("should work with employee from SessionRegistry", async () => {
@@ -153,15 +171,14 @@ describe("SendMessageTool with Boss", () => {
       agent: undefined,
     }
 
-    const result = await sendMessageTool.execute(
-      {
-        to: "alice",
-        content: "Hello",
-      },
-      context
-    )
-
-    expect(result).toContain("错误: 无法识别调用者身份")
-    expect(result).toContain("unknown")
+    await expect(
+      sendMessageTool.execute(
+        {
+          to: "alice",
+          content: "Hello",
+        },
+        context
+      )
+    ).rejects.toThrow("无法识别调用者身份")
   })
 })

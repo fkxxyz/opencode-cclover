@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
+import { StateManager } from "../../src/state/StateManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as os from "node:os"
@@ -7,6 +8,7 @@ import * as os from "node:os"
 describe("MessageService - Duplicate Message Fix", () => {
   let workspaceRoot: string
   let messageService: MessageService
+  let stateManager: StateManager
 
   beforeEach(async () => {
     // 创建临时工作目录
@@ -16,8 +18,25 @@ describe("MessageService - Duplicate Message Fix", () => {
     )
     await fs.mkdir(workspaceRoot, { recursive: true })
 
+    // 创建 StateManager 并注册测试员工
+    stateManager = new StateManager("test-project", workspaceRoot)
+    await stateManager.registerEmployee({
+      name: "alice",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bob",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+
     // 创建 MessageService 实例
-    messageService = new MessageService(workspaceRoot)
+    messageService = new MessageService(workspaceRoot, stateManager)
   })
 
   afterEach(async () => {

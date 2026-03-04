@@ -8,6 +8,7 @@ import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
+import { StateManager } from "../../src/state/StateManager"
 import { createSendMessageTool } from "../../src/tools/SendMessageTool"
 import { createEditTasksTool } from "../../src/tools/EditTasksTool"
 import { createCreateAgentTool } from "../../src/tools/CreateAgentTool"
@@ -20,6 +21,7 @@ const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-tools")
 describe("Tools Integration", () => {
   let messageService: MessageService
   let memoryManager: MemoryManager
+  let stateManager: StateManager
   let mockOpcodeClient: OpencodeClient
 
   beforeEach(async () => {
@@ -28,7 +30,25 @@ describe("Tools Integration", () => {
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
 
     // 初始化服务
-    messageService = new MessageService(TEST_WORKSPACE)
+    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    
+    // 注册测试员工
+    await stateManager.registerEmployee({
+      name: "alice",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      name: "bob",
+      role: "test",
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    messageService = new MessageService(TEST_WORKSPACE, stateManager)
     memoryManager = new MemoryManager(TEST_WORKSPACE)
 
     // Mock OpencodeClient
@@ -87,24 +107,24 @@ describe("Tools Integration", () => {
       expect(message.content).toBe("Hello Bob")
     })
 
-    test("should return error if session not registered", async () => {
+    test("should throw error if session not registered", async () => {
       const tool = createSendMessageTool(messageService)
 
-      const result = await tool.execute(
-        { to: "bob", content: "Hello" },
-        {
-          sessionID: "unknown-session",
-          messageID: "msg-1",
-          agent: "test",
-          directory: TEST_WORKSPACE,
-          worktree: TEST_WORKSPACE,
-          abort: new AbortController().signal,
-          metadata: () => {},
-          ask: async () => {},
-        }
-      )
-
-      expect(result).toContain("错误: 无法识别调用者身份")
+      await expect(
+        tool.execute(
+          { to: "bob", content: "Hello" },
+          {
+            sessionID: "unknown-session",
+            messageID: "msg-1",
+            agent: "test",
+            directory: TEST_WORKSPACE,
+            worktree: TEST_WORKSPACE,
+            abort: new AbortController().signal,
+            metadata: () => {},
+            ask: async () => {},
+          }
+        )
+      ).rejects.toThrow("无法识别调用者身份")
     })
   })
 
