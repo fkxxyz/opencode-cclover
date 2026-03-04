@@ -199,22 +199,7 @@ export class GlobalCcloverService {
       })
     }
 
-    // 3. 注册所有 boss 为员工（如果不存在）
-    const bossNames = this.bossManager?.getBosses() || []
-    for (const bossName of bossNames) {
-      if (!project.stateManager.getEmployee(bossName)) {
-        await project.stateManager.registerEmployee({
-          name: bossName,
-          role: "Boss",
-          status: "offline",
-          createdAt: new Date().toISOString(),
-          lastActiveAt: new Date().toISOString(),
-        })
-        logger.info(`Registered boss: ${bossName}`)
-      }
-    }
-
-    // 4. 加载历史事件到内存
+    // 3. 加载历史事件到内存
     try {
       await project.stateManager.loadHistoricalEvents()
       logger.info(
@@ -227,7 +212,7 @@ export class GlobalCcloverService {
       )
     }
 
-    // 5. 为所有员工启动 EventLoop
+    // 4. 为所有员工启动 EventLoop
     const employees = project.stateManager.getEmployees()
     const opcodeClient = this.getOpencodeClient()
 
