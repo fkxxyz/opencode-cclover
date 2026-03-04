@@ -647,6 +647,7 @@ export class EventLoop {
   /**
    * 请求 AI 总结记忆
    * 使用 structured output 获取结构化的总结
+   * 支持重试机制和智能 JSON 解析
    */
   private async requestSummary(): Promise<{
     knowledge: string[]
@@ -656,49 +657,139 @@ export class EventLoop {
       throw new Error("No active session")
     }
 
-    // 使用 structured output 获取总结
-    const response = await this.opcodeClient.session.prompt({
-      path: { id: this.currentSession.id },
-      body: {
-        agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
-        parts: [
-          {
-            type: "text",
-            text: "请总结你在本次对话中积累的经验知识和自定义数据。只总结新的、有价值的信息,不要重复已有的知识。请以 JSON 格式返回,包含 knowledge (字符串数组) 和 custom (对象) 两个字段。",
-          },
-        ],
-      },
-      headers: {
-        "x-opencode-directory": this.projectPath,
-      },
-    })
+    const MAX_RETRIES = 3
+    let lastError: string | null = null
+    let lastResponseText: string | null = null
 
-    // 提取文本响应
-    const messages = await this.opcodeClient.session.messages({
-      path: { id: this.currentSession.id },
-    })
-    const lastMessage = (messages.data ?? [])
-      .filter((m) => m.info.role === "assistant")
-      .pop()
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      // 构建提示词
+      let promptText =
+        "请总结你在本次对话中积累的经验知识和自定义数据。只总结新的、有价值的信息,不要重复已有的知识。请以 JSON 格式返回,包含 knowledge (字符串数组) 和 custom (对象) 两个字段。"
 
-    if (!lastMessage) {
-      return { knowledge: [], custom: {} }
+      // 如果是重试,添加错误信息
+      if (attempt > 1 && lastError) {
+        promptText += `\n\n上一次响应解析失败,错误信息: ${lastError}\n请确保返回纯 JSON 格式或用 \`\`\`json 代码块包裹。`
+      }
+
+      // 发送请求
+      await this.opcodeClient.session.prompt({
+        path: { id: this.currentSession.id },
+        body: {
+          agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
+          parts: [
+            {
+              type: "text",
+              text: promptText,
+            },
+          ],
+        },
+        headers: {
+          "x-opencode-directory": this.projectPath,
+        },
+      })
+
+      // 提取文本响应
+      const messages = await this.opcodeClient.session.messages({
+        path: { id: this.currentSession.id },
+      })
+      const lastMessage = (messages.data ?? [])
+        .filter((m) => m.info.role === "assistant")
+        .pop()
+
+      if (!lastMessage) {
+        lastError = "No assistant message found"
+        lastResponseText = ""
+        continue
+      }
+
+      const textParts = lastMessage.parts.filter((p) => p.type === "text")
+      const text = textParts.map((p) => (p as any).text).join("\n")
+      lastResponseText = text
+
+      // 尝试智能解析 JSON
+      const parseResult = this.parseJSON(text)
+      if (parseResult.success) {
+        return {
+          knowledge: parseResult.data.knowledge ?? [],
+          custom: parseResult.data.custom ?? {},
+        }
+      }
+
+      lastError = parseResult.error ?? "Unknown error"
+      logger.warn(
+        `[${this.employeeName}] Failed to parse summary JSON (attempt ${attempt}/${MAX_RETRIES}): ${lastError}`
+      )
     }
 
-    const textParts = lastMessage.parts.filter((p) => p.type === "text")
-    const text = textParts.map((p) => (p as any).text).join("\n")
+    // 所有重试都失败,记录事件
+    await this.stateManager?.addEvent({
+      projectId: "",
+      type: "summary_parse_failed",
+      timestamp: new Date().toISOString(),
+      employeeName: this.employeeName,
+      details: {
+        sessionId: this.currentSession.id,
+        attempts: MAX_RETRIES,
+        lastError,
+        responseText: lastResponseText,
+      },
+    })
 
-    // 尝试解析 JSON
+    console.error(
+      `[${this.employeeName}] Failed to parse summary JSON after ${MAX_RETRIES} attempts`
+    )
+    return { knowledge: [], custom: {} }
+  }
+
+  /**
+   * 智能解析 JSON
+   * 支持原始 JSON 和 markdown 代码块
+   */
+  private parseJSON(text: string): {
+    success: boolean
+    data?: any
+    error?: string
+  } {
+    // 1. 尝试直接解析
     try {
       const parsed = JSON.parse(text)
-      return {
-        knowledge: parsed.knowledge ?? [],
-        custom: parsed.custom ?? {},
+      return { success: true, data: parsed }
+    } catch (e) {
+      // 继续尝试其他方法
+    }
+
+    // 2. 尝试提取 markdown JSON 代码块
+    const jsonBlockMatch = text.match(/```json\s*\n([\s\S]*?)\n```/)
+    if (jsonBlockMatch) {
+      try {
+        const parsed = JSON.parse(jsonBlockMatch[1])
+        return { success: true, data: parsed }
+      } catch (e) {
+        return {
+          success: false,
+          error: `Found JSON code block but failed to parse: ${(e as Error).message}`,
+        }
       }
-    } catch {
-      // 解析失败，返回空结果
-      console.warn(`[${this.employeeName}] Failed to parse summary JSON`)
-      return { knowledge: [], custom: {} }
+    }
+
+    // 3. 尝试提取普通代码块
+    const codeBlockMatch = text.match(/```\s*\n([\s\S]*?)\n```/)
+    if (codeBlockMatch) {
+      try {
+        const parsed = JSON.parse(codeBlockMatch[1])
+        return { success: true, data: parsed }
+      } catch (e) {
+        return {
+          success: false,
+          error: `Found code block but failed to parse: ${(e as Error).message}`,
+        }
+      }
+    }
+
+    // 4. 所有方法都失败
+    return {
+      success: false,
+      error: "No valid JSON or JSON code block found in response",
     }
   }
 

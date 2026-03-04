@@ -109,6 +109,7 @@ export type EventType =
   | "session_prompt_completed"
   | "session_summary_started"
   | "session_summary_completed"
+  | "summary_parse_failed"
   | "agent_created"
   | "task_created"
   | "task_modified"

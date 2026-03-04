@@ -317,5 +317,219 @@ describe("EventLoop", () => {
       expect(memory.knowledge).toContain("Summary knowledge")
       expect(memory.custom.summaryKey).toBe("summaryValue")
     })
+
+    test("should parse JSON from markdown code block", async () => {
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      // 创建 session
+      const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
+      await ensureSession()
+
+      // Mock session.get 返回高 token 数
+      opcodeClient.session.get = mock(async () => ({
+        data: { tokens: { total: 150000 } },
+      }))
+
+      // Mock prompt
+      opcodeClient.session.prompt = mock(async () => ({
+        data: {
+          info: {
+            role: "assistant",
+            time: { completed: Date.now() },
+          },
+        },
+      }))
+
+      // Mock messages 返回 markdown 代码块格式的总结
+      opcodeClient.session.messages = mock(async () => ({
+        data: [
+          {
+            info: { role: "assistant" },
+            parts: [
+              {
+                type: "text",
+                text: '```json\n{"knowledge": ["Markdown knowledge"], "custom": {"markdownKey": "markdownValue"}}\n```',
+              },
+            ],
+          },
+        ],
+      }))
+
+      // 调用 summarizeIfNeeded
+      const summarizeIfNeeded = (eventLoop as any).summarizeIfNeeded.bind(
+        eventLoop
+      )
+      await summarizeIfNeeded()
+
+      // 验证记忆已更新
+      const memory = await memoryManager.read("test-employee")
+      expect(memory.knowledge).toContain("Markdown knowledge")
+      expect(memory.custom.markdownKey).toBe("markdownValue")
+    })
+
+    test("should retry on parse failure and record event", async () => {
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      // 创建 session
+      const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
+      await ensureSession()
+
+      // Mock session.get 返回高 token 数
+      opcodeClient.session.get = mock(async () => ({
+        data: { tokens: { total: 150000 } },
+      }))
+
+      // Mock prompt
+      opcodeClient.session.prompt = mock(async () => ({
+        data: {
+          info: {
+            role: "assistant",
+            time: { completed: Date.now() },
+          },
+        },
+      }))
+
+      // Mock messages 返回无效的 JSON（所有重试都失败）
+      opcodeClient.session.messages = mock(async () => ({
+        data: [
+          {
+            info: { role: "assistant" },
+            parts: [
+              {
+                type: "text",
+                text: "This is not valid JSON",
+              },
+            ],
+          },
+        ],
+      }))
+
+      // Mock StateManager 的 addEvent 方法
+      const mockAddEvent = mock(async () => {})
+      ;(eventLoop as any).stateManager = {
+        addEvent: mockAddEvent,
+      }
+
+      // 调用 summarizeIfNeeded
+      const summarizeIfNeeded = (eventLoop as any).summarizeIfNeeded.bind(
+        eventLoop
+      )
+      await summarizeIfNeeded()
+
+      // 验证重试了 3 次（初始请求 + 3 次重试 = 4 次 prompt 调用）
+      // 但由于 ensureSession 也会调用一次，所以总共是 4 次
+      expect(opcodeClient.session.prompt.mock.calls.length).toBe(3)
+
+      // 验证记录了 summary_parse_failed 事件
+      expect(mockAddEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "summary_parse_failed",
+          employeeName: "test-employee",
+          details: expect.objectContaining({
+            attempts: 3,
+            lastError: expect.any(String),
+            responseText: "This is not valid JSON",
+          }),
+        })
+      )
+
+      // 验证记忆没有更新（返回空结果）
+      const memory = await memoryManager.read("test-employee")
+      expect(memory.knowledge).not.toContain("This is not valid JSON")
+    })
+
+    test("should succeed on second retry", async () => {
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      // 创建 session
+      const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
+      await ensureSession()
+
+      // Mock session.get 返回高 token 数
+      opcodeClient.session.get = mock(async () => ({
+        data: { tokens: { total: 150000 } },
+      }))
+
+      // Mock prompt
+      opcodeClient.session.prompt = mock(async () => ({
+        data: {
+          info: {
+            role: "assistant",
+            time: { completed: Date.now() },
+          },
+        },
+      }))
+
+      // Mock messages: 第一次失败，第二次成功
+      let callCount = 0
+      opcodeClient.session.messages = mock(async () => {
+        callCount++
+        if (callCount === 1) {
+          return {
+            data: [
+              {
+                info: { role: "assistant" },
+                parts: [{ type: "text", text: "Invalid JSON" }],
+              },
+            ],
+          }
+        } else {
+          return {
+            data: [
+              {
+                info: { role: "assistant" },
+                parts: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      knowledge: ["Retry success"],
+                      custom: { retryKey: "retryValue" },
+                    }),
+                  },
+                ],
+              },
+            ],
+          }
+        }
+      })
+
+      // 调用 summarizeIfNeeded
+      const summarizeIfNeeded = (eventLoop as any).summarizeIfNeeded.bind(
+        eventLoop
+      )
+      await summarizeIfNeeded()
+
+      // 验证重试了 1 次（初始 + 1 次重试 = 2 次 prompt）
+      expect(opcodeClient.session.prompt.mock.calls.length).toBe(2)
+
+      // 验证记忆已更新
+      const memory = await memoryManager.read("test-employee")
+      expect(memory.knowledge).toContain("Retry success")
+      expect(memory.custom.retryKey).toBe("retryValue")
+    })
   })
 })
