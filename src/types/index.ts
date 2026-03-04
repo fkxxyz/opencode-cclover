@@ -69,6 +69,7 @@ export interface TasksResponse {
 export interface Memory {
   knowledge: string[]
   custom: Record<string, any>
+  sessionId?: string
 }
 
 // Agent 状态类型

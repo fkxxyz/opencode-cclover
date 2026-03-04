@@ -209,6 +209,9 @@ private async handleEvent(event: Event): Promise<void> {
     }
   })
   
+  // Increment message count
+  this.messageCount++
+  
   // AI will automatically call tools, execution completes when tools return
   console.log(`[${this.employeeName}] Event handled`)
 }
@@ -218,10 +221,27 @@ private async handleEvent(event: Event): Promise<void> {
 
 ```typescript
 private currentSession: Session | null = null
+private messageCount: number = 0
 
 private async ensureSession(): Promise<Session> {
   if (this.currentSession) {
     return this.currentSession
+  }
+  
+  // Try to recover session from memory
+  const memory = await this.memoryManager.read(this.employeeName)
+  if (memory.sessionId) {
+    try {
+      const session = await this.opcodeClient.session.get({ path: { id: memory.sessionId } })
+      this.currentSession = session.data
+      // Recover message count from API
+      const messages = await this.opcodeClient.session.messages({ path: { id: memory.sessionId } })
+      this.messageCount = messages.data.length
+      console.log(`[${this.employeeName}] Recovered session: ${memory.sessionId}`)
+      return this.currentSession
+    } catch (error) {
+      console.log(`[${this.employeeName}] Failed to recover session, creating new one`)
+    }
   }
   
   // Create new session
@@ -235,6 +255,11 @@ private async ensureSession(): Promise<Session> {
   })
   
   this.currentSession = response.data
+  this.messageCount = 0
+  
+  // Persist session ID to memory
+  memory.sessionId = this.currentSession.id
+  await this.memoryManager.write(this.employeeName, memory)
   
   // Register session in registry
   sessionRegistry.register(this.currentSession.id, this.employeeName)
@@ -249,6 +274,8 @@ private async closeSession(): Promise<void> {
   
   console.log(`[${this.employeeName}] Closing session: ${this.currentSession.id}`)
   this.currentSession = null
+  this.messageCount = 0
+  // sessionId is cleared by summarize() in MemoryManager
 }
 ```
 

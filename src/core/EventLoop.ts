@@ -337,6 +337,46 @@ export class EventLoop {
       return this.currentSession
     }
 
+    // 尝试从 memory 恢复 session
+    const memory = await this.memoryManager.read(this.employeeName)
+    if (memory.sessionId) {
+      try {
+        // 验证 session 是否有效
+        const session = await this.opcodeClient.session.get({
+          path: { id: memory.sessionId },
+        })
+
+        if (session.data?.id) {
+          // Session 有效，恢复
+          console.log(
+            `[${this.employeeName}] Restored session: ${memory.sessionId}`
+          )
+
+          // 获取消息数量
+          const messages = await this.opcodeClient.session.messages({
+            path: { id: memory.sessionId },
+          })
+          const messageCount = (messages.data ?? []).length
+
+          // 注册 session
+          sessionRegistry.register(memory.sessionId, this.employeeName)
+
+          this.currentSession = {
+            id: memory.sessionId,
+            messageCount,
+            tokenCount: 0,
+          }
+
+          return this.currentSession
+        }
+      } catch (error) {
+        // Session 无效，继续创建新的
+        console.log(
+          `[${this.employeeName}] Failed to restore session ${memory.sessionId}, creating new one`
+        )
+      }
+    }
+
     // 创建新 session
     const response = await this.opcodeClient.session.create({
       body: {
@@ -364,6 +404,11 @@ export class EventLoop {
 
     console.log(`[${this.employeeName}] Created session: ${sessionId}`)
 
+    // 保存 sessionId 到 memory
+    const updatedMemory = await this.memoryManager.read(this.employeeName)
+    updatedMemory.sessionId = sessionId
+    await this.memoryManager.write(this.employeeName, updatedMemory)
+
     // 记录 session 创建事件
     await this.stateManager?.addEvent({
       projectId: "",
@@ -387,6 +432,11 @@ export class EventLoop {
     console.log(
       `[${this.employeeName}] Closing session: ${this.currentSession.id}`
     )
+
+    // 清除 memory 中的 sessionId
+    const memory = await this.memoryManager.read(this.employeeName)
+    memory.sessionId = undefined
+    await this.memoryManager.write(this.employeeName, memory)
 
     // 取消注册
     sessionRegistry.unregister(this.currentSession.id)

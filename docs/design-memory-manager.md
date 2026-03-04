@@ -62,6 +62,7 @@ interface Memory {
   knowledge: string[]              // Experience knowledge (AI-maintained)
   tasks: Task[]                    // Task list with DAG dependencies
   custom: Record<string, any>      // Role-specific custom data
+  sessionId?: string               // Current session ID (persisted for recovery)
 }
 
 interface Task {
@@ -165,6 +166,9 @@ custom:
   # Example for PM role:
   # team_members: [alice, bob, calculator]
   # current_sprint: sprint_5
+
+# Current session ID (optional, for recovery after restart)
+sessionId: ses_abc123xyz
 ```
 
 ### Internal Components
@@ -303,6 +307,8 @@ async summarize(
   // Update knowledge and custom, keep tasks unchanged
   memory.knowledge = summary.knowledge
   memory.custom = summary.custom
+  // Clear sessionId after summarization (new session will be created)
+  memory.sessionId = undefined
   
   await this.write(employeeName, memory)
 }

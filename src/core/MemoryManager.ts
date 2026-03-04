@@ -29,6 +29,7 @@ export interface Memory {
   knowledge: string[] // 经验知识
   tasks: Task[] // 任务列表
   custom: Record<string, any> // 自定义字段
+  sessionId?: string // Session ID（可选）
 }
 
 /**
@@ -88,6 +89,7 @@ export class MemoryManager {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
         custom: data?.custom ?? {},
+        sessionId: data?.sessionId ?? undefined,
       }
     } catch (error: any) {
       if (error.code === "ENOENT") {

@@ -317,6 +317,8 @@ tasks:
 
 custom:
   custom_field: custom_value
+
+sessionId: ses_abc123xyz  # Optional: current session ID for recovery
 ```
 
 ## Creating Instance
