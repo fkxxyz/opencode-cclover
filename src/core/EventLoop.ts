@@ -61,6 +61,15 @@ interface SessionInfo {
 }
 
 /**
+ * 进展快照
+ * 用于检测员工是否在任务事件中无限循环
+ */
+interface ProgressSnapshot {
+  agentCount: number
+  tasksHash: string
+}
+
+/**
  * 事件循环
  * 员工的核心运行机制，负责等待事件、处理事件、调用 AI、管理 session 生命周期
  */
@@ -68,6 +77,9 @@ export class EventLoop {
   private currentSession: SessionInfo | null = null
   private readonly TOKEN_THRESHOLD = 100000 // 10万 token
   private readonly MESSAGE_THRESHOLD = 20 // 20 轮对话
+  private readonly NO_PROGRESS_THRESHOLD = 3 // 无进展阈值
+  private progressSnapshot: ProgressSnapshot | null = null
+  private noProgressCount = 0
   constructor(
     private projectPath: string,
     private employeeName: string,
@@ -154,6 +166,8 @@ export class EventLoop {
     const unreadQueue = messageService.getUnreadQueue(this.employeeName)
     if (unreadQueue.length > 0) {
       const msg = unreadQueue.shift()!
+      // 收到消息，清空快照和计数器
+      this.clearProgressTracking()
       return {
         type: "message",
         from: msg.from,
@@ -165,6 +179,8 @@ export class EventLoop {
     // 2. 非阻塞检查 Agent 完成队列
     const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
     if (completedAgent) {
+      // Agent 完成，清空快照和计数器
+      this.clearProgressTracking()
       return completedAgent
     }
 
@@ -172,9 +188,13 @@ export class EventLoop {
     const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
     const hasRunningAgent = runningAgents.length > 0
 
-    // 只有在没有运行中的 Agent 时才检查任务
-    if (!hasRunningAgent) {
-      // 4. 检查可执行任务
+    // 4. 获取当前员工状态
+    const employee = await this.stateManager?.getEmployee(this.employeeName)
+    const isAbnormal = employee?.status === "abnormal"
+
+    // 只有在没有运行中的 Agent 且不是异常状态时才检查任务
+    if (!hasRunningAgent && !isAbnormal) {
+      // 5. 检查可执行任务
       const executableTasks = await this.memoryManager.getExecutableTasks(
         this.employeeName
       )
@@ -186,7 +206,7 @@ export class EventLoop {
         }
       }
 
-      // 5. 检查 in_progress 任务
+      // 6. 检查 in_progress 任务
       const inProgressTasks = await this.memoryManager.getInProgressTasks(
         this.employeeName
       )
@@ -199,7 +219,7 @@ export class EventLoop {
       }
     }
 
-    // 6. 以上都没有，阻塞等待
+    // 7. 以上都没有，阻塞等待
     return Promise.race([this.waitForMessage(), this.waitForAgentCompletion()])
   }
 
@@ -358,25 +378,37 @@ export class EventLoop {
   private async handleEvent(event: Event): Promise<void> {
     console.log(`[${this.employeeName}] Received event:`, event.type)
 
-    // 1. 确保 session 存在
+    // 1. 如果是消息或 agent 事件，清空快照并恢复正常状态
+    if (event.type === "message" || event.type === "agent_completed") {
+      this.clearProgressTracking()
+      const employee = await this.stateManager?.getEmployee(this.employeeName)
+      if (employee?.status === "abnormal") {
+        await this.stateManager?.updateEmployeeStatus(this.employeeName, "busy")
+        logger.info(
+          `[${this.employeeName}] Recovered from abnormal status due to ${event.type} event`
+        )
+      }
+    }
+
+    // 2. 确保 session 存在
     const session = await this.ensureSession()
     console.log(
       `[${this.employeeName}] Handling event in session: ${session.id}`
     )
 
-    // 2. 读取当前记忆
+    // 3. 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeName)
 
-    // 3. 构建事件消息
+    // 4. 构建事件消息
     const eventMessage = buildEventMessage(event)
 
-    // 4. 构建系统提示词(仅在第一条消息时)
+    // 5. 构建系统提示词(仅在第一条消息时)
     const systemPrompt =
       session.messageCount === 0
         ? buildSystemPrompt(this.role.systemPrompt, memory)
         : undefined
 
-    // 5. 记录 session prompt 开始事件
+    // 6. 记录 session prompt 开始事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "session_prompt_started",
@@ -389,7 +421,7 @@ export class EventLoop {
       },
     })
 
-    // 6. 发送给 AI
+    // 7. 发送给 AI
     await this.opcodeClient.session.prompt({
       path: { id: session.id },
       body: {
@@ -407,10 +439,10 @@ export class EventLoop {
       },
     })
 
-    // 7. 更新 session 信息
+    // 8. 更新 session 信息
     this.currentSession!.messageCount++
 
-    // 8. 记录 session prompt 完成事件
+    // 9. 记录 session prompt 完成事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "session_prompt_completed",
@@ -421,6 +453,11 @@ export class EventLoop {
         messageCount: session.messageCount,
       },
     })
+
+    // 10. 如果是任务事件，检测进展
+    if (event.type === "task_available" || event.type === "task_reminder") {
+      await this.checkProgress()
+    }
 
     console.log(`[${this.employeeName}] Event handled`)
   }
@@ -687,5 +724,116 @@ export class EventLoop {
       tasks: memory.tasks, // tasks 不需要总结，保持原样
       custom,
     })
+  }
+
+  /**
+   * 清空进展追踪
+   * 在收到消息或 agent 事件时调用
+   */
+  private clearProgressTracking(): void {
+    this.progressSnapshot = null
+    this.noProgressCount = 0
+  }
+
+  /**
+   * 检测进展
+   * 在处理 task_available 或 task_reminder 事件后调用
+   */
+  private async checkProgress(): Promise<void> {
+    // 1. 获取当前快照
+    const currentSnapshot = await this.getCurrentSnapshot()
+
+    // 2. 如果没有历史快照，记录当前快照
+    if (!this.progressSnapshot) {
+      this.progressSnapshot = currentSnapshot
+      this.noProgressCount = 1
+      logger.info(
+        `[${this.employeeName}] First task event, recording snapshot (count: 1)`
+      )
+      return
+    }
+
+    // 3. 比较快照
+    const hasProgress =
+      currentSnapshot.agentCount !== this.progressSnapshot.agentCount ||
+      currentSnapshot.tasksHash !== this.progressSnapshot.tasksHash
+
+    if (hasProgress) {
+      // 有进展，重置计数器
+      this.progressSnapshot = currentSnapshot
+      this.noProgressCount = 1
+      logger.info(`[${this.employeeName}] Progress detected, resetting counter`)
+    } else {
+      // 无进展，增加计数器
+      this.noProgressCount++
+      logger.info(
+        `[${this.employeeName}] No progress detected (count: ${this.noProgressCount})`
+      )
+
+      // 4. 检查是否达到阈值
+      if (this.noProgressCount >= this.NO_PROGRESS_THRESHOLD) {
+        await this.markAsAbnormal()
+      }
+    }
+  }
+
+  /**
+   * 获取当前快照
+   */
+  private async getCurrentSnapshot(): Promise<ProgressSnapshot> {
+    // 1. 获取 agent 数量
+    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+    const agentCount = runningAgents.length
+
+    // 2. 获取任务列表并计算哈希
+    const memory = await this.memoryManager.read(this.employeeName)
+    const tasksHash = this.hashTasks(memory.tasks)
+
+    return { agentCount, tasksHash }
+  }
+
+  /**
+   * 计算任务列表的哈希
+   * 使用简单的字符串序列化 + 哈希
+   */
+  private hashTasks(tasks: Task[]): string {
+    // 序列化任务列表（只包含关键字段）
+    const serialized = tasks
+      .map((t) => `${t.name}:${t.status}:${t.dependencies.join(",")}`)
+      .sort()
+      .join("|")
+
+    // 简单哈希（使用字符串长度 + 首尾字符）
+    // 对于我们的用途足够了，不需要复杂的哈希算法
+    return `${serialized.length}-${serialized.slice(0, 10)}-${serialized.slice(-10)}`
+  }
+
+  /**
+   * 标记为异常状态
+   */
+  private async markAsAbnormal(): Promise<void> {
+    logger.warn(
+      `[${this.employeeName}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
+    )
+
+    // 1. 更新状态
+    await this.stateManager?.updateEmployeeStatus(this.employeeName, "abnormal")
+
+    // 2. 记录事件
+    await this.stateManager?.addEvent({
+      projectId: "",
+      type: "employee_status_changed",
+      timestamp: new Date().toISOString(),
+      employeeName: this.employeeName,
+      details: {
+        oldStatus: "busy",
+        newStatus: "abnormal",
+        reason: "no_progress_in_task_events",
+        noProgressCount: this.noProgressCount,
+      },
+    })
+
+    // 3. 清空快照和计数器（避免重复触发）
+    this.clearProgressTracking()
   }
 }

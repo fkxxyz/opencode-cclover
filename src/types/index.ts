@@ -1,5 +1,5 @@
 // 员工状态类型
-export type EmployeeStatus = "busy" | "idle" | "error" | "offline"
+export type EmployeeStatus = "busy" | "idle" | "error" | "offline" | "abnormal"
 
 // 员工基本信息
 export interface Employee {
