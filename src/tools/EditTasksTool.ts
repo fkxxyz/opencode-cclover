@@ -70,6 +70,7 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
       }
 
       const results: string[] = []
+      let hasSuccess = false
 
       // 2. 执行每个操作
       for (const op of args.operations) {
@@ -88,6 +89,7 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
               dependencies: op.dependencies || [],
             })
             results.push(`✓ 已添加任务: ${op.name}`)
+            hasSuccess = true
           } else if (op.action === "update") {
             // 更新任务
             if (!op.name) {
@@ -108,6 +110,7 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
 
             await memoryManager.updateTask(employeeName, op.name, updates)
             results.push(`✓ 已更新任务: ${op.name}`)
+            hasSuccess = true
           } else if (op.action === "delete") {
             // 删除任务并清理依赖
             if (!op.name) {
@@ -127,6 +130,7 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
             } else {
               results.push(`✓ 已删除任务: ${op.name}`)
             }
+            hasSuccess = true
           } else if (op.action === "decompose") {
             // 分解任务
             if (!op.name) {
@@ -161,11 +165,32 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
             results.push(
               `✓ 已分解任务: ${op.name} 为 ${op.subtasks.length} 个子任务`
             )
+            hasSuccess = true
           }
         } catch (error) {
           results.push(
             `✗ 操作失败 (${op.action} ${op.name}): ${error instanceof Error ? error.message : String(error)}`
           )
+        }
+      }
+
+      // 3. 如果有成功的操作,返回当前任务状态
+      if (hasSuccess) {
+        try {
+          const inProgressTasks =
+            await memoryManager.getInProgressTasks(employeeName)
+          const executableTasks =
+            await memoryManager.getExecutableTasks(employeeName)
+
+          results.push("")
+          results.push(
+            `正在进行的任务: ${inProgressTasks.length > 0 ? inProgressTasks.map((t) => t.name).join(", ") : "无"}`
+          )
+          results.push(
+            `可执行的任务: ${executableTasks.length > 0 ? executableTasks.map((t) => t.name).join(", ") : "无"}`
+          )
+        } catch (error) {
+          // 获取任务状态失败不影响主要操作结果
         }
       }
 
