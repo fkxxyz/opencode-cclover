@@ -297,6 +297,7 @@ export class EventLoop {
     await this.opcodeClient.session.prompt({
       path: { id: session.id },
       body: {
+        agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
         system: systemPrompt,
         parts: [{ type: "text", text: eventMessage }],
         tools: {
@@ -526,6 +527,7 @@ export class EventLoop {
     const response = await this.opcodeClient.session.prompt({
       path: { id: this.currentSession.id },
       body: {
+        agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
         parts: [
           {
             type: "text",

@@ -50,6 +50,7 @@ export function createCreateAgentTool(
         await opcodeClient.session.prompt({
           path: { id: agentId },
           body: {
+            agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
             parts: [{ type: "text", text: args.prompt }],
           },
         })

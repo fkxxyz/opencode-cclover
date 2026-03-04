@@ -49,9 +49,20 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     await globalService.startEmployees(project)
   })
 
-  // 6. 返回工具(注册到 OpenCode)
+  // 6. 返回工具和 hooks(注册到 OpenCode)
   return {
     tool: tools,
+    config: async (config) => {
+      // 注册空 agent，用于员工 session（避免预设提示词污染）
+      const agents = (config.agent ?? {}) as Record<string, any>
+      agents["cclover-empty-agent"] = {
+        prompt: "", // 空提示词
+        mode: "subagent",
+        hidden: true, // 隐藏，不在 UI 中显示
+        description: "Internal agent for Cclover employee sessions",
+      }
+      config.agent = agents
+    },
   }
 }
 // Default export
