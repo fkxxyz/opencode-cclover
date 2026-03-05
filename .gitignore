@@ -1,12 +1,12 @@
-node_modules/
-dist/
+node_modules
+dist
 *.log
 .DS_Store
 *.swp
 *.swo
 *~
-.vscode/
-.idea/
+.vscode
+.idea
 
 
 # Test workspace (temporary files created during tests)
@@ -15,10 +15,10 @@ tests/fixtures/
 fixtures/
 
 # Cclover runtime workspace
-.cclover/
+.cclover
 
 # Ignore runtime data in workspace_test but keep the directory structure
-workspace_test/.cclover/
+workspace_test/.cclover
 
 # Build artifacts
 *.tsbuildinfo
