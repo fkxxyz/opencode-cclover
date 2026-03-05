@@ -11,6 +11,8 @@ dist/
 
 # Test workspace (temporary files created during tests)
 /tmp/cclover-test-workspace/
+tests/fixtures/
+fixtures/
 
 # Cclover runtime workspace
 .cclover/
