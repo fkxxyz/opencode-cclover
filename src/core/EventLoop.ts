@@ -77,7 +77,7 @@ interface ProgressSnapshot {
 export class EventLoop {
   private currentSession: SessionInfo | null = null
   private readonly TOKEN_THRESHOLD = 100000 // 10万 token
-  private readonly MESSAGE_THRESHOLD = 20 // 20 轮对话
+  private readonly MESSAGE_THRESHOLD = 10000 // 消息轮数限制（实际由 token 限制控制）
   private readonly NO_PROGRESS_THRESHOLD = 3 // 无进展阈值
   private progressSnapshot: ProgressSnapshot | null = null
   private noProgressCount = 0
