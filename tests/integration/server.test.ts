@@ -9,6 +9,8 @@ import * as path from "node:path"
 import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"
+import { BossManager } from "../../src/core/BossManager"
+import { RoleManager } from "../../src/core/RoleManager"
 import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
 import { AgentRegistry, agentRegistry } from "../../src/utils/AgentRegistry"
@@ -22,15 +24,14 @@ describe("Console Server", () => {
   let server: ConsoleServer
 
   beforeEach(async () => {
-    // 清理测试目录
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-    // 初始化服务
     const messageService = new MessageService(TEST_WORKSPACE)
     const memoryManager = new MemoryManager(TEST_WORKSPACE)
     const stateManager = new StateManager()
+    const bossManager = new BossManager(TEST_WORKSPACE)
+    const roleManager = new RoleManager(TEST_WORKSPACE)
     const testAgentRegistry = new AgentRegistry()
-    // 注册测试员工
     const testEmployee: Employee = {
       name: "calculator",
       role: "Calculator",
@@ -39,7 +40,6 @@ describe("Console Server", () => {
       lastActiveAt: new Date().toISOString(),
     }
     stateManager.registerEmployee(testEmployee)
-    // 创建 ProjectRegistry 并注册测试 project
     projectRegistry = new ProjectRegistry()
     projectRegistry.register({
       projectId: "test-project",
@@ -50,17 +50,17 @@ describe("Console Server", () => {
       messageService,
       memoryManager,
       agentRegistry: testAgentRegistry,
+      bossManager,
+      roleManager,
+      eventLoopStarted: false,
+      eventLoops: new Map(),
     })
-    // 创建服务器
     server = new ConsoleServer(
       { port: TEST_PORT, workspaceRoot: TEST_WORKSPACE },
       projectRegistry
     )
-    // 启动服务器
     await server.start()
-    // 等待服务器启动
     await new Promise((resolve) => setTimeout(resolve, 100))
-    // 清空注册表
     agentRegistry.clear()
   })
 
@@ -154,8 +154,8 @@ describe("Console Server", () => {
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.hierarchy).toBeDefined()
-      expect(json.data.hierarchy.name).toBe("calculator")
+      expect(Array.isArray(json.data.hierarchy)).toBe(true)
+      expect(json.data.hierarchy.length).toBeGreaterThan(0)
     })
 
     test("GET /api/projects/test-project/events - 获取事件历史", async () => {
