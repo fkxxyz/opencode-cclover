@@ -14,7 +14,7 @@ An OpenCode plugin implementing a multi-agent autonomous collaboration system wh
 - Concurrency: eventemitter3 for event-driven messaging, proper-lockfile for file synchronization
 
 **Core Components**:
-- `GlobalCcloverService`: Singleton managing all projects and HTTP server (port 4097)
+- `GlobalCcloverService`: Singleton managing all projects and HTTP server (configurable port, default 4097)
 - `ConfigManager`: Loads project configuration from `~/.config/opencode-cclover/config.yaml`
 - `MessageService`: Decentralized message storage with centralized synchronization service
 - `MemoryManager`: Employee memory management (knowledge, tasks DAG, custom data)
@@ -43,11 +43,13 @@ An OpenCode plugin implementing a multi-agent autonomous collaboration system wh
   ```yaml
   bosses:
     - boss_name
+  port: 4097  # Optional, HTTP server port (default: 4097)
   projects:
     - name: project_name
       path: /absolute/path/to/project
       enabled: true
   ```
+- Port priority: Environment variable `CCLOVER_PORT` > config file `port` > default 4097
 - Each project gets `.cclover/workspace/` directory for runtime data
 - `.cclover/.gitignore` auto-created to ignore runtime data
 
@@ -59,7 +61,7 @@ src/
 ├── config/               # Configuration management
 │   ├── ConfigManager.ts  # Load/save config from ~/.config/opencode-cclover/config.yaml
 │   └── CandidateProjectsManager.ts  # Track candidate projects
-├── server/               # HTTP API server (port 4097)
+├── server/               # HTTP API server (configurable port, default 4097)
 │   ├── GlobalServer.ts   # Singleton service managing all projects
 │   ├── ProjectRegistry.ts  # Project instance registry
 │   ├── index.ts          # ConsoleServer (HTTP + WebSocket)

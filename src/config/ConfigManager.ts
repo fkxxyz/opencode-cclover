@@ -18,6 +18,7 @@ export interface ProjectConfig {
  */
 export interface CcloverConfig {
   bosses?: string[]
+  port?: number
   projects: ProjectConfig[]
 }
 
@@ -96,6 +97,13 @@ export class ConfigManager {
         if (typeof boss !== "string") {
           return false
         }
+      }
+    }
+
+    // 验证 port 字段（可选）
+    if (config.port !== undefined) {
+      if (typeof config.port !== "number") {
+        return false
       }
     }
 

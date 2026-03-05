@@ -31,6 +31,21 @@ describe("ConfigManager", () => {
       expect(ConfigManager.validate(config)).toBe(true)
     })
 
+    test("should validate config with port", () => {
+      const config: CcloverConfig = {
+        bosses: ["bayecao"],
+        port: 8080,
+        projects: [
+          {
+            name: "test-project",
+            path: "/path/to/project",
+            enabled: true,
+          },
+        ],
+      }
+      expect(ConfigManager.validate(config)).toBe(true)
+    })
+
     test("should validate config with empty bosses array", () => {
       const config: CcloverConfig = {
         bosses: [],
@@ -102,6 +117,15 @@ describe("ConfigManager", () => {
         ],
       }
       expect(ConfigManager.validate(config)).toBe(true)
+    })
+
+    test("should reject config with invalid port type", () => {
+      const config: any = {
+        bosses: ["bayecao"],
+        port: "not-a-number",
+        projects: [],
+      }
+      expect(ConfigManager.validate(config)).toBe(false)
     })
   })
 })

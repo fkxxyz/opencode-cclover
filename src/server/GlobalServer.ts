@@ -90,8 +90,18 @@ export class GlobalCcloverService {
     // 2. 加载配置并初始化所有 project
     await this.loadProjects()
     // 3. 启动 HTTP 服务(单例)
+    // 端口优先级: 环境变量 > 配置文件 > 默认值
+    const envPort = parseInt(process.env.CCLOVER_PORT || "", 10)
+    const port = !isNaN(envPort) && envPort > 0 ? envPort : config.port || 4097
+
+    // 验证端口范围
+    if (port < 1 || port > 65535) {
+      throw new Error(
+        `Invalid port ${port}: must be between 1 and 65535. Check CCLOVER_PORT environment variable or config file.`
+      )
+    }
     this.httpServer = new ConsoleServer(
-      { port: 4097, workspaceRoot: "" }, // workspaceRoot 不再使用
+      { port, workspaceRoot: "" }, // workspaceRoot 不再使用
       this.projectRegistry
     )
     await this.httpServer.start()
