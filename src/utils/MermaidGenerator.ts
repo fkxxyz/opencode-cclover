@@ -69,6 +69,8 @@ function getNodeStyle(status: Task["status"]): string {
       return ":::inProgress"
     case "cancelled":
       return ":::cancelled"
+    case "waiting_for_message":
+      return ":::waitingForMessage"
     case "pending":
     default:
       return ":::pending"
@@ -87,6 +89,7 @@ export function generateMermaidWithStyles(tasks: Task[]): string {
     classDef inProgress fill:#FFD700,stroke:#F57C00,stroke-width:2px
     classDef pending fill:#E0E0E0,stroke:#757575,stroke-width:2px
     classDef cancelled fill:#FFCDD2,stroke:#C62828,stroke-width:2px
+    classDef waitingForMessage fill:#B3E5FC,stroke:#0277BD,stroke-width:2px
   `.trim()
 
   // 在 ``` 结束标记前插入样式

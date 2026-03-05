@@ -200,13 +200,13 @@ Records task cancellation.
 
 **Trigger**: When `MemoryManager.updateTask()` changes status to "cancelled"
 
-### 10. Task Blocked
+### 10. Task Waiting for Message
 
-Records task being blocked waiting for external input.
+Records task waiting for messages from other employees.
 
 ```typescript
 {
-  type: "task_blocked",
+  type: "task_waiting_for_message",
   timestamp: "2026-03-03T10:16:00.000Z",
   employeeName: "calculator",
   details: {
@@ -216,7 +216,7 @@ Records task being blocked waiting for external input.
 }
 ```
 
-**Trigger**: When `MemoryManager.updateTask()` changes status to "blocked"
+**Trigger**: When `MemoryManager.updateTask()` changes status to "waiting_for_message"
 
 ### 11. Task Deleted
 
@@ -596,7 +596,7 @@ Concise descriptions for each event type:
 | task_modified           | `Task modified: {taskName}`                                         |
 | task_completed          | `Task completed: {taskName}`                                        |
 | task_cancelled          | `Task cancelled: {taskName}`                                        |
-| task_blocked            | `Task blocked: {taskName} - {reason}`                               |
+| task_waiting_for_message| `Task waiting for message: {taskName} - {reason}`                   |
 | task_deleted            | `Task deleted: {taskName}`                                          |
 | task_decomposed         | `Task decomposed: {originalTask} → {subtaskCount} subtasks`         |
 

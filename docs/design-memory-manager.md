@@ -70,13 +70,13 @@ interface Task {
   status: TaskStatus               // Task status
   description: string              // Task description
   result?: string                  // Task result (filled when completed)
-  statusReason?: string            // Reason for status change (e.g., why blocked)
+  statusReason?: string            // Reason for status change (e.g., why waiting_for_message)
   dependencies: string[]           // List of dependency task names
   created: string                  // Creation timestamp (ISO 8601)
   completed?: string               // Completion timestamp (ISO 8601, optional)
 }
 
-type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked'
+type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'waiting_for_message'
 ```
 
 ### Creating Instance
@@ -163,7 +163,7 @@ tasks:
     created: 2026-03-01T10:02:00Z
     
   - name: "WaitingForDecision"
-    status: blocked
+    status: waiting_for_message
     description: Waiting for user to decide on calculation method
     statusReason: "Need user input on whether to use approximation or exact calculation"
     dependencies: []
@@ -253,7 +253,7 @@ async generateMermaid(employeeName: string): Promise<string> {
     const statusIcon = {
       'pending': '⏳',
       'in_progress': '🔄',
-      'blocked': '🚫',
+      'waiting_for_message': '💬',
       'completed': '✅',
       'cancelled': '❌'
     }[task.status]

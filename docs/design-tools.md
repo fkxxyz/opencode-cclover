@@ -57,7 +57,7 @@ Implements the tool system requirements specified in [Requirements - Tool System
     
     // For 'update' action
     name?: string
-    status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked'
+    status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'waiting_for_message'
     result?: string
     statusReason?: string
     
@@ -221,9 +221,9 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
           name: tool.schema.string().optional().describe("Task name"),
           description: tool.schema.string().optional().describe("Task description"),
           dependencies: tool.schema.array(tool.schema.string()).optional().describe("Dependency task names"),
-          status: tool.schema.enum(['pending', 'in_progress', 'completed', 'cancelled', 'blocked']).optional().describe("Task status"),
+          status: tool.schema.enum(['pending', 'in_progress', 'completed', 'cancelled', 'waiting_for_message']).optional().describe("Task status"),
           result: tool.schema.string().optional().describe("Task result (only for completed tasks)"),
-          statusReason: tool.schema.string().optional().describe("Reason for status change (e.g., why blocked or cancelled)"),
+          statusReason: tool.schema.string().optional().describe("Reason for status change (e.g., why waiting_for_message or cancelled)"),
           subtasks: tool.schema.array(
             tool.schema.object({
               name: tool.schema.string().describe("Subtask name"),

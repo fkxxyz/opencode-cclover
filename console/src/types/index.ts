@@ -56,7 +56,7 @@ export interface PeerWithLastMessage {
 }
 
 // Task types
-export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled"
+export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled" | "waiting_for_message"
 
 export interface Task {
   name: string
@@ -100,7 +100,7 @@ export type EventType =
   | "task_decomposed"
   | "task_created"
   | "task_modified"
-  | "task_blocked"
+  | "task_waiting_for_message"
   | "agent_completed"
   | "agent_failed"
   | "agent_created"

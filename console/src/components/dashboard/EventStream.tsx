@@ -18,7 +18,7 @@ const eventTypeColors: Partial<
   task_decomposed: { bg: "#e0e7ff", text: "#4338ca" },
   task_created: { bg: "#e0f2fe", text: "#075985" },
   task_modified: { bg: "#fef3c7", text: "#92400e" },
-  task_blocked: { bg: "#fed7aa", text: "#9a3412" },
+  task_waiting_for_message: { bg: "#fed7aa", text: "#9a3412" },
   agent_completed: { bg: "#f3e8ff", text: "#6b21a8" },
   agent_failed: { bg: "#fee2e2", text: "#991b1b" },
   agent_created: { bg: "#ede9fe", text: "#5b21b6" },
@@ -44,7 +44,7 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   task_decomposed: "任务分解",
   task_created: "任务创建",
   task_modified: "任务修改",
-  task_blocked: "任务阻塞",
+  task_waiting_for_message: "等待消息",
   agent_completed: "Agent完成",
   agent_failed: "Agent失败",
   agent_created: "Agent创建",
@@ -105,8 +105,8 @@ function getEventDescription(
       return `创建任务 "${details.taskName}"${details.description ? `: ${details.description}` : ""}`
     case "task_modified":
       return `修改任务 "${details.taskName}"`
-    case "task_blocked":
-      return `任务 "${details.taskName}" 被阻塞: ${details.reason || "blocked"}`
+    case "task_waiting_for_message":
+      return `任务 "${details.taskName}" 等待消息: ${details.reason || "waiting for message"}`
     case "agent_completed":
       return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
     case "agent_failed":

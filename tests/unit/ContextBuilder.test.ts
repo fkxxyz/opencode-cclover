@@ -62,7 +62,7 @@ describe("ContextBuilder", () => {
       }
 
       const result = buildSystemPrompt(rolePrompt, memory)
-      expect(result).toContain("任务状态")
+      expect(result).toContain("Task Management")
       expect(result).toContain("graph TD")
     })
   })
@@ -77,9 +77,9 @@ describe("ContextBuilder", () => {
       }
 
       const result = buildEventMessage(event)
-      expect(result).toContain("类型: message")
-      expect(result).toContain("发送者: alice")
-      expect(result).toContain("内容: 计算 1+1")
+      expect(result).toContain("Type: message")
+      expect(result).toContain("From: alice")
+      expect(result).toContain("Content: 计算 1+1")
     })
 
     test("should format agent_completed event", () => {
@@ -92,10 +92,10 @@ describe("ContextBuilder", () => {
       }
 
       const result = buildEventMessage(event)
-      expect(result).toContain("类型: agent_completed")
+      expect(result).toContain("Type: agent_completed")
       expect(result).toContain("Agent ID: agent_001")
-      expect(result).toContain("关联任务: 复杂计算")
-      expect(result).toContain("执行结果: 结果是 456831")
+      expect(result).toContain("Related Task: 复杂计算")
+      expect(result).toContain("Result: 结果是 456831")
     })
   })
 

@@ -12,7 +12,7 @@ export type TaskStatus =
   | "in_progress"
   | "completed"
   | "cancelled"
-  | "blocked"
+  | "waiting_for_message"
 
 /**
  * 任务对象
@@ -256,24 +256,24 @@ export class MemoryManager {
           reason: updates.statusReason || "cancelled by user",
         },
       })
-    } else if (updates.status === "blocked") {
-      // 新增：blocked 状态的事件
+    } else if (updates.status === "waiting_for_message") {
+      // 新增：waiting_for_message 状态的事件
       this.stateManager?.addEvent({
         projectId: this.projectId,
-        type: "task_blocked",
+        type: "task_waiting_for_message",
         timestamp,
         employeeName,
         details: {
           taskName,
-          reason: updates.statusReason || "blocked",
+          reason: updates.statusReason || "waiting_for_message",
         },
       })
     }
-    // 记录 task 修改事件（除了 completed/cancelled/blocked 状态变化）
+    // 记录 task 修改事件（除了 completed/cancelled/waiting_for_message 状态变化）
     if (
       updates.status !== "completed" &&
       updates.status !== "cancelled" &&
-      updates.status !== "blocked"
+      updates.status !== "waiting_for_message"
     ) {
       await this.stateManager?.addEvent({
         projectId: this.projectId,

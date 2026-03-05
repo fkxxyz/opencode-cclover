@@ -332,7 +332,7 @@ export function buildEventMessage(event: Event): string {
       return `有 ${event.tasks.length} 个任务的依赖已满足，可以开始执行：\n\n${taskList}\n\n请选择一个任务开始执行，或创建 Agent 来并行处理。`
 
     case 'task_reminder':
-      return `你有 ${event.tasks.length} 个正在进行的任务。\n- 如果可以继续，请继续完成任务\n- 如果需要等待其他员工的消息或决策，请使用 edit_tasks 将任务状态设为 blocked 并说明原因`
+      return `你有 ${event.tasks.length} 个正在进行的任务。\n- 如果可以继续，请继续完成任务\n- 如果需要等待其他员工的消息或决策，请使用 edit_tasks 将任务状态设为 waiting_for_message 并说明原因`
 
     default:
       return "未知事件类型"

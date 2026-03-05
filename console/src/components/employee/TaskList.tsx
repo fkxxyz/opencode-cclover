@@ -27,6 +27,7 @@ const statusVariants: Record<
   in_progress: "default",
   completed: "secondary",
   cancelled: "destructive",
+  waiting_for_message: "outline",
 }
 
 const statusLabels: Record<TaskStatus, string> = {
@@ -34,6 +35,7 @@ const statusLabels: Record<TaskStatus, string> = {
   in_progress: "进行中",
   completed: "已完成",
   cancelled: "已取消",
+  waiting_for_message: "等待消息",
 }
 
 function formatTimestamp(timestamp: string): string {

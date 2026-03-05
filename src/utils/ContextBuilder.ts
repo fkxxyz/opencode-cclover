@@ -23,55 +23,116 @@ export function buildSystemPrompt(rolePrompt: string, memory: Memory): string {
   const sections: string[] = []
 
   // 1. 角色定义
-  sections.push("# 系统提示词（角色定义）")
+  sections.push("# Role Definition")
   sections.push(rolePrompt)
   sections.push("")
 
-  // 2. 经验知识
+  // 2. 当前记忆
+  sections.push("# Current Memory")
+  sections.push("")
+
+  // 2.1 经验知识
   if (memory.knowledge.length > 0) {
-    sections.push("# 当前记忆")
-    sections.push("## 经验知识")
+    sections.push("## Knowledge")
     for (const item of memory.knowledge) {
       sections.push(`- ${item}`)
     }
     sections.push("")
   }
 
-  // 3. 正在进行的任务（新增）
-  const inProgressTasks = memory.tasks.filter((t) => t.status === "in_progress")
-  if (inProgressTasks.length > 0) {
-    const taskNames = inProgressTasks.map((t) => t.name).join(", ")
-    sections.push("## 正在进行的任务")
-    sections.push(
-      `你当前正在进行 ${inProgressTasks.length} 个任务：${taskNames}`
-    )
-    sections.push("请继续完成这些任务。")
-    sections.push("")
-  }
-
-  // 4. 自定义字段
+  // 2.2 自定义字段
   if (Object.keys(memory.custom).length > 0) {
-    sections.push("## 自定义数据")
+    sections.push("## Custom Data")
     sections.push("```json")
     sections.push(JSON.stringify(memory.custom, null, 2))
     sections.push("```")
     sections.push("")
   }
 
-  // 5. 任务状态（Mermaid 图）
+  // 3. 任务管理
   if (memory.tasks.length > 0) {
-    sections.push("# 任务状态")
+    sections.push("# Task Management")
+    sections.push("")
+
+    // 3.1 任务管理指南
+    sections.push("## Task Management Guide")
+    sections.push("")
+    sections.push("Task status definitions:")
+    sections.push("- pending: Tasks waiting to be started")
+    sections.push(
+      "- in_progress: Tasks currently being worked on (set when you start working)"
+    )
+    sections.push(
+      "- completed: Tasks that are finished (set when done, fill in result field)"
+    )
+    sections.push(
+      "- waiting_for_message: Tasks waiting for messages from other employees (e.g., clarification, review, guidance)"
+    )
+    sections.push("- cancelled: Tasks that are cancelled")
+    sections.push("")
+    sections.push("Available tools:")
+    sections.push("- edit_tasks: Update task status")
+    sections.push("- create_agent: Create an agent to execute tasks")
+    sections.push("- send_message: Communicate with other employees")
+    sections.push("")
+
+    // 3.2 所有任务
+    sections.push("## All Tasks")
+    sections.push("")
+    for (const task of memory.tasks) {
+      sections.push(`**Task: ${task.name}**`)
+      sections.push(`- Status: ${task.status}`)
+      sections.push(`- Description: ${task.description}`)
+      sections.push(
+        `- Dependencies: ${task.dependencies.length > 0 ? task.dependencies.join(", ") : "None"}`
+      )
+      if (task.result) {
+        sections.push(`- Current Progress: ${task.result}`)
+      }
+      sections.push("")
+    }
+
+    // 3.3 任务依赖图
+    sections.push("## Task Dependency Graph")
+    sections.push("")
     sections.push(generateMermaid(memory.tasks))
     sections.push("")
 
-    // 6. 可执行的任务
+    // 3.4 可执行的任务
     const executableTasks = getExecutableTasks(memory.tasks)
+    sections.push("## Executable Tasks")
+    sections.push("")
     if (executableTasks.length > 0) {
-      sections.push("# 可执行的任务")
-      sections.push("以下任务的依赖已满足，可以立即执行：")
+      sections.push("The following tasks can be started:")
       for (const task of executableTasks) {
-        sections.push(`- ${task.name}: ${task.description}`)
+        sections.push(`- ${task.name}`)
       }
+    } else {
+      sections.push(
+        "Currently no tasks are immediately executable (all pending tasks have incomplete dependencies)."
+      )
+    }
+    sections.push("")
+    sections.push(
+      "You can start these tasks based on actual situation. If a task depends on other tasks and cannot start, please add the dependencies."
+    )
+    sections.push("")
+
+    // 3.5 正在进行的任务
+    const inProgressTasks = memory.tasks.filter(
+      (t) => t.status === "in_progress"
+    )
+    if (inProgressTasks.length > 0) {
+      const taskNames = inProgressTasks.map((t) => t.name).join(", ")
+      sections.push("## Tasks In Progress")
+      sections.push("")
+      sections.push(
+        `You currently have ${inProgressTasks.length} tasks in progress: ${taskNames}`
+      )
+      sections.push("")
+      sections.push(
+        "Please continue working on these tasks. If a task depends on external messages to proceed, please set the task status to waiting_for_message."
+      )
       sections.push("")
     }
   }
@@ -88,30 +149,53 @@ export function buildSystemPrompt(rolePrompt: string, memory: Memory): string {
 export function buildEventMessage(event: Event): string {
   const sections: string[] = []
 
-  sections.push("# 当前事件")
-  sections.push(`类型: ${event.type}`)
+  sections.push("# Current Event")
+  sections.push(`Type: ${event.type}`)
 
   // 根据事件类型添加特定字段
   if (event.type === "message") {
-    sections.push(`发送者: ${event.from}`)
-    sections.push(`内容: ${event.content}`)
-    sections.push(`时间: ${event.timestamp}`)
+    sections.push(`From: ${event.from}`)
+    sections.push(`Content: ${event.content}`)
+    sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "agent_completed") {
     sections.push(`Agent ID: ${event.agentId}`)
-    sections.push(`关联任务: ${event.taskName}`)
-    sections.push(`执行结果: ${event.result}`)
-    sections.push(`时间: ${event.timestamp}`)
+    sections.push(`Related Task: ${event.taskName}`)
+    sections.push(`Result: ${event.result}`)
+    sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "task_available") {
-    sections.push("目前没有未读消息，但有以下任务可以执行：")
+    sections.push("The following tasks can be executed:")
+    sections.push("")
     for (const task of event.tasks) {
-      sections.push(`- ${task.name}: ${task.description}`)
+      sections.push(`**Task: ${task.name}**`)
+      sections.push(`- Description: ${task.description}`)
+      if (task.result) {
+        sections.push(`- Current Progress: ${task.result}`)
+      }
+      sections.push("")
     }
-    sections.push(`时间: ${event.timestamp}`)
-  } else if (event.type === "task_reminder") {
-    // 新增：task_reminder 事件的处理
+    sections.push("---")
+    sections.push("")
     sections.push(
-      `你有 ${event.tasks.length} 个正在进行的任务。\n- 如果可以继续，请继续完成任务\n- 如果需要等待其他员工的消息或决策，请使用 edit_tasks 将任务状态设为 blocked 并说明原因`
+      "**Reminder**: You have tasks that haven't been started yet. Please plan and start them appropriately. If a task depends on other incomplete tasks and cannot start, please use edit_tasks to set the correct dependencies, otherwise you will keep receiving this event reminder."
     )
+    sections.push(`Time: ${event.timestamp}`)
+  } else if (event.type === "task_reminder") {
+    sections.push("You have the following tasks in progress:")
+    sections.push("")
+    for (const task of event.tasks) {
+      sections.push(`**Task: ${task.name}**`)
+      sections.push(`- Description: ${task.description}`)
+      if (task.result) {
+        sections.push(`- Current Progress: ${task.result}`)
+      }
+      sections.push("")
+    }
+    sections.push("---")
+    sections.push("")
+    sections.push(
+      "**Reminder**: You have unfinished tasks. Please continue working on them. If a task is waiting for messages from other employees to proceed, please use edit_tasks to set the task status to waiting_for_message with an explanation, otherwise you will keep receiving this event reminder."
+    )
+    sections.push(`Time: ${event.timestamp}`)
   } else {
     // 通用处理：输出所有字段
     for (const [key, value] of Object.entries(event)) {
@@ -122,10 +206,14 @@ export function buildEventMessage(event: Event): string {
   }
 
   sections.push("")
-  sections.push("# 你的任务")
-  sections.push("根据以上信息，决定下一步行动。你可以：")
-  sections.push("- 调用工具执行操作")
-  sections.push('- 输出文本表示等待（例如："很好，接下来只需要等待 xxx"）')
+  sections.push("# Your Task")
+  sections.push(
+    "Based on the above information, decide your next action. You can:"
+  )
+  sections.push("- Call tools to perform operations")
+  sections.push(
+    '- Output text to indicate waiting (e.g., "Good, now I just need to wait for xxx")'
+  )
 
   return sections.join("\n")
 }

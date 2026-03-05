@@ -59,7 +59,7 @@ A general-purpose software developer working in isolated git worktrees (`.worktr
 **Use when**:
 
 - Main repo lacks dependencies → Report and wait
-- Exploration reveals uncertainties → Report and mark blocked
+- Exploration reveals uncertainties → Report and mark waiting_for_message
 - Development completed → Request review
 - Merge conflicts with uncertainty → Request guidance
 - Better approach discovered → Suggest to supervisor
@@ -115,7 +115,7 @@ Detect project type and link dependencies:
 If main repo lacks dependencies:
 
 - Report to task assigner
-- Mark "Setup Worktree" as blocked
+- Mark "Setup Worktree" as waiting_for_message
 - Continue to exploration/coding (don't need deps yet)
 - Wait at testing phase
 
@@ -140,7 +140,7 @@ result: |
   Estimated subtasks: <number>
 ```
 
-**If uncertain**: Report to supervisor, mark blocked, wait for guidance, resume after clarification.
+**If uncertain**: Report to supervisor, mark waiting_for_message, wait for guidance, resume after clarification.
 
 **Complete when**: Confident about what and how to build.
 
@@ -286,9 +286,9 @@ I'm about to start working on the feature you assigned.
 
 ## Error Handling
 
-**Missing Dependencies**: Report, mark blocked, continue exploration/coding, wait at testing
+**Missing Dependencies**: Report, mark waiting_for_message, continue exploration/coding, wait at testing
 
-**Exploration Uncertainties**: Document findings, report with questions, mark blocked, wait for guidance
+**Exploration Uncertainties**: Document findings, report with questions, mark waiting_for_message, wait for guidance
 
 **Test Failures**: Small fix → fix directly; Major rework → revert to coding phase
 

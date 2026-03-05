@@ -51,15 +51,15 @@
 - Task name (identifier)
 - New status (optional)
 - Result (optional, required when status becomes `completed`)
-- Status reason (optional, recommended for `blocked` and `cancelled`)
+- Status reason (optional, recommended for `waiting_for_message` and `cancelled`)
 - Completion timestamp (optional, set when status becomes `completed`)
 
 **Validation**:
 - Task must exist
 - Status transitions must be valid:
-  - `pending` → `in_progress` | `cancelled` | `blocked`
-  - `in_progress` → `completed` | `cancelled` | `blocked`
-  - `blocked` → `in_progress` | `cancelled`
+  - `pending` → `in_progress` | `cancelled` | `waiting_for_message`
+  - `in_progress` → `completed` | `cancelled` | `waiting_for_message`
+  - `waiting_for_message` → `in_progress` | `cancelled`
   - `completed` → (no transitions)
   - `cancelled` → (no transitions)
 
@@ -121,7 +121,7 @@
     {
       "action": "update",
       "name": "WaitingTask",
-      "status": "blocked",
+      "status": "waiting_for_message",
       "statusReason": "Waiting for user's decision on approach"
     },
     {
@@ -155,13 +155,13 @@ stateDiagram-v2
     [*] --> pending: Create/Decompose
     pending --> in_progress: Start
     pending --> cancelled: Cancel
-    pending --> blocked: Block
+    pending --> waiting_for_message: Block
     in_progress --> completed: Finish
     in_progress --> cancelled: Cancel
-    in_progress --> blocked: Block
+    in_progress --> waiting_for_message: Block
     in_progress --> pending: Decompose
-    blocked --> in_progress: Resume
-    blocked --> cancelled: Cancel
+    waiting_for_message --> in_progress: Resume
+    waiting_for_message --> cancelled: Cancel
     completed --> [*]
     cancelled --> [*]
 ```
@@ -193,10 +193,11 @@ TaskC depends on TaskA  ← Circular dependency!
 **Executable Task Criteria**:
 - Task status is `pending`
 - All dependencies have status `completed`
-- Note: `blocked` tasks are not considered executable
+- Note: `waiting_for_message` tasks are not considered executable
 
 **Example**:
-`1: completed
+```
+Task1: completed
 Task2: completed
 Task3: pending, depends on [Task1, Task2]  ← Executable!
 Task4: pending, depends on [Task3]         ← Not executable yet
@@ -210,7 +211,7 @@ Task4: pending, depends on [Task3]         ← Not executable yet
 - Status colors (if supported):
   - `pending`: default
   - `in_progress`: yellow
-  - `blocked`: orange
+  - `waiting_for_message`: blue
   - `completed`: green
   - `cancelled`: red
 
@@ -239,10 +240,10 @@ graph TD
 ```typescript
 interface Task {
   name: string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'blocked'
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'waiting_for_message'
   description: string
   result?: string              // Only for completed tasks
-  statusReason?: string        // Reason for status change (e.g., why blocked)
+  statusReason?: string        // Reason for status change (e.g., why waiting_for_message)
   dependencies: string[]
   created: string  // ISO 8601
   completed?: string  // ISO 8601

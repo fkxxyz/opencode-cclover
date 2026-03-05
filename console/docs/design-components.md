@@ -126,7 +126,7 @@ Navigation sidebar with project selector.
 **TaskList.tsx**: Task list with:
 
 - Task name and description
-- Status badges (pending/in_progress/blocked/completed/cancelled)
+- Status badges (pending/in_progress/waiting_for_message/completed/cancelled)
 - Dependency visualization
 - Executable task highlighting
 

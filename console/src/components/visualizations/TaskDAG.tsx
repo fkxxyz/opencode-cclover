@@ -14,6 +14,7 @@ const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   in_progress: "#3b82f6",
   pending: "#6b7280",
   cancelled: "#ef4444",
+  waiting_for_message: "#f59e0b",
 }
 
 interface Node extends d3.SimulationNodeDatum {

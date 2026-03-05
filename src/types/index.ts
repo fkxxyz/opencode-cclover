@@ -51,7 +51,7 @@ export type TaskStatus =
   | "in_progress"
   | "completed"
   | "cancelled"
-  | "blocked"
+  | "waiting_for_message"
 
 // 任务
 export interface Task {
@@ -96,7 +96,7 @@ export type EventType =
   | "message"
   | "task_completed"
   | "task_cancelled"
-  | "task_blocked"
+  | "task_waiting_for_message"
   | "task_deleted"
   | "task_decomposed"
   | "agent_completed"
