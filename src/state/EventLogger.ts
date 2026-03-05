@@ -31,22 +31,56 @@ export class EventLogger {
     try {
       // 如果文件不存在，先创建空文件
       try {
-        await fs.access(filePath)
+        await fs.stat(filePath)
       } catch (error: any) {
         if (error.code === "ENOENT") {
-          await fs.writeFile(filePath, "", "utf-8")
+          try {
+            await fs.writeFile(filePath, "", "utf-8")
+          } catch (writeError: any) {
+            // 如果写入失败（可能目录被删除），忽略错误
+            if (writeError.code === "ENOENT") {
+              return
+            }
+            throw writeError
+          }
+        } else {
+          throw error
         }
       }
 
       // 获取文件锁
-      release = await lockfile.lock(filePath, { retries: 10 })
+      try {
+        release = await lockfile.lock(filePath, { retries: 10 })
+      } catch (lockError: any) {
+        // 如果文件不存在（可能在测试清理时被删除），忽略错误
+        if (lockError.code === "ENOENT") {
+          return
+        }
+        throw lockError
+      }
 
       // 追加事件到文件
       await fs.appendFile(filePath, line, "utf-8")
+    } catch (error: any) {
+      // 如果是文件不存在错误（测试清理时），忽略
+      if (error.code === "ENOENT") {
+        return
+      }
+      throw error
     } finally {
       // 释放文件锁
       if (release) {
-        await release()
+        try {
+          await release()
+        } catch (releaseError: any) {
+          // 忽略释放锁时的错误（文件可能已被删除）
+          if (releaseError.code !== "ENOENT") {
+            console.warn(
+              `[EventLogger] Failed to release lock for ${filePath}:`,
+              releaseError.message
+            )
+          }
+        }
       }
     }
   }
