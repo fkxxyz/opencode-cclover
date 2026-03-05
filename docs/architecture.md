@@ -183,7 +183,7 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
 - MessageService: Message synchronization (supports boss-employee communication)
 - MemoryManager: Memory and task management
 - StateManager: Employee state tracking
-- EmployeePersistence: Employee list persistence (employees.yaml)
+- EmployeePersistence: Employee list persistence (`{projectRoot}/.cclover/employees.yaml`)
 - EventLoop: Employee runtime
 - AgentRegistry: Background agent tracking
 - RoleManager: Role loading and management
@@ -229,23 +229,25 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
 ### Storage
 
 - **Format**: YAML files
-- **Location**: `{projectRoot}/.cclover/workspace/`
+- **Location**: `{projectRoot}/.cclover/`
 - **Structure**:
   ```
-  .cclover/workspace/
-  ├── employees/
-  │   ├── {employeeName}/
-  │   │   ├── messages/
-  │   │   │   ├── {peerName}/
-  │   │   │   │   └── chat.yaml
-  │   │   │   └── {bossName}/
-  │   │   │       └── chat.yaml
-  │   │   └── memory.yaml
-  └── bosses/
-      └── {bossName}/
-          └── messages/
-              └── {employeeName}/
-                  └── chat.yaml
+  .cclover/
+  ├── employees.yaml          # Employee list
+  └── workspace/
+      ├── employees/
+      │   ├── {employeeName}/
+      │   │   ├── messages/
+      │   │   │   ├── {peerName}/
+      │   │   │   │   └── chat.yaml
+      │   │   │   └── {bossName}/
+      │   │   │       └── chat.yaml
+      │   │   └── memory.yaml
+      └── bosses/
+          └── {bossName}/
+              └── messages/
+                  └── {employeeName}/
+                      └── chat.yaml
   ```
 
 ### HTTP Server

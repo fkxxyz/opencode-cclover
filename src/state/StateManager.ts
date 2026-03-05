@@ -20,12 +20,16 @@ export class StateManager {
   private messageCount: Map<string, number>
   private emitter: EventEmitter
 
-  constructor(projectId: string = "default", workspaceRoot?: string) {
+  constructor(
+    projectId: string = "default",
+    workspaceRoot?: string,
+    projectPath?: string
+  ) {
     this.projectId = projectId
     this.workspaceRoot = workspaceRoot || ""
     this.employeeRegistry = new EmployeeRegistry()
-    this.employeePersistence = workspaceRoot
-      ? new EmployeePersistence(workspaceRoot)
+    this.employeePersistence = projectPath
+      ? new EmployeePersistence(projectPath)
       : null
     this.eventHistory = new EventHistory()
     this.eventLogger = new EventLogger(workspaceRoot || "")

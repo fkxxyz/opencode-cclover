@@ -135,7 +135,7 @@ export class GlobalCcloverService {
 
     // 创建服务实例
     const projectId = ProjectRegistry.hashPath(config.path)
-    const stateManager = new StateManager(projectId, workspaceRoot)
+    const stateManager = new StateManager(projectId, workspaceRoot, config.path)
     const messageService = new MessageService(
       workspaceRoot,
       stateManager,

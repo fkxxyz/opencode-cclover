@@ -183,7 +183,7 @@
 
 **Behavior**:
 - Validates role exists in RoleManager
-- Registers employee in StateManager (auto-persists to employees.yaml)
+- Registers employee in StateManager (auto-persists to `{projectRoot}/.cclover/employees.yaml`)
 - Starts employee EventLoop in ProjectInstance
 - Records hiredBy relationship
 

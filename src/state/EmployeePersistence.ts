@@ -12,8 +12,8 @@ import { logger } from "../lib/logger"
 export class EmployeePersistence {
   private filePath: string
 
-  constructor(workspaceRoot: string) {
-    this.filePath = path.join(workspaceRoot, ".cclover", "employees.yaml")
+  constructor(projectPath: string) {
+    this.filePath = path.join(projectPath, ".cclover", "employees.yaml")
   }
 
   /**
