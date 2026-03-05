@@ -9,43 +9,88 @@
 **技术栈**:
 - 运行时: Bun (TypeScript 执行和包管理)
 - 语言: TypeScript 严格模式
-- 插件 SDK: @opencode-ai/plugin
+- 插件 SDK: @opencode-ai/plugin, @opencode-ai/sdk
 - 存储: 文件系统 (YAML 格式)
 - 并发: eventemitter3 用于事件驱动消息传递，proper-lockfile 用于文件同步
 
 **核心组件**:
+- `GlobalCcloverService`: 单例管理所有项目和 HTTP 服务器 (端口 4097)
+- `ConfigManager`: 从 `~/.config/opencode-cclover/config.yaml` 加载项目配置
 - `MessageService`: 去中心化消息存储与中心化同步服务
 - `MemoryManager`: 员工记忆管理 (知识、任务 DAG、自定义数据)
-- `Tools`: send_message、edit_tasks、create_agent、hire_employee
-- `Utils`: Mermaid 图生成、上下文构建、Session/Agent 注册表
+- `StateManager`: 员工状态和事件持久化
+- `RoleManager`: 角色定义管理
+- `BossManager`: Boss 员工管理
+- `EventLoop`: 员工事件循环驱动自主行为
+- `Tools`: send_message、edit_tasks、create_agent、hire_employee、refresh_roles
 
 **数据流**:
 ```
-Employee A (Agent) → send_message tool → MessageService → YAML file
-                                              ↓
-                                         EventEmitter
-                                              ↓
-Employee B (Agent) ← recv() blocks ← MessageClient ← Event notification
+1. 插件加载 → GlobalCcloverService.getInstance()
+2. ConfigManager 加载 ~/.config/opencode-cclover/config.yaml
+3. 对于配置中的每个项目:
+   - 创建 ProjectInstance (MessageService, MemoryManager, StateManager, RoleManager)
+   - 注册到 ProjectRegistry
+4. 当 OpenCode 打开项目目录时:
+   - 插件返回该项目的工具
+   - 为每个员工启动 EventLoop
+5. 员工接收事件 → EventLoop → AI 决定行动 → 工具调用 → 状态更新
 ```
+
+**配置系统**:
+- 配置文件: `~/.config/opencode-cclover/config.yaml`
+- 格式:
+  ```yaml
+  bosses:
+    - boss_name
+  projects:
+    - name: project_name
+      path: /absolute/path/to/project
+      enabled: true
+  ```
+- 每个项目在 `.cclover/workspace/` 目录存储运行时数据
+- 自动创建 `.cclover/.gitignore` 忽略运行时数据
 
 ## 项目结构
 
 ```
 src/
-├── index.ts              # 插件入口点，初始化服务和工具
-├── core/                 # 核心基础设施
+├── index.ts              # 插件入口点，初始化 GlobalCcloverService
+├── config/               # 配置管理
+│   ├── ConfigManager.ts  # 从 ~/.config/opencode-cclover/config.yaml 加载/保存配置
+│   └── CandidateProjectsManager.ts  # 跟踪候选项目
+├── server/               # HTTP API 服务器 (端口 4097)
+│   ├── GlobalServer.ts   # 单例服务管理所有项目
+│   ├── ProjectRegistry.ts  # 项目实例注册表
+│   ├── index.ts          # ConsoleServer (HTTP + WebSocket)
+│   ├── router.ts         # 路由分发器 (基于 Map)
+│   ├── routes.ts         # 路由定义与 JSDoc
+│   └── websocket.ts      # WebSocket 管理器
+├── core/                 # 核心业务逻辑
 │   ├── MessageService.ts # 消息发送/接收/同步与事件驱动通知
-│   └── MemoryManager.ts  # 记忆 CRUD 与任务 DAG 计算
+│   ├── MemoryManager.ts  # 记忆 CRUD 与任务 DAG 计算
+│   ├── EventLoop.ts      # 员工事件循环
+│   ├── BossManager.ts    # Boss 员工管理
+│   └── RoleManager.ts    # 角色定义管理
+├── state/                # 状态持久化
+│   └── StateManager.ts   # 员工状态和事件历史
 ├── tools/                # OpenCode 工具 (AI Agent 可调用)
 │   ├── SendMessageTool.ts
 │   ├── EditTasksTool.ts
 │   ├── CreateAgentTool.ts
-│   └── HireEmployeeTool.ts
-├── utils/                # 工具支持模块
+│   ├── HireEmployeeTool.ts
+│   ├── RefreshRolesTool.ts
+│   └── index.ts          # 工具注册表
+├── utils/                # 工具库
 │   ├── MermaidGenerator.ts  # 生成任务 DAG 可视化
 │   ├── ContextBuilder.ts    # 为 AI 提示构建上下文字符串
 │   ├── SessionRegistry.ts   # 映射 sessionID ↔ employeeName
 │   └── AgentRegistry.ts     # 跟踪后台 Agent 任务
+├── roles/                # 内置角色定义
+│   └── calculator.yaml   # 示例角色
+├── agents/               # Agent 提示词
+│   └── role-creator.md   # 角色创建器 Agent 提示词
+├── types/                # TypeScript 类型定义
 └── lib/                  # 共享工具库
     ├── background.ts     # 后台任务管理
     └── logger.ts         # 日志工具
@@ -55,7 +100,7 @@ tests/
 ├── integration/          # 模块交互的集成测试
 └── fixtures/             # 测试数据和工作区快照
 
-console/                  # Web 管理控制台 (已实现)
+console/                  # Web 管理控制台
 ├── src/                  # 前端源码 (React + MUI)
 │   ├── components/       # UI 组件
 │   ├── pages/            # 页面 (Overview, EmployeeDetail, ProjectManagement)
@@ -64,15 +109,57 @@ console/                  # Web 管理控制台 (已实现)
 │   └── types/            # TypeScript 类型
 ├── docs/                 # Console 文档
 └── DEVELOPMENT.md        # 前端开发规范
-src/server/               # 后端服务器 (已实现)
-├── GlobalServer.ts       # 全局服务器 (单例, 端口 4097)
-├── ProjectRegistry.ts    # 项目注册表
-├── routes.ts             # API 路由定义表 (集中管理所有 API, 详细注释)
-├── router.ts             # 路由分发器 (Map 查找优化)
-├── websocket.ts          # WebSocket 服务
-└── index.ts              # ConsoleServer 主类
 
-## HTTP API 路由
+workspace_test/           # 插件测试工作区
+├── .opencode/            # OpenCode 配置
+│   └── plugin/
+│       └── cclover.ts -> ../../../src/index.ts  # 插件符号链接
+└── README.md             # 测试指南
+```
+
+## 配置
+
+### 初始设置
+
+1. 创建配置文件:
+```bash
+mkdir -p ~/.config/opencode-cclover
+cat > ~/.config/opencode-cclover/config.yaml << 'EOF'
+bosses:
+  - your_name
+projects:
+  - name: my_project
+    path: /absolute/path/to/project
+    enabled: true
+EOF
+```
+
+2. 启用插件:
+```bash
+export CCLOVER_ENABLE=1
+```
+
+3. 启动 OpenCode 服务器:
+```bash
+cd /absolute/path/to/project
+opencode serve --port 4099
+```
+
+### 添加项目
+
+编辑 `~/.config/opencode-cclover/config.yaml`:
+```yaml
+projects:
+  - name: project1
+    path: /path/to/project1
+    enabled: true
+  - name: project2
+    path: /path/to/project2
+    enabled: false  # 已禁用
+```
+
+重启 OpenCode 服务器以应用更改。
+
 ## HTTP API 路由
 所有 HTTP API 路由定义在 `src/server/routes.ts` 文件中,包含 JSDoc 文档。
 ## 开发规则

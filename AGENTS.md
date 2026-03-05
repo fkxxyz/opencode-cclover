@@ -9,43 +9,88 @@ An OpenCode plugin implementing a multi-agent autonomous collaboration system wh
 **Tech Stack**:
 - Runtime: Bun (TypeScript execution and package management)
 - Language: TypeScript with strict mode
-- Plugin SDK: @opencode-ai/plugin
+- Plugin SDK: @opencode-ai/plugin, @opencode-ai/sdk
 - Storage: File system (YAML format)
 - Concurrency: eventemitter3 for event-driven messaging, proper-lockfile for file synchronization
 
 **Core Components**:
+- `GlobalCcloverService`: Singleton managing all projects and HTTP server (port 4097)
+- `ConfigManager`: Loads project configuration from `~/.config/opencode-cclover/config.yaml`
 - `MessageService`: Decentralized message storage with centralized synchronization service
 - `MemoryManager`: Employee memory management (knowledge, tasks DAG, custom data)
-- `Tools`: send_message, edit_tasks, create_agent, hire_employee
-- `Utils`: Mermaid diagram generation, context building, session/agent registries
+- `StateManager`: Employee state and event persistence
+- `RoleManager`: Role definition management
+- `BossManager`: Boss employee management
+- `EventLoop`: Employee event loop driving autonomous behavior
+- `Tools`: send_message, edit_tasks, create_agent, hire_employee, refresh_roles
 
 **Data Flow**:
 ```
-Employee A (Agent) → send_message tool → MessageService → YAML file
-                                              ↓
-                                         EventEmitter
-                                              ↓
-Employee B (Agent) ← recv() blocks ← MessageClient ← Event notification
+1. Plugin loads → GlobalCcloverService.getInstance()
+2. ConfigManager loads ~/.config/opencode-cclover/config.yaml
+3. For each project in config:
+   - Create ProjectInstance (MessageService, MemoryManager, StateManager, RoleManager)
+   - Register to ProjectRegistry
+4. When OpenCode opens project directory:
+   - Plugin returns tools for that project
+   - EventLoop starts for each employee
+5. Employee receives event → EventLoop → AI decides action → Tool call → State update
 ```
+
+**Configuration System**:
+- Config file: `~/.config/opencode-cclover/config.yaml`
+- Format:
+  ```yaml
+  bosses:
+    - boss_name
+  projects:
+    - name: project_name
+      path: /absolute/path/to/project
+      enabled: true
+  ```
+- Each project gets `.cclover/workspace/` directory for runtime data
+- `.cclover/.gitignore` auto-created to ignore runtime data
 
 ## Project Structure
 
 ```
 src/
-├── index.ts              # Plugin entry point, initializes services and tools
-├── core/                 # Core infrastructure
+├── index.ts              # Plugin entry point, initializes GlobalCcloverService
+├── config/               # Configuration management
+│   ├── ConfigManager.ts  # Load/save config from ~/.config/opencode-cclover/config.yaml
+│   └── CandidateProjectsManager.ts  # Track candidate projects
+├── server/               # HTTP API server (port 4097)
+│   ├── GlobalServer.ts   # Singleton service managing all projects
+│   ├── ProjectRegistry.ts  # Project instance registry
+│   ├── index.ts          # ConsoleServer (HTTP + WebSocket)
+│   ├── router.ts         # Route dispatcher (Map-based)
+│   ├── routes.ts         # Route definitions with JSDoc
+│   └── websocket.ts      # WebSocket manager
+├── core/                 # Core business logic
 │   ├── MessageService.ts # Message send/recv/sync with event-driven notification
-│   └── MemoryManager.ts  # Memory CRUD with task DAG calculation
+│   ├── MemoryManager.ts  # Memory CRUD with task DAG calculation
+│   ├── EventLoop.ts      # Employee event loop
+│   ├── BossManager.ts    # Boss employee management
+│   └── RoleManager.ts    # Role definition management
+├── state/                # State persistence
+│   └── StateManager.ts   # Employee state and event history
 ├── tools/                # OpenCode tools (callable by AI agents)
 │   ├── SendMessageTool.ts
 │   ├── EditTasksTool.ts
 │   ├── CreateAgentTool.ts
-│   └── HireEmployeeTool.ts
-├── utils/                # Tool support modules
+│   ├── HireEmployeeTool.ts
+│   ├── RefreshRolesTool.ts
+│   └── index.ts          # Tool registry
+├── utils/                # Utilities
 │   ├── MermaidGenerator.ts  # Generate task DAG visualizations
 │   ├── ContextBuilder.ts    # Build context strings for AI prompts
 │   ├── SessionRegistry.ts   # Map sessionID ↔ employeeName
 │   └── AgentRegistry.ts     # Track background agent tasks
+├── roles/                # Built-in role definitions
+│   └── calculator.yaml   # Example role
+├── agents/               # Agent prompts
+│   └── role-creator.md   # Role creator agent prompt
+├── types/                # TypeScript type definitions
 └── lib/                  # Shared utilities
     ├── background.ts     # Background task management
     └── logger.ts         # Logging utility
@@ -55,23 +100,65 @@ tests/
 ├── integration/          # Integration tests for module interactions
 └── fixtures/             # Test data and workspace snapshots
 
-console/                  # Web 管理控制台 (已实现)
-├── src/                  # 前端源码 (React + MUI)
-│   ├── components/       # UI 组件
-│   ├── pages/            # 页面 (Overview, EmployeeDetail, ProjectManagement)
-│   ├── hooks/            # 自定义 Hooks
-│   ├── services/         # API 和 WebSocket 客户端
-│   └── types/            # TypeScript 类型
-├── docs/                 # Console 文档
-└── DEVELOPMENT.md        # 前端开发规范
-src/server/               # 后端服务器 (已实现)
-├── GlobalServer.ts       # 全局服务器 (单例, 端口 4097)
-├── ProjectRegistry.ts    # 项目注册表
-├── routes.ts             # API 路由定义表 (集中管理所有 API, 详细注释)
-├── router.ts             # 路由分发器 (Map 查找优化)
-├── websocket.ts          # WebSocket 服务
-└── index.ts              # ConsoleServer 主类
+console/                  # Web management console
+├── src/                  # Frontend source (React + MUI)
+│   ├── components/       # UI components
+│   ├── pages/            # Pages (Overview, EmployeeDetail, ProjectManagement)
+│   ├── hooks/            # Custom hooks
+│   ├── services/         # API and WebSocket clients
+│   └── types/            # TypeScript types
+├── docs/                 # Console documentation
+└── DEVELOPMENT.md        # Frontend development guide
 
+workspace_test/           # Test workspace for plugin testing
+├── .opencode/            # OpenCode config
+│   └── plugin/
+│       └── cclover.ts -> ../../../src/index.ts  # Symlink to plugin
+└── README.md             # Testing guide
+```
+
+## Configuration
+
+### Initial Setup
+
+1. Create config file:
+```bash
+mkdir -p ~/.config/opencode-cclover
+cat > ~/.config/opencode-cclover/config.yaml << 'EOF'
+bosses:
+  - your_name
+projects:
+  - name: my_project
+    path: /absolute/path/to/project
+    enabled: true
+EOF
+```
+
+2. Enable plugin:
+```bash
+export CCLOVER_ENABLE=1
+```
+
+3. Start OpenCode server:
+```bash
+cd /absolute/path/to/project
+opencode serve --port 4099
+```
+
+### Adding Projects
+
+Edit `~/.config/opencode-cclover/config.yaml`:
+```yaml
+projects:
+  - name: project1
+    path: /path/to/project1
+    enabled: true
+  - name: project2
+    path: /path/to/project2
+    enabled: false  # Disabled
+```
+
+Restart OpenCode server to apply changes.
 
 ## HTTP API Routes
 All HTTP API routes are defined in `src/server/routes.ts` with JSDoc documentation.
