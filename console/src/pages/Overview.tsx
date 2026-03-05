@@ -2,7 +2,6 @@ import { useParams } from "react-router-dom"
 import { GlobalStats } from "../components/dashboard/GlobalStats"
 import { EventStream } from "../components/dashboard/EventStream"
 import { EmployeeTreeList } from "../components/visualizations/EmployeeTreeList"
-import { BossList } from "../components/dashboard/BossList"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Loader2 } from "lucide-react"
 import { apiClient } from "../services"
@@ -13,7 +12,7 @@ import Typography from "@mui/material/Typography"
 
 export function Overview() {
   const { projectId } = useParams<{ projectId: string }>()
-  const [hierarchy, setHierarchy] = useState<EmployeeHierarchy | null>(null)
+  const [hierarchy, setHierarchy] = useState<EmployeeHierarchy[]>([])
   const [hierarchyLoading, setHierarchyLoading] = useState(true)
   useEffect(() => {
     if (!projectId) {
@@ -73,23 +72,15 @@ export function Overview() {
           <Typography variant="body2" color="text.secondary"></Typography>
         </Box>
         <GlobalStats projectId={projectId!} />
-        {/* Boss 列表 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Boss 列表</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BossList />
-          </CardContent>
-        </Card>
-        {/* 员工列表 */}
-        {hierarchy && (
+        {hierarchy.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>员工列表</CardTitle>
+              <CardTitle>人员列表</CardTitle>
             </CardHeader>
             <CardContent>
-              <EmployeeTreeList hierarchy={hierarchy} />
+              {hierarchy.map((root) => (
+                <EmployeeTreeList key={root.name} hierarchy={root} />
+              ))}
             </CardContent>
           </Card>
         )}

@@ -1,57 +1,64 @@
 import type { StateManager } from "../state/StateManager"
-import type {
-  Employee,
-  EmployeeHierarchy,
-  SuccessResponse,
-} from "../types/index"
+import type { BossManager } from "../core/BossManager"
+import type { EmployeeHierarchy, SuccessResponse } from "../types/index"
 
 /**
- * 获取雇佣关系树
+ * 获取雇佣关系树（多根节点）
+ *
+ * 返回所有 boss 和根员工的树结构数组：
+ * 1. 所有 boss 作为根节点（包括配置中的和员工 hiredBy 中提到的）
+ * 2. hiredBy 为 null/undefined 的员工作为根节点
  */
 export function getHierarchy(
-  stateManager: StateManager
-): SuccessResponse<{ hierarchy: EmployeeHierarchy }> {
+  stateManager: StateManager,
+  bossManager: BossManager
+): SuccessResponse<{ hierarchy: EmployeeHierarchy[] }> {
   const employees = stateManager.getEmployees()
+  const configuredBosses = bossManager.getBosses()
 
-  // 找到根节点（hiredBy 为 null 或 undefined）
-  const rootEmployee = employees.find((e) => !e.hiredBy)
-
-  if (!rootEmployee) {
-    // 如果没有根节点，返回第一个员工作为根
-    const firstEmployee = employees[0]
-    return {
-      success: true,
-      data: {
-        hierarchy: {
-          name: firstEmployee.name,
-          role: firstEmployee.role,
-          status: firstEmployee.status,
-          children: [],
-        },
-      },
+  const allBosses = new Set<string>(configuredBosses)
+  employees.forEach((emp) => {
+    if (emp.hiredBy && !employees.some((e) => e.name === emp.hiredBy)) {
+      allBosses.add(emp.hiredBy)
     }
+  })
+
+  const buildTree = (parentName: string): EmployeeHierarchy[] => {
+    return employees
+      .filter((e) => e.hiredBy === parentName)
+      .map((e) => ({
+        name: e.name,
+        role: e.role,
+        status: e.status,
+        children: buildTree(e.name),
+      }))
   }
 
-  // 构建树状结构
-  const buildTree = (employee: Employee): EmployeeHierarchy => {
-    const children = employees
-      .filter((e) => e.hiredBy === employee.name)
-      .map((e) => buildTree(e))
+  const roots: EmployeeHierarchy[] = []
 
-    return {
-      name: employee.name,
-      role: employee.role,
-      status: employee.status,
-      children,
-    }
+  for (const bossName of allBosses) {
+    roots.push({
+      name: bossName,
+      role: "Boss",
+      status: "busy",
+      children: buildTree(bossName),
+    })
   }
 
-  const hierarchy = buildTree(rootEmployee)
+  const rootEmployees = employees.filter((e) => !e.hiredBy)
+  for (const emp of rootEmployees) {
+    roots.push({
+      name: emp.name,
+      role: emp.role,
+      status: emp.status,
+      children: buildTree(emp.name),
+    })
+  }
 
   return {
     success: true,
     data: {
-      hierarchy,
+      hierarchy: roots,
     },
   }
 }

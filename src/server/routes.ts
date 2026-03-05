@@ -323,7 +323,8 @@ export const projectRoutes = new Map<string, RouteHandler>([
    */
   [
     "GET:/employees/hierarchy",
-    (req, params, deps) => hierarchy.getHierarchy(deps.stateManager),
+    (req, params, deps) =>
+      hierarchy.getHierarchy(deps.stateManager, deps.bossManager),
   ],
 
   /**

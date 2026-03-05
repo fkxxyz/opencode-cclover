@@ -5,11 +5,9 @@ import * as yaml from "yaml"
 import { StateManager } from "../../src/state/StateManager"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { agentRegistry } from "../../src/utils/AgentRegistry"
-import {
-  getEmployees,
-  getEmployeeDetail,
-  getHierarchy,
-} from "../../src/api/employees"
+import { getEmployees, getEmployeeDetail } from "../../src/api/employees"
+import { getHierarchy } from "../../src/api/hierarchy"
+import { BossManager } from "../../src/core/BossManager"
 import type { Employee, Memory } from "../../src/types/index"
 
 const testWorkspace = "./workspace_test_api"
@@ -137,6 +135,7 @@ describe("Employees API", () => {
 
   it("should return hierarchy with single root employee", () => {
     const stateManager = new StateManager()
+    const bossManager = new BossManager(testWorkspace)
 
     const employee: Employee = {
       name: "calculator",
@@ -148,15 +147,17 @@ describe("Employees API", () => {
 
     stateManager.registerEmployee(employee)
 
-    const response = getHierarchy(stateManager)
+    const response = getHierarchy(stateManager, bossManager)
 
     expect(response.success).toBe(true)
-    expect(response.data.hierarchy.name).toBe("calculator")
-    expect(response.data.hierarchy.children).toHaveLength(0)
+    expect(response.data.hierarchy).toHaveLength(1)
+    expect(response.data.hierarchy[0].name).toBe("calculator")
+    expect(response.data.hierarchy[0].children).toHaveLength(0)
   })
 
   it("should return hierarchy with multiple levels", () => {
     const stateManager = new StateManager()
+    const bossManager = new BossManager(testWorkspace)
 
     const root: Employee = {
       name: "calculator",
@@ -188,13 +189,16 @@ describe("Employees API", () => {
     stateManager.registerEmployee(child)
     stateManager.registerEmployee(grandchild)
 
-    const response = getHierarchy(stateManager)
+    const response = getHierarchy(stateManager, bossManager)
 
     expect(response.success).toBe(true)
-    expect(response.data.hierarchy.name).toBe("calculator")
-    expect(response.data.hierarchy.children).toHaveLength(1)
-    expect(response.data.hierarchy.children[0].name).toBe("coder")
-    expect(response.data.hierarchy.children[0].children).toHaveLength(1)
-    expect(response.data.hierarchy.children[0].children[0].name).toBe("tester")
+    expect(response.data.hierarchy).toHaveLength(1)
+    expect(response.data.hierarchy[0].name).toBe("calculator")
+    expect(response.data.hierarchy[0].children).toHaveLength(1)
+    expect(response.data.hierarchy[0].children[0].name).toBe("coder")
+    expect(response.data.hierarchy[0].children[0].children).toHaveLength(1)
+    expect(response.data.hierarchy[0].children[0].children[0].name).toBe(
+      "tester"
+    )
   })
 })

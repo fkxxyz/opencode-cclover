@@ -203,8 +203,8 @@ export class ApiClient {
     return data.events
   }
 
-  async getHierarchy(projectId: string): Promise<EmployeeHierarchy> {
-    const data = await this.request<{ hierarchy: EmployeeHierarchy }>(
+  async getHierarchy(projectId: string): Promise<EmployeeHierarchy[]> {
+    const data = await this.request<{ hierarchy: EmployeeHierarchy[] }>(
       `/projects/${projectId}/employees/hierarchy`
     )
     return data.hierarchy

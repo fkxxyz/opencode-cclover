@@ -1,8 +1,4 @@
-export {
-  getEmployees,
-  getEmployeeDetail,
-  getHierarchy as getEmployeeHierarchy,
-} from "./employees"
+export { getEmployees, getEmployeeDetail } from "./employees"
 export { getMessages } from "./messages"
 export { getTasks } from "./tasks"
 export { getEvents } from "./events"

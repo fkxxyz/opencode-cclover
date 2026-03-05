@@ -58,7 +58,11 @@ function TreeNode({
 
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigate(`/projects/${projectId}/employee/${node.name}`)
+    if (node.role === "Boss") {
+      navigate(`/projects/${projectId}/boss/${node.name}`)
+    } else {
+      navigate(`/projects/${projectId}/employee/${node.name}`)
+    }
   }
 
   return (
