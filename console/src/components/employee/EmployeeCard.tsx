@@ -53,11 +53,11 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
           {employee.role !== "Boss" && (
             <Badge
               style={{
-                backgroundColor: statusColors[employee.status].bg,
-                color: statusColors[employee.status].text,
+                backgroundColor: statusColors[employee.status]?.bg ?? "#f1f5f9",
+                color: statusColors[employee.status]?.text ?? "#475569",
               }}
             >
-              {statusLabels[employee.status]}
+              {statusLabels[employee.status] ?? "未知"}
             </Badge>
           )}
         </Box>
