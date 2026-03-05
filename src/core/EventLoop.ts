@@ -686,12 +686,23 @@ export class EventLoop {
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       // 构建提示词
-      let promptText =
-        "请总结你在本次对话中积累的经验知识和自定义数据。只总结新的、有价值的信息,不要重复已有的知识。请以 JSON 格式返回,包含 knowledge (字符串数组) 和 custom (对象) 两个字段。"
+      let promptText = `Summarize your knowledge from this session. Include only NEW and VALUABLE information. Organize by priority:
+
+1. Original Task Goals - Complete original task description (do NOT simplify or paraphrase)
+2. Task Supplements - Additional requirements from messages (describe as supplements to original task in natural language)
+3. Progress Overview - Current status and what has been accomplished
+4. Decision Records - Technical choices and detailed decisions with reasoning
+5. Collaboration Experience - Interactions and working relationships with other employees
+6. Code Exploration - Requirements, architecture, design, file layout, key identifiers (class/instance/variable names), code line counts (do NOT include specific data structure definitions)
+7. Problems and Solutions - Issues encountered and how they were resolved
+
+Return JSON format with:
+- knowledge: string array (each item should be a complete, self-contained statement)
+- custom: object (leave empty for now)`
 
       // 如果是重试,添加错误信息
       if (attempt > 1 && lastError) {
-        promptText += `\n\n上一次响应解析失败,错误信息: ${lastError}\n请确保返回纯 JSON 格式或用 \`\`\`json 代码块包裹。`
+        promptText += `\n\nPrevious response parsing failed. Error: ${lastError}\nPlease ensure you return pure JSON or wrap it in a \`\`\`json code block.`
       }
 
       // 发送请求
