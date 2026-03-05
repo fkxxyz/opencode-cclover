@@ -62,7 +62,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
       // 注册空 agent，用于员工 session（避免预设提示词污染）
       const agents = (config.agent ?? {}) as Record<string, any>
       agents["cclover-empty-agent"] = {
-        prompt: "", // 空提示词
+        prompt: "---\n", // 空提示词占位
         mode: "subagent",
         hidden: true, // 隐藏，不在 UI 中显示
         description: "Internal agent for Cclover employee sessions",
