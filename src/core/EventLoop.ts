@@ -58,6 +58,7 @@ interface SessionInfo {
   id: string
   messageCount: number
   tokenCount: number
+  systemPrompt: string // 缓存的系统提示词
 }
 
 /**
@@ -402,11 +403,8 @@ export class EventLoop {
     // 4. 构建事件消息
     const eventMessage = buildEventMessage(event)
 
-    // 5. 构建系统提示词(仅在第一条消息时)
-    const systemPrompt =
-      session.messageCount === 0
-        ? buildSystemPrompt(this.role.systemPrompt, memory)
-        : undefined
+    // 5. 使用缓存的系统提示词（每次都传递）
+    const systemPrompt = this.currentSession!.systemPrompt
 
     // 6. 记录 session prompt 开始事件
     await this.stateManager?.addEvent({
@@ -472,7 +470,7 @@ export class EventLoop {
     }
 
     // 尝试从 memory 恢复 session
-    const memory = await this.memoryManager.read(this.employeeName)
+    let memory = await this.memoryManager.read(this.employeeName)
     if (memory.sessionId) {
       try {
         // 验证 session 是否有效
@@ -495,10 +493,16 @@ export class EventLoop {
           // 注册 session
           sessionRegistry.register(memory.sessionId, this.employeeName)
 
+          // 从快照重建系统提示词
+          const systemPrompt = memory.sessionSnapshot
+            ? buildSystemPrompt(this.role.systemPrompt, memory.sessionSnapshot)
+            : buildSystemPrompt(this.role.systemPrompt, memory) // 降级：使用当前状态
+
           this.currentSession = {
             id: memory.sessionId,
             messageCount,
             tokenCount: 0,
+            systemPrompt,
           }
 
           return this.currentSession
@@ -530,18 +534,36 @@ export class EventLoop {
     // 注册 session
     sessionRegistry.register(sessionId, this.employeeName)
 
+    // 重新读取当前记忆（如果之前恢复失败，memory 可能是旧的）
+    memory = await this.memoryManager.read(this.employeeName)
+
+    // 保存快照（深拷贝）
+    memory.sessionSnapshot = {
+      knowledge: [...memory.knowledge],
+      tasks: memory.tasks.map((t) => ({
+        ...t,
+        dependencies: [...t.dependencies],
+      })),
+      custom: JSON.parse(JSON.stringify(memory.custom)),
+      timestamp: new Date().toISOString(),
+    }
+    memory.sessionId = sessionId
+    await this.memoryManager.write(this.employeeName, memory)
+
+    // 构建系统提示词（使用快照）
+    const systemPrompt = buildSystemPrompt(
+      this.role.systemPrompt,
+      memory.sessionSnapshot
+    )
+
     this.currentSession = {
       id: sessionId,
       messageCount: 0,
       tokenCount: 0,
+      systemPrompt,
     }
 
     console.log(`[${this.employeeName}] Created session: ${sessionId}`)
-
-    // 保存 sessionId 到 memory
-    const updatedMemory = await this.memoryManager.read(this.employeeName)
-    updatedMemory.sessionId = sessionId
-    await this.memoryManager.write(this.employeeName, updatedMemory)
 
     // 记录 session 创建事件
     await this.stateManager?.addEvent({
@@ -567,9 +589,10 @@ export class EventLoop {
       `[${this.employeeName}] Closing session: ${this.currentSession.id}`
     )
 
-    // 清除 memory 中的 sessionId
+    // 清除 memory 中的 sessionId 和快照
     const memory = await this.memoryManager.read(this.employeeName)
     memory.sessionId = undefined
+    memory.sessionSnapshot = undefined
     await this.memoryManager.write(this.employeeName, memory)
 
     // 取消注册

@@ -36,6 +36,14 @@ export interface Memory {
   tasks: Task[] // 任务列表
   custom: Record<string, any> // 自定义字段
   sessionId?: string // Session ID（可选）
+
+  // Session 创建时的快照
+  sessionSnapshot?: {
+    knowledge: string[]
+    tasks: Task[]
+    custom: Record<string, any>
+    timestamp: string
+  }
 }
 
 /**
@@ -96,6 +104,7 @@ export class MemoryManager {
         tasks: data?.tasks ?? [],
         custom: data?.custom ?? {},
         sessionId: data?.sessionId ?? undefined,
+        sessionSnapshot: data?.sessionSnapshot ?? undefined,
       }
     } catch (error: any) {
       if (error.code === "ENOENT") {
