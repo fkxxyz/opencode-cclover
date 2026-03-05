@@ -292,29 +292,34 @@ skill(name="cclover/brainstorming")
 
 ### Step 2: Collect Requirements
 
-Use brainstorming to understand:
+Use brainstorming to understand, following this order:
 
-**Core Requirements**:
-- Role name (must be valid filename: lowercase, hyphens, no spaces)
+**Phase 1: Role Purpose**
 - Role purpose and responsibilities
-- Target storage location (project/global/preset)
+- Core value and expected outcomes
 
-**Tool Usage Requirements** (CRITICAL - ask for each tool):
-- **send_message**: When should this role use it? How frequently?
-- **edit_tasks**: When should this role use it? How frequently?
-- **create_agent**: When should this role use it? How frequently?
-- **hire_employee**: When should this role use it? How frequently?
-
-**Behavioral Requirements**:
+**Phase 2: Working Approach** (CRITICAL - confirm completeness before proceeding)
 - Workflow and decision criteria
 - Limitations and boundaries
 - Collaboration patterns with other roles
 - Error handling strategies
 
-**Special Constraints**:
+After collecting Phase 2 information, provide a detailed summary and ask: "Let me summarize this role's working approach: [detailed summary of workflow, limitations, collaboration patterns, and error handling]. Before we discuss tool usage, please confirm whether there are any other work processes, limitations, collaboration patterns, or error handling strategies that need to be considered?"
+
+**Phase 3: Tool Usage** (CRITICAL - ask for each tool)
+- **send_message**: When should this role use it? How frequently?
+- **edit_tasks**: When should this role use it? How frequently?
+- **create_agent**: When should this role use it? How frequently?
+- **hire_employee**: When should this role use it? How frequently?
+
+**Phase 4: Special Constraints**
 - Any specific rules or policies
 - Domain-specific knowledge needed
 - Performance expectations
+
+**Phase 5: Naming and Location**
+- Role name (must be valid filename: lowercase, hyphens, no spaces)
+- Target storage location (project/global/preset)
 
 ### Step 3: Design the Role
 
