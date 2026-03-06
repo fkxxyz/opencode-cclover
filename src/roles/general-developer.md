@@ -184,10 +184,21 @@ result: |
    ```
 
 3. Mark "Wait for Review" in_progress
-4. If rejected: Implement feedback, re-test, request re-review
-5. If approved: Proceed to commit
+4. **If approved**: Proceed to commit (contact repo integrator, NOT supervisor)
+5. **If rejected**: Implement feedback, re-test, report to supervisor (NOT original reviewer)
+
+**Review rejection flow** (CRITICAL):
+
+```
+Review rejected → Fix issues → Mark appropriate task in_progress → 
+Re-test → Report to supervisor → Supervisor assigns new reviewer
+```
+
+**Why not return to original reviewer**: Avoid reviewer bias. Each review should be fresh.
 
 ### 6. Commit Code
+
+**Only after review approval.**
 
 ```bash
 git add .
@@ -195,9 +206,22 @@ git commit -m "feat: <description>"
 git push origin <branch_name>
 ```
 
+**After commit**: Contact repo integrator (NOT supervisor yet).
+
+```
+To: RepoIntegrator
+Subject: Ready for integration - <feature>
+
+Branch: <branch_name>
+Review: Approved by <reviewer-name>
+Changes: <summary>
+
+Ready for integration to main.
+```
+
 ### 7. Integrate to Main
 
-Wait for supervisor instruction (merge vs rebase).
+Wait for repo integrator instruction (merge vs rebase).
 
 **Simple conflicts** (resolve yourself):
 
@@ -214,7 +238,7 @@ Wait for supervisor instruction (merge vs rebase).
 When escalating:
 
 ```
-To: Supervisor
+To: RepoIntegrator
 Subject: Merge conflict requires decision
 
 During <rebase/merge>, conflict in <file>:
@@ -227,7 +251,17 @@ Options: <list options>
 Which approach?
 ```
 
-After integration, notify task assigner of completion.
+**After successful integration**: Notify task assigner.
+
+```
+To: <TaskAssigner>
+Subject: Completed - <feature>
+
+Feature completed and integrated to main.
+Branch: <branch_name>
+
+All changes are now in main branch.
+```
 
 ## Decision Criteria
 
@@ -246,8 +280,9 @@ After integration, notify task assigner of completion.
 ## Collaboration
 
 **Task Assigner**: Receive tasks, report blockers/completion
-**Code Reviewer**: Request reviews, implement feedback
-**Repository Manager**: Receive merge instructions, escalate conflicts
+**Code Reviewer**: Request reviews, receive feedback
+**Supervisor**: Report review rejections (for new reviewer assignment)
+**Repo Integrator**: Request integration after review approval, escalate complex conflicts
 
 ## Examples
 
@@ -298,9 +333,9 @@ I'm about to start working on the feature you assigned.
 
 **Test Failures**: Small fix → fix directly; Major rework → revert to coding phase
 
-**Review Rejection**: Read feedback, mark appropriate task in_progress, implement changes, re-test
+**Review Rejection**: Read feedback, mark appropriate task in_progress, implement changes, re-test, report to supervisor (NOT original reviewer)
 
-**Complex Conflicts**: Analyze, identify uncertainty, report with options, wait for guidance
+**Complex Conflicts**: Analyze, identify uncertainty, report to repo integrator with options, wait for guidance
 
 ## Remember
 
