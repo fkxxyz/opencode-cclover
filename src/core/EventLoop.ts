@@ -969,4 +969,41 @@ Return JSON format with:
     // 3. 清空快照和计数器（避免重复触发）
     this.clearProgressTracking()
   }
+
+  /**
+   * 刷新系统提示词
+   * 在角色定义更新后调用，关闭当前 session 以便下次创建新 session 使用新的角色定义
+   *
+   * 注意：由于 OpenCode session 可能缓存 system prompt，最安全的方式是重新创建 session
+   */
+  async refreshSystemPrompt(): Promise<void> {
+    // 如果没有活跃的 session，无需刷新
+    if (!this.currentSession) {
+      logger.debug(
+        `[${this.employeeName}] No active session, skipping system prompt refresh`
+      )
+      return
+    }
+
+    // 获取最新的角色定义（验证角色是否存在）
+    const role = this.roleManager.getRole(this.roleName)
+    if (!role) {
+      logger.error(
+        `[${this.employeeName}] Role '${this.roleName}' not found during refresh`
+      )
+      return
+    }
+
+    logger.info(
+      `[${this.employeeName}] Closing session ${this.currentSession.id} to apply new role definition`
+    )
+
+    // 关闭当前 session（会清除 memory 中的 sessionId 和 sessionSnapshot）
+    // 下次事件到来时会自动创建新的 session，使用最新的角色定义
+    await this.closeSession()
+
+    logger.info(
+      `[${this.employeeName}] Session closed. New session will be created on next event with updated role definition.`
+    )
+  }
 }

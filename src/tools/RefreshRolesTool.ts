@@ -18,11 +18,18 @@ export function createRefreshRolesTool(project: ProjectInstance) {
       "Refresh role list, reload all role definitions from preset, global, and project directories",
     args: {},
     async execute() {
-      // 调用 RoleManager 的 refresh 方法
+      // 1. 调用 RoleManager 的 refresh 方法
       await project.roleManager.refresh()
 
+      // 2. 刷新所有正在运行的员工的系统提示词
+      const refreshPromises: Promise<void>[] = []
+      for (const [employeeName, eventLoop] of project.eventLoops.entries()) {
+        refreshPromises.push(eventLoop.refreshSystemPrompt())
+      }
+      await Promise.all(refreshPromises)
+
       const roleNames = project.roleManager.getRoleNames()
-      return `Roles refreshed successfully. Available roles: ${roleNames.join(", ")}`
+      return `Roles refreshed successfully. Available roles: ${roleNames.join(", ")}. Updated system prompts for ${project.eventLoops.size} running employee(s).`
     },
   })
 }
