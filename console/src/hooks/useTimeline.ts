@@ -20,7 +20,7 @@ export function useTimeline(
 
     setLoading(true)
     apiClient
-      .getTimeline(projectId, employeeName, limit)
+      .getTimeline(projectId, employeeName, limit || 100000)
       .then(setTimeline)
       .catch((err: Error) => {
         console.error("获取时间线失败:", err)
