@@ -972,9 +972,9 @@ Return JSON format with:
 
   /**
    * 刷新系统提示词
-   * 在角色定义更新后调用，关闭当前 session 以便下次创建新 session 使用新的角色定义
+   * 在角色定义更新后调用，更新当前 session 缓存的系统提示词
    *
-   * 注意：由于 OpenCode session 可能缓存 system prompt，最安全的方式是重新创建 session
+   * 注意：由于 session.prompt() 每次都传递 system 参数，只需更新缓存即可，无需重新创建 session
    */
   async refreshSystemPrompt(): Promise<void> {
     // 如果没有活跃的 session，无需刷新
@@ -994,16 +994,19 @@ Return JSON format with:
       return
     }
 
-    logger.info(
-      `[${this.employeeName}] Closing session ${this.currentSession.id} to apply new role definition`
-    )
+    // 读取当前记忆
+    const memory = await this.memoryManager.read(this.employeeName)
 
-    // 关闭当前 session（会清除 memory 中的 sessionId 和 sessionSnapshot）
-    // 下次事件到来时会自动创建新的 session，使用最新的角色定义
-    await this.closeSession()
+    // 重新构建系统提示词（使用 sessionSnapshot 或当前状态）
+    const systemPrompt = memory.sessionSnapshot
+      ? buildSystemPrompt(role.systemPrompt, memory.sessionSnapshot)
+      : buildSystemPrompt(role.systemPrompt, memory)
+
+    // 更新缓存的系统提示词
+    this.currentSession.systemPrompt = systemPrompt
 
     logger.info(
-      `[${this.employeeName}] Session closed. New session will be created on next event with updated role definition.`
+      `[${this.employeeName}] System prompt refreshed for session ${this.currentSession.id} (preserved conversation history)`
     )
   }
 }
