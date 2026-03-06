@@ -61,14 +61,20 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     tool: tools,
     "tool.definition": async (input, output) => {
       // 注入参数描述（修复 OpenCode SDK 不传递 Zod .describe() 的问题）
+      // 由于 OpenCode 使用有 bug 的 z.toJSONSchema() 转换，参数描述会丢失
+      // 临时方案：将参数说明追加到工具描述中
       const descriptions = toolParameterDescriptions[input.toolID]
-      if (descriptions && output.parameters?.properties) {
-        for (const [paramName, description] of Object.entries(descriptions)) {
-          if (output.parameters.properties[paramName]) {
-            output.parameters.properties[paramName].description = description
-          }
-        }
+      if (!descriptions || Object.keys(descriptions).length === 0) {
+        return
       }
+
+      // 构建参数说明文本
+      const paramDocs = Object.entries(descriptions)
+        .map(([name, desc]) => `  - ${name}: ${desc}`)
+        .join("\n")
+
+      // 追加到工具描述
+      output.description += `\n\n参数说明：\n${paramDocs}`
     },
     config: async (config) => {
       // 注册空 agent，用于员工 session（避免预设提示词污染）
