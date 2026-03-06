@@ -176,7 +176,7 @@ export function buildEventMessage(event: Event): string {
     sections.push("---")
     sections.push("")
     sections.push(
-      "**Reminder**: You have tasks that haven't been started yet. Please plan and start them appropriately. If a task depends on other incomplete tasks and cannot start, please use edit_tasks to set the correct dependencies, otherwise you will keep receiving this event reminder."
+      "**Reminder**: You have tasks that haven't been started yet. Please plan and start them appropriately. If a task depends on other incomplete tasks and cannot start, please use edit_tasks to set the correct dependencies. If a task is waiting for messages from other employees to start (e.g., clarification, requirements, guidance), please use edit_tasks to set the task status to waiting_for_message with an explanation, otherwise you will keep receiving this event reminder."
     )
     sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "task_reminder") {
