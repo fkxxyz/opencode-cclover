@@ -37,7 +37,13 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
               .optional()
               .describe("依赖任务列表（add/update 操作可选）"),
             status: tool.schema
-              .enum(["pending", "in_progress", "completed", "cancelled"])
+              .enum([
+                "pending",
+                "in_progress",
+                "completed",
+                "cancelled",
+                "waiting_for_message",
+              ])
               .optional()
               .describe("任务状态（update 操作可选）"),
             result: tool.schema
