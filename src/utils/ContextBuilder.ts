@@ -206,13 +206,8 @@ export function buildEventMessage(event: Event): string {
   }
 
   sections.push("")
-  sections.push("# Your Task")
   sections.push(
-    "Based on the above information, decide your next action. You can:"
-  )
-  sections.push("- Call tools to perform operations")
-  sections.push(
-    '- Output text to indicate waiting (e.g., "Good, now I just need to wait for xxx")'
+    "Remember: What you write here is just for you - like taking notes. If you want to talk to other employees, use send_message."
   )
 
   return sections.join("\n")
