@@ -23,6 +23,10 @@ export function createHireEmployeeTool(
     args: {
       name: tool.schema.string().describe("员工名称"),
       role: tool.schema.string().describe("角色类型"),
+      initial_message: tool.schema
+        .string()
+        .optional()
+        .describe("可选：招聘成功后立即发送给新员工的第一条消息"),
     },
     async execute(args, context) {
       try {
@@ -70,6 +74,19 @@ export function createHireEmployeeTool(
         logger.info(
           `[HireEmployeeTool] Employee '${args.name}' hired by '${hiredBy}' with role '${args.role}'`
         )
+
+        // 6. 如果提供了 initial_message，立即发送给新员工
+        if (args.initial_message) {
+          await project.messageService.send(
+            hiredBy,
+            args.name,
+            args.initial_message
+          )
+          logger.info(
+            `[HireEmployeeTool] Initial message sent to '${args.name}' from '${hiredBy}'`
+          )
+          return `成功雇佣员工 '${args.name}'，角色: ${args.role}，已发送初始消息`
+        }
 
         return `成功雇佣员工 '${args.name}'，角色: ${args.role}`
       } catch (error: any) {
