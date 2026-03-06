@@ -287,10 +287,44 @@ describe("EventLoop", () => {
       const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
       await ensureSession()
 
-      // Mock session.get 返回高 token 数
-      opcodeClient.session.get = mock(async () => ({
-        data: { tokens: { total: 150000 } },
-      }))
+      // Mock messages 返回包含高 token 数的 assistant 消息
+      // 第一次调用用于检查 token，第二次调用用于获取总结
+      let messagesCallCount = 0
+      opcodeClient.session.messages = mock(async () => {
+        messagesCallCount++
+        if (messagesCallCount === 1) {
+          // 第一次调用：返回包含高 token 数的消息
+          return {
+            data: [
+              {
+                info: {
+                  role: "assistant",
+                  tokens: { total: 150000, input: 100000, output: 50000 },
+                },
+                parts: [],
+              },
+            ],
+          }
+        } else {
+          // 第二次调用：返回总结结果
+          return {
+            data: [
+              {
+                info: { role: "assistant" },
+                parts: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      knowledge: ["Summary knowledge"],
+                      custom: { summaryKey: "summaryValue" },
+                    }),
+                  },
+                ],
+              },
+            ],
+          }
+        }
+      })
 
       // Mock prompt 返回总结
       opcodeClient.session.prompt = mock(async () => ({
@@ -300,24 +334,6 @@ describe("EventLoop", () => {
             time: { completed: Date.now() },
           },
         },
-      }))
-
-      // Mock messages 返回 JSON 格式的总结
-      opcodeClient.session.messages = mock(async () => ({
-        data: [
-          {
-            info: { role: "assistant" },
-            parts: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  knowledge: ["Summary knowledge"],
-                  custom: { summaryKey: "summaryValue" },
-                }),
-              },
-            ],
-          },
-        ],
       }))
 
       // 调用 summarizeIfNeeded
@@ -351,10 +367,41 @@ describe("EventLoop", () => {
       const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
       await ensureSession()
 
-      // Mock session.get 返回高 token 数
-      opcodeClient.session.get = mock(async () => ({
-        data: { tokens: { total: 150000 } },
-      }))
+      // Mock messages 返回包含高 token 数的 assistant 消息
+      // 第一次调用用于检查 token，第二次调用用于获取总结
+      let messagesCallCount = 0
+      opcodeClient.session.messages = mock(async () => {
+        messagesCallCount++
+        if (messagesCallCount === 1) {
+          // 第一次调用：返回包含高 token 数的消息
+          return {
+            data: [
+              {
+                info: {
+                  role: "assistant",
+                  tokens: { total: 150000, input: 100000, output: 50000 },
+                },
+                parts: [],
+              },
+            ],
+          }
+        } else {
+          // 第二次调用：返回 markdown 代码块格式的总结
+          return {
+            data: [
+              {
+                info: { role: "assistant" },
+                parts: [
+                  {
+                    type: "text",
+                    text: '```json\n{"knowledge": ["Markdown knowledge"], "custom": {"markdownKey": "markdownValue"}}\n```',
+                  },
+                ],
+              },
+            ],
+          }
+        }
+      })
 
       // Mock prompt
       opcodeClient.session.prompt = mock(async () => ({
@@ -364,21 +411,6 @@ describe("EventLoop", () => {
             time: { completed: Date.now() },
           },
         },
-      }))
-
-      // Mock messages 返回 markdown 代码块格式的总结
-      opcodeClient.session.messages = mock(async () => ({
-        data: [
-          {
-            info: { role: "assistant" },
-            parts: [
-              {
-                type: "text",
-                text: '```json\n{"knowledge": ["Markdown knowledge"], "custom": {"markdownKey": "markdownValue"}}\n```',
-              },
-            ],
-          },
-        ],
       }))
 
       // 调用 summarizeIfNeeded
@@ -409,10 +441,41 @@ describe("EventLoop", () => {
       const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
       await ensureSession()
 
-      // Mock session.get 返回高 token 数
-      opcodeClient.session.get = mock(async () => ({
-        data: { tokens: { total: 150000 } },
-      }))
+      // Mock messages 返回包含高 token 数的 assistant 消息
+      // 第一次调用用于检查 token，后续调用返回无效 JSON
+      let messagesCallCount = 0
+      opcodeClient.session.messages = mock(async () => {
+        messagesCallCount++
+        if (messagesCallCount === 1) {
+          // 第一次调用：返回包含高 token 数的消息
+          return {
+            data: [
+              {
+                info: {
+                  role: "assistant",
+                  tokens: { total: 150000, input: 100000, output: 50000 },
+                },
+                parts: [],
+              },
+            ],
+          }
+        } else {
+          // 后续调用：返回无效的 JSON（所有重试都失败）
+          return {
+            data: [
+              {
+                info: { role: "assistant" },
+                parts: [
+                  {
+                    type: "text",
+                    text: "This is not valid JSON",
+                  },
+                ],
+              },
+            ],
+          }
+        }
+      })
 
       // Mock prompt
       opcodeClient.session.prompt = mock(async () => ({
@@ -422,21 +485,6 @@ describe("EventLoop", () => {
             time: { completed: Date.now() },
           },
         },
-      }))
-
-      // Mock messages 返回无效的 JSON（所有重试都失败）
-      opcodeClient.session.messages = mock(async () => ({
-        data: [
-          {
-            info: { role: "assistant" },
-            parts: [
-              {
-                type: "text",
-                text: "This is not valid JSON",
-              },
-            ],
-          },
-        ],
       }))
 
       // Mock StateManager 的 addEvent 方法
@@ -489,26 +537,25 @@ describe("EventLoop", () => {
       const ensureSession = (eventLoop as any).ensureSession.bind(eventLoop)
       await ensureSession()
 
-      // Mock session.get 返回高 token 数
-      opcodeClient.session.get = mock(async () => ({
-        data: { tokens: { total: 150000 } },
-      }))
-
-      // Mock prompt
-      opcodeClient.session.prompt = mock(async () => ({
-        data: {
-          info: {
-            role: "assistant",
-            time: { completed: Date.now() },
-          },
-        },
-      }))
-
-      // Mock messages: 第一次失败，第二次成功
+      // Mock messages: 第一次用于检查 token，第二次失败，第三次成功
       let callCount = 0
       opcodeClient.session.messages = mock(async () => {
         callCount++
         if (callCount === 1) {
+          // 第一次调用：返回包含高 token 数的消息
+          return {
+            data: [
+              {
+                info: {
+                  role: "assistant",
+                  tokens: { total: 150000, input: 100000, output: 50000 },
+                },
+                parts: [],
+              },
+            ],
+          }
+        } else if (callCount === 2) {
+          // 第二次调用：返回无效 JSON
           return {
             data: [
               {
@@ -518,6 +565,7 @@ describe("EventLoop", () => {
             ],
           }
         } else {
+          // 第三次调用：返回有效 JSON
           return {
             data: [
               {
@@ -536,6 +584,16 @@ describe("EventLoop", () => {
           }
         }
       })
+
+      // Mock prompt
+      opcodeClient.session.prompt = mock(async () => ({
+        data: {
+          info: {
+            role: "assistant",
+            time: { completed: Date.now() },
+          },
+        },
+      }))
 
       // 调用 summarizeIfNeeded
       const summarizeIfNeeded = (eventLoop as any).summarizeIfNeeded.bind(

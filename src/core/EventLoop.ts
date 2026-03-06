@@ -617,12 +617,22 @@ export class EventLoop {
   private async summarizeIfNeeded(): Promise<void> {
     if (!this.currentSession) return
 
-    // 获取当前 session 的详细信息
-    const session = await this.opcodeClient.session.get({
+    // 获取所有消息以计算 token 数
+    const messages = await this.opcodeClient.session.messages({
       path: { id: this.currentSession.id },
     })
 
-    const tokenCount = (session.data as any)?.tokens?.total ?? 0
+    // 从最后一条 assistant 消息获取累计 token 数
+    // 每条 assistant 消息的 tokens.total 是到那个时刻为止的累计值
+    const assistantMessages = (messages.data ?? []).filter(
+      (msg) => msg.info.role === "assistant"
+    )
+    const tokenCount =
+      assistantMessages.length > 0
+        ? ((assistantMessages[assistantMessages.length - 1].info as any).tokens
+            ?.total ?? 0)
+        : 0
+
     const messageCount = this.currentSession.messageCount
 
     // 检查是否达到阈值
