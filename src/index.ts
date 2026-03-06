@@ -3,7 +3,7 @@ import { createTools } from "./tools"
 import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
 import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
-import { toolParameterDescriptions } from "./tools/descriptions"
+import { formatToolParameterDescriptions } from "./utils/ZodDescriptionExtractor"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -60,21 +60,14 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   return {
     tool: tools,
     "tool.definition": async (input, output) => {
-      // 注入参数描述（修复 OpenCode SDK 不传递 Zod .describe() 的问题）
-      // 由于 OpenCode 使用有 bug 的 z.toJSONSchema() 转换，参数描述会丢失
-      // 临时方案：将参数说明追加到工具描述中
-      const descriptions = toolParameterDescriptions[input.toolID]
-      if (!descriptions || Object.keys(descriptions).length === 0) {
-        return
+      // 自动提取参数描述（修复 OpenCode SDK 不传递 Zod .describe() 的问题）
+      const paramDocs = formatToolParameterDescriptions(output.parameters)
+      if (paramDocs) {
+        output.description += paramDocs
+        logger.info(
+          `[tool.definition] ✓ Auto-extracted parameter descriptions for ${input.toolID}`
+        )
       }
-
-      // 构建参数说明文本
-      const paramDocs = Object.entries(descriptions)
-        .map(([name, desc]) => `  - ${name}: ${desc}`)
-        .join("\n")
-
-      // 追加到工具描述
-      output.description += `\n\n参数说明：\n${paramDocs}`
     },
     config: async (config) => {
       // 注册空 agent，用于员工 session（避免预设提示词污染）
