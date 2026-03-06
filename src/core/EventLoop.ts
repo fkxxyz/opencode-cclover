@@ -89,8 +89,17 @@ export class EventLoop {
       hasImmediate ? "busy" : "idle"
     )
 
-    // 启动时检查是否需要总结（恢复已有 session 时可能已超过阈值）
-    await this.summarizeIfNeeded()
+    // 启动时确保 session 存在并检查是否需要总结
+    // 这样可以在恢复已有 session 时立即触发总结（如果已超过阈值）
+    try {
+      await this.ensureSession()
+      await this.summarizeIfNeeded()
+    } catch (error) {
+      console.error(
+        `[${this.employeeName}] Error during startup session check:`,
+        error
+      )
+    }
 
     while (true) {
       try {
