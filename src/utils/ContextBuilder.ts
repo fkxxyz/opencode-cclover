@@ -170,6 +170,7 @@ export function buildEventMessage(event: Event): string {
     sections.push("")
     for (const task of event.tasks) {
       sections.push(`**Task: ${task.name}**`)
+      sections.push(`- Status: ${task.status}`)
       sections.push(`- Description: ${task.description}`)
       if (task.result) {
         sections.push(`- Current Progress: ${task.result}`)
@@ -187,6 +188,7 @@ export function buildEventMessage(event: Event): string {
     sections.push("")
     for (const task of event.tasks) {
       sections.push(`**Task: ${task.name}**`)
+      sections.push(`- Status: ${task.status}`)
       sections.push(`- Description: ${task.description}`)
       if (task.result) {
         sections.push(`- Current Progress: ${task.result}`)
