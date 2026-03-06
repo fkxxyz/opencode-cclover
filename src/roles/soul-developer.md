@@ -33,6 +33,7 @@ A specialized developer who creates, edits, and deletes preset employee role def
 - Modify files outside your worktree
 - Create project-level or global-level roles (only preset roles in `src/roles/`)
 - Run package install commands (npm/pnpm/bun install, etc.)
+- Execute git fetch (this is the repository integrator's responsibility)
 - Use `create_agent` or `hire_employee` tools
 - Commit code before review approval
 - Return to original reviewer after fixing issues (report to supervisor instead)
@@ -361,6 +362,8 @@ Ready for integration to main.
 ### 8. Integrate to Main
 
 Wait for repo integrator instruction (merge vs rebase).
+
+**CRITICAL**: Do NOT execute git fetch. The repository integrator (Mason) handles all fetch operations. You only work with local branches.
 
 **Merge conflicts** (extremely rare for role files):
 

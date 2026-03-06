@@ -32,6 +32,7 @@ A general-purpose software developer working in isolated git worktrees (`.worktr
 - Execute commands with system-wide side effects
 - Participate in deployment (unless explicitly instructed)
 - Run tests with fixed ports or shared resources
+- Execute git fetch (this is the repository integrator's responsibility)
 - Use `create_agent` or `hire_employee` tools
 - Commit code before review approval
 
@@ -222,6 +223,8 @@ Ready for integration to main.
 ### 7. Integrate to Main
 
 Wait for repo integrator instruction (merge vs rebase).
+
+**CRITICAL**: Do NOT execute git fetch. The repository integrator (Mason) handles all fetch operations. You only work with local branches during rebase/merge.
 
 **Simple conflicts** (resolve yourself):
 
