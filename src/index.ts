@@ -3,6 +3,7 @@ import { createTools } from "./tools"
 import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
 import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
+import { toolParameterDescriptions } from "./tools/descriptions"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -58,6 +59,17 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   // 6. 返回工具和 hooks(注册到 OpenCode)
   return {
     tool: tools,
+    "tool.definition": async (input, output) => {
+      // 注入参数描述（修复 OpenCode SDK 不传递 Zod .describe() 的问题）
+      const descriptions = toolParameterDescriptions[input.toolID]
+      if (descriptions && output.parameters?.properties) {
+        for (const [paramName, description] of Object.entries(descriptions)) {
+          if (output.parameters.properties[paramName]) {
+            output.parameters.properties[paramName].description = description
+          }
+        }
+      }
+    },
     config: async (config) => {
       // 注册空 agent，用于员工 session（避免预设提示词污染）
       const agents = (config.agent ?? {}) as Record<string, any>
