@@ -1,41 +1,45 @@
 /**
- * edit_tasks 工具
+ * edit_tasks tool
  *
- * 批量编辑任务列表（添加、更新、删除任务）
+ * Batch edit task list (add, update, delete tasks)
  */
 import { tool } from "@opencode-ai/plugin"
 import type { MemoryManager } from "../core/MemoryManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 
 /**
- * 创建 edit_tasks 工具
+ * Create edit_tasks tool
  *
- * @param memoryManager 记忆管理器实例
+ * @param memoryManager Memory manager instance
  */
 export function createEditTasksTool(memoryManager: MemoryManager) {
   return tool({
-    description: "批量编辑任务列表（添加、更新、删除任务）",
+    description: "Batch edit task list (add, update, delete tasks)",
     args: {
       operations: tool.schema
         .array(
           tool.schema.object({
             action: tool.schema
               .enum(["add", "update", "delete", "decompose"])
-              .describe("操作类型"),
+              .describe("Operation type"),
             name: tool.schema
               .string()
               .optional()
               .describe(
-                "任务名称（add/update/delete/decompose 操作必需，作为任务的唯一标识）"
+                "Task name (required for add/update/delete/decompose operations, serves as unique identifier)"
               ),
             description: tool.schema
               .string()
               .optional()
-              .describe("任务描述（add 操作必需，update 操作可选）"),
+              .describe(
+                "Task description (required for add operation, optional for update operation)"
+              ),
             dependencies: tool.schema
               .array(tool.schema.string())
               .optional()
-              .describe("依赖任务列表（add/update 操作可选）"),
+              .describe(
+                "Dependency task list (optional for add/update operations)"
+              ),
             status: tool.schema
               .enum([
                 "pending",
@@ -45,46 +49,50 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
                 "waiting_for_message",
               ])
               .optional()
-              .describe("任务状态（update 操作可选）"),
+              .describe("Task status (optional for update operation)"),
             result: tool.schema
               .string()
               .optional()
-              .describe("任务结果（update 操作可选）"),
+              .describe("Task result (optional for update operation)"),
             subtasks: tool.schema
               .array(
                 tool.schema.object({
-                  name: tool.schema.string().describe("子任务名称"),
-                  description: tool.schema.string().describe("子任务描述"),
+                  name: tool.schema.string().describe("Subtask name"),
+                  description: tool.schema
+                    .string()
+                    .describe("Subtask description"),
                   dependencies: tool.schema
                     .array(tool.schema.string())
                     .optional()
-                    .describe("子任务额外依赖（可选）"),
+                    .describe("Additional subtask dependencies (optional)"),
                 })
               )
               .optional()
-              .describe("子任务列表（decompose 操作必需）"),
+              .describe("Subtask list (required for decompose operation)"),
           })
         )
-        .describe("操作列表"),
+        .describe("Operation list"),
     },
     async execute(args, context) {
-      // 1. 获取调用者信息
+      // 1. Get caller information
       const employeeName = sessionRegistry.getEmployeeName(context.sessionID)
 
       if (!employeeName) {
-        return `错误: 无法识别调用者身份 (sessionID: ${context.sessionID})`
+        return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
 
       const results: string[] = []
       let hasSuccess = false
 
-      // 2. 执行每个操作
+      // 2. Execute each operation
       for (const op of args.operations) {
         try {
           if (op.action === "add") {
-            // 添加任务
+            // Add task
             if (!op.name || !op.description) {
-              results.push(`错误: add 操作需要 name 和 description 字段`)
+              results.push(
+                `Error: add operation requires name and description fields`
+              )
               continue
             }
 
@@ -94,12 +102,12 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
               description: op.description,
               dependencies: op.dependencies || [],
             })
-            results.push(`✓ 已添加任务: ${op.name}`)
+            results.push(`✓ Added task: ${op.name} [pending]`)
             hasSuccess = true
           } else if (op.action === "update") {
-            // 更新任务
+            // Update task
             if (!op.name) {
-              results.push(`错误: update 操作需要 name 字段`)
+              results.push(`Error: update operation requires name field`)
               continue
             }
 
@@ -115,12 +123,17 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
             }
 
             await memoryManager.updateTask(employeeName, op.name, updates)
-            results.push(`✓ 已更新任务: ${op.name}`)
+
+            // Get updated task to show current status
+            const memory = await memoryManager.read(employeeName)
+            const updatedTask = memory.tasks.find((t) => t.name === op.name)
+            const status = updatedTask?.status || "unknown"
+            results.push(`✓ Updated task: ${op.name} [${status}]`)
             hasSuccess = true
           } else if (op.action === "delete") {
-            // 删除任务并清理依赖
+            // Delete task and cleanup dependencies
             if (!op.name) {
-              results.push(`错误: delete 操作需要 name 字段`)
+              results.push(`Error: delete operation requires name field`)
               continue
             }
 
@@ -131,29 +144,33 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
 
             if (affectedTasks.length > 0) {
               results.push(
-                `✓ 已删除任务: ${op.name} (自动清理了 ${affectedTasks.length} 个任务的依赖: ${affectedTasks.join(", ")})`
+                `✓ Deleted task: ${op.name} (cleaned up dependencies in ${affectedTasks.length} tasks: ${affectedTasks.join(", ")})`
               )
             } else {
-              results.push(`✓ 已删除任务: ${op.name}`)
+              results.push(`✓ Deleted task: ${op.name}`)
             }
             hasSuccess = true
           } else if (op.action === "decompose") {
-            // 分解任务
+            // Decompose task
             if (!op.name) {
-              results.push(`错误: decompose 操作需要 name 字段`)
+              results.push(`Error: decompose operation requires name field`)
               continue
             }
 
             if (!op.subtasks || op.subtasks.length === 0) {
-              results.push(`错误: decompose 操作需要非空的 subtasks 列表`)
+              results.push(
+                `Error: decompose operation requires non-empty subtasks list`
+              )
               continue
             }
 
-            // 验证每个子任务
+            // Validate each subtask
             let hasError = false
             for (const subtask of op.subtasks) {
               if (!subtask.name || !subtask.description) {
-                results.push(`错误: 每个子任务都需要 name 和 description 字段`)
+                results.push(
+                  `Error: each subtask requires name and description fields`
+                )
                 hasError = true
                 break
               }
@@ -169,18 +186,18 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
               op.subtasks
             )
             results.push(
-              `✓ 已分解任务: ${op.name} 为 ${op.subtasks.length} 个子任务`
+              `✓ Decomposed task: ${op.name} into ${op.subtasks.length} subtasks [pending]`
             )
             hasSuccess = true
           }
         } catch (error) {
           results.push(
-            `✗ 操作失败 (${op.action} ${op.name}): ${error instanceof Error ? error.message : String(error)}`
+            `✗ Operation failed (${op.action} ${op.name}): ${error instanceof Error ? error.message : String(error)}`
           )
         }
       }
 
-      // 3. 如果有成功的操作,返回当前任务状态
+      // 3. If there are successful operations, return current task status
       if (hasSuccess) {
         try {
           const inProgressTasks =
@@ -190,13 +207,13 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
 
           results.push("")
           results.push(
-            `正在进行的任务: ${inProgressTasks.length > 0 ? inProgressTasks.map((t) => t.name).join(", ") : "无"}`
+            `In progress tasks: ${inProgressTasks.length > 0 ? inProgressTasks.map((t) => t.name).join(", ") : "None"}`
           )
           results.push(
-            `可执行的任务: ${executableTasks.length > 0 ? executableTasks.map((t) => t.name).join(", ") : "无"}`
+            `Executable tasks: ${executableTasks.length > 0 ? executableTasks.map((t) => t.name).join(", ") : "None"}`
           )
         } catch (error) {
-          // 获取任务状态失败不影响主要操作结果
+          // Getting task status failure doesn't affect main operation result
         }
       }
 

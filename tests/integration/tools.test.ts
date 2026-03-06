@@ -99,7 +99,7 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toBe("消息已发送给 bob")
+      expect(result).toBe("Message sent to bob")
 
       // 验证消息已发送
       const message = await bobClient.recv()
@@ -124,7 +124,7 @@ describe("Tools Integration", () => {
             ask: async () => {},
           }
         )
-      ).rejects.toThrow("无法识别调用者身份")
+      ).rejects.toThrow("Unable to identify caller")
     })
   })
 
@@ -159,7 +159,7 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("✓ 已添加任务: 计算1+1")
+      expect(result).toContain("✓ Added task: 计算1+1 [pending]")
 
       // 验证任务已添加
       const task = await memoryManager.getTask(employeeName, "计算1+1")
@@ -208,7 +208,7 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("✓ 已更新任务: 计算1+1")
+      expect(result).toContain("✓ Updated task: 计算1+1 [completed]")
 
       // 验证任务已更新
       const task = await memoryManager.getTask(employeeName, "计算1+1")
@@ -255,7 +255,7 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("✓ 已删除任务: 计算1+1")
+      expect(result).toContain("✓ Deleted task: 计算1+1")
 
       // 验证任务已删除
       const task = await memoryManager.getTask(employeeName, "计算1+1")
@@ -304,9 +304,9 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("✓ 已添加任务: 任务1")
-      expect(result).toContain("✓ 已添加任务: 任务2")
-      expect(result).toContain("✓ 已更新任务: 任务1")
+      expect(result).toContain("✓ Added task: 任务1 [pending]")
+      expect(result).toContain("✓ Added task: 任务2 [pending]")
+      expect(result).toContain("✓ Updated task: 任务1 [completed]")
 
       // 验证任务状态
       const task1 = await memoryManager.getTask(employeeName, "任务1")
@@ -350,8 +350,10 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("错误: add 操作需要 name 和 description 字段")
-      expect(result).toContain("错误: update 操作需要 name 字段")
+      expect(result).toContain(
+        "Error: add operation requires name and description fields"
+      )
+      expect(result).toContain("Error: update operation requires name field")
     })
   })
 
@@ -380,8 +382,8 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("✓ 已创建 Agent: mock-session-id")
-      expect(result).toContain("正在执行任务: 复杂计算")
+      expect(result).toContain("✓ Created agent: mock-session-id")
+      expect(result).toContain("executing task: 复杂计算")
 
       // 验证 agent 已注册
       const agentInfo = agentRegistry.getInfo("mock-session-id")
@@ -410,7 +412,7 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("错误: 无法识别调用者身份")
+      expect(result).toContain("Error: Unable to identify caller")
     })
 
     test("should handle client errors", async () => {
@@ -446,7 +448,7 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toContain("创建 Agent 失败")
+      expect(result).toContain("Failed to create agent")
       expect(result).toContain("Network error")
     })
   })

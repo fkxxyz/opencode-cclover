@@ -54,7 +54,7 @@ describe("ShowTasksTool", () => {
 
     const result = await showTasksTool.execute({}, context)
 
-    expect(result).toBe("当前没有任何任务")
+    expect(result).toBe("Currently no tasks")
   })
 
   test("should display task dependency graph", async () => {
@@ -202,7 +202,7 @@ describe("ShowTasksTool", () => {
 
     const result = await showTasksTool.execute({}, context)
 
-    expect(result).toContain("错误: 无法识别调用者身份")
+    expect(result).toContain("Error: Unable to identify caller")
   })
 
   test("should display complete output format", async () => {

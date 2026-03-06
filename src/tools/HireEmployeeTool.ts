@@ -1,7 +1,7 @@
 /**
- * hire_employee 工具
+ * hire_employee tool
  *
- * 雇佣新员工
+ * Hire new employee
  */
 
 import { tool } from "@opencode-ai/plugin"
@@ -19,46 +19,48 @@ export function createHireEmployeeTool(
   bossManager?: BossManager
 ) {
   return tool({
-    description: "雇佣新员工",
+    description: "Hire new employee",
     args: {
-      name: tool.schema.string().describe("员工名称"),
-      role: tool.schema.string().describe("角色类型"),
+      name: tool.schema.string().describe("Employee name"),
+      role: tool.schema.string().describe("Role type"),
       initial_message: tool.schema
         .string()
         .optional()
-        .describe("可选：招聘成功后立即发送给新员工的第一条消息"),
+        .describe(
+          "Optional: First message to send to the new employee immediately after hiring"
+        ),
     },
     async execute(args, context) {
       try {
-        // 1. 获取调用者身份
+        // 1. Get caller identity
         let hiredBy: string | undefined
-        // 2. 首先尝试从 SessionRegistry 获取（员工）
+        // 2. First try to get from SessionRegistry (employee)
         hiredBy = sessionRegistry.getEmployeeName(context.sessionID)
-        // 3. 如果 SessionRegistry 中没有，尝试从 context.agent 获取（可能是 boss）
+        // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
         if (!hiredBy && context.agent) {
           const agentName = context.agent
-          // 检查是否是 boss
+          // Check if it's a boss
           if (bossManager?.isBoss(agentName)) {
             hiredBy = agentName
           }
         }
         if (!hiredBy) {
-          return `错误：无法识别调用者身份 (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
+          return `Error: Unable to identify caller (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         }
 
-        // 2. 验证角色是否存在
+        // 2. Verify role exists
         const roleDefinition = roleManager.getRole(args.role)
         if (!roleDefinition) {
-          return `错误：角色 '${args.role}' 不存在`
+          return `Error: Role '${args.role}' does not exist`
         }
 
-        // 3. 检查员工是否已存在
+        // 3. Check if employee already exists
         const existing = stateManager.getEmployee(args.name)
         if (existing) {
-          return `错误：员工 '${args.name}' 已存在`
+          return `Error: Employee '${args.name}' already exists`
         }
 
-        // 4. 注册员工（自动持久化）
+        // 4. Register employee (automatically persisted)
         await stateManager.registerEmployee({
           name: args.name,
           role: args.role,
@@ -68,14 +70,14 @@ export function createHireEmployeeTool(
           hiredBy,
         })
 
-        // 5. 启动员工的 EventLoop
+        // 5. Start employee's EventLoop
         await startEmployee(project, args.name, roleDefinition)
 
         logger.info(
           `[HireEmployeeTool] Employee '${args.name}' hired by '${hiredBy}' with role '${args.role}'`
         )
 
-        // 6. 如果提供了 initial_message，立即发送给新员工
+        // 6. If initial_message is provided, send it to the new employee immediately
         if (args.initial_message) {
           await project.messageService.send(
             hiredBy,
@@ -85,27 +87,27 @@ export function createHireEmployeeTool(
           logger.info(
             `[HireEmployeeTool] Initial message sent to '${args.name}' from '${hiredBy}'`
           )
-          return `成功雇佣员工 '${args.name}'，角色: ${args.role}，已发送初始消息`
+          return `Successfully hired employee '${args.name}', role: ${args.role}, initial message sent`
         }
 
-        return `成功雇佣员工 '${args.name}'，角色: ${args.role}`
+        return `Successfully hired employee '${args.name}', role: ${args.role}`
       } catch (error: any) {
         logger.error(`[HireEmployeeTool] Failed to hire employee:`, error)
-        return `雇佣失败: ${error.message}`
+        return `Failed to hire: ${error.message}`
       }
     },
   })
 }
 
 /**
- * 启动员工的 EventLoop
+ * Start employee's EventLoop
  */
 async function startEmployee(
   project: ProjectInstance,
   employeeName: string,
   role: { name: string; systemPrompt: string }
 ): Promise<void> {
-  // 动态导入 EventLoop（避免循环依赖）
+  // Dynamically import EventLoop (avoid circular dependency)
   const { EventLoop } = await import("../core/EventLoop")
   const { GlobalCcloverService } = await import("../server/GlobalServer")
 
@@ -124,10 +126,10 @@ async function startEmployee(
     project.stateManager
   )
 
-  // 存储到 project.eventLoops
+  // Store in project.eventLoops
   project.eventLoops.set(employeeName, eventLoop)
 
-  // 后台运行
+  // Run in background
   eventLoop.run().catch((error) => {
     logger.error(`[${employeeName}] EventLoop crashed:`, error)
   })

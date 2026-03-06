@@ -1,7 +1,7 @@
 /**
- * send_message 工具
+ * send_message tool
  *
- * 发送消息给其他员工
+ * Send message to other employees
  */
 
 import { tool } from "@opencode-ai/plugin"
@@ -10,52 +10,52 @@ import type { BossManager } from "../core/BossManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 
 /**
- * 创建 send_message 工具
+ * Create send_message tool
  *
- * @param messageService 消息服务实例
- * @param bossManager Boss 管理器实例（可选）
+ * @param messageService Message service instance
+ * @param bossManager Boss manager instance (optional)
  */
 export function createSendMessageTool(
   messageService: MessageService,
   bossManager?: BossManager
 ) {
   return tool({
-    description: "发送消息给其他员工",
+    description: "Send message to other employees",
     args: {
-      to: tool.schema.string().describe("接收者名称"),
-      content: tool.schema.string().describe("消息内容"),
+      to: tool.schema.string().describe("Recipient name"),
+      content: tool.schema.string().describe("Message content"),
       reference_docs: tool.schema
         .array(tool.schema.string())
         .optional()
-        .describe("参考文档路径列表（可选）"),
+        .describe("Reference document path list (optional)"),
     },
     async execute(args, context) {
-      // 1. 获取调用者信息
+      // 1. Get caller information
       let from: string | undefined
-      // 2. 首先尝试从 SessionRegistry 获取（员工）
+      // 2. First try to get from SessionRegistry (employee)
       from = sessionRegistry.getEmployeeName(context.sessionID)
-      // 3. 如果 SessionRegistry 中没有，尝试从 context.agent 获取（可能是 boss）
+      // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
       if (!from && context.agent) {
         const agentName = context.agent
-        // 检查是否是 boss
+        // Check if it's a boss
         if (bossManager?.isBoss(agentName)) {
           from = agentName
         }
       }
       if (!from) {
         throw new Error(
-          `无法识别调用者身份 (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
+          `Unable to identify caller (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         )
       }
 
-      // 2. 调用消息服务（让异常自然抛出）
+      // 2. Call message service (let exceptions propagate naturally)
       await messageService.send(
         from,
         args.to,
         args.content,
         args.reference_docs
       )
-      return `消息已发送给 ${args.to}`
+      return `Message sent to ${args.to}`
     },
   })
 }

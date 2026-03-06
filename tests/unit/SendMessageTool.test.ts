@@ -79,7 +79,7 @@ describe("SendMessageTool with Boss", () => {
       context
     )
 
-    expect(result).toBe("消息已发送给 alice")
+    expect(result).toBe("Message sent to alice")
 
     // 验证消息已发送
     const employeeClient = messageService.getClient("alice")
@@ -103,7 +103,7 @@ describe("SendMessageTool with Boss", () => {
         },
         context
       )
-    ).rejects.toThrow("无法识别调用者身份")
+    ).rejects.toThrow("Unable to identify caller")
   })
 
   test("should work with employee from SessionRegistry", async () => {
@@ -124,7 +124,7 @@ describe("SendMessageTool with Boss", () => {
       context
     )
 
-    expect(result).toBe("消息已发送给 bob")
+    expect(result).toBe("Message sent to bob")
 
     // 验证消息已发送
     const bobClient = messageService.getClient("bob")
@@ -154,7 +154,7 @@ describe("SendMessageTool with Boss", () => {
       context
     )
 
-    expect(result).toBe("消息已发送给 bob")
+    expect(result).toBe("Message sent to bob")
 
     // 验证消息来自 alice（SessionRegistry），不是 bayecao（agent）
     const bobClient = messageService.getClient("bob")
@@ -179,6 +179,6 @@ describe("SendMessageTool with Boss", () => {
         },
         context
       )
-    ).rejects.toThrow("无法识别调用者身份")
+    ).rejects.toThrow("Unable to identify caller")
   })
 })

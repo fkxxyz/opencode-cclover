@@ -49,7 +49,7 @@ describe("Tool Creation Integration", () => {
   test("send_message tool is properly configured", () => {
     const tool = tools.send_message
     expect(tool).toBeDefined()
-    expect(tool.description).toBe("发送消息给其他员工")
+    expect(tool.description).toBe("Send message to other employees")
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")
   })
@@ -57,7 +57,9 @@ describe("Tool Creation Integration", () => {
   test("edit_tasks tool is properly configured", () => {
     const tool = tools.edit_tasks
     expect(tool).toBeDefined()
-    expect(tool.description).toBe("批量编辑任务列表（添加、更新、删除任务）")
+    expect(tool.description).toBe(
+      "Batch edit task list (add, update, delete tasks)"
+    )
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")
   })
@@ -65,7 +67,7 @@ describe("Tool Creation Integration", () => {
   test("create_agent tool is properly configured", () => {
     const tool = tools.create_agent
     expect(tool).toBeDefined()
-    expect(tool.description).toBe("创建 OpenCode agent 执行任务")
+    expect(tool.description).toBe("Create OpenCode agent to execute task")
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")
   })
@@ -73,7 +75,7 @@ describe("Tool Creation Integration", () => {
   test("hire_employee tool is properly configured", () => {
     const tool = tools.hire_employee
     expect(tool).toBeDefined()
-    expect(tool.description).toBe("雇佣新员工")
+    expect(tool.description).toBe("Hire new employee")
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")
   })

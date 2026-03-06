@@ -1,7 +1,7 @@
 /**
- * show_tasks 工具
+ * show_tasks tool
  *
- * 展示当前员工的所有任务及其依赖关系
+ * Display all tasks and their dependencies for the current employee
  */
 import { tool } from "@opencode-ai/plugin"
 import type { MemoryManager } from "../core/MemoryManager"
@@ -9,38 +9,38 @@ import { sessionRegistry } from "../utils/SessionRegistry"
 import { generateMermaid } from "../utils/MermaidGenerator"
 
 /**
- * 创建 show_tasks 工具
+ * Create show_tasks tool
  *
- * @param memoryManager 记忆管理器实例
+ * @param memoryManager Memory manager instance
  */
 export function createShowTasksTool(memoryManager: MemoryManager) {
   return tool({
     description: "Display all tasks with dependency graph visualization",
     args: {},
     async execute(args, context) {
-      // 1. 获取调用者信息
+      // 1. Get caller information
       const employeeName = sessionRegistry.getEmployeeName(context.sessionID)
 
       if (!employeeName) {
-        return `错误: 无法识别调用者身份 (sessionID: ${context.sessionID})`
+        return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
 
-      // 2. 读取员工记忆
+      // 2. Read employee memory
       const memory = await memoryManager.read(employeeName)
 
       if (!memory || !memory.tasks || memory.tasks.length === 0) {
-        return "当前没有任何任务"
+        return "Currently no tasks"
       }
 
       const sections: string[] = []
 
-      // 3. 第一部分：Task Dependency Graph
+      // 3. Part 1: Task Dependency Graph
       sections.push("## Task Dependency Graph")
       sections.push("")
       sections.push(generateMermaid(memory.tasks))
       sections.push("")
 
-      // 4. 第二部分：Executable Tasks
+      // 4. Part 2: Executable Tasks
       const executableTasks =
         await memoryManager.getExecutableTasks(employeeName)
       sections.push("## Executable Tasks")
@@ -61,7 +61,7 @@ export function createShowTasksTool(memoryManager: MemoryManager) {
       )
       sections.push("")
 
-      // 5. 第三部分：Tasks In Progress
+      // 5. Part 3: Tasks In Progress
       const inProgressTasks = memory.tasks.filter(
         (t) => t.status === "in_progress"
       )
