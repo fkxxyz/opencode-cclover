@@ -515,9 +515,36 @@ export class EventLoop {
           sessionRegistry.register(memory.sessionId, this.employeeName)
 
           // 从快照重建系统提示词
+          // 查询主管信息
+          const employee = this.stateManager?.getEmployee(this.employeeName)
+          let supervisor: { name: string; role: string } | undefined
+          if (employee?.hiredBy) {
+            const supervisorEmployee = this.stateManager?.getEmployee(
+              employee.hiredBy
+            )
+            if (supervisorEmployee) {
+              supervisor = {
+                name: supervisorEmployee.name,
+                role: supervisorEmployee.role,
+              }
+            }
+          }
+
           const systemPrompt = memory.sessionSnapshot
-            ? buildSystemPrompt(role.systemPrompt, memory.sessionSnapshot)
-            : buildSystemPrompt(role.systemPrompt, memory) // 降级：使用当前状态
+            ? buildSystemPrompt(
+                role.systemPrompt,
+                memory.sessionSnapshot,
+                this.employeeName,
+                ".cclover/workspace",
+                supervisor
+              )
+            : buildSystemPrompt(
+                role.systemPrompt,
+                memory,
+                this.employeeName,
+                ".cclover/workspace",
+                supervisor
+              ) // 降级：使用当前状态
 
           this.currentSession = {
             id: memory.sessionId,
@@ -572,9 +599,27 @@ export class EventLoop {
     await this.memoryManager.write(this.employeeName, memory)
 
     // 构建系统提示词（使用快照）
+    // 查询主管信息
+    const employee = this.stateManager?.getEmployee(this.employeeName)
+    let supervisor: { name: string; role: string } | undefined
+    if (employee?.hiredBy) {
+      const supervisorEmployee = this.stateManager?.getEmployee(
+        employee.hiredBy
+      )
+      if (supervisorEmployee) {
+        supervisor = {
+          name: supervisorEmployee.name,
+          role: supervisorEmployee.role,
+        }
+      }
+    }
+
     const systemPrompt = buildSystemPrompt(
       role.systemPrompt,
-      memory.sessionSnapshot
+      memory.sessionSnapshot,
+      this.employeeName,
+      ".cclover/workspace",
+      supervisor
     )
 
     this.currentSession = {
@@ -1021,9 +1066,36 @@ Return JSON format with:
     const memory = await this.memoryManager.read(this.employeeName)
 
     // 重新构建系统提示词（使用 sessionSnapshot 或当前状态）
+    // 查询主管信息
+    const employee = this.stateManager?.getEmployee(this.employeeName)
+    let supervisor: { name: string; role: string } | undefined
+    if (employee?.hiredBy) {
+      const supervisorEmployee = this.stateManager?.getEmployee(
+        employee.hiredBy
+      )
+      if (supervisorEmployee) {
+        supervisor = {
+          name: supervisorEmployee.name,
+          role: supervisorEmployee.role,
+        }
+      }
+    }
+
     const systemPrompt = memory.sessionSnapshot
-      ? buildSystemPrompt(role.systemPrompt, memory.sessionSnapshot)
-      : buildSystemPrompt(role.systemPrompt, memory)
+      ? buildSystemPrompt(
+          role.systemPrompt,
+          memory.sessionSnapshot,
+          this.employeeName,
+          ".cclover/workspace",
+          supervisor
+        )
+      : buildSystemPrompt(
+          role.systemPrompt,
+          memory,
+          this.employeeName,
+          ".cclover/workspace",
+          supervisor
+        )
 
     // 更新缓存的系统提示词
     this.currentSession.systemPrompt = systemPrompt

@@ -22,7 +22,12 @@ describe("ContextBuilder", () => {
         custom: {},
       }
 
-      const result = buildSystemPrompt(rolePrompt, memory)
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "calculator",
+        ".cclover/workspace"
+      )
       expect(result).toContain("你是一个计算器员工")
       expect(result).toContain("我擅长数学计算")
       expect(result).toContain("用户经常问我简单问题")
@@ -39,7 +44,12 @@ describe("ContextBuilder", () => {
         },
       }
 
-      const result = buildSystemPrompt(rolePrompt, memory)
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "pm",
+        ".cclover/workspace"
+      )
       expect(result).toContain("team_members")
       expect(result).toContain("alice")
       expect(result).toContain("sprint_5")
@@ -61,9 +71,125 @@ describe("ContextBuilder", () => {
         custom: {},
       }
 
-      const result = buildSystemPrompt(rolePrompt, memory)
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "employee",
+        ".cclover/workspace"
+      )
       expect(result).toContain("Task Management")
       expect(result).toContain("graph TD")
+    })
+
+    test("should include workspace files section with employee name", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace"
+      )
+      expect(result).toContain("# Workspace Files")
+      expect(result).toContain(".cclover/workspace/employees/alice/")
+      expect(result).toContain("messages/{peer}/chat.yaml")
+      expect(result).toContain("events.jsonl")
+      expect(result).toContain("memory.yaml")
+    })
+
+    test("should include supervisor section when supervisor exists", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+      }
+      const supervisor = { name: "bob", role: "project-manager" }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        supervisor
+      )
+      expect(result).toContain("# Your Supervisor")
+      expect(result).toContain("You were hired by: bob (Role: project-manager)")
+      expect(result).toContain(
+        "If you have any questions or difficulties, please send a message to your supervisor for help."
+      )
+    })
+
+    test("should omit supervisor section when supervisor is undefined", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace"
+      )
+      expect(result).not.toContain("# Your Supervisor")
+      expect(result).not.toContain("You were hired by:")
+    })
+
+    test("should place workspace files after current memory", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: ["知识1"],
+        tasks: [],
+        custom: {},
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace"
+      )
+      const memoryIndex = result.indexOf("# Current Memory")
+      const workspaceIndex = result.indexOf("# Workspace Files")
+      expect(workspaceIndex).toBeGreaterThan(memoryIndex)
+    })
+
+    test("should place supervisor section before task management", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [
+          {
+            name: "任务1",
+            status: "pending",
+            description: "待办任务",
+            dependencies: [],
+            created: "2026-03-01T10:00:00Z",
+          },
+        ],
+        custom: {},
+      }
+      const supervisor = { name: "bob", role: "pm" }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        supervisor
+      )
+      const supervisorIndex = result.indexOf("# Your Supervisor")
+      const taskIndex = result.indexOf("# Task Management")
+      expect(supervisorIndex).toBeGreaterThan(0)
+      expect(taskIndex).toBeGreaterThan(supervisorIndex)
     })
   })
 

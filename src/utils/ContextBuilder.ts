@@ -17,9 +17,18 @@ export interface Event {
  *
  * @param rolePrompt 角色的系统提示词
  * @param memory 员工的记忆
+ * @param employeeName 员工名称
+ * @param workspaceRoot 工作区根目录
+ * @param supervisor 主管信息（可选）
  * @returns 完整的系统提示词
  */
-export function buildSystemPrompt(rolePrompt: string, memory: Memory): string {
+export function buildSystemPrompt(
+  rolePrompt: string,
+  memory: Memory,
+  employeeName: string,
+  workspaceRoot: string,
+  supervisor?: { name: string; role: string }
+): string {
   const sections: string[] = []
 
   // 1. 角色定义
@@ -49,7 +58,39 @@ export function buildSystemPrompt(rolePrompt: string, memory: Memory): string {
     sections.push("")
   }
 
-  // 3. 任务管理
+  // 3. 工作区文件
+  sections.push("# Workspace Files")
+  sections.push("")
+  sections.push("Your workspace is located at:")
+  sections.push(`\`${workspaceRoot}/employees/${employeeName}/\``)
+  sections.push("")
+  sections.push("**Messages**: `messages/{peer}/chat.yaml`")
+  sections.push("- Conversation history with each employee (one file per peer)")
+  sections.push("")
+  sections.push("**Events**: `events.jsonl`")
+  sections.push("- Your complete event history (one JSON object per line)")
+  sections.push("")
+  sections.push("**Memory**: `memory.yaml`")
+  sections.push(
+    "- Your knowledge, tasks, and custom data (already loaded in the sections above)"
+  )
+  sections.push("")
+
+  // 4. 主管信息
+  if (supervisor) {
+    sections.push("# Your Supervisor")
+    sections.push("")
+    sections.push(
+      `You were hired by: ${supervisor.name} (Role: ${supervisor.role})`
+    )
+    sections.push("")
+    sections.push(
+      "If you have any questions or difficulties, please send a message to your supervisor for help."
+    )
+    sections.push("")
+  }
+
+  // 5. 任务管理
   if (memory.tasks.length > 0) {
     sections.push("# Task Management")
     sections.push("")
@@ -243,16 +284,28 @@ export function getExecutableTasks(tasks: Task[]): Task[] {
  *
  * @param rolePrompt 角色提示词
  * @param memory 记忆
+ * @param employeeName 员工名称
+ * @param workspaceRoot 工作区根目录
  * @param event 事件
+ * @param supervisor 主管信息（可选）
  * @returns 完整上下文
  */
 export function buildFullContext(
   rolePrompt: string,
   memory: Memory,
-  event: Event
+  employeeName: string,
+  workspaceRoot: string,
+  event: Event,
+  supervisor?: { name: string; role: string }
 ): { systemPrompt: string; eventMessage: string } {
   return {
-    systemPrompt: buildSystemPrompt(rolePrompt, memory),
+    systemPrompt: buildSystemPrompt(
+      rolePrompt,
+      memory,
+      employeeName,
+      workspaceRoot,
+      supervisor
+    ),
     eventMessage: buildEventMessage(event),
   }
 }
