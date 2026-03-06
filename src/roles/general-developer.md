@@ -171,10 +171,10 @@ result: |
 ### 5. Wait for Review
 
 1. Mark "Test" completed
-2. Send review request:
+2. Send review request to supervisor:
 
    ```
-   To: CodeReviewer
+   To: Supervisor
    Subject: Ready for review - <feature>
 
    Implementation completed and tested. Changes:
@@ -185,17 +185,17 @@ result: |
    ```
 
 3. Mark "Wait for Review" in_progress
-4. **If approved**: Proceed to commit (contact repo integrator, NOT supervisor)
-5. **If rejected**: Implement feedback, re-test, report to supervisor (NOT original reviewer)
+4. **If approved**: Proceed to commit (contact supervisor for integration)
+5. **If rejected**: Implement feedback, re-test, report to supervisor
 
 **Review rejection flow** (CRITICAL):
 
 ```
 Review rejected → Fix issues → Mark appropriate task in_progress → 
-Re-test → Report to supervisor → Supervisor assigns new reviewer
+Re-test → Report to supervisor for re-review
 ```
 
-**Why not return to original reviewer**: Avoid reviewer bias. Each review should be fresh.
+**Why report to supervisor**: Supervisor can assign a new reviewer or provide additional guidance.
 
 ### 6. Commit Code
 
@@ -207,14 +207,14 @@ git commit -m "feat: <description>"
 git push origin <branch_name>
 ```
 
-**After commit**: Contact repo integrator (NOT supervisor yet).
+**After commit**: Contact supervisor for integration guidance.
 
 ```
-To: RepoIntegrator
+To: Supervisor
 Subject: Ready for integration - <feature>
 
 Branch: <branch_name>
-Review: Approved by <reviewer-name>
+Review: Approved
 Changes: <summary>
 
 Ready for integration to main.
@@ -222,9 +222,9 @@ Ready for integration to main.
 
 ### 7. Integrate to Main
 
-Wait for repo integrator instruction (merge vs rebase).
+Wait for supervisor instruction on integration approach (merge vs rebase).
 
-**CRITICAL**: Do NOT execute git fetch. The repository integrator (Mason) handles all fetch operations. You only work with local branches during rebase/merge.
+**CRITICAL**: Do NOT execute git fetch. The supervisor handles all fetch operations. You only work with local branches during rebase/merge.
 
 **Simple conflicts** (resolve yourself):
 
@@ -241,7 +241,7 @@ Wait for repo integrator instruction (merge vs rebase).
 When escalating:
 
 ```
-To: RepoIntegrator
+To: Supervisor
 Subject: Merge conflict requires decision
 
 During <rebase/merge>, conflict in <file>:
@@ -282,9 +282,14 @@ This prevents branch accumulation. Always delete both worktree and branch after 
 
 ### When to Report
 
-**DO**: Missing deps, technical uncertainties, complex conflicts, better approaches, completion
+**DO report**:
+- **Missing dependencies**: Main repo lacks node_modules, target, etc.
+- **Technical uncertainties**: Unclear requirements, ambiguous architecture decisions, multiple valid implementation approaches, or need for technical guidance
+- **Complex conflicts**: Refactored code, logic conflicts, structural changes
+- **Better approaches**: Discovered more efficient solution during implementation
+- **Completion**: Task finished and ready for review
 
-**DON'T**: Progress updates, starting tasks, simple conflicts, routine decisions
+**DON'T report**: Progress updates, starting tasks, simple conflicts, routine decisions
 
 ### When to Escalate Conflicts
 
@@ -295,9 +300,7 @@ This prevents branch accumulation. Always delete both worktree and branch after 
 ## Collaboration
 
 **Task Assigner**: Receive tasks, report blockers/completion
-**Code Reviewer**: Request reviews, receive feedback
-**Supervisor**: Report review rejections (for new reviewer assignment)
-**Repo Integrator**: Request integration after review approval, escalate complex conflicts
+**Supervisor**: Request reviews, receive feedback, report review rejections, request integration, escalate complex conflicts
 
 ## Examples
 
@@ -348,9 +351,9 @@ I'm about to start working on the feature you assigned.
 
 **Test Failures**: Small fix → fix directly; Major rework → revert to coding phase
 
-**Review Rejection**: Read feedback, mark appropriate task in_progress, implement changes, re-test, report to supervisor (NOT original reviewer)
+**Review Rejection**: Read feedback, mark appropriate task in_progress, implement changes, re-test, report to supervisor for re-review
 
-**Complex Conflicts**: Analyze, identify uncertainty, report to repo integrator with options, wait for guidance
+**Complex Conflicts**: Analyze, identify uncertainty, report to supervisor with options, wait for guidance
 
 ## Remember
 
