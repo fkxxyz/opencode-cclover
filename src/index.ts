@@ -79,24 +79,32 @@ export const CcloverPlugin: Plugin = async (ctx) => {
         description: "Internal agent for Cclover employee sessions",
       }
 
-      // 注册 role-creator agent
+      // 自动扫描并注册 src/agents/ 目录下的所有 agent
       try {
-        const roleCreatorPromptPath = path.join(
-          __dirname,
-          "agents/role-creator.md"
-        )
-        const roleCreatorPrompt = await fs.readFile(
-          roleCreatorPromptPath,
-          "utf-8"
-        )
-        agents["role-creator"] = {
-          prompt: roleCreatorPrompt,
-          mode: "primary",
-          description: "Create, edit, delete, and manage employee roles",
+        const agentsDir = path.join(__dirname, "agents")
+        const agentFiles = await fs.readdir(agentsDir)
+        const mdFiles = agentFiles.filter((file) => file.endsWith(".md"))
+
+        for (const file of mdFiles) {
+          const agentName = path.basename(file, ".md")
+          const agentPromptPath = path.join(agentsDir, file)
+          try {
+            const agentPrompt = await fs.readFile(agentPromptPath, "utf-8")
+            agents[agentName] = {
+              prompt: agentPrompt,
+              mode: "primary",
+              description: `Agent: ${agentName}`,
+            }
+            logger.info(`[Cclover] Registered agent: ${agentName}`)
+          } catch (error: any) {
+            logger.error(
+              `[Cclover] Failed to load ${agentName} agent prompt: ${error.message}`
+            )
+          }
         }
       } catch (error: any) {
         logger.error(
-          `[Cclover] Failed to load role-creator agent prompt: ${error.message}`
+          `[Cclover] Failed to scan agents directory: ${error.message}`
         )
       }
 
