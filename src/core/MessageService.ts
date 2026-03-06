@@ -5,16 +5,7 @@ import EventEmitter from "eventemitter3"
 import * as lockfile from "proper-lockfile"
 import type { StateManager } from "../state/StateManager"
 import type { BossManager } from "./BossManager"
-
-/**
- * 消息对象（API 格式）
- */
-export interface Message {
-  from: string
-  content: string
-  timestamp: string
-  reference_docs?: string[]
-}
+import type { Message, MessageDirection } from "../types"
 
 /**
  * YAML 文件中的消息格式
@@ -24,6 +15,7 @@ interface YamlMessage {
   direction: "send" | "receive"
   content: string
   reference_docs?: string[]
+  fromRole?: string
 }
 
 /**
@@ -105,6 +97,7 @@ export class MessageClient {
           msg.reference_docs.length > 0 && {
             reference_docs: msg.reference_docs,
           }),
+        ...(msg.fromRole && { fromRole: msg.fromRole }),
       }))
 
       // 4. 限制数量（返回最近的 N 条）
@@ -174,12 +167,24 @@ export class MessageService {
       throw new Error(`目标 '${to}' 不存在`)
     }
 
+    // 3. 查询发送者角色
+    let fromRole: string | undefined
+    if (this.bossManager?.isBoss(from)) {
+      fromRole = "boss"
+    } else {
+      const employee = this.stateManager?.getEmployee(from)
+      fromRole = employee?.role
+    }
+
     const timestamp = new Date().toISOString()
     const message: Message = {
       from,
+      to,
       content,
       timestamp,
+      direction: "receive",
       ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
+      ...(fromRole && { fromRole }),
     }
 
     // 1. 写入发送方的消息文件
@@ -188,6 +193,7 @@ export class MessageService {
       direction: "send",
       content,
       ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
+      ...(fromRole && { fromRole }),
     })
 
     // 2. 写入接收方的消息文件
@@ -196,6 +202,7 @@ export class MessageService {
       direction: "receive",
       content,
       ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
+      ...(fromRole && { fromRole }),
     })
 
     // 3. 添加到接收方的未读队列
@@ -214,6 +221,7 @@ export class MessageService {
         from,
         to,
         content,
+        ...(fromRole && { fromRole }),
       },
     })
   }

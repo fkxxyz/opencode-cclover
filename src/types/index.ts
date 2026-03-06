@@ -36,6 +36,8 @@ export interface Message {
   to: string
   content: string
   direction: MessageDirection
+  reference_docs?: string[]
+  fromRole?: string
 }
 
 // 对话对象（带最后消息信息）

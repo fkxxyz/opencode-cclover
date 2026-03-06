@@ -1,5 +1,4 @@
 import type { MessageService } from "../core/MessageService"
-import type { Message as ServiceMessage } from "../core/MessageService"
 import type {
   Message,
   PeerWithLastMessage,
@@ -56,14 +55,8 @@ export async function getMessages(
       // 获取与特定对象的消息
       const client = messageService.getClient(employeeName)
       const serviceMessages = await client.history(peer, msgLimit)
-      // 转换消息格式
-      messages = serviceMessages.map((msg: ServiceMessage) => ({
-        timestamp: msg.timestamp,
-        from: msg.from,
-        to: msg.from === employeeName ? peer : employeeName,
-        content: msg.content,
-        direction: msg.from === employeeName ? "send" : "receive",
-      }))
+      // client.history() 已经返回完整的 Message 对象
+      messages = serviceMessages
     } else {
       // 获取所有消息（遍历所有对话）
       const peers = await messageService.getPeers(employeeName)
@@ -73,17 +66,8 @@ export async function getMessages(
       const allMessages: Message[] = []
       for (const peer of peers) {
         const serviceMessages = await client.history(peer)
-        const peerMessages = serviceMessages.map((msg: ServiceMessage) => ({
-          timestamp: msg.timestamp,
-          from: msg.from,
-          to: msg.from === employeeName ? peer : employeeName,
-          content: msg.content,
-          direction:
-            msg.from === employeeName
-              ? ("send" as const)
-              : ("receive" as const),
-        }))
-        allMessages.push(...peerMessages)
+        // client.history() 已经返回完整的 Message 对象
+        allMessages.push(...serviceMessages)
       }
 
       // 按时间戳排序

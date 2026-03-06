@@ -155,6 +155,9 @@ export function buildEventMessage(event: Event): string {
   // 根据事件类型添加特定字段
   if (event.type === "message") {
     sections.push(`From: ${event.from}`)
+    if (event.fromRole) {
+      sections.push(`Role: ${event.fromRole}`)
+    }
     sections.push(`Content: ${event.content}`)
     sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "agent_completed") {

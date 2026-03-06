@@ -1,5 +1,6 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
-import type { MessageClient, Message } from "./MessageService"
+import type { MessageClient } from "./MessageService"
+import type { Message } from "../types"
 import type { MemoryManager, Memory, Task } from "./MemoryManager"
 import type { RoleManager } from "./RoleManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
