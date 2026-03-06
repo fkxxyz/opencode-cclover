@@ -4,6 +4,7 @@ import * as path from "path"
 import { EventLoop, type Role } from "../../src/core/EventLoop"
 import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
+import type { RoleManager } from "../../src/core/RoleManager"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import { agentRegistry } from "../../src/utils/AgentRegistry"
 
@@ -52,6 +53,7 @@ describe("EventLoop", () => {
   let memoryManager: MemoryManager
   let opcodeClient: any
   let testRole: Role
+  let mockRoleManager: RoleManager
 
   beforeEach(async () => {
     // 清理测试工作空间
@@ -69,6 +71,13 @@ describe("EventLoop", () => {
       systemPrompt: "You are a test role.",
     }
 
+    // 创建 mock RoleManager
+    mockRoleManager = {
+      getRole: mock(() => testRole),
+      refresh: mock(async () => {}),
+      getRoles: mock(() => [testRole]),
+    } as any
+
     // 清空注册表
     sessionRegistry.clear()
     agentRegistry.clear()
@@ -85,7 +94,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -101,7 +111,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -118,7 +129,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -156,7 +168,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -185,7 +198,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -207,7 +221,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -228,7 +243,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -260,7 +276,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -323,7 +340,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -380,7 +398,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient
@@ -459,7 +478,8 @@ describe("EventLoop", () => {
       const eventLoop = new EventLoop(
         testWorkspace,
         "test-employee",
-        testRole,
+        testRole.name,
+        mockRoleManager,
         messageClient,
         memoryManager,
         opcodeClient

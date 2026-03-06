@@ -99,7 +99,8 @@ async function startEmployee(
   const eventLoop = new EventLoop(
     project.directory,
     employeeName,
-    role,
+    role.name,
+    project.roleManager,
     messageClient,
     project.memoryManager,
     opcodeClient,

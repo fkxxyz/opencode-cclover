@@ -1,6 +1,7 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { MessageClient, Message } from "./MessageService"
 import type { MemoryManager, Memory, Task } from "./MemoryManager"
+import type { RoleManager } from "./RoleManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { sessionRegistry } from "../utils/SessionRegistry"
@@ -84,7 +85,8 @@ export class EventLoop {
   constructor(
     private projectPath: string,
     private employeeName: string,
-    private role: Role,
+    private roleName: string,
+    private roleManager: RoleManager,
     private messageClient: MessageClient,
     private memoryManager: MemoryManager,
     private opcodeClient: OpencodeClient,
@@ -96,7 +98,7 @@ export class EventLoop {
    */
   async run(): Promise<void> {
     logger.info(
-      `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.role.name}`
+      `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.roleName}`
     )
 
     // 启动 Agent 监听器（后台运行，不阻塞）
@@ -465,6 +467,12 @@ export class EventLoop {
    * 如果没有 session，创建新的；如果有，复用
    */
   private async ensureSession(): Promise<SessionInfo> {
+    // 动态获取最新的角色定义
+    const role = this.roleManager.getRole(this.roleName)
+    if (!role) {
+      throw new Error(`Role '${this.roleName}' not found`)
+    }
+
     if (this.currentSession) {
       return this.currentSession
     }
@@ -495,8 +503,8 @@ export class EventLoop {
 
           // 从快照重建系统提示词
           const systemPrompt = memory.sessionSnapshot
-            ? buildSystemPrompt(this.role.systemPrompt, memory.sessionSnapshot)
-            : buildSystemPrompt(this.role.systemPrompt, memory) // 降级：使用当前状态
+            ? buildSystemPrompt(role.systemPrompt, memory.sessionSnapshot)
+            : buildSystemPrompt(role.systemPrompt, memory) // 降级：使用当前状态
 
           this.currentSession = {
             id: memory.sessionId,
@@ -552,7 +560,7 @@ export class EventLoop {
 
     // 构建系统提示词（使用快照）
     const systemPrompt = buildSystemPrompt(
-      this.role.systemPrompt,
+      role.systemPrompt,
       memory.sessionSnapshot
     )
 

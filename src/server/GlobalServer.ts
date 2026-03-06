@@ -227,7 +227,7 @@ export class GlobalCcloverService {
     const opcodeClient = this.getOpencodeClient()
 
     for (const employee of employees) {
-      // 从 RoleManager 获取 role
+      // 验证角色存在
       const role = project.roleManager.getRole(employee.role)
       if (!role) {
         logger.warn(
@@ -241,7 +241,8 @@ export class GlobalCcloverService {
       const eventLoop = new EventLoop(
         project.directory,
         employee.name,
-        role,
+        employee.role,
+        project.roleManager,
         messageClient,
         project.memoryManager,
         opcodeClient,
