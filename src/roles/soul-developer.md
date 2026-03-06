@@ -367,7 +367,7 @@ Wait for repo integrator instruction (merge vs rebase).
 - **Simple conflicts**: Resolve yourself (whitespace, formatting, non-overlapping changes)
 - **Complex conflicts**: Report to supervisor with options
 
-**After successful integration**: Notify task assigner.
+**After successful integration**: Notify task assigner and clean up.
 
 ```
 To: <TaskAssigner>
@@ -379,6 +379,18 @@ File: src/roles/<role-name>.md
 
 Role is now available for use.
 ```
+
+**CRITICAL - Clean up worktree and branch**:
+
+```bash
+# Remove worktree
+git worktree remove .worktrees/role/<role-name>
+
+# Delete local branch
+git branch -D role/<role-name>
+```
+
+This prevents branch accumulation. Always delete both worktree and branch after integration.
 
 ## Decision Criteria
 

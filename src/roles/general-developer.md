@@ -251,7 +251,7 @@ Options: <list options>
 Which approach?
 ```
 
-**After successful integration**: Notify task assigner.
+**After successful integration**: Notify task assigner and clean up.
 
 ```
 To: <TaskAssigner>
@@ -262,6 +262,18 @@ Branch: <branch_name>
 
 All changes are now in main branch.
 ```
+
+**CRITICAL - Clean up worktree and branch**:
+
+```bash
+# Remove worktree
+git worktree remove .worktrees/<branch_name>
+
+# Delete local branch
+git branch -D <branch_name>
+```
+
+This prevents branch accumulation. Always delete both worktree and branch after integration.
 
 ## Decision Criteria
 
