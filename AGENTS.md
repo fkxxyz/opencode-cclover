@@ -44,12 +44,14 @@ An OpenCode plugin implementing a multi-agent autonomous collaboration system wh
   bosses:
     - boss_name
   port: 4097  # Optional, HTTP server port (default: 4097)
+  logLevel: info  # Optional, log level: error, warn, info, debug (default: info)
   projects:
     - name: project_name
       path: /absolute/path/to/project
       enabled: true
   ```
 - Port priority: Environment variable `CCLOVER_PORT` > config file `port` > default 4097
+- Log level priority: Environment variable `CCLOVER_LOG_LEVEL` > config file `logLevel` > default INFO
 - Each project gets `.cclover/workspace/` directory for runtime data
 - `.cclover/.gitignore` auto-created to ignore runtime data
 

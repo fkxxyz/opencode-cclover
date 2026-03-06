@@ -19,6 +19,7 @@ export interface ProjectConfig {
 export interface CcloverConfig {
   bosses?: string[]
   port?: number
+  logLevel?: string
   projects: ProjectConfig[]
 }
 
@@ -43,6 +44,11 @@ export class ConfigManager {
       if (!this.validate(config)) {
         logger.warn("Invalid config file, using empty config")
         return { projects: [] }
+      }
+
+      // 从配置文件设置日志级别（如果环境变量未设置）
+      if (config.logLevel && process.env.CCLOVER_LOG_LEVEL === undefined) {
+        logger.setLevel(config.logLevel)
       }
 
       return config
@@ -103,6 +109,17 @@ export class ConfigManager {
     // 验证 port 字段（可选）
     if (config.port !== undefined) {
       if (typeof config.port !== "number") {
+        return false
+      }
+    }
+
+    // 验证 logLevel 字段（可选）
+    if (config.logLevel !== undefined) {
+      if (typeof config.logLevel !== "string") {
+        return false
+      }
+      const validLevels = ["error", "warn", "info", "debug"]
+      if (!validLevels.includes(config.logLevel.toLowerCase())) {
         return false
       }
     }

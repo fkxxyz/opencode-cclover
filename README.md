@@ -230,6 +230,49 @@ bun test --coverage
 bun run build
 ```
 
+## 配置
+
+### 配置文件
+
+配置文件位于 `~/.config/opencode-cclover/config.yaml`。
+
+示例配置：
+
+```yaml
+bosses:
+  - your_name
+port: 4097  # 可选，HTTP 服务器端口（默认：4097）
+logLevel: info  # 可选，日志级别：error, warn, info, debug（默认：info）
+projects:
+  - name: my_project
+    path: /absolute/path/to/project
+    enabled: true
+```
+
+### 日志级别控制
+
+日志级别从低到高：`error` < `warn` < `info` < `debug`
+
+**设置方式**（优先级从高到低）：
+
+1. **环境变量**（临时）：
+   ```bash
+   CCLOVER_LOG_LEVEL=debug opencode serve --port 4099
+   ```
+
+2. **配置文件**（持久）：
+   ```yaml
+   logLevel: debug
+   ```
+
+3. **默认值**：`info`
+
+**日志级别说明**：
+- `error`: 仅显示错误
+- `warn`: 显示警告和错误
+- `info`: 显示信息、警告和错误（默认）
+- `debug`: 显示所有日志（包括调试信息）
+
 ## 核心概念
 
 ### 角色 (Role)

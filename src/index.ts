@@ -64,9 +64,6 @@ export const CcloverPlugin: Plugin = async (ctx) => {
       const paramDocs = formatToolParameterDescriptions(output.parameters)
       if (paramDocs) {
         output.description += paramDocs
-        logger.info(
-          `[tool.definition] ✓ Auto-extracted parameter descriptions for ${input.toolID}`
-        )
       }
     },
     config: async (config) => {
