@@ -89,6 +89,9 @@ export class EventLoop {
       hasImmediate ? "busy" : "idle"
     )
 
+    // 启动时检查是否需要总结（恢复已有 session 时可能已超过阈值）
+    await this.summarizeIfNeeded()
+
     while (true) {
       try {
         // 1. 检查是否有立即可用的事件
