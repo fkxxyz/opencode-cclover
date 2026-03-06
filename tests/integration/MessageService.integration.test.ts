@@ -186,4 +186,27 @@ describe("MessageService Integration", () => {
     expect(aliceBobHistory[1].content).toBe("Hi Alice from Bob")
     expect(aliceCharlieHistory[1].content).toBe("Hi Alice from Charlie")
   })
+
+  test("should handle reference_docs in concurrent sends", async () => {
+    const alice = service.getClient("alice")
+    const bob = service.getClient("bob")
+
+    const sends = [
+      alice.send("bob", "消息1", ["/file1.ts"]),
+      alice.send("bob", "消息2", ["/file2.ts"]),
+      alice.send("bob", "消息3"), // 无 reference_docs
+    ]
+
+    await Promise.all(sends)
+
+    const history = await bob.history("alice")
+
+    expect(history).toHaveLength(3)
+
+    // 验证包含所有预期的 reference_docs（不依赖顺序）
+    const docsInHistory = history.map((h) => h.reference_docs)
+    expect(docsInHistory).toContainEqual(["/file1.ts"])
+    expect(docsInHistory).toContainEqual(["/file2.ts"])
+    expect(docsInHistory).toContain(undefined)
+  })
 })

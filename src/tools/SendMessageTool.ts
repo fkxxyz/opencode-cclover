@@ -24,6 +24,10 @@ export function createSendMessageTool(
     args: {
       to: tool.schema.string().describe("接收者名称"),
       content: tool.schema.string().describe("消息内容"),
+      reference_docs: tool.schema
+        .array(tool.schema.string())
+        .optional()
+        .describe("参考文档路径列表（可选）"),
     },
     async execute(args, context) {
       // 1. 获取调用者信息
@@ -45,7 +49,12 @@ export function createSendMessageTool(
       }
 
       // 2. 调用消息服务（让异常自然抛出）
-      await messageService.send(from, args.to, args.content)
+      await messageService.send(
+        from,
+        args.to,
+        args.content,
+        args.reference_docs
+      )
       return `消息已发送给 ${args.to}`
     },
   })

@@ -13,6 +13,7 @@ export interface Message {
   from: string
   content: string
   timestamp: string
+  reference_docs?: string[]
 }
 
 /**
@@ -22,6 +23,7 @@ interface YamlMessage {
   timestamp: string
   direction: "send" | "receive"
   content: string
+  reference_docs?: string[]
 }
 
 /**
@@ -69,8 +71,12 @@ export class MessageClient {
   /**
    * 发送消息
    */
-  async send(to: string, content: string): Promise<void> {
-    await this.service.send(this.employeeName, to, content)
+  async send(
+    to: string,
+    content: string,
+    reference_docs?: string[]
+  ): Promise<void> {
+    await this.service.send(this.employeeName, to, content, reference_docs)
   }
 
   /**
@@ -95,6 +101,10 @@ export class MessageClient {
         content: msg.content,
         timestamp: msg.timestamp,
         direction: msg.direction,
+        ...(msg.reference_docs &&
+          msg.reference_docs.length > 0 && {
+            reference_docs: msg.reference_docs,
+          }),
       }))
 
       // 4. 限制数量（返回最近的 N 条）
@@ -145,7 +155,12 @@ export class MessageService {
    * 发送消息
    * 同时写入双方的消息文件，并通知接收方
    */
-  async send(from: string, to: string, content: string): Promise<void> {
+  async send(
+    from: string,
+    to: string,
+    content: string,
+    reference_docs?: string[]
+  ): Promise<void> {
     // 1. 校验：不能向自己发送
     if (from === to) {
       throw new Error(`不能向自己发送消息`)
@@ -160,13 +175,19 @@ export class MessageService {
     }
 
     const timestamp = new Date().toISOString()
-    const message: Message = { from, content, timestamp }
+    const message: Message = {
+      from,
+      content,
+      timestamp,
+      ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
+    }
 
     // 1. 写入发送方的消息文件
     await this.appendMessage(from, to, {
       timestamp,
       direction: "send",
       content,
+      ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
     })
 
     // 2. 写入接收方的消息文件
@@ -174,6 +195,7 @@ export class MessageService {
       timestamp,
       direction: "receive",
       content,
+      ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
     })
 
     // 3. 添加到接收方的未读队列

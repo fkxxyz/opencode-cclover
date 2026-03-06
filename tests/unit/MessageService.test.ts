@@ -366,4 +366,38 @@ describe("MessageService", () => {
       expect(message.from).toBe("alice")
     })
   })
+
+  describe("reference_docs support", () => {
+    test("should send message with reference_docs", async () => {
+      const alice = service.getClient("alice")
+      const bob = service.getClient("bob")
+      const docs = ["/path/to/file1.ts", "/path/to/file2.md"]
+
+      await alice.send("bob", "请查看这些文件", docs)
+
+      const message = await bob.recv()
+      expect(message.reference_docs).toEqual(docs)
+    })
+
+    test("should work without reference_docs (backward compatibility)", async () => {
+      const alice = service.getClient("alice")
+      const bob = service.getClient("bob")
+
+      await alice.send("bob", "普通消息")
+
+      const message = await bob.recv()
+      expect(message.reference_docs).toBeUndefined()
+    })
+
+    test("should persist reference_docs in YAML", async () => {
+      const alice = service.getClient("alice")
+      const bob = service.getClient("bob")
+      const docs = ["/path/to/file.ts"]
+
+      await alice.send("bob", "消息", docs)
+
+      const history = await bob.history("alice")
+      expect(history[0].reference_docs).toEqual(docs)
+    })
+  })
 })
