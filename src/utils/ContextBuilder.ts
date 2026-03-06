@@ -154,21 +154,21 @@ export function buildEventMessage(event: Event): string {
 
   // 根据事件类型添加特定字段
   if (event.type === "message") {
-    sections.push(`From: ${event.from}`)
-    if (event.fromRole) {
-      sections.push(`Role: ${event.fromRole}`)
+    sections.push(`From: ${event.details.from}`)
+    if (event.details.fromRole) {
+      sections.push(`Role: ${event.details.fromRole}`)
     }
-    sections.push(`Content: ${event.content}`)
+    sections.push(`Content: ${event.details.content}`)
     sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "agent_completed") {
-    sections.push(`Agent ID: ${event.agentId}`)
-    sections.push(`Related Task: ${event.taskName}`)
-    sections.push(`Result: ${event.result}`)
+    sections.push(`Agent ID: ${event.details.agentId}`)
+    sections.push(`Related Task: ${event.details.taskName}`)
+    sections.push(`Result: ${event.details.result}`)
     sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "task_available") {
     sections.push("The following tasks can be executed:")
     sections.push("")
-    for (const task of event.tasks) {
+    for (const task of event.details.tasks) {
       sections.push(`**Task: ${task.name}**`)
       sections.push(`- Status: ${task.status}`)
       sections.push(`- Description: ${task.description}`)
@@ -186,7 +186,7 @@ export function buildEventMessage(event: Event): string {
   } else if (event.type === "task_reminder") {
     sections.push("You have the following tasks in progress:")
     sections.push("")
-    for (const task of event.tasks) {
+    for (const task of event.details.tasks) {
       sections.push(`**Task: ${task.name}**`)
       sections.push(`- Status: ${task.status}`)
       sections.push(`- Description: ${task.description}`)
@@ -203,10 +203,8 @@ export function buildEventMessage(event: Event): string {
     sections.push(`Time: ${event.timestamp}`)
   } else {
     // 通用处理：输出所有字段
-    for (const [key, value] of Object.entries(event)) {
-      if (key !== "type") {
-        sections.push(`${key}: ${JSON.stringify(value)}`)
-      }
+    for (const [key, value] of Object.entries(event.details)) {
+      sections.push(`${key}: ${JSON.stringify(value)}`)
     }
   }
 

@@ -1,6 +1,6 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { MessageClient } from "./MessageService"
-import type { Message } from "../types"
+import type { Message, Event } from "../types"
 import type { MemoryManager, Memory, Task } from "./MemoryManager"
 import type { RoleManager } from "./RoleManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
@@ -18,38 +18,13 @@ export interface Role {
 }
 
 /**
- * 事件类型
+ * Internal agent event type (for agentRegistry queue)
  */
-export type Event =
-  | MessageEvent
-  | AgentEvent
-  | TaskAvailableEvent
-  | TaskReminderEvent
-
-export interface MessageEvent {
-  type: "message"
-  from: string
-  content: string
-  timestamp: string
-}
-
-export interface AgentEvent {
+export interface InternalAgentEvent {
   type: "agent_completed"
   agentId: string
   taskName: string
   result: string
-  timestamp: string
-}
-
-export interface TaskAvailableEvent {
-  type: "task_available"
-  tasks: Task[]
-  timestamp: string
-}
-
-export interface TaskReminderEvent {
-  type: "task_reminder"
-  tasks: Task[]
   timestamp: string
 }
 
@@ -132,11 +107,11 @@ export class EventLoop {
         console.log(`[${this.employeeName}] Received event:`, event.type)
         if (event.type === "message") {
           console.log(
-            `[${this.employeeName}] Message from ${event.from}: ${event.content}`
+            `[${this.employeeName}] Message from ${event.details.from}: ${event.details.content}`
           )
         } else if (event.type === "agent_completed") {
           console.log(
-            `[${this.employeeName}] Agent completed: ${event.taskName}, result: ${event.result}`
+            `[${this.employeeName}] Agent completed: ${event.details.taskName}, result: ${event.details.result}`
           )
         }
 
@@ -173,10 +148,15 @@ export class EventLoop {
       // 收到消息，清空快照和计数器
       this.clearProgressTracking()
       return {
+        projectId: "",
         type: "message",
-        from: msg.from,
-        content: msg.content,
         timestamp: msg.timestamp,
+        details: {
+          from: msg.from,
+          to: msg.to,
+          content: msg.content,
+          ...(msg.fromRole && { fromRole: msg.fromRole }),
+        },
       }
     }
 
@@ -185,7 +165,16 @@ export class EventLoop {
     if (completedAgent) {
       // Agent 完成，清空快照和计数器
       this.clearProgressTracking()
-      return completedAgent
+      return {
+        projectId: "",
+        type: "agent_completed",
+        timestamp: completedAgent.timestamp,
+        details: {
+          agentId: completedAgent.agentId,
+          taskName: completedAgent.taskName,
+          result: completedAgent.result,
+        },
+      }
     }
 
     // 3. 检查是否有运行中的 Agent
@@ -204,9 +193,12 @@ export class EventLoop {
       )
       if (executableTasks.length > 0) {
         return {
+          projectId: "",
           type: "task_available",
-          tasks: executableTasks,
           timestamp: new Date().toISOString(),
+          details: {
+            tasks: executableTasks,
+          },
         }
       }
 
@@ -216,9 +208,12 @@ export class EventLoop {
       )
       if (inProgressTasks.length > 0) {
         return {
+          projectId: "",
           type: "task_reminder",
-          tasks: inProgressTasks,
           timestamp: new Date().toISOString(),
+          details: {
+            tasks: inProgressTasks,
+          },
         }
       }
     }
@@ -270,13 +265,18 @@ export class EventLoop {
   /**
    * 等待新消息
    */
-  private async waitForMessage(): Promise<MessageEvent> {
+  private async waitForMessage(): Promise<Event> {
     const msg = await this.messageClient.recv()
     return {
+      projectId: "",
       type: "message",
-      from: msg.from,
-      content: msg.content,
       timestamp: msg.timestamp,
+      details: {
+        from: msg.from,
+        to: msg.to,
+        content: msg.content,
+        ...(msg.fromRole && { fromRole: msg.fromRole }),
+      },
     }
   }
 
@@ -285,7 +285,7 @@ export class EventLoop {
    * 订阅 OpenCode 事件流，监听 session 状态变化
    * 将完成的 agent 放入队列，而不是直接返回
    */
-  private async waitForAgentCompletion(): Promise<AgentEvent> {
+  private async waitForAgentCompletion(): Promise<Event> {
     // 订阅 OpenCode 事件流
     const events = await this.opcodeClient.event.subscribe()
 
@@ -306,7 +306,7 @@ export class EventLoop {
             agentRegistry.unregister(sessionId)
 
             // 创建事件对象
-            const agentEvent: AgentEvent = {
+            const agentEvent: InternalAgentEvent = {
               type: "agent_completed",
               agentId: sessionId,
               taskName: agentInfo.taskName,

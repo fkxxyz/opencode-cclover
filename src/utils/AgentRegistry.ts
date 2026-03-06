@@ -5,7 +5,7 @@
  * 用于跟踪由员工创建的 Agent 及其关联任务
  */
 
-import type { AgentEvent } from "../core/EventLoop"
+import type { InternalAgentEvent } from "../core/EventLoop"
 
 export interface AgentInfo {
   employeeName: string // 创建该 Agent 的员工名称
@@ -14,7 +14,7 @@ export interface AgentInfo {
 
 export class AgentRegistry {
   private agents = new Map<string, AgentInfo>()
-  private completedQueues = new Map<string, AgentEvent[]>() // 按员工分组的完成队列
+  private completedQueues = new Map<string, InternalAgentEvent[]>() // 按员工分组的完成队列
 
   /**
    * 注册 Agent 信息
@@ -60,7 +60,7 @@ export class AgentRegistry {
   /**
    * 添加完成事件到队列
    */
-  addCompletedEvent(employeeName: string, event: AgentEvent): void {
+  addCompletedEvent(employeeName: string, event: InternalAgentEvent): void {
     if (!this.completedQueues.has(employeeName)) {
       this.completedQueues.set(employeeName, [])
     }
@@ -71,7 +71,7 @@ export class AgentRegistry {
    * 非阻塞取出完成事件
    * 返回 null 表示队列为空
    */
-  getCompletedEvent(employeeName: string): AgentEvent | null {
+  getCompletedEvent(employeeName: string): InternalAgentEvent | null {
     const queue = this.completedQueues.get(employeeName)
     if (!queue || queue.length === 0) {
       return null

@@ -101,6 +101,8 @@ export type EventType =
   | "task_waiting_for_message"
   | "task_deleted"
   | "task_decomposed"
+  | "task_available"
+  | "task_reminder"
   | "agent_completed"
   | "agent_failed"
   | "timer"

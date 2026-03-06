@@ -70,10 +70,13 @@ describe("ContextBuilder", () => {
   describe("buildEventMessage", () => {
     test("should format message event", () => {
       const event: Event = {
+        projectId: "test",
         type: "message",
-        from: "alice",
-        content: "计算 1+1",
         timestamp: "2026-03-01T10:00:00Z",
+        details: {
+          from: "alice",
+          content: "计算 1+1",
+        },
       }
 
       const result = buildEventMessage(event)
@@ -84,11 +87,14 @@ describe("ContextBuilder", () => {
 
     test("should format agent_completed event", () => {
       const event: Event = {
+        projectId: "test",
         type: "agent_completed",
-        agentId: "agent_001",
-        taskName: "复杂计算",
-        result: "结果是 456831",
         timestamp: "2026-03-01T10:05:00Z",
+        details: {
+          agentId: "agent_001",
+          taskName: "复杂计算",
+          result: "结果是 456831",
+        },
       }
 
       const result = buildEventMessage(event)
