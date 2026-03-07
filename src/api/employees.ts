@@ -139,7 +139,7 @@ export async function getBossDetail(
   try {
     // 读取 boss 记忆文件
     const memoryPath = path.join(workspaceRoot, "bosses", name, "memory.yaml")
-    let memory: any = { knowledge: [], tasks: [], custom: {} }
+    let memory: any = { knowledge: [], tasks: [], args: {} }
 
     try {
       const content = await fs.readFile(memoryPath, "utf-8")
@@ -148,7 +148,7 @@ export async function getBossDetail(
       memory = {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
-        custom: data?.custom ?? {},
+        args: data?.args ?? {},
       }
     } catch (error: any) {
       if (error.code !== "ENOENT") {

@@ -139,20 +139,9 @@ export class RoleManager {
               `[RoleManager] Loaded role "${metadata.name}" from ${source} (${filePath}) with metadata`
             )
           } else {
-            // 旧格式：纯 markdown（向后兼容）
-            const roleName = path.basename(file, ".md")
-            this.roles.set(roleName, {
-              name: roleName,
-              description: "",
-              systemPrompt: content.trim(),
-              source,
-              requiredArgs: {},
-              canHire: [],
-              groups: [],
-            })
-
-            logger.debug(
-              `[RoleManager] Loaded role "${roleName}" from ${source} (${filePath}) without metadata`
+            // 没有 YAML frontmatter，拒绝加载
+            logger.warn(
+              `[RoleManager] Role file ${filePath} does not have YAML frontmatter, skipping`
             )
           }
         } catch (error: any) {

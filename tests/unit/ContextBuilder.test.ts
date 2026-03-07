@@ -339,7 +339,6 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: ["知识1", "知识2"],
         tasks: [],
-        custom: {},
         args: {
           project_name: "test-project",
           team_size: 5,
@@ -361,14 +360,12 @@ describe("ContextBuilder", () => {
       expect(result).toContain("test-project")
     })
 
-    test("should fallback to custom when args is not present", () => {
+    test("should handle empty args", () => {
       const rolePrompt = "你是一个员工"
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {
-          legacy_field: "legacy_value",
-        },
+        args: {},
       }
 
       const result = buildSystemPrompt(
@@ -378,9 +375,8 @@ describe("ContextBuilder", () => {
         ".cclover/workspace"
       )
 
-      expect(result).toContain("## Role Arguments")
-      expect(result).toContain("legacy_field")
-      expect(result).toContain("legacy_value")
+      // Should not show Role Arguments section when args is empty
+      expect(result).not.toContain("## Role Arguments")
     })
 
     test("should show missing required parameters", () => {
@@ -388,7 +384,6 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
         args: {
           project_name: "test-project",
         },
@@ -443,7 +438,6 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
         args: {
           project_name: "test-project",
           repository_url: "https://github.com/test/repo",
@@ -480,7 +474,6 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
         args: {},
       }
       const roleMetadata: RoleMetadata = {
@@ -504,7 +497,6 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
         args: {
           field1: null,
           field2: undefined,

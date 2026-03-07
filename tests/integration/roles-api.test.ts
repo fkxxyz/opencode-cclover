@@ -137,18 +137,11 @@ You are a test role. This is your system prompt.
       expect(testRole.canHire).toEqual(["calculator", "coder"])
       expect(testRole.groups).toEqual(["test-group"])
 
-      // 检查旧格式 role（无元数据）
+      // 检查旧格式 role（无元数据）应该被拒绝
       const legacyRole = json.data.roles.find(
         (r: any) => r.name === "legacy-role"
       )
-      expect(legacyRole).toBeDefined()
-      expect(legacyRole.name).toBe("legacy-role")
-      expect(legacyRole.description).toBe("")
-      expect(legacyRole.systemPrompt).toContain("You are a legacy role")
-      expect(legacyRole.source).toBe("project")
-      expect(legacyRole.requiredArgs).toEqual({})
-      expect(legacyRole.canHire).toEqual([])
-      expect(legacyRole.groups).toEqual([])
+      expect(legacyRole).toBeUndefined()
     })
 
     test("should return 404 for non-existent project", async () => {

@@ -75,7 +75,6 @@ describe("Tasks API", () => {
           created: "2026-03-01T10:02:00.000Z",
         },
       ],
-      custom: {},
     }
 
     const memoryPath = path.join(employeeDir, "memory.yaml")
@@ -126,7 +125,6 @@ describe("Tasks API", () => {
           created: "2026-03-01T10:02:00.000Z",
         },
       ],
-      custom: {},
     }
 
     const memoryPath = path.join(employeeDir, "memory.yaml")

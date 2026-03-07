@@ -77,13 +77,11 @@ export interface TasksResponse {
 export interface Memory {
   knowledge: string[]
   tasks: Task[]
-  custom: Record<string, any> // Keep for backward compatibility
-  args: Record<string, any> // New field for role arguments
+  args: Record<string, any> // Role arguments
   sessionId?: string
   sessionSnapshot?: {
     knowledge: string[]
     tasks: Task[]
-    custom: Record<string, any>
     args: Record<string, any>
     timestamp: string
   }

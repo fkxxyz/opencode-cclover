@@ -594,7 +594,6 @@ export class EventLoop {
         ...t,
         dependencies: [...t.dependencies],
       })),
-      custom: JSON.parse(JSON.stringify(memory.custom)),
       args: JSON.parse(JSON.stringify(memory.args)),
       timestamp: new Date().toISOString(),
     }
@@ -622,7 +621,6 @@ export class EventLoop {
       memory.sessionSnapshot || {
         knowledge: memory.knowledge,
         tasks: memory.tasks,
-        custom: memory.custom,
         args: memory.args,
         timestamp: new Date().toISOString(),
       },
@@ -760,7 +758,7 @@ export class EventLoop {
    */
   private async requestSummary(): Promise<{
     knowledge: string[]
-    custom: Record<string, any>
+    args: Record<string, any>
   }> {
     if (!this.currentSession) {
       throw new Error("No active session")
@@ -809,7 +807,7 @@ Self-check before submitting:
 
 Return JSON format with:
 - knowledge: string array (each item should be complete and self-contained)
-- custom: object (leave empty for now)`
+- args: object (leave empty for now)`
 
       // 如果是重试,添加错误信息
       if (attempt > 1 && lastError) {
@@ -856,7 +854,7 @@ Return JSON format with:
       if (parseResult.success) {
         return {
           knowledge: parseResult.data.knowledge ?? [],
-          custom: parseResult.data.custom ?? {},
+          args: parseResult.data.args ?? {},
         }
       }
 
@@ -883,7 +881,7 @@ Return JSON format with:
     console.error(
       `[${this.employeeName}] Failed to parse summary JSON after ${MAX_RETRIES} attempts`
     )
-    return { knowledge: [], custom: {} }
+    return { knowledge: [], args: {} }
   }
 
   /**
@@ -943,7 +941,7 @@ Return JSON format with:
    */
   private async saveSummary(summary: {
     knowledge: string[]
-    custom: Record<string, any>
+    args: Record<string, any>
   }): Promise<void> {
     // 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeName)
@@ -951,14 +949,13 @@ Return JSON format with:
     // 合并知识（去重）
     const knowledgeSet = new Set([...memory.knowledge, ...summary.knowledge])
 
-    // 合并 args（custom 参数名保持向后兼容，但实际更新 args）
-    const args = { ...memory.args, ...summary.custom }
+    // 合并 args
+    const args = { ...memory.args, ...summary.args }
 
     // 写入更新后的记忆
     await this.memoryManager.write(this.employeeName, {
       knowledge: Array.from(knowledgeSet),
       tasks: memory.tasks, // tasks 不需要总结，保持原样
-      custom: memory.custom, // custom 会被 write() 自动同步
       args, // 更新 args
     })
   }

@@ -80,7 +80,7 @@ export function buildSystemPrompt(
   sections.push("")
 
   // 2.1 角色参数（优先显示）
-  const args = memory.args || memory.custom || {} // Fallback to custom
+  const args = memory.args || {}
   if (Object.keys(args).length > 0) {
     sections.push("## Role Arguments")
     sections.push("```json")

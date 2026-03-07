@@ -499,7 +499,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *     hiredBy: null,
    *     memory: {
    *       knowledge: ["alice 经常问我数学计算问题"],
-   *       custom: { preferences: { language: "zh-CN" } }
+   *       args: { preferences: { language: "zh-CN" } }
    *     },
    *     tasks: [
    *       {
@@ -567,7 +567,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *     memory: {
    *       knowledge: ["..."],
    *       tasks: [...],
-   *       custom: {}
+   *       args: {}
    *     },
    *     tasks: [...],
    *     agents: [...]

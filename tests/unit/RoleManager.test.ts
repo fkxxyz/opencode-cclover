@@ -53,15 +53,19 @@ describe("RoleManager", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
-    // 创建一个覆盖 calculator 的项目 role
-    await fs.writeFile(
-      path.join(projectRolesDir, "calculator.md"),
-      "Project-specific calculator role"
-    )
+    // 创建一个覆盖 calculator 的项目 role (with frontmatter)
+    const roleContent = [
+      "---",
+      "name: Calculator",
+      "description: Project-specific calculator",
+      "---",
+      "Project-specific calculator role",
+    ].join("\n")
+    await fs.writeFile(path.join(projectRolesDir, "calculator.md"), roleContent)
 
     // 刷新并检查
     await roleManager.refresh()
-    const calculator = roleManager.getRole("calculator")
+    const calculator = roleManager.getRole("Calculator")
     expect(calculator?.source).toBe("project")
     expect(calculator?.systemPrompt).toBe("Project-specific calculator role")
 
@@ -74,10 +78,17 @@ describe("RoleManager", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
-    // 创建自定义 role
+    // 创建自定义 role (with frontmatter)
+    const roleContent = [
+      "---",
+      "name: custom-role",
+      "description: Custom role",
+      "---",
+      "Custom role prompt",
+    ].join("\n")
     await fs.writeFile(
       path.join(projectRolesDir, "custom-role.md"),
-      "Custom role prompt"
+      roleContent
     )
 
     // 刷新并检查
@@ -155,11 +166,11 @@ This is the system prompt for the test role.`
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
-  test("should fall back to filename for old format", async () => {
+  test("should reject old format without frontmatter", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
-    // 创建旧格式的角色文件（无 frontmatter）
+    // Create old format role file without frontmatter
     await fs.writeFile(
       path.join(projectRolesDir, "old-format.md"),
       "This is an old format role without frontmatter."
@@ -168,15 +179,8 @@ This is the system prompt for the test role.`
     await roleManager.refresh()
     const oldRole = roleManager.getRole("old-format")
 
-    expect(oldRole).toBeDefined()
-    expect(oldRole?.name).toBe("old-format")
-    expect(oldRole?.description).toBe("")
-    expect(oldRole?.systemPrompt).toBe(
-      "This is an old format role without frontmatter."
-    )
-    expect(oldRole?.requiredArgs).toEqual({})
-    expect(oldRole?.canHire).toEqual([])
-    expect(oldRole?.groups).toEqual([])
+    // Should not load old format files
+    expect(oldRole).toBeUndefined()
 
     await fs.rm(projectRolesDir, { recursive: true })
   })
@@ -251,13 +255,28 @@ Tester prompt`
 
     await fs.writeFile(
       path.join(projectRolesDir, "dev-frontend.md"),
-      "Frontend dev"
+      `---
+name: dev-frontend
+description: Frontend developer
+---
+Frontend dev`
     )
     await fs.writeFile(
       path.join(projectRolesDir, "dev-backend.md"),
-      "Backend dev"
+      `---
+name: dev-backend
+description: Backend developer
+---
+Backend dev`
     )
-    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+description: Tester
+---
+Tester`
+    )
 
     await roleManager.refresh()
 
@@ -334,8 +353,22 @@ groups:
 Dev 1`
     )
 
-    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
-    await fs.writeFile(path.join(projectRolesDir, "reviewer.md"), "Reviewer")
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+description: Tester
+---
+Tester`
+    )
+    await fs.writeFile(
+      path.join(projectRolesDir, "reviewer.md"),
+      `---
+name: reviewer
+description: Reviewer
+---
+Reviewer`
+    )
 
     await roleManager.refresh()
 
@@ -366,9 +399,30 @@ canHire:
 Manager`
     )
 
-    await fs.writeFile(path.join(projectRolesDir, "developer.md"), "Developer")
-    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
-    await fs.writeFile(path.join(projectRolesDir, "designer.md"), "Designer")
+    await fs.writeFile(
+      path.join(projectRolesDir, "developer.md"),
+      `---
+name: developer
+description: Developer
+---
+Developer`
+    )
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+description: Tester
+---
+Tester`
+    )
+    await fs.writeFile(
+      path.join(projectRolesDir, "designer.md"),
+      `---
+name: designer
+description: Designer
+---
+Designer`
+    )
 
     await roleManager.refresh()
 
@@ -396,10 +450,28 @@ Manager`
 
     await fs.writeFile(
       path.join(projectRolesDir, "dev-frontend.md"),
-      "Frontend"
+      `---
+name: dev-frontend
+description: Frontend developer
+---
+Frontend`
     )
-    await fs.writeFile(path.join(projectRolesDir, "dev-backend.md"), "Backend")
-    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev-backend.md"),
+      `---
+name: dev-backend
+description: Backend developer
+---
+Backend`
+    )
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+description: Tester
+---
+Tester`
+    )
 
     await roleManager.refresh()
 

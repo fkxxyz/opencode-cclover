@@ -34,7 +34,6 @@ export interface Task {
 export interface Memory {
   knowledge: string[] // 经验知识
   tasks: Task[] // 任务列表
-  custom: Record<string, any> // 自定义字段（向后兼容）
   args: Record<string, any> // 角色参数
   sessionId?: string // Session ID（可选）
 
@@ -42,7 +41,6 @@ export interface Memory {
   sessionSnapshot?: {
     knowledge: string[]
     tasks: Task[]
-    custom: Record<string, any>
     args: Record<string, any>
     timestamp: string
   }
@@ -100,23 +98,14 @@ export class MemoryManager {
       const content = await fs.readFile(memoryPath, "utf-8")
       const data = yaml.parse(content)
 
-      // 向后兼容：如果 custom 存在但 args 不存在，复制 custom 到 args
-      if (!data.args && data.custom) {
-        data.args = { ...data.custom }
-      }
-
-      // 确保两个字段都存在
+      // 确保 args 字段存在
       if (!data.args) {
         data.args = {}
-      }
-      if (!data.custom) {
-        data.custom = {}
       }
 
       return {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
-        custom: data.custom,
         args: data.args,
         sessionId: data?.sessionId ?? undefined,
         sessionSnapshot: data?.sessionSnapshot ?? undefined,
@@ -127,7 +116,6 @@ export class MemoryManager {
         return {
           knowledge: [],
           tasks: [],
-          custom: {},
           args: {},
         }
       }
@@ -151,7 +139,7 @@ export class MemoryManager {
     } catch {
       await fs.writeFile(
         memoryPath,
-        yaml.stringify({ knowledge: [], tasks: [], custom: {}, args: {} }),
+        yaml.stringify({ knowledge: [], tasks: [], args: {} }),
         "utf-8"
       )
     }
@@ -169,17 +157,14 @@ export class MemoryManager {
         stale: 5000,
       })
 
-      // 将 args 同步到 custom 以保持向后兼容
+      // 序列化为 YAML
       const dataToWrite = {
         knowledge: memory.knowledge,
         tasks: memory.tasks,
-        custom: memory.args, // 将 args 写入到 custom
-        args: memory.args, // 同时写入到 args
+        args: memory.args,
         sessionId: memory.sessionId,
         sessionSnapshot: memory.sessionSnapshot,
       }
-
-      // 序列化为 YAML
       const content = yaml.stringify(dataToWrite)
 
       // 写入文件
@@ -518,13 +503,13 @@ export class MemoryManager {
    */
   async summarize(
     employeeName: string,
-    summary: { knowledge: string[]; custom: Record<string, any> }
+    summary: { knowledge: string[]; args: Record<string, any> }
   ): Promise<void> {
     const memory = await this.read(employeeName)
 
-    // 更新 knowledge 和 args（custom 参数名保持向后兼容，但实际更新 args）
+    // 更新 knowledge 和 args
     memory.knowledge = summary.knowledge
-    memory.args = summary.custom
+    memory.args = summary.args
 
     // tasks 保持不变
     await this.write(employeeName, memory)
@@ -532,7 +517,7 @@ export class MemoryManager {
 
   /**
    * 更新角色参数
-   * 更新 args 字段，同时同步到 custom 以保持向后兼容
+   * 更新 args 字段
    */
   async updateArgs(
     employeeName: string,
@@ -543,7 +528,7 @@ export class MemoryManager {
     // 更新 args
     memory.args = args
 
-    // 写入（write 方法会自动同步到 custom）
+    // 写入
     await this.write(employeeName, memory)
   }
 

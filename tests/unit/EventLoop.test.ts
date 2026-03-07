@@ -162,7 +162,6 @@ describe("EventLoop", () => {
             created: new Date().toISOString(),
           },
         ],
-        custom: {},
         args: { oldKey: "oldValue" },
       })
 
@@ -180,7 +179,7 @@ describe("EventLoop", () => {
       const saveSummary = (eventLoop as any).saveSummary.bind(eventLoop)
       await saveSummary({
         knowledge: ["New knowledge"],
-        custom: { newKey: "newValue" },
+        args: { newKey: "newValue" },
       })
 
       // 验证记忆已更新
@@ -317,7 +316,7 @@ describe("EventLoop", () => {
                     type: "text",
                     text: JSON.stringify({
                       knowledge: ["Summary knowledge"],
-                      custom: { summaryKey: "summaryValue" },
+                      args: { summaryKey: "summaryValue" },
                     }),
                   },
                 ],
@@ -395,7 +394,7 @@ describe("EventLoop", () => {
                 parts: [
                   {
                     type: "text",
-                    text: '```json\n{"knowledge": ["Markdown knowledge"], "custom": {"markdownKey": "markdownValue"}}\n```',
+                    text: '```json\n{"knowledge": ["Markdown knowledge"], "args": {"markdownKey": "markdownValue"}}\n```',
                   },
                 ],
               },
@@ -576,7 +575,7 @@ describe("EventLoop", () => {
                     type: "text",
                     text: JSON.stringify({
                       knowledge: ["Retry success"],
-                      custom: { retryKey: "retryValue" },
+                      args: { retryKey: "retryValue" },
                     }),
                   },
                 ],
