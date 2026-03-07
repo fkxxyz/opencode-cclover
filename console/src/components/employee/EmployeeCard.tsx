@@ -10,17 +10,19 @@ interface EmployeeCardProps {
 }
 
 const statusColors: Record<EmployeeStatus, { bg: string; text: string }> = {
-  active: { bg: "#dcfce7", text: "#166534" },
-  idle: { bg: "#fef3c7", text: "#92400e" },
-  error: { bg: "#fee2e2", text: "#991b1b" },
-  inactive: { bg: "#f1f5f9", text: "#475569" },
+  busy: { bg: "#10b981", text: "#ffffff" },
+  idle: { bg: "#eab308", text: "#ffffff" },
+  error: { bg: "#ef4444", text: "#ffffff" },
+  offline: { bg: "#6b7280", text: "#ffffff" },
+  abnormal: { bg: "#f97316", text: "#ffffff" },
 }
 
 const statusLabels: Record<EmployeeStatus, string> = {
-  active: "活跃",
+  busy: "忙碌",
   idle: "空闲",
   error: "错误",
-  inactive: "未启动",
+  offline: "离线",
+  abnormal: "异常",
 }
 
 export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {

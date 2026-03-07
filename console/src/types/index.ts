@@ -13,7 +13,7 @@ export interface CandidateProject {
 }
 
 // Employee types
-export type EmployeeStatus = "active" | "idle" | "error" | "inactive"
+export type EmployeeStatus = "busy" | "idle" | "error" | "offline" | "abnormal"
 
 export interface Employee {
   name: string

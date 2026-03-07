@@ -9,10 +9,11 @@ interface HierarchyTreeProps {
 }
 
 const STATUS_COLORS: Record<EmployeeStatus, string> = {
-  active: "#10b981",
+  busy: "#10b981",
   idle: "#eab308",
   error: "#ef4444",
-  inactive: "#6b7280",
+  offline: "#6b7280",
+  abnormal: "#f97316",
 }
 
 export function HierarchyTree({ hierarchy, onNodeClick }: HierarchyTreeProps) {

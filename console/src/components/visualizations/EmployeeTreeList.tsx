@@ -11,17 +11,19 @@ interface EmployeeTreeListProps {
 }
 
 const STATUS_COLORS: Record<EmployeeStatus, string> = {
-  active: "#10b981",
+  busy: "#10b981",
   idle: "#eab308",
   error: "#ef4444",
-  inactive: "#6b7280",
+  offline: "#6b7280",
+  abnormal: "#f97316",
 }
 
 const STATUS_LABELS: Record<EmployeeStatus, string> = {
-  active: "活跃",
+  busy: "忙碌",
   idle: "空闲",
   error: "错误",
-  inactive: "未启动",
+  offline: "离线",
+  abnormal: "异常",
 }
 
 interface TreeNodeProps {
