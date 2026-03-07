@@ -1,6 +1,6 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { MessageClient } from "./MessageService"
-import type { Message, Event } from "../types"
+import type { Message, Event, RoleMetadata } from "../types"
 import type { MemoryManager, Memory, Task } from "./MemoryManager"
 import type { RoleManager } from "./RoleManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
@@ -536,6 +536,7 @@ export class EventLoop {
                 memory.sessionSnapshot,
                 this.employeeName,
                 ".cclover/workspace",
+                undefined, // TODO: Pass role metadata when RoleManager is updated
                 supervisor
               )
             : buildSystemPrompt(
@@ -543,6 +544,7 @@ export class EventLoop {
                 memory,
                 this.employeeName,
                 ".cclover/workspace",
+                undefined, // TODO: Pass role metadata when RoleManager is updated
                 supervisor
               ) // 降级：使用当前状态
 
@@ -626,6 +628,7 @@ export class EventLoop {
       },
       this.employeeName,
       ".cclover/workspace",
+      undefined, // TODO: Pass role metadata when RoleManager is updated
       supervisor
     )
 
@@ -1120,6 +1123,7 @@ Return JSON format with:
           memory.sessionSnapshot,
           this.employeeName,
           ".cclover/workspace",
+          undefined, // TODO: Pass role metadata when RoleManager is updated
           supervisor
         )
       : buildSystemPrompt(
@@ -1127,6 +1131,7 @@ Return JSON format with:
           memory,
           this.employeeName,
           ".cclover/workspace",
+          undefined, // TODO: Pass role metadata when RoleManager is updated
           supervisor
         )
 

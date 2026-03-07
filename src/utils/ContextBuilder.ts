@@ -5,11 +5,48 @@
  */
 
 import type { Task, Memory } from "../core/MemoryManager"
+import type { RoleMetadata } from "../types"
 import { generateMermaid } from "./MermaidGenerator"
 
 export interface Event {
   type: string
   [key: string]: any
+}
+
+interface MissingArg {
+  name: string
+  type: string
+  description: string
+}
+
+/**
+ * 检查缺失的必需参数
+ *
+ * @param requiredArgs 必需参数定义
+ * @param currentArgs 当前参数值
+ * @returns 缺失的参数列表
+ */
+function checkMissingArgs(
+  requiredArgs: Record<string, { type: string; description: string }>,
+  currentArgs: Record<string, any>
+): MissingArg[] {
+  const missing: MissingArg[] = []
+
+  for (const [name, spec] of Object.entries(requiredArgs)) {
+    if (
+      !(name in currentArgs) ||
+      currentArgs[name] === undefined ||
+      currentArgs[name] === null
+    ) {
+      missing.push({
+        name,
+        type: spec.type,
+        description: spec.description,
+      })
+    }
+  }
+
+  return missing
 }
 
 /**
@@ -19,6 +56,7 @@ export interface Event {
  * @param memory 员工的记忆
  * @param employeeName 员工名称
  * @param workspaceRoot 工作区根目录
+ * @param roleMetadata 角色元数据（可选）
  * @param supervisor 主管信息（可选）
  * @returns 完整的系统提示词
  */
@@ -27,6 +65,7 @@ export function buildSystemPrompt(
   memory: Memory,
   employeeName: string,
   workspaceRoot: string,
+  roleMetadata?: RoleMetadata,
   supervisor?: { name: string; role: string }
 ): string {
   const sections: string[] = []
@@ -40,21 +79,43 @@ export function buildSystemPrompt(
   sections.push("# Current Memory")
   sections.push("")
 
-  // 2.1 经验知识
+  // 2.1 角色参数（优先显示）
+  const args = memory.args || memory.custom || {} // Fallback to custom
+  if (Object.keys(args).length > 0) {
+    sections.push("## Role Arguments")
+    sections.push("```json")
+    sections.push(JSON.stringify(args, null, 2))
+    sections.push("```")
+    sections.push("")
+  }
+
+  // 2.2 参数提醒（如果有缺失的必需参数）
+  if (roleMetadata?.requiredArgs) {
+    const missingArgs = checkMissingArgs(roleMetadata.requiredArgs, args)
+    if (missingArgs.length > 0) {
+      sections.push("## ⚠️ Missing Required Parameters")
+      sections.push("")
+      sections.push(
+        "The following parameters are required for your role but not yet provided:"
+      )
+      sections.push("")
+      for (const arg of missingArgs) {
+        sections.push(`- **${arg.name}** (${arg.type}): ${arg.description}`)
+      }
+      sections.push("")
+      sections.push(
+        "Please ask your supervisor or relevant employees for this information."
+      )
+      sections.push("")
+    }
+  }
+
+  // 2.3 经验知识（移到 args 之后）
   if (memory.knowledge.length > 0) {
     sections.push("## Knowledge")
     for (const item of memory.knowledge) {
       sections.push(`- ${item}`)
     }
-    sections.push("")
-  }
-
-  // 2.2 自定义字段
-  if (Object.keys(memory.custom).length > 0) {
-    sections.push("## Custom Data")
-    sections.push("```json")
-    sections.push(JSON.stringify(memory.custom, null, 2))
-    sections.push("```")
     sections.push("")
   }
 
@@ -311,6 +372,7 @@ export function getExecutableTasks(tasks: Task[]): Task[] {
  * @param employeeName 员工名称
  * @param workspaceRoot 工作区根目录
  * @param event 事件
+ * @param roleMetadata 角色元数据（可选）
  * @param supervisor 主管信息（可选）
  * @returns 完整上下文
  */
@@ -320,6 +382,7 @@ export function buildFullContext(
   employeeName: string,
   workspaceRoot: string,
   event: Event,
+  roleMetadata?: RoleMetadata,
   supervisor?: { name: string; role: string }
 ): { systemPrompt: string; eventMessage: string } {
   return {
@@ -328,6 +391,7 @@ export function buildFullContext(
       memory,
       employeeName,
       workspaceRoot,
+      roleMetadata,
       supervisor
     ),
     eventMessage: buildEventMessage(event),

@@ -11,6 +11,7 @@ import {
   type Event,
 } from "../../src/utils/ContextBuilder"
 import type { Task } from "../../src/utils/MermaidGenerator"
+import type { RoleMetadata } from "../../src/types"
 
 describe("ContextBuilder", () => {
   describe("buildSystemPrompt", () => {
@@ -116,6 +117,7 @@ describe("ContextBuilder", () => {
         memory,
         "alice",
         ".cclover/workspace",
+        undefined,
         supervisor
       )
       expect(result).toContain("# Your Supervisor")
@@ -184,6 +186,7 @@ describe("ContextBuilder", () => {
         memory,
         "alice",
         ".cclover/workspace",
+        undefined,
         supervisor
       )
       const supervisorIndex = result.indexOf("# Your Supervisor")
@@ -327,6 +330,219 @@ describe("ContextBuilder", () => {
 
       const result = getExecutableTasks(tasks)
       expect(result).toHaveLength(0)
+    })
+  })
+
+  describe("Role Arguments and Missing Parameters", () => {
+    test("should display args before knowledge", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: ["知识1", "知识2"],
+        tasks: [],
+        custom: {},
+        args: {
+          project_name: "test-project",
+          team_size: 5,
+        },
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace"
+      )
+
+      const argsIndex = result.indexOf("## Role Arguments")
+      const knowledgeIndex = result.indexOf("## Knowledge")
+      expect(argsIndex).toBeGreaterThan(0)
+      expect(knowledgeIndex).toBeGreaterThan(argsIndex)
+      expect(result).toContain("project_name")
+      expect(result).toContain("test-project")
+    })
+
+    test("should fallback to custom when args is not present", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {
+          legacy_field: "legacy_value",
+        },
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace"
+      )
+
+      expect(result).toContain("## Role Arguments")
+      expect(result).toContain("legacy_field")
+      expect(result).toContain("legacy_value")
+    })
+
+    test("should show missing required parameters", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+        args: {
+          project_name: "test-project",
+        },
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "developer",
+        description: "A developer role",
+        requiredArgs: {
+          project_name: {
+            type: "string",
+            description: "The name of the project",
+          },
+          repository_url: {
+            type: "string",
+            description: "The URL of the git repository",
+          },
+          branch: {
+            type: "string",
+            description: "The branch to work on",
+          },
+        },
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        roleMetadata
+      )
+
+      expect(result).toContain("## ⚠️ Missing Required Parameters")
+      expect(result).toContain("repository_url")
+      expect(result).toContain("branch")
+      expect(result).toContain("The URL of the git repository")
+      expect(result).toContain("The branch to work on")
+
+      // project_name should appear in Role Arguments but not in Missing Parameters section
+      const missingParamsStart = result.indexOf(
+        "## ⚠️ Missing Required Parameters"
+      )
+      const missingParamsEnd = result.indexOf("# Workspace Files")
+      const missingParamsSection = result.substring(
+        missingParamsStart,
+        missingParamsEnd
+      )
+      expect(missingParamsSection).not.toContain("project_name")
+    })
+
+    test("should not show missing parameters section when all required args are provided", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+        args: {
+          project_name: "test-project",
+          repository_url: "https://github.com/test/repo",
+        },
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "developer",
+        description: "A developer role",
+        requiredArgs: {
+          project_name: {
+            type: "string",
+            description: "The name of the project",
+          },
+          repository_url: {
+            type: "string",
+            description: "The URL of the git repository",
+          },
+        },
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        roleMetadata
+      )
+
+      expect(result).not.toContain("## ⚠️ Missing Required Parameters")
+    })
+
+    test("should not show missing parameters section when roleMetadata has no requiredArgs", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+        args: {},
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "developer",
+        description: "A developer role",
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        roleMetadata
+      )
+
+      expect(result).not.toContain("## ⚠️ Missing Required Parameters")
+    })
+
+    test("should treat null and undefined args as missing", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+        args: {
+          field1: null,
+          field2: undefined,
+          field3: "",
+        },
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "developer",
+        description: "A developer role",
+        requiredArgs: {
+          field1: { type: "string", description: "Field 1" },
+          field2: { type: "string", description: "Field 2" },
+          field3: { type: "string", description: "Field 3" },
+        },
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        roleMetadata
+      )
+
+      expect(result).toContain("## ⚠️ Missing Required Parameters")
+      expect(result).toContain("field1")
+      expect(result).toContain("field2")
+
+      // field3 should appear in Role Arguments but not in Missing Parameters section (empty string is valid)
+      const missingParamsStart = result.indexOf(
+        "## ⚠️ Missing Required Parameters"
+      )
+      const missingParamsEnd = result.indexOf("# Workspace Files")
+      const missingParamsSection = result.substring(
+        missingParamsStart,
+        missingParamsEnd
+      )
+      expect(missingParamsSection).not.toContain("field3")
     })
   })
 })
