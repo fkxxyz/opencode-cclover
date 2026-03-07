@@ -920,4 +920,198 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
     "GET:/roles/:name",
     async (req, params, deps) => roles.getRole(deps.roleManager, params.name),
   ],
+
+  /**
+   * 暂停员工（放假）
+   *
+   * @endpoint POST /api/projects/:projectId/employees/:employeeName/pause
+   * @description 暂停员工的 EventLoop，员工将进入离线状态
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - employeeName: 员工名称
+   *
+   * @requestBody {} (empty)
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     message: "Employee 'xxx' has been paused. EventLoop will stop shortly."
+   *   }
+   * }
+   *
+   * @errors
+   *   - PROJECT_NOT_FOUND (404): 项目不存在
+   *   - EMPLOYEE_NOT_FOUND (400): 员工不存在
+   *   - PERMISSION_DENIED (400): 权限不足
+   *   - ACTIVE_TASKS (400): 有待处理或进行中的任务
+   *
+   * @example
+   * POST /api/projects/abc123/employees/calculator/pause
+   * Response: { success: true, data: { message: "Employee 'calculator' has been paused..." } }
+   */
+  [
+    "POST:/employees/:employeeName/pause",
+    async (req, params, deps) => {
+      try {
+        const { employeeName } = params
+
+        // 获取项目实例
+        const project = deps.projectRegistry.getProject(params.projectId)
+        if (!project) {
+          return {
+            success: false,
+            error: {
+              code: "PROJECT_NOT_FOUND",
+              message: `Project not found: ${params.projectId}`,
+            },
+          }
+        }
+
+        // 创建 pause_employee 工具
+        const { createPauseEmployeeTool } = await import("../tools")
+        const pauseTool = createPauseEmployeeTool(
+          project.stateManager,
+          project.memoryManager,
+          project.bossManager
+        )
+
+        // 获取第一个 Boss 作为操作者
+        const bosses = project.bossManager.getBosses()
+        if (bosses.length === 0) {
+          return {
+            success: false,
+            error: {
+              code: "NO_BOSS_FOUND",
+              message: "No boss found in project",
+            },
+          }
+        }
+        const operatorName = bosses[0]
+
+        // 注册临时 sessionID
+        const { sessionRegistry } = await import("../utils/SessionRegistry")
+        const tempSessionID = `http-pause-${Date.now()}`
+        sessionRegistry.register(tempSessionID, operatorName)
+
+        // 执行工具
+        const result = await pauseTool.execute({ employeeName }, {
+          sessionID: tempSessionID,
+        } as any)
+
+        // 清理临时 sessionID
+        sessionRegistry.unregister(tempSessionID)
+
+        return {
+          success: true,
+          data: { message: result },
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: {
+            code: "PAUSE_FAILED",
+            message: error.message,
+          },
+        }
+      }
+    },
+  ],
+
+  /**
+   * 恢复员工（结束假期）
+   *
+   * @endpoint POST /api/projects/:projectId/employees/:employeeName/resume
+   * @description 恢复员工的 EventLoop，员工将从离线状态恢复
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - employeeName: 员工名称
+   *
+   * @requestBody {} (empty)
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     message: "Employee 'xxx' has been resumed. EventLoop is starting."
+   *   }
+   * }
+   *
+   * @errors
+   *   - PROJECT_NOT_FOUND (404): 项目不存在
+   *   - EMPLOYEE_NOT_FOUND (400): 员工不存在
+   *   - PERMISSION_DENIED (400): 权限不足
+   *   - NOT_ON_VACATION (400): 员工不在离线状态
+   *
+   * @example
+   * POST /api/projects/abc123/employees/calculator/resume
+   * Response: { success: true, data: { message: "Employee 'calculator' has been resumed..." } }
+   */
+  [
+    "POST:/employees/:employeeName/resume",
+    async (req, params, deps) => {
+      try {
+        const { employeeName } = params
+
+        // 获取项目实例
+        const project = deps.projectRegistry.getProject(params.projectId)
+        if (!project) {
+          return {
+            success: false,
+            error: {
+              code: "PROJECT_NOT_FOUND",
+              message: `Project not found: ${params.projectId}`,
+            },
+          }
+        }
+
+        // 创建 resume_employee 工具
+        const { createResumeEmployeeTool } = await import("../tools")
+        const resumeTool = createResumeEmployeeTool(
+          project.stateManager,
+          project.bossManager,
+          project
+        )
+
+        // 获取第一个 Boss 作为操作者
+        const bosses = project.bossManager.getBosses()
+        if (bosses.length === 0) {
+          return {
+            success: false,
+            error: {
+              code: "NO_BOSS_FOUND",
+              message: "No boss found in project",
+            },
+          }
+        }
+        const operatorName = bosses[0]
+
+        // 注册临时 sessionID
+        const { sessionRegistry } = await import("../utils/SessionRegistry")
+        const tempSessionID = `http-resume-${Date.now()}`
+        sessionRegistry.register(tempSessionID, operatorName)
+
+        // 执行工具
+        const result = await resumeTool.execute({ employeeName }, {
+          sessionID: tempSessionID,
+        } as any)
+
+        // 清理临时 sessionID
+        sessionRegistry.unregister(tempSessionID)
+
+        return {
+          success: true,
+          data: { message: result },
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: {
+            code: "RESUME_FAILED",
+            message: error.message,
+          },
+        }
+      }
+    },
+  ],
 ])
