@@ -225,13 +225,14 @@ export class GlobalCcloverService {
     // 4. 为所有员工启动 EventLoop
     const employees = project.stateManager.getEmployees()
     const opcodeClient = this.getOpencodeClient()
+    let startedCount = 0
 
     for (const employee of employees) {
       // 验证角色存在
       const role = project.roleManager.getRole(employee.role)
       if (!role) {
-        logger.warn(
-          `Role '${employee.role}' not found for employee '${employee.name}', skipping`
+        logger.error(
+          `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
         )
         continue
       }
@@ -258,11 +259,20 @@ export class GlobalCcloverService {
       })
 
       logger.info(`EventLoop started for employee: ${employee.name}`)
+      startedCount++
     }
 
     // 标记为已启动
     project.eventLoopStarted = true
-    logger.info(`All EventLoops started for project: ${project.projectName}`)
+    logger.info(
+      `Started ${startedCount}/${employees.length} EventLoops for project: ${project.projectName}`
+    )
+
+    if (startedCount < employees.length) {
+      logger.error(
+        `Failed to start ${employees.length - startedCount} EventLoops due to missing roles`
+      )
+    }
   }
 
   /**
