@@ -49,7 +49,9 @@ describe("Tool Creation Integration", () => {
   test("send_message tool is properly configured", () => {
     const tool = tools.send_message
     expect(tool).toBeDefined()
-    expect(tool.description).toBe("Send message to other employees")
+    expect(tool.description).toBe(
+      "Send message to other employees. If any tasks depend on receiving a reply to this message, update those tasks to 'waiting_for_message' status using edit_tasks."
+    )
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")
   })

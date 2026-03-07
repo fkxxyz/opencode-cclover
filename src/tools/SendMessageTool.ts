@@ -20,7 +20,8 @@ export function createSendMessageTool(
   bossManager?: BossManager
 ) {
   return tool({
-    description: "Send message to other employees",
+    description:
+      "Send message to other employees. If any tasks depend on receiving a reply to this message, update those tasks to 'waiting_for_message' status using edit_tasks.",
     args: {
       to: tool.schema.string().describe("Recipient name"),
       content: tool.schema.string().describe("Message content"),
