@@ -501,7 +501,7 @@ export class EventLoop {
 
         if (session.data?.id) {
           // Session 有效，恢复
-          console.log(
+          logger.debug(
             `[${this.employeeName}] Restored session: ${memory.sessionId}`
           )
 
