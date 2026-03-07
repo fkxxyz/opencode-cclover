@@ -44,6 +44,14 @@ describe("GlobalCcloverService.startEmployeeEventLoop", () => {
         create: mock(() => Promise.resolve({ id: "test-session" })),
         status: mock(() => Promise.resolve({})),
       },
+      event: {
+        subscribe: mock(async () => ({
+          stream: (async function* () {
+            // Mock event stream that waits indefinitely without throwing errors
+            await new Promise(() => {})
+          })(),
+        })),
+      },
     } as any
 
     // 注入 OpencodeClient
