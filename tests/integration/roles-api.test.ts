@@ -165,21 +165,19 @@ You are a test role. This is your system prompt.
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.role).toBeDefined()
-      expect(json.data.role.name).toBe("test-role")
-      expect(json.data.role.description).toBe(
-        "A test role for integration testing"
-      )
-      expect(json.data.role.systemPrompt).toContain("You are a test role")
-      expect(json.data.role.source).toBe("project")
-      expect(json.data.role.requiredArgs).toEqual({
+      expect(json.data).toBeDefined()
+      expect(json.data.name).toBe("test-role")
+      expect(json.data.description).toBe("A test role for integration testing")
+      expect(json.data.systemPrompt).toContain("You are a test role")
+      expect(json.data.source).toBe("project")
+      expect(json.data.requiredArgs).toEqual({
         apiKey: {
           type: "string",
           description: "API key for authentication",
         },
       })
-      expect(json.data.role.canHire).toEqual(["calculator", "coder"])
-      expect(json.data.role.groups).toEqual(["test-group"])
+      expect(json.data.canHire).toEqual(["calculator", "coder"])
+      expect(json.data.groups).toEqual(["test-group"])
     })
 
     test("should return 404 for non-existent role", async () => {
@@ -214,21 +212,19 @@ You are a test role. This is your system prompt.
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.role).toBeDefined()
-      expect(json.data.role.name).toBe("test-role")
-      expect(json.data.role.description).toBe(
-        "A test role for integration testing"
-      )
-      expect(json.data.role.systemPrompt).toContain("You are a test role")
-      expect(json.data.role.source).toBe("project")
-      expect(json.data.role.requiredArgs).toEqual({
+      expect(json.data).toBeDefined()
+      expect(json.data.name).toBe("test-role")
+      expect(json.data.description).toBe("A test role for integration testing")
+      expect(json.data.systemPrompt).toContain("You are a test role")
+      expect(json.data.source).toBe("project")
+      expect(json.data.requiredArgs).toEqual({
         apiKey: {
           type: "string",
           description: "API key for authentication",
         },
       })
-      expect(json.data.role.canHire).toEqual(["calculator", "coder"])
-      expect(json.data.role.groups).toEqual(["test-group"])
+      expect(json.data.canHire).toEqual(["calculator", "coder"])
+      expect(json.data.groups).toEqual(["test-group"])
     })
 
     test("should return 404 for non-existent employee", async () => {

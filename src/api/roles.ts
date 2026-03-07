@@ -58,9 +58,7 @@ export async function getRole(roleManager: RoleManager, name: string) {
 
   return {
     success: true,
-    data: {
-      role,
-    },
+    data: role,
   }
 }
 
@@ -100,8 +98,6 @@ export async function getEmployeeRole(
 
   return {
     success: true,
-    data: {
-      role,
-    },
+    data: role,
   }
 }
