@@ -30,31 +30,18 @@ export async function refreshRoles(roleManager: RoleManager) {
 
 /**
  * 获取所有 role（包含元数据）
- *
- * Mock implementation - 将在 Task 3.3 中替换为真实实现
  */
 export async function getRoles(roleManager: RoleManager) {
   return {
     success: true,
     data: {
-      roles: roleManager.getAllRoles().map((role) => ({
-        name: role.name,
-        source: role.source,
-        systemPrompt: role.systemPrompt,
-        // Mock metadata - 将在 Task 3.3 中从 role 文件解析
-        description: `Mock description for ${role.name}`,
-        requiredArgs: {},
-        canHire: [],
-        groups: [],
-      })),
+      roles: roleManager.getAllRoles(),
     },
   }
 }
 
 /**
  * 获取指定 role（包含元数据）
- *
- * Mock implementation - 将在 Task 3.3 中替换为真实实现
  */
 export async function getRole(roleManager: RoleManager, name: string) {
   const role = roleManager.getRole(name)
@@ -72,24 +59,13 @@ export async function getRole(roleManager: RoleManager, name: string) {
   return {
     success: true,
     data: {
-      role: {
-        name: role.name,
-        source: role.source,
-        systemPrompt: role.systemPrompt,
-        // Mock metadata - 将在 Task 3.3 中从 role 文件解析
-        description: `Mock description for ${role.name}`,
-        requiredArgs: {},
-        canHire: [],
-        groups: [],
-      },
+      role,
     },
   }
 }
 
 /**
  * 获取员工的角色元数据
- *
- * Mock implementation - 将在 Task 3.3 中替换为真实实现
  */
 export async function getEmployeeRole(
   employeeName: string,
@@ -125,16 +101,7 @@ export async function getEmployeeRole(
   return {
     success: true,
     data: {
-      role: {
-        name: role.name,
-        source: role.source,
-        systemPrompt: role.systemPrompt,
-        // Mock metadata - 将在 Task 3.3 中从 role 文件解析
-        description: `Mock description for ${role.name}`,
-        requiredArgs: {},
-        canHire: [],
-        groups: [],
-      },
+      role,
     },
   }
 }
