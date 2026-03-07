@@ -136,6 +136,14 @@ export class EventLoop {
         // 6. 检查是否需要总结
         await this.summarizeIfNeeded()
       } catch (error) {
+        // 检查是否是假期请求导致的退出
+        if ((error as any).message === "VACATION_REQUESTED") {
+          logger.info(
+            `[${this.employeeName}] EventLoop exiting due to vacation request`
+          )
+          return // 正常退出，不记录错误
+        }
+
         console.error(`[${this.employeeName}] Error in event loop:`, error)
         // 更新状态为 error
         await this.stateManager?.updateEmployeeStatus(
@@ -394,7 +402,32 @@ export class EventLoop {
   private async handleEvent(event: Event): Promise<void> {
     console.log(`[${this.employeeName}] Received event:`, event.type)
 
-    // 1. 如果是消息或 agent 事件，清空快照并恢复正常状态
+    // 1. 处理假期请求事件
+    if (event.type === "vacation_requested") {
+      // 更新状态为 offline
+      await this.stateManager?.updateEmployeeStatus(
+        this.employeeName,
+        "offline"
+      )
+
+      // 记录状态变更事件
+      await this.stateManager?.addEvent({
+        projectId: "",
+        type: "employee_status_changed",
+        timestamp: new Date().toISOString(),
+        employeeName: this.employeeName,
+        details: {
+          oldStatus: "busy", // or get from stateManager
+          newStatus: "offline",
+          reason: "vacation_requested",
+        },
+      })
+
+      // 抛出特定错误以触发 EventLoop 退出
+      throw new Error("VACATION_REQUESTED")
+    }
+
+    // 2. 如果是消息或 agent 事件，清空快照并恢复正常状态
     if (event.type === "message" || event.type === "agent_completed") {
       this.clearProgressTracking()
       const employee = await this.stateManager?.getEmployee(this.employeeName)

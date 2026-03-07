@@ -124,6 +124,7 @@ export type EventType =
   | "agent_created"
   | "task_created"
   | "task_modified"
+  | "vacation_requested"
 
 // 事件
 export interface Event {
