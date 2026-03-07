@@ -18,9 +18,9 @@ describe("RoleManager", () => {
     await roleManager.refresh()
 
     // 应该加载 calculator.md
-    const calculator = roleManager.getRole("calculator")
+    const calculator = roleManager.getRole("Calculator")
     expect(calculator).toBeDefined()
-    expect(calculator?.name).toBe("calculator")
+    expect(calculator?.name).toBe("Calculator")
     expect(calculator?.source).toBe("preset")
     expect(calculator?.systemPrompt).toContain("计算器员工")
   })
@@ -29,7 +29,7 @@ describe("RoleManager", () => {
     await roleManager.refresh()
 
     const names = roleManager.getRoleNames()
-    expect(names).toContain("calculator")
+    expect(names).toContain("Calculator")
     expect(names.length).toBeGreaterThan(0)
   })
 
@@ -38,7 +38,7 @@ describe("RoleManager", () => {
 
     const roles = roleManager.getAllRoles()
     expect(roles.length).toBeGreaterThan(0)
-    expect(roles.some((r) => r.name === "calculator")).toBe(true)
+    expect(roles.some((r) => r.name === "Calculator")).toBe(true)
   })
 
   test("should return undefined for unknown role", async () => {
@@ -95,7 +95,7 @@ describe("RoleManager", () => {
   test("calculator role should have correct content", async () => {
     await roleManager.refresh()
 
-    const calculator = roleManager.getRole("calculator")
+    const calculator = roleManager.getRole("Calculator")
     expect(calculator).toBeDefined()
 
     const prompt = calculator!.systemPrompt
@@ -222,9 +222,11 @@ Tester prompt`
     await roleManager.refresh()
 
     const devGroup = roleManager.resolveGroup("group:developers")
-    expect(devGroup).toHaveLength(2)
+    expect(devGroup).toHaveLength(4) // 2 from preset (General Developer, Soul Developer) + 2 from test
     expect(devGroup).toContain("dev1")
     expect(devGroup).toContain("dev2")
+    expect(devGroup).toContain("General Developer")
+    expect(devGroup).toContain("Soul Developer")
 
     const qaGroup = roleManager.resolveGroup("group:qa")
     expect(qaGroup).toHaveLength(1)
@@ -239,8 +241,8 @@ Tester prompt`
   test("resolveCanHire should resolve exact names", async () => {
     await roleManager.refresh()
 
-    const resolved = roleManager.resolveCanHire(["calculator"])
-    expect(resolved).toContain("calculator")
+    const resolved = roleManager.resolveCanHire(["Calculator"])
+    expect(resolved).toContain("Calculator")
   })
 
   test("resolveCanHire should resolve glob patterns", async () => {
@@ -309,9 +311,11 @@ Dev 2`
     await roleManager.refresh()
 
     const resolved = roleManager.resolveCanHire(["group:developers"])
-    expect(resolved).toHaveLength(2)
+    expect(resolved).toHaveLength(4) // 2 from preset + 2 from test
     expect(resolved).toContain("dev1")
     expect(resolved).toContain("dev2")
+    expect(resolved).toContain("General Developer")
+    expect(resolved).toContain("Soul Developer")
 
     await fs.rm(projectRolesDir, { recursive: true })
   })
