@@ -6,6 +6,7 @@ import type { RoleManager } from "./RoleManager"
 import { buildSystemPrompt, buildEventMessage } from "../utils/ContextBuilder"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { sessionRegistry } from "../utils/SessionRegistry"
+import { vacationRegistry } from "../utils/VacationRegistry"
 import type { StateManager } from "../state/StateManager"
 import { logger } from "../lib/logger"
 
@@ -157,9 +158,20 @@ export class EventLoop {
 
   /**
    * 等待事件
-   * 按优先级顺序检查：消息 > Agent完成 > 可执行任务 > in_progress任务
+   * 按优先级顺序检查：假期通知 > 消息 > Agent完成 > 可执行任务 > in_progress任务
    */
   private async waitForEvent(): Promise<Event> {
+    // 0. HIGHEST PRIORITY: Check vacation notification
+    const vacationEvent = vacationRegistry.getVacationEvent(this.employeeName)
+    if (vacationEvent) {
+      return {
+        projectId: "",
+        type: "vacation_requested",
+        timestamp: vacationEvent.timestamp,
+        details: {},
+      }
+    }
+
     // 1. 非阻塞检查未读消息
     const messageService = (this.messageClient as any).service
     const unreadQueue = messageService.getUnreadQueue(this.employeeName)
@@ -247,6 +259,11 @@ export class EventLoop {
    * 用于避免不必要的 idle 状态切换
    */
   private async hasImmediateEvent(): Promise<boolean> {
+    // 0. 检查假期通知
+    if (vacationRegistry.hasVacationEvent(this.employeeName)) {
+      return true
+    }
+
     // 1. 检查未读消息
     const messageService = (this.messageClient as any).service
     const unreadQueue = messageService.getUnreadQueue(this.employeeName)

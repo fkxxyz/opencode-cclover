@@ -36,6 +36,16 @@ export class VacationRegistry {
   }
 
   /**
+   * 检查员工是否有假期事件（不移除）
+   * @param employeeName 员工名称
+   * @returns 如果有假期事件返回 true，否则返回 false
+   */
+  hasVacationEvent(employeeName: string): boolean {
+    const queue = this.vacationQueues.get(employeeName)
+    return queue !== undefined && queue.length > 0
+  }
+
+  /**
    * 获取并移除员工队列中的第一个假期事件（FIFO）
    * @param employeeName 员工名称
    * @returns 假期事件，如果队列为空则返回 null
