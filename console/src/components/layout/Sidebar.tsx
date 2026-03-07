@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from "react-router-dom"
-import { Settings } from "lucide-react"
+import { Settings, Users } from "lucide-react"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
@@ -79,6 +79,24 @@ export function Sidebar({ isMobile, mobileOpen, onClose }: SidebarProps) {
         )}
       </Box>
       <Box sx={{ borderTop: 1, borderColor: "divider", p: 1 }}>
+        {projectId && (
+          <Button
+            component={Link}
+            to={`/projects/${projectId}/roles`}
+            startIcon={<Users />}
+            onClick={isMobile ? onClose : undefined}
+            sx={{
+              width: "100%",
+              justifyContent: "flex-start",
+              ...(location.pathname === `/projects/${projectId}/roles` && {
+                bgcolor: "primary.light",
+                color: "primary.main",
+              }),
+            }}
+          >
+            Roles
+          </Button>
+        )}
         <Button
           component={Link}
           to="/projects"

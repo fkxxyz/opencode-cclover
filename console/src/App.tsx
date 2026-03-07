@@ -6,6 +6,7 @@ import {
   EmployeeDetail,
   ProjectManagement,
   BossDetail,
+  RoleManagement,
 } from "./pages"
 import { Toaster } from "./lib/toast"
 function App() {
@@ -25,6 +26,10 @@ function App() {
             <Route
               path="/projects/:projectId/boss/:name"
               element={<BossDetail />}
+            />
+            <Route
+              path="/projects/:projectId/roles"
+              element={<RoleManagement />}
             />
           </Routes>
         </Box>
