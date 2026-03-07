@@ -435,10 +435,10 @@ export const projectRoutes = new Map<string, RouteHandler>([
   ],
 
   /**
-   * 获取所有 role
+   * 获取所有 role（包含元数据）
    *
    * @endpoint GET /api/projects/:projectId/roles
-   * @description 获取所有可用的 role 列表
+   * @description 获取所有可用的 role 列表，包含元数据
    *
    * @pathParams
    *   - projectId: 项目ID
@@ -450,7 +450,11 @@ export const projectRoutes = new Map<string, RouteHandler>([
    *       {
    *         name: "calculator",
    *         source: "preset",
-   *         systemPrompt: "你是一个计算器员工..."
+   *         systemPrompt: "你是一个计算器员工...",
+   *         description: "计算器角色",
+   *         requiredArgs: {},
+   *         canHire: [],
+   *         groups: []
    *       }
    *     ]
    *   }
@@ -842,10 +846,49 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   ],
 
   /**
-   * 获取指定 role
+   * 获取员工的角色元数据
+   *
+   * @endpoint GET /api/projects/:projectId/employees/:name/role
+   * @description 获取指定员工的角色元数据
+   *
+   * @pathParams
+   *   - projectId: 项目ID
+   *   - name: 员工名称
+   *
+   * @response {
+   *   success: true,
+   *   data: {
+   *     role: {
+   *       name: "calculator",
+   *       source: "preset",
+   *       systemPrompt: "你是一个计算器员工...",
+   *       description: "计算器角色",
+   *       requiredArgs: {},
+   *       canHire: [],
+   *       groups: []
+   *     }
+   *   }
+   * }
+   *
+   * @errors
+   *   - EMPLOYEE_NOT_FOUND: 员工不存在
+   *   - ROLE_NOT_FOUND: 角色不存在
+   *
+   * @example
+   * GET /api/projects/abc123/employees/calculator/role
+   * Response: { success: true, data: { role: {...} } }
+   */
+  [
+    "GET:/employees/:name/role",
+    async (req, params, deps) =>
+      roles.getEmployeeRole(params.name, deps.stateManager, deps.roleManager),
+  ],
+
+  /**
+   * 获取指定 role（包含元数据）
    *
    * @endpoint GET /api/projects/:projectId/roles/:name
-   * @description 获取指定名称的 role 详情
+   * @description 获取指定名称的 role 详情，包含元数据
    *
    * @pathParams
    *   - projectId: 项目ID
@@ -857,7 +900,11 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *     role: {
    *       name: "calculator",
    *       source: "preset",
-   *       systemPrompt: "你是一个计算器员工..."
+   *       systemPrompt: "你是一个计算器员工...",
+   *       description: "计算器角色",
+   *       requiredArgs: {},
+   *       canHire: [],
+   *       groups: []
    *     }
    *   }
    * }

@@ -76,8 +76,17 @@ export interface TasksResponse {
 // 记忆
 export interface Memory {
   knowledge: string[]
-  custom: Record<string, any>
+  tasks: Task[]
+  custom: Record<string, any> // Keep for backward compatibility
+  args: Record<string, any> // New field for role arguments
   sessionId?: string
+  sessionSnapshot?: {
+    knowledge: string[]
+    tasks: Task[]
+    custom: Record<string, any>
+    args: Record<string, any>
+    timestamp: string
+  }
 }
 
 // Agent 状态类型
@@ -153,6 +162,27 @@ export type ConnectionStatus =
   | "connected"
   | "disconnected"
   | "error"
+
+// 角色元数据
+export interface RoleMetadata {
+  name: string
+  description: string
+  requiredArgs?: Record<
+    string,
+    {
+      type: string
+      description: string
+    }
+  >
+  canHire?: string[]
+  groups?: string[]
+}
+
+// 角色（包含元数据和系统提示词）
+export interface Role extends RoleMetadata {
+  systemPrompt: string
+  source: "preset" | "global" | "project"
+}
 
 // Timeline 项类型
 export type TimelineItemType = "message" | "event"

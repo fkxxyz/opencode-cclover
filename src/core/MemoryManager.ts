@@ -34,7 +34,8 @@ export interface Task {
 export interface Memory {
   knowledge: string[] // 经验知识
   tasks: Task[] // 任务列表
-  custom: Record<string, any> // 自定义字段
+  custom: Record<string, any> // 自定义字段（向后兼容）
+  args: Record<string, any> // 角色参数
   sessionId?: string // Session ID（可选）
 
   // Session 创建时的快照
@@ -42,6 +43,7 @@ export interface Memory {
     knowledge: string[]
     tasks: Task[]
     custom: Record<string, any>
+    args: Record<string, any>
     timestamp: string
   }
 }
@@ -103,6 +105,7 @@ export class MemoryManager {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
         custom: data?.custom ?? {},
+        args: data?.args ?? {},
         sessionId: data?.sessionId ?? undefined,
         sessionSnapshot: data?.sessionSnapshot ?? undefined,
       }
@@ -113,6 +116,7 @@ export class MemoryManager {
           knowledge: [],
           tasks: [],
           custom: {},
+          args: {},
         }
       }
       throw error
@@ -135,7 +139,7 @@ export class MemoryManager {
     } catch {
       await fs.writeFile(
         memoryPath,
-        yaml.stringify({ knowledge: [], tasks: [], custom: {} }),
+        yaml.stringify({ knowledge: [], tasks: [], custom: {}, args: {} }),
         "utf-8"
       )
     }

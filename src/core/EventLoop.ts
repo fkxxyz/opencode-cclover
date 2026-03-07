@@ -593,6 +593,7 @@ export class EventLoop {
         dependencies: [...t.dependencies],
       })),
       custom: JSON.parse(JSON.stringify(memory.custom)),
+      args: JSON.parse(JSON.stringify(memory.args)),
       timestamp: new Date().toISOString(),
     }
     memory.sessionId = sessionId
@@ -616,7 +617,13 @@ export class EventLoop {
 
     const systemPrompt = buildSystemPrompt(
       role.systemPrompt,
-      memory.sessionSnapshot,
+      memory.sessionSnapshot || {
+        knowledge: memory.knowledge,
+        tasks: memory.tasks,
+        custom: memory.custom,
+        args: memory.args,
+        timestamp: new Date().toISOString(),
+      },
       this.employeeName,
       ".cclover/workspace",
       supervisor
@@ -949,6 +956,7 @@ Return JSON format with:
       knowledge: Array.from(knowledgeSet),
       tasks: memory.tasks, // tasks 不需要总结，保持原样
       custom,
+      args: memory.args, // args 保持原样
     })
   }
 

@@ -37,6 +37,7 @@ describe("MemoryManager", () => {
         knowledge: [],
         tasks: [],
         custom: {},
+        args: {},
       })
     })
 
@@ -45,6 +46,7 @@ describe("MemoryManager", () => {
         knowledge: ["I am good at math"],
         tasks: [],
         custom: { foo: "bar" },
+        args: {},
       }
 
       await manager.write("alice", memory)
@@ -58,6 +60,7 @@ describe("MemoryManager", () => {
         knowledge: [],
         tasks: [],
         custom: {},
+        args: {},
       }
 
       await manager.write("bob", memory)

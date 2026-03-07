@@ -76,7 +76,17 @@ export interface TasksResponse {
 // Memory types
 export interface Memory {
   knowledge: string[]
-  custom: Record<string, unknown>
+  tasks: Task[]
+  custom: Record<string, unknown> // Keep for backward compatibility
+  args: Record<string, unknown> // New field for role arguments
+  sessionId?: string
+  sessionSnapshot?: {
+    knowledge: string[]
+    tasks: Task[]
+    custom: Record<string, unknown>
+    args: Record<string, unknown>
+    timestamp: string
+  }
 }
 
 // Agent execution types
@@ -160,6 +170,26 @@ export interface TimelineItem {
   type: TimelineItemType
   timestamp: string
   data: Message | Event
+}
+
+// Role types
+export interface RoleMetadata {
+  name: string
+  description: string
+  requiredArgs?: Record<
+    string,
+    {
+      type: string
+      description: string
+    }
+  >
+  canHire?: string[]
+  groups?: string[]
+}
+
+export interface Role extends RoleMetadata {
+  systemPrompt: string
+  source: "preset" | "global" | "project"
 }
 
 // Settings types
