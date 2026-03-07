@@ -162,7 +162,8 @@ describe("EventLoop", () => {
             created: new Date().toISOString(),
           },
         ],
-        custom: { oldKey: "oldValue" },
+        custom: {},
+        args: { oldKey: "oldValue" },
       })
 
       const eventLoop = new EventLoop(
@@ -186,8 +187,8 @@ describe("EventLoop", () => {
       const memory = await memoryManager.read("test-employee")
       expect(memory.knowledge).toContain("Old knowledge")
       expect(memory.knowledge).toContain("New knowledge")
-      expect(memory.custom.oldKey).toBe("oldValue")
-      expect(memory.custom.newKey).toBe("newValue")
+      expect(memory.args.oldKey).toBe("oldValue")
+      expect(memory.args.newKey).toBe("newValue")
       expect(memory.tasks.length).toBe(1) // tasks 应该保持不变
     })
   })
@@ -348,7 +349,7 @@ describe("EventLoop", () => {
       // 验证记忆已更新
       const memory = await memoryManager.read("test-employee")
       expect(memory.knowledge).toContain("Summary knowledge")
-      expect(memory.custom.summaryKey).toBe("summaryValue")
+      expect(memory.args.summaryKey).toBe("summaryValue")
     })
 
     test("should parse JSON from markdown code block", async () => {
@@ -422,7 +423,7 @@ describe("EventLoop", () => {
       // 验证记忆已更新
       const memory = await memoryManager.read("test-employee")
       expect(memory.knowledge).toContain("Markdown knowledge")
-      expect(memory.custom.markdownKey).toBe("markdownValue")
+      expect(memory.args.markdownKey).toBe("markdownValue")
     })
 
     test("should retry on parse failure and record event", async () => {
@@ -607,7 +608,7 @@ describe("EventLoop", () => {
       // 验证记忆已更新
       const memory = await memoryManager.read("test-employee")
       expect(memory.knowledge).toContain("Retry success")
-      expect(memory.custom.retryKey).toBe("retryValue")
+      expect(memory.args.retryKey).toBe("retryValue")
     })
   })
 })

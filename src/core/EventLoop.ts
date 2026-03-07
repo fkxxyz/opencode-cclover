@@ -951,15 +951,15 @@ Return JSON format with:
     // 合并知识（去重）
     const knowledgeSet = new Set([...memory.knowledge, ...summary.knowledge])
 
-    // 合并自定义数据
-    const custom = { ...memory.custom, ...summary.custom }
+    // 合并 args（custom 参数名保持向后兼容，但实际更新 args）
+    const args = { ...memory.args, ...summary.custom }
 
     // 写入更新后的记忆
     await this.memoryManager.write(this.employeeName, {
       knowledge: Array.from(knowledgeSet),
       tasks: memory.tasks, // tasks 不需要总结，保持原样
-      custom,
-      args: memory.args, // args 保持原样
+      custom: memory.custom, // custom 会被 write() 自动同步
+      args, // 更新 args
     })
   }
 

@@ -100,12 +100,24 @@ export class MemoryManager {
       const content = await fs.readFile(memoryPath, "utf-8")
       const data = yaml.parse(content)
 
-      // 确保数据结构完整
+      // 向后兼容：如果 custom 存在但 args 不存在，复制 custom 到 args
+      if (!data.args && data.custom) {
+        data.args = { ...data.custom }
+      }
+
+      // 确保两个字段都存在
+      if (!data.args) {
+        data.args = {}
+      }
+      if (!data.custom) {
+        data.custom = {}
+      }
+
       return {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
-        custom: data?.custom ?? {},
-        args: data?.args ?? {},
+        custom: data.custom,
+        args: data.args,
         sessionId: data?.sessionId ?? undefined,
         sessionSnapshot: data?.sessionSnapshot ?? undefined,
       }
@@ -157,8 +169,18 @@ export class MemoryManager {
         stale: 5000,
       })
 
+      // 将 args 同步到 custom 以保持向后兼容
+      const dataToWrite = {
+        knowledge: memory.knowledge,
+        tasks: memory.tasks,
+        custom: memory.args, // 将 args 写入到 custom
+        args: memory.args, // 同时写入到 args
+        sessionId: memory.sessionId,
+        sessionSnapshot: memory.sessionSnapshot,
+      }
+
       // 序列化为 YAML
-      const content = yaml.stringify(memory)
+      const content = yaml.stringify(dataToWrite)
 
       // 写入文件
       await fs.writeFile(memoryPath, content, "utf-8")
@@ -492,7 +514,7 @@ export class MemoryManager {
 
   /**
    * 总结记忆
-   * 更新 knowledge 和 custom，保留 tasks
+   * 更新 knowledge 和 args，保留 tasks
    */
   async summarize(
     employeeName: string,
@@ -500,11 +522,28 @@ export class MemoryManager {
   ): Promise<void> {
     const memory = await this.read(employeeName)
 
-    // 更新 knowledge 和 custom
+    // 更新 knowledge 和 args（custom 参数名保持向后兼容，但实际更新 args）
     memory.knowledge = summary.knowledge
-    memory.custom = summary.custom
+    memory.args = summary.custom
 
     // tasks 保持不变
+    await this.write(employeeName, memory)
+  }
+
+  /**
+   * 更新角色参数
+   * 更新 args 字段，同时同步到 custom 以保持向后兼容
+   */
+  async updateArgs(
+    employeeName: string,
+    args: Record<string, any>
+  ): Promise<void> {
+    const memory = await this.read(employeeName)
+
+    // 更新 args
+    memory.args = args
+
+    // 写入（write 方法会自动同步到 custom）
     await this.write(employeeName, memory)
   }
 

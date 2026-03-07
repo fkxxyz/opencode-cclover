@@ -45,14 +45,17 @@ describe("MemoryManager", () => {
       const memory: Memory = {
         knowledge: ["I am good at math"],
         tasks: [],
-        custom: { foo: "bar" },
-        args: {},
+        custom: {},
+        args: { foo: "bar" },
       }
 
       await manager.write("alice", memory)
       const readMemory = await manager.read("alice")
 
-      expect(readMemory).toEqual(memory)
+      // args 应该被写入，custom 应该是 args 的副本
+      expect(readMemory.knowledge).toEqual(["I am good at math"])
+      expect(readMemory.args).toEqual({ foo: "bar" })
+      expect(readMemory.custom).toEqual({ foo: "bar" }) // custom 是 args 的副本
     })
 
     test("should create directory if not exists", async () => {
@@ -678,6 +681,154 @@ describe("MemoryManager", () => {
       const dependent = memory.tasks.find((t) => t.name === "dependent")
 
       expect(dependent?.dependencies).toEqual(["parent"])
+    })
+  })
+
+  describe("backward compatibility", () => {
+    test("should copy custom to args when args doesn't exist", async () => {
+      // 手动创建只有 custom 的旧格式文件
+      const memoryPath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "alice",
+        "memory.yaml"
+      )
+      await fs.mkdir(path.dirname(memoryPath), { recursive: true })
+      await fs.writeFile(
+        memoryPath,
+        `knowledge: []
+tasks: []
+custom:
+  foo: bar
+  count: 42
+`,
+        "utf-8"
+      )
+
+      // 读取应该自动复制 custom 到 args
+      const memory = await manager.read("alice")
+      expect(memory.args).toEqual({ foo: "bar", count: 42 })
+      expect(memory.custom).toEqual({ foo: "bar", count: 42 })
+    })
+
+    test("should preserve args when both custom and args exist", async () => {
+      // 手动创建同时有 custom 和 args 的文件
+      const memoryPath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "alice",
+        "memory.yaml"
+      )
+      await fs.mkdir(path.dirname(memoryPath), { recursive: true })
+      await fs.writeFile(
+        memoryPath,
+        `knowledge: []
+tasks: []
+custom:
+  old: value
+args:
+  new: value
+`,
+        "utf-8"
+      )
+
+      // 读取应该保留 args，不覆盖
+      const memory = await manager.read("alice")
+      expect(memory.args).toEqual({ new: "value" })
+      expect(memory.custom).toEqual({ old: "value" })
+    })
+
+    test("should write both custom and args", async () => {
+      const memory: Memory = {
+        knowledge: ["test"],
+        tasks: [],
+        custom: {},
+        args: { foo: "bar", count: 42 },
+      }
+
+      await manager.write("alice", memory)
+
+      // 直接读取文件内容验证
+      const memoryPath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "alice",
+        "memory.yaml"
+      )
+      const content = await fs.readFile(memoryPath, "utf-8")
+
+      // 验证文件中同时包含 custom 和 args
+      expect(content).toContain("custom:")
+      expect(content).toContain("args:")
+      expect(content).toContain("foo: bar")
+      expect(content).toContain("count: 42")
+    })
+  })
+
+  describe("updateArgs", () => {
+    test("should update args field", async () => {
+      // 初始化记忆
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+        args: { old: "value" },
+      })
+
+      // 更新 args
+      await manager.updateArgs("alice", { new: "value", count: 123 })
+
+      // 验证更新
+      const memory = await manager.read("alice")
+      expect(memory.args).toEqual({ new: "value", count: 123 })
+    })
+
+    test("should sync args to custom for backward compatibility", async () => {
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        custom: {},
+        args: {},
+      })
+
+      await manager.updateArgs("alice", { foo: "bar" })
+
+      // 直接读取文件验证 custom 也被更新
+      const memoryPath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "alice",
+        "memory.yaml"
+      )
+      const content = await fs.readFile(memoryPath, "utf-8")
+      const data = require("yaml").parse(content)
+
+      expect(data.custom).toEqual({ foo: "bar" })
+      expect(data.args).toEqual({ foo: "bar" })
+    })
+
+    test("should preserve knowledge and tasks when updating args", async () => {
+      await manager.write("alice", {
+        knowledge: ["important knowledge"],
+        tasks: [
+          {
+            name: "task1",
+            status: "pending",
+            description: "Test task",
+            dependencies: [],
+            created: new Date().toISOString(),
+          },
+        ],
+        custom: {},
+        args: {},
+      })
+
+      await manager.updateArgs("alice", { foo: "bar" })
+
+      const memory = await manager.read("alice")
+      expect(memory.knowledge).toEqual(["important knowledge"])
+      expect(memory.tasks).toHaveLength(1)
+      expect(memory.args).toEqual({ foo: "bar" })
     })
   })
 })

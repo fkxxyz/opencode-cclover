@@ -20,7 +20,7 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: ["我擅长数学计算", "用户经常问我简单问题"],
         tasks: [],
-        custom: {},
+        args: {},
       }
 
       const result = buildSystemPrompt(
@@ -39,7 +39,7 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {
+        args: {
           team_members: ["alice", "bob"],
           current_sprint: "sprint_5",
         },
@@ -69,7 +69,7 @@ describe("ContextBuilder", () => {
             created: "2026-03-01T10:00:00Z",
           },
         ],
-        custom: {},
+        args: {},
       }
 
       const result = buildSystemPrompt(
@@ -87,7 +87,7 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
+        args: {},
       }
 
       const result = buildSystemPrompt(
@@ -108,7 +108,7 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
+        args: {},
       }
       const supervisor = { name: "bob", role: "project-manager" }
 
@@ -132,7 +132,7 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: [],
         tasks: [],
-        custom: {},
+        args: {},
       }
 
       const result = buildSystemPrompt(
@@ -150,7 +150,7 @@ describe("ContextBuilder", () => {
       const memory: Memory = {
         knowledge: ["知识1"],
         tasks: [],
-        custom: {},
+        args: {},
       }
 
       const result = buildSystemPrompt(
@@ -177,7 +177,7 @@ describe("ContextBuilder", () => {
             created: "2026-03-01T10:00:00Z",
           },
         ],
-        custom: {},
+        args: {},
       }
       const supervisor = { name: "bob", role: "pm" }
 
