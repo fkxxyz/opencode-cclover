@@ -15,6 +15,7 @@ import { createCreateAgentTool } from "./CreateAgentTool"
 import { createHireEmployeeTool } from "./HireEmployeeTool"
 import { createRefreshRolesTool } from "./RefreshRolesTool"
 import { createShowTasksTool } from "./ShowTasksTool"
+import { createShowHireableRolesTool } from "./ShowHireableRolesTool"
 
 /**
  * 工具定义类型
@@ -49,6 +50,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   hire_employee: true, // 启用雇佣功能
   refresh_roles: true,
   show_tasks: true,
+  show_hireable_roles: true,
 }
 
 /**
@@ -78,6 +80,7 @@ export { createCreateAgentTool } from "./CreateAgentTool"
 export { createHireEmployeeTool } from "./HireEmployeeTool"
 export { createRefreshRolesTool } from "./RefreshRolesTool"
 export { createShowTasksTool } from "./ShowTasksTool"
+export { createShowHireableRolesTool } from "./ShowHireableRolesTool"
 
 /**
  * 创建所有工具
@@ -109,5 +112,12 @@ export function createTools(deps: {
       ? createRefreshRolesTool(deps.project)
       : (null as any), // fallback
     show_tasks: createShowTasksTool(deps.memoryManager),
+    show_hireable_roles: deps.project
+      ? createShowHireableRolesTool(
+          deps.project.roleManager,
+          deps.stateManager,
+          deps.bossManager
+        )
+      : (null as any), // fallback
   }
 }
