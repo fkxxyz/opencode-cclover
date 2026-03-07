@@ -66,13 +66,37 @@ export function buildSystemPrompt(
   sections.push("")
   sections.push("**Messages**: `messages/{peer}/chat.yaml`")
   sections.push("- Conversation history with each employee (one file per peer)")
+  sections.push(
+    "- ⚠️ May be very large! Use Bash with tail to read recent messages"
+  )
+  sections.push(
+    `- Example: \`bash("tail -n 50 ${workspaceRoot}/employees/${employeeName}/messages/{peer}/chat.yaml")\``
+  )
+  sections.push(
+    '- Or use Grep to search historical keywords: `grep(pattern="keyword", path="...")`'
+  )
+  sections.push(
+    "- Note: Current message content is already in the event below, no need to read again"
+  )
   sections.push("")
   sections.push("**Events**: `events.jsonl`")
   sections.push("- Your complete event history (one JSON object per line)")
+  sections.push(
+    "- ⚠️ May be very large! Use Bash with tail to read recent events"
+  )
+  sections.push(
+    `- Example: \`bash("tail -n 100 ${workspaceRoot}/employees/${employeeName}/events.jsonl")\``
+  )
+  sections.push(
+    '- Or use Grep to search specific event types: `grep(pattern="agent_completed", ...)`'
+  )
   sections.push("")
   sections.push("**Memory**: `memory.yaml`")
   sections.push(
     "- Your knowledge, tasks, and custom data (already loaded in the sections above)"
+  )
+  sections.push(
+    "- ⚠️ No need to read this file - the content is already in your system prompt"
   )
   sections.push("")
 
