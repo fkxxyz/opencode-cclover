@@ -3,9 +3,12 @@ import * as path from "node:path"
 import * as yaml from "yaml"
 import EventEmitter from "eventemitter3"
 import * as lockfile from "proper-lockfile"
+import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { StateManager } from "../state/StateManager"
 import type { BossManager } from "./BossManager"
-import type { Message, MessageDirection } from "../types"
+import type { Message, MessageDirection, Event } from "../types"
+import { buildEventMessage } from "../utils/ContextBuilder"
+import { logger } from "../lib/logger"
 
 /**
  * YAML 文件中的消息格式
@@ -129,7 +132,8 @@ export class MessageService {
     private workspaceRoot: string,
     private stateManager?: StateManager,
     projectId?: string,
-    private bossManager?: BossManager
+    private bossManager?: BossManager,
+    private opcodeClient?: OpencodeClient
   ) {
     this.projectId = projectId || "default"
   }
@@ -211,7 +215,22 @@ export class MessageService {
     // 4. 触发事件通知接收方
     this.notifyNewMessage(to)
 
-    // 5. 发射事件到 StateManager
+    // 5. 转发消息到 boss session（如果接收方是 boss）
+    if (this.bossManager?.isBoss(to)) {
+      const sessionId = await this.bossManager.getSession(to, from)
+      if (sessionId && this.opcodeClient) {
+        await this.forwardToBossSession(
+          sessionId,
+          from,
+          to,
+          content,
+          reference_docs,
+          fromRole
+        )
+      }
+    }
+
+    // 6. 发射事件到 StateManager
     this.stateManager?.addEvent({
       projectId: this.projectId,
       type: "message",
@@ -361,5 +380,82 @@ export class MessageService {
    */
   private notifyNewMessage(to: string): void {
     this.eventEmitter.emit(`message:${to}`)
+  }
+
+  /**
+   * 转发消息到 boss 的 OpenCode session
+   * @param sessionId Boss 的 session ID
+   * @param from 发送者名称
+   * @param to Boss 名称
+   * @param content 消息内容
+   * @param reference_docs 参考文档（可选）
+   * @param fromRole 发送者角色（可选）
+   */
+  private async forwardToBossSession(
+    sessionId: string,
+    from: string,
+    to: string,
+    content: string,
+    reference_docs?: string[],
+    fromRole?: string
+  ): Promise<void> {
+    try {
+      // 构造消息事件（与员工接收的格式相同）
+      const event: Event = {
+        projectId: this.projectId,
+        type: "message",
+        timestamp: new Date().toISOString(),
+        employeeName: to,
+        details: {
+          from,
+          to,
+          content,
+          ...(reference_docs &&
+            reference_docs.length > 0 && { reference_docs }),
+          ...(fromRole && { fromRole }),
+        },
+      }
+
+      // 使用现有工具构建事件消息
+      const eventMessage = buildEventMessage(event)
+
+      // 从 workspaceRoot 推导项目路径
+      // workspaceRoot: /path/to/project/.cclover/workspace
+      // projectPath: /path/to/project
+      const projectPath = path.dirname(path.dirname(this.workspaceRoot))
+
+      // 转发到 boss session
+      await this.opcodeClient!.session.prompt({
+        path: { id: sessionId },
+        body: {
+          agent: "cclover-empty-agent",
+          parts: [{ type: "text", text: eventMessage }],
+          tools: {
+            send_message: true,
+            edit_tasks: true,
+            create_agent: true,
+          },
+        },
+        headers: {
+          "x-opencode-directory": projectPath,
+        },
+      })
+
+      logger.info(
+        `[MessageService] Forwarded message from ${from} to boss ${to}'s session ${sessionId}`
+      )
+    } catch (error: any) {
+      // 记录错误但不抛出（session 可能已关闭）
+      logger.warn(
+        `[MessageService] Failed to forward message to boss session ${sessionId}: ${error.message}`
+      )
+
+      // 清除无效的 session 映射
+      if (this.bossManager) {
+        await this.bossManager.clearSession(to, from).catch(() => {
+          // 忽略清除错误
+        })
+      }
+    }
   }
 }

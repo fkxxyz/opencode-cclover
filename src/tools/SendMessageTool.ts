@@ -49,13 +49,19 @@ export function createSendMessageTool(
         )
       }
 
-      // 2. Call message service (let exceptions propagate naturally)
+      // 2. Record session if sender is boss and has sessionID (BEFORE sending)
+      if (bossManager?.isBoss(from) && context.sessionID) {
+        await bossManager.recordSession(from, args.to, context.sessionID)
+      }
+
+      // 3. Call message service (let exceptions propagate naturally)
       await messageService.send(
         from,
         args.to,
         args.content,
         args.reference_docs
       )
+
       return `Message sent to ${args.to}`
     },
   })

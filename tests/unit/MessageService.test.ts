@@ -19,7 +19,7 @@ describe("MessageService", () => {
 
     // 创建 StateManager 和 BossManager
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
-    bossManager = new BossManager()
+    bossManager = new BossManager(undefined, TEST_WORKSPACE)
 
     // 注册测试员工
     await stateManager.registerEmployee({
@@ -282,6 +282,9 @@ describe("MessageService", () => {
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},
+        recordSession: async () => {},
+        getSession: async () => undefined,
+        clearSession: async () => {},
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,
@@ -306,6 +309,9 @@ describe("MessageService", () => {
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},
+        recordSession: async () => {},
+        getSession: async () => undefined,
+        clearSession: async () => {},
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,

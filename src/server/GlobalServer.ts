@@ -84,8 +84,10 @@ export class GlobalCcloverService {
    */
   private async initialize(): Promise<void> {
     logger.info("Initializing GlobalCcloverService...")
-    // 1. 加载配置并初始化 BossManager
+    // 1. 加载配置
     const config = await ConfigManager.load()
+    // 注意：BossManager 在这里不传 workspaceRoot，因为它是全局的
+    // 每个 project 会有自己的 workspaceRoot
     this.bossManager = new BossManager(config)
     // 2. 加载配置并初始化所有 project
     await this.loadProjects()
@@ -146,11 +148,17 @@ export class GlobalCcloverService {
     // 创建服务实例
     const projectId = ProjectRegistry.hashPath(config.path)
     const stateManager = new StateManager(projectId, workspaceRoot, config.path)
+    // 为每个 project 创建独立的 BossManager 实例（带 workspaceRoot）
+    const projectBossManager = new BossManager(
+      await ConfigManager.load(),
+      workspaceRoot
+    )
     const messageService = new MessageService(
       workspaceRoot,
       stateManager,
       projectId,
-      this.bossManager || undefined
+      projectBossManager,
+      opcodeClient
     )
     const memoryManager = new MemoryManager(
       workspaceRoot,
@@ -173,7 +181,7 @@ export class GlobalCcloverService {
       messageService,
       memoryManager,
       agentRegistry,
-      bossManager: this.bossManager!,
+      bossManager: projectBossManager,
       roleManager,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
       eventLoops: new Map(), // 初始化 EventLoop Map
