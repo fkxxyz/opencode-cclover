@@ -110,4 +110,358 @@ describe("RoleManager", () => {
     expect(prompt).toContain("复杂计算")
     expect(prompt).toContain("示例工作流程")
   })
+
+  test("should parse YAML frontmatter correctly", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    // 创建带 YAML frontmatter 的角色文件
+    const roleContent = `---
+name: test-role
+description: A test role with metadata
+requiredArgs:
+  arg1:
+    type: string
+    description: First argument
+canHire:
+  - developer
+  - tester
+groups:
+  - engineering
+---
+
+This is the system prompt for the test role.`
+
+    await fs.writeFile(path.join(projectRolesDir, "test-role.md"), roleContent)
+
+    await roleManager.refresh()
+    const testRole = roleManager.getRole("test-role")
+
+    expect(testRole).toBeDefined()
+    expect(testRole?.name).toBe("test-role")
+    expect(testRole?.description).toBe("A test role with metadata")
+    expect(testRole?.systemPrompt).toBe(
+      "This is the system prompt for the test role."
+    )
+    expect(testRole?.requiredArgs).toEqual({
+      arg1: {
+        type: "string",
+        description: "First argument",
+      },
+    })
+    expect(testRole?.canHire).toEqual(["developer", "tester"])
+    expect(testRole?.groups).toEqual(["engineering"])
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should fall back to filename for old format", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    // 创建旧格式的角色文件（无 frontmatter）
+    await fs.writeFile(
+      path.join(projectRolesDir, "old-format.md"),
+      "This is an old format role without frontmatter."
+    )
+
+    await roleManager.refresh()
+    const oldRole = roleManager.getRole("old-format")
+
+    expect(oldRole).toBeDefined()
+    expect(oldRole?.name).toBe("old-format")
+    expect(oldRole?.description).toBe("")
+    expect(oldRole?.systemPrompt).toBe(
+      "This is an old format role without frontmatter."
+    )
+    expect(oldRole?.requiredArgs).toEqual({})
+    expect(oldRole?.canHire).toEqual([])
+    expect(oldRole?.groups).toEqual([])
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("resolveGroup should return roles in group", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    // 创建多个角色，部分属于同一组
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev1.md"),
+      `---
+name: dev1
+description: Developer 1
+groups:
+  - developers
+---
+Dev 1 prompt`
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev2.md"),
+      `---
+name: dev2
+description: Developer 2
+groups:
+  - developers
+---
+Dev 2 prompt`
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+description: Tester
+groups:
+  - qa
+---
+Tester prompt`
+    )
+
+    await roleManager.refresh()
+
+    const devGroup = roleManager.resolveGroup("group:developers")
+    expect(devGroup).toHaveLength(2)
+    expect(devGroup).toContain("dev1")
+    expect(devGroup).toContain("dev2")
+
+    const qaGroup = roleManager.resolveGroup("group:qa")
+    expect(qaGroup).toHaveLength(1)
+    expect(qaGroup).toContain("tester")
+
+    const emptyGroup = roleManager.resolveGroup("group:nonexistent")
+    expect(emptyGroup).toHaveLength(0)
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("resolveCanHire should resolve exact names", async () => {
+    await roleManager.refresh()
+
+    const resolved = roleManager.resolveCanHire(["calculator"])
+    expect(resolved).toContain("calculator")
+  })
+
+  test("resolveCanHire should resolve glob patterns", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev-frontend.md"),
+      "Frontend dev"
+    )
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev-backend.md"),
+      "Backend dev"
+    )
+    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+
+    await roleManager.refresh()
+
+    // Test *
+    const all = roleManager.resolveCanHire(["*"])
+    expect(all.length).toBeGreaterThan(0)
+
+    // Test prefix*
+    const devs = roleManager.resolveCanHire(["dev-*"])
+    expect(devs).toContain("dev-frontend")
+    expect(devs).toContain("dev-backend")
+    expect(devs).not.toContain("tester")
+
+    // Test *suffix
+    const backends = roleManager.resolveCanHire(["*-backend"])
+    expect(backends).toContain("dev-backend")
+    expect(backends).not.toContain("dev-frontend")
+
+    // Test *middle*
+    const frontends = roleManager.resolveCanHire(["*front*"])
+    expect(frontends).toContain("dev-frontend")
+    expect(frontends).not.toContain("dev-backend")
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("resolveCanHire should resolve group references", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev1.md"),
+      `---
+name: dev1
+groups:
+  - developers
+---
+Dev 1`
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev2.md"),
+      `---
+name: dev2
+groups:
+  - developers
+---
+Dev 2`
+    )
+
+    await roleManager.refresh()
+
+    const resolved = roleManager.resolveCanHire(["group:developers"])
+    expect(resolved).toHaveLength(2)
+    expect(resolved).toContain("dev1")
+    expect(resolved).toContain("dev2")
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("resolveCanHire should resolve mixed patterns", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev1.md"),
+      `---
+name: dev1
+groups:
+  - developers
+---
+Dev 1`
+    )
+
+    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+    await fs.writeFile(path.join(projectRolesDir, "reviewer.md"), "Reviewer")
+
+    await roleManager.refresh()
+
+    const resolved = roleManager.resolveCanHire([
+      "group:developers",
+      "tester",
+      "*viewer",
+    ])
+    expect(resolved).toContain("dev1")
+    expect(resolved).toContain("tester")
+    expect(resolved).toContain("reviewer")
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("canHire should check if role A can hire role B", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "manager.md"),
+      `---
+name: manager
+canHire:
+  - developer
+  - tester
+---
+Manager`
+    )
+
+    await fs.writeFile(path.join(projectRolesDir, "developer.md"), "Developer")
+    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+    await fs.writeFile(path.join(projectRolesDir, "designer.md"), "Designer")
+
+    await roleManager.refresh()
+
+    expect(roleManager.canHire("manager", "developer")).toBe(true)
+    expect(roleManager.canHire("manager", "tester")).toBe(true)
+    expect(roleManager.canHire("manager", "designer")).toBe(false)
+    expect(roleManager.canHire("developer", "tester")).toBe(false)
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("canHire should work with glob patterns", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "manager.md"),
+      `---
+name: manager
+canHire:
+  - dev-*
+---
+Manager`
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev-frontend.md"),
+      "Frontend"
+    )
+    await fs.writeFile(path.join(projectRolesDir, "dev-backend.md"), "Backend")
+    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+
+    await roleManager.refresh()
+
+    expect(roleManager.canHire("manager", "dev-frontend")).toBe(true)
+    expect(roleManager.canHire("manager", "dev-backend")).toBe(true)
+    expect(roleManager.canHire("manager", "tester")).toBe(false)
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("canHire should work with group references", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "manager.md"),
+      `---
+name: manager
+canHire:
+  - group:developers
+---
+Manager`
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev1.md"),
+      `---
+name: dev1
+groups:
+  - developers
+---
+Dev 1`
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "dev2.md"),
+      `---
+name: dev2
+groups:
+  - developers
+---
+Dev 2`
+    )
+
+    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+
+    await roleManager.refresh()
+
+    expect(roleManager.canHire("manager", "dev1")).toBe(true)
+    expect(roleManager.canHire("manager", "dev2")).toBe(true)
+    expect(roleManager.canHire("manager", "tester")).toBe(false)
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("canHire should return false for role without canHire", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(path.join(projectRolesDir, "developer.md"), "Developer")
+    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+
+    await roleManager.refresh()
+
+    expect(roleManager.canHire("developer", "tester")).toBe(false)
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
 })
