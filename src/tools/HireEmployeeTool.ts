@@ -194,7 +194,7 @@ async function startEmployee(
       logger.error(`[${employeeName}] EventLoop crashed:`, error)
     })
 
-    logger.info(
+    logger.debug(
       `[startEmployee] EventLoop started for employee: ${employeeName}`
     )
   } catch (error: any) {

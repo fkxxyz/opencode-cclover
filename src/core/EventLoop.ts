@@ -73,7 +73,7 @@ export class EventLoop {
    * 主循环
    */
   async run(): Promise<void> {
-    logger.info(
+    logger.debug(
       `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.roleName}`
     )
 

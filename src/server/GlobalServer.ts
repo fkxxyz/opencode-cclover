@@ -266,7 +266,7 @@ export class GlobalCcloverService {
         logger.error(`[${employee.name}] EventLoop crashed:`, error)
       })
 
-      logger.info(`EventLoop started for employee: ${employee.name}`)
+      logger.debug(`EventLoop started for employee: ${employee.name}`)
       startedCount++
     }
 

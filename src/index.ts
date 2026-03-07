@@ -92,7 +92,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
               mode: "primary",
               description: `Agent: ${agentName}`,
             }
-            logger.info(`[Cclover] Registered agent: ${agentName}`)
+            logger.debug(`[Cclover] Registered agent: ${agentName}`)
           } catch (error: any) {
             logger.error(
               `[Cclover] Failed to load ${agentName} agent prompt: ${error.message}`
