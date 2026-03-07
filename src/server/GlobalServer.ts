@@ -292,6 +292,72 @@ export class GlobalCcloverService {
   }
 
   /**
+   * 启动单个员工的 EventLoop
+   * @param projectId 项目 ID
+   * @param employeeName 员工名称
+   */
+  async startEmployeeEventLoop(
+    projectId: string,
+    employeeName: string
+  ): Promise<void> {
+    // 1. 获取项目实例
+    const project = this.projectRegistry.get(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    // 2. 验证员工存在
+    const employee = project.stateManager.getEmployee(employeeName)
+    if (!employee) {
+      throw new Error(`Employee not found: ${employeeName}`)
+    }
+
+    // 3. 检查 EventLoop 是否已运行
+    if (project.eventLoops.has(employeeName)) {
+      logger.warn(
+        `[${projectId}] EventLoop already running for employee: ${employeeName}`
+      )
+      return
+    }
+
+    // 4. 验证角色存在
+    const role = project.roleManager.getRole(employee.role)
+    if (!role) {
+      throw new Error(
+        `Role '${employee.role}' not found for employee '${employee.name}'`
+      )
+    }
+
+    // 5. 获取 messageClient
+    const messageClient = project.messageService.getClient(employee.name)
+
+    // 6. 创建 EventLoop（参考 startEmployees() 的实现）
+    const opcodeClient = this.getOpencodeClient()
+    const eventLoop = new EventLoop(
+      project.directory,
+      employee.name,
+      employee.role,
+      project.roleManager,
+      messageClient,
+      project.memoryManager,
+      opcodeClient,
+      project.stateManager
+    )
+
+    // 7. 存储到 Map
+    project.eventLoops.set(employee.name, eventLoop)
+
+    // 8. 启动 EventLoop
+    eventLoop.run().catch((error) => {
+      logger.error(`[${employee.name}] EventLoop crashed:`, error)
+    })
+
+    logger.info(
+      `[${projectId}] Started EventLoop for employee: ${employeeName}`
+    )
+  }
+
+  /**
    * 获取 project
    */
   getProject(directory: string): ProjectInstance | undefined {
