@@ -279,10 +279,72 @@ projects:
 
 角色是员工的模板，定义了系统提示词和行为模式。
 
-示例角色：
+**角色文件格式**:
+
+角色使用带 YAML frontmatter 的 Markdown 文件定义：
+
+```markdown
+---
+name: "RoleName"
+description: "角色简介"
+requiredArgs:
+  参数名:
+    type: string
+    description: "参数说明"
+canHire:
+  - 角色名
+  - 模式-*
+  - group:组名
+groups:
+  - 组名
+---
+
+系统提示词内容（Markdown 格式）
+```
+
+**文件位置优先级**（高优先级覆盖低优先级）：
+1. **项目**: `<project>/.cclover/roles/<role_name>.md` (最高优先级)
+2. **全局**: `~/.config/opencode-cclover/roles/<role_name>.md`
+3. **预设**: `src/roles/<role_name>.md` (最低优先级)
+
+**示例角色**：
+
+```markdown
+---
+name: "Calculator"
+description: "专门负责数学计算"
+requiredArgs: {}
+canHire: []
+groups: []
+---
+
+你是一个计算器员工，专门负责数学计算。
+
+## 你的职责
+
+1. 接收计算请求
+2. 执行计算并返回结果
+3. 维护计算历史记录
+
+## 可用工具
+
+- **send_message**: 发送消息给其他员工
+- **edit_tasks**: 管理任务
+- **create_agent**: 创建 Agent 执行复杂计算
+```
+
+**元数据字段说明**：
+- `name` (必需): 角色名称，必须与文件名匹配
+- `description` (可选): 角色简介
+- `requiredArgs` (可选): 雇佣时需要提供的参数
+- `canHire` (可选): 该角色可以雇佣的其他角色（支持精确名称、通配符、组引用）
+- `groups` (可选): 该角色所属的组
+
+**内置角色**：
 - **Calculator**: 计算器，只做数学计算
-- **Coder**: 程序员，写代码、修 bug
-- **PM**: 项目经理，分配任务、协调工作
+- **General Developer**: 通用开发者，独立完成开发任务
+- **Soul Developer**: 灵魂开发者，深度思考和架构设计
+- **Project Manager**: 项目经理，分配任务、协调工作
 
 ### 员工 (Employee)
 

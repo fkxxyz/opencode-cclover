@@ -165,7 +165,124 @@ projects:
 Restart OpenCode server to apply changes.
 
 ## HTTP API Routes
-All HTTP API routes are defined in `src/server/routes.ts` with JSDoc documentation.
+All HTTP API Routes are defined in `src/server/routes.ts` with JSDoc documentation.
+
+## Role System
+
+### Role File Format
+
+Roles are defined using Markdown files with YAML frontmatter. Each role file must include metadata in the frontmatter and a system prompt in the body.
+
+**File Location Priority** (higher priority overrides lower):
+1. **Project**: `<project>/.cclover/roles/<role_name>.md` (highest priority)
+2. **Global**: `~/.config/opencode-cclover/roles/<role_name>.md`
+3. **Preset**: `src/roles/<role_name>.md` (lowest priority)
+
+**File Format**:
+```markdown
+---
+name: "RoleName"
+description: "Brief description of the role"
+requiredArgs:
+  argName:
+    type: string
+    description: "Description of the argument"
+canHire:
+  - role-name-1
+  - role-name-2
+  - dev-*           # Glob pattern
+  - group:engineers # Group reference
+groups:
+  - group-name-1
+  - group-name-2
+---
+
+System prompt content goes here.
+This defines the role's behavior, responsibilities, and limitations.
+```
+
+**Frontmatter Fields**:
+- `name` (required): Role name, must match filename (without .md extension)
+- `description` (optional): Brief description of the role
+- `requiredArgs` (optional): Parameters required when hiring this role
+  - Each arg has `type` and `description` fields
+  - System will remind if args are missing in employee memory
+- `canHire` (optional): List of roles this role can hire
+  - Exact names: `"calculator"`, `"coder"`
+  - Glob patterns: `"dev-*"`, `"*-tester"`, `"*"`
+  - Group references: `"group:engineers"`, `"group:qa"`
+- `groups` (optional): Groups this role belongs to
+  - Used for group-based hiring permissions
+
+**Example Role**:
+```markdown
+---
+name: "Project Manager"
+description: "Manages projects and coordinates team members"
+requiredArgs:
+  projectName:
+    type: string
+    description: "Name of the project to manage"
+  teamSize:
+    type: number
+    description: "Expected team size"
+canHire:
+  - dev-*
+  - group:qa
+  - designer
+groups:
+  - management
+  - leadership
+---
+
+You are a project manager responsible for coordinating development work.
+
+## Your Responsibilities
+
+1. Break down project requirements into tasks
+2. Assign tasks to team members
+3. Monitor progress and resolve blockers
+4. Communicate with stakeholders
+
+## Available Tools
+
+- **send_message**: Communicate with team members
+- **edit_tasks**: Manage project tasks
+- **hire_employee**: Hire team members as needed
+- **create_agent**: Delegate work to background agents
+
+## Workflow
+
+1. Receive project requirements
+2. Create task breakdown
+3. Hire necessary team members
+4. Assign and track tasks
+5. Report progress to stakeholders
+```
+
+### Role Metadata System
+
+**Required Arguments**:
+- When a role has `requiredArgs`, employees with that role should have corresponding values in their memory `args` field
+- System automatically shows "Missing Required Parameters" reminder in system prompt if args are missing
+- Use `hire_employee` tool with `args` parameter to provide initial values
+
+**Hiring Permissions**:
+- Roles can specify which other roles they can hire using `canHire` field
+- Supports exact names, glob patterns, and group references
+- Use `show_hireable_roles` tool to query which roles an employee can hire
+- System validates permissions when using `hire_employee` tool
+
+**Role Groups**:
+- Roles can belong to multiple groups via `groups` field
+- Groups enable bulk permission management (e.g., `canHire: ["group:engineers"]`)
+- Use `group:groupname` syntax in `canHire` to reference groups
+
+**Old Format (Deprecated)**:
+- Plain markdown files without YAML frontmatter are no longer supported
+- All role files must include frontmatter with at least the `name` field
+- See [Migration Guide](docs/migration-guide.md) for upgrading existing roles
+
 ## Development Rules
 
 ### Before Every Commit

@@ -90,17 +90,51 @@ await eventLoop.run()
 
 ### Role Storage
 
-**File Format**: Plain text files (`.md`), filename is role name, content is system prompt.
+**File Format**: Markdown files with YAML frontmatter (`.md`). Filename is role name, frontmatter contains metadata, body contains system prompt.
 
 **Storage Locations** (priority order):
 1. **Project**: `<project>/.cclover/roles/<role_name>.md` (highest priority)
 2. **Global**: `~/.config/opencode-cclover/roles/<role_name>.md`
 3. **Preset**: `src/roles/<role_name>.md` (lowest priority)
 
-**Example**:
+**File Structure**:
+```markdown
+---
+name: "RoleName"
+description: "Brief description"
+requiredArgs:
+  argName:
+    type: string
+    description: "Argument description"
+canHire:
+  - role-name
+  - pattern-*
+  - group:groupname
+groups:
+  - groupname
+---
+
+System prompt content (markdown)
 ```
+
+**Metadata Fields**:
+- `name` (required): Role name, must match filename
+- `description` (optional): Brief role description
+- `requiredArgs` (optional): Parameters required when hiring
+- `canHire` (optional): Roles this role can hire (exact names, globs, groups)
+- `groups` (optional): Groups this role belongs to
+
+**Example**:
+```markdown
 src/roles/calculator.md:
 ---
+name: "Calculator"
+description: "Specialized in mathematical calculations"
+requiredArgs: {}
+canHire: []
+groups: []
+---
+
 You are a calculator employee who only performs mathematical calculations.
 
 # Your Responsibilities
@@ -108,6 +142,65 @@ You are a calculator employee who only performs mathematical calculations.
 - Execute mathematical calculations
 ...
 ```
+
+### Role Metadata System
+
+**Required Arguments (`requiredArgs`)**:
+- Defines parameters that must be provided when hiring an employee with this role
+- Each argument has `type` and `description` fields
+- System automatically shows "Missing Required Parameters" reminder if args are missing from employee memory
+- Use `hire_employee` tool with `args` parameter to provide initial values
+
+**Example**:
+```yaml
+requiredArgs:
+  apiKey:
+    type: string
+    description: "API key for external service"
+  maxRetries:
+    type: number
+    description: "Maximum number of retry attempts"
+```
+
+**Hiring Permissions (`canHire`)**:
+- Defines which roles this role can hire
+- Supports three formats:
+  1. **Exact names**: `"calculator"`, `"coder"`
+  2. **Glob patterns**: `"dev-*"`, `"*-tester"`, `"*"`
+  3. **Group references**: `"group:engineers"`, `"group:qa"`
+- System validates permissions when using `hire_employee` tool
+- Use `show_hireable_roles` tool to query available roles
+
+**Example**:
+```yaml
+canHire:
+  - calculator      # Exact name
+  - dev-*           # Glob pattern (all roles starting with "dev-")
+  - group:qa        # Group reference (all roles in "qa" group)
+```
+
+**Role Groups (`groups`)**:
+- Roles can belong to multiple groups
+- Groups enable bulk permission management
+- Referenced in `canHire` using `group:groupname` syntax
+
+**Example**:
+```yaml
+groups:
+  - engineers
+  - backend-team
+```
+
+**Memory Args Field**:
+- Employees store role-specific parameters in `memory.args` field
+- Persisted in `memory.yaml` file
+- Accessible in system prompt via ContextBuilder
+- Updated using MemoryManager.write() or MemoryManager.updateMemory()
+
+**Integration with System Prompt**:
+- ContextBuilder automatically includes parameter remder if `requiredArgs` defined and args missing
+- Shows which parameters are required and their descriptions
+- Helps AI understand what information is needed
 
 ### Calculator Role (Phase 1)
 
@@ -324,6 +417,67 @@ graph TD
 - [ ] Role uses tools correctly
 - [ ] Role manages tasks properly
 - [ ] Role communicates clearly with other employees
+
+## HTTP API Endpoints
+
+The system provides HTTP API endpoints for querying role information:
+
+### GET /api/projects/:projectId/roles
+
+Returns all available roles for a project with full metadata.
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "roles": [
+      {
+        "name": "Calculator",
+        "description": "Specialized in mathematical calculations",
+        "systemPrompt": "You are a calculator employee...",
+        "source": "preset",
+        "requiredArgs": {},
+        "canHire": [],
+        "groups": []
+      }
+    ]
+  }
+}
+```
+
+### GET /api/projects/:projectId/roles/:name
+
+Returns specific role with full metadata.
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "role": {
+      "name": "Calculator",
+      "description": "Specialized in mathematical calculations",
+      "systemPrompt": "You are a calculator employee...",
+      "source": "preset",
+      "requiredArgs": {},
+      "canHire": [],
+      "groups": []
+    }
+  }
+}
+```
+
+### GET /api/projects/:projectId/employees/:name/role
+
+Returns the role of a specific employee with full metadata.
+
+**Response**: Same as GET /api/projects/:projectId/roles/:name
+
+**Use Cases**:
+- Console UI displays role information
+- External tools query role metadata
+- Debugging and monitoring role assignments
 
 ## Testing Strategy
 
