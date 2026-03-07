@@ -245,6 +245,14 @@ export class GlobalCcloverService {
         continue
       }
 
+      // 跳过离线状态的员工
+      if (employee.status === "offline") {
+        logger.info(
+          `[${project.projectId}] Skipping offline employee: ${employee.name}`
+        )
+        continue
+      }
+
       const messageClient = project.messageService.getClient(employee.name)
 
       const eventLoop = new EventLoop(
