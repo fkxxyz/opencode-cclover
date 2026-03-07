@@ -266,6 +266,62 @@ export class ApiClient {
       `/projects/${projectId}/employees/${employeeName}/role`
     )
   }
+
+  async pauseEmployee(
+    projectId: string,
+    employeeName: string
+  ): Promise<void> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/pause`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      )
+      const json = (await response.json()) as
+        | SuccessResponse<any>
+        | ErrorResponse
+      if (!json.success) {
+        const error = json as ErrorResponse
+        throw new ApiError(error.error.message, error.error.code)
+      }
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new NetworkError("无法连接到服务器")
+      }
+      throw error
+    }
+  }
+
+  async resumeEmployee(
+    projectId: string,
+    employeeName: string
+  ): Promise<void> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/resume`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      )
+      const json = (await response.json()) as
+        | SuccessResponse<any>
+        | ErrorResponse
+      if (!json.success) {
+        const error = json as ErrorResponse
+        throw new ApiError(error.error.message, error.error.code)
+      }
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new NetworkError("无法连接到服务器")
+      }
+      throw error
+    }
+  }
 }
 
 export const apiClient = new ApiClient()
