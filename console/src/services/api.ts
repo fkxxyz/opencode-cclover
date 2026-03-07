@@ -11,6 +11,7 @@ import type {
   SuccessResponse,
   ErrorResponse,
   TimelineItem,
+  Role,
 } from "../types/index"
 import { ApiError, NetworkError } from "../lib/error-handler"
 
@@ -248,6 +249,22 @@ export class ApiClient {
       `/projects/${projectId}/employees/${employeeName}/timeline${query}`
     )
     return data.timeline
+  }
+
+  async getRoles(projectId: string): Promise<Role[]> {
+    const data = await this.request<{ roles: Role[] }>(
+      `/projects/${projectId}/roles`
+    )
+    return data.roles
+  }
+
+  async getEmployeeRole(
+    projectId: string,
+    employeeName: string
+  ): Promise<Role> {
+    return this.request<Role>(
+      `/projects/${projectId}/employees/${employeeName}/role`
+    )
   }
 }
 
