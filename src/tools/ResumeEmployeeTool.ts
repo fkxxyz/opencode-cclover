@@ -7,14 +7,13 @@
 import { tool } from "@opencode-ai/plugin"
 import type { StateManager } from "../state/StateManager"
 import type { BossManager } from "../core/BossManager"
-import type { ProjectInstance } from "../server/ProjectRegistry"
 import { sessionRegistry } from "../utils/SessionRegistry"
 import { logger } from "../lib/logger"
 
 export function createResumeEmployeeTool(
   stateManager: StateManager,
   bossManager: BossManager,
-  project: ProjectInstance
+  projectId: string
 ) {
   return tool({
     description:
@@ -67,7 +66,7 @@ export function createResumeEmployeeTool(
             await import("../server/GlobalServer")
           const globalService = await GlobalCcloverService.getInstance()
           await globalService.startEmployeeEventLoop(
-            project.projectId,
+            projectId,
             args.employeeName
           )
         } catch (error: any) {

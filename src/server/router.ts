@@ -57,6 +57,7 @@ export class Router {
 
         // 构建依赖对象
         const deps: ServerDependencies = {
+          projectId: project.projectId,
           stateManager: project.stateManager,
           memoryManager: project.memoryManager,
           messageService: project.messageService,
@@ -160,8 +161,8 @@ export class Router {
     const params: Record<string, string> = {}
     for (let i = 0; i < patternParts.length; i++) {
       if (patternParts[i].startsWith(":")) {
-        // 参数部分
-        params[patternParts[i].substring(1)] = pathParts[i]
+        // 参数部分 - 需要 URL 解码（处理中文等特殊字符）
+        params[patternParts[i].substring(1)] = decodeURIComponent(pathParts[i])
       } else if (patternParts[i] !== pathParts[i]) {
         // 静态部分不匹配
         return null

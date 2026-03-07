@@ -956,28 +956,16 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       try {
         const { employeeName } = params
 
-        // 获取项目实例
-        const project = deps.projectRegistry.getProject(params.projectId)
-        if (!project) {
-          return {
-            success: false,
-            error: {
-              code: "PROJECT_NOT_FOUND",
-              message: `Project not found: ${params.projectId}`,
-            },
-          }
-        }
-
-        // 创建 pause_employee 工具
+        // 创建 pause_employee 工具（直接使用 deps 中的服务）
         const { createPauseEmployeeTool } = await import("../tools")
         const pauseTool = createPauseEmployeeTool(
-          project.stateManager,
-          project.memoryManager,
-          project.bossManager
+          deps.stateManager,
+          deps.memoryManager,
+          deps.bossManager
         )
 
         // 获取第一个 Boss 作为操作者
-        const bosses = project.bossManager.getBosses()
+        const bosses = deps.bossManager.getBosses()
         if (bosses.length === 0) {
           return {
             success: false,
@@ -1053,28 +1041,16 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       try {
         const { employeeName } = params
 
-        // 获取项目实例
-        const project = deps.projectRegistry.getProject(params.projectId)
-        if (!project) {
-          return {
-            success: false,
-            error: {
-              code: "PROJECT_NOT_FOUND",
-              message: `Project not found: ${params.projectId}`,
-            },
-          }
-        }
-
-        // 创建 resume_employee 工具
+        // 创建 resume_employee 工具（直接使用 deps 中的服务）
         const { createResumeEmployeeTool } = await import("../tools")
         const resumeTool = createResumeEmployeeTool(
-          project.stateManager,
-          project.bossManager,
-          project
+          deps.stateManager,
+          deps.bossManager,
+          deps.projectId
         )
 
         // 获取第一个 Boss 作为操作者
-        const bosses = project.bossManager.getBosses()
+        const bosses = deps.bossManager.getBosses()
         if (bosses.length === 0) {
           return {
             success: false,

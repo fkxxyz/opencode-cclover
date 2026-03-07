@@ -133,7 +133,7 @@ export function createTools(deps: {
       ? createResumeEmployeeTool(
           deps.stateManager,
           deps.bossManager!,
-          deps.project
+          deps.project.projectId
         )
       : (null as any), // fallback
     pause_employee:

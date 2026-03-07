@@ -27,6 +27,7 @@ export interface ServerConfig {
 
 // 服务器依赖
 export interface ServerDependencies {
+  projectId: string
   stateManager: any
   memoryManager: any
   messageService: any
