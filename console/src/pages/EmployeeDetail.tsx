@@ -5,6 +5,7 @@ import { apiClient } from "../services"
 import { Button } from "../components/ui/button"
 import { Card, CardContent } from "../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
+import { Badge } from "../components/ui/badge"
 import { EmployeeCard } from "../components/employee/EmployeeCard"
 import { ConversationView } from "../components/employee/ConversationView"
 import { TaskList } from "../components/employee/TaskList"
@@ -12,7 +13,7 @@ import { TaskDAG } from "../components/visualizations/TaskDAG"
 import { MemoryView } from "../components/employee/MemoryView"
 import { AgentList } from "../components/employee/AgentList"
 import { EventTimeline } from "../components/employee/EventTimeline"
-import type { EmployeeDetail as EmployeeDetailType } from "../types"
+import type { EmployeeDetail as EmployeeDetailType, Role } from "../types"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
@@ -23,11 +24,15 @@ export function EmployeeDetail() {
   const [employee, setEmployee] = useState<EmployeeDetailType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [role, setRole] = useState<Role | null>(null)
+  const [roleLoading, setRoleLoading] = useState(true)
+  const [roleError, setRoleError] = useState<Error | null>(null)
 
   // 从 URL 读取当前标签页，默认为 messages
   const currentTab = searchParams.get("tab") || "messages"
   // 从 URL 读取当前聊天对象
   const currentPeer = searchParams.get("peer") || null
+
   useEffect(() => {
     if (!name || !projectId) return
     setLoading(true)
@@ -39,6 +44,19 @@ export function EmployeeDetail() {
         setError(err)
       })
       .finally(() => setLoading(false))
+  }, [name, projectId])
+
+  useEffect(() => {
+    if (!name || !projectId) return
+    setRoleLoading(true)
+    apiClient
+      .getEmployeeRole(projectId, name)
+      .then(setRole)
+      .catch((err: Error) => {
+        console.error("获取角色信息失败:", err)
+        setRoleError(err)
+      })
+      .finally(() => setRoleLoading(false))
   }, [name, projectId])
 
   if (loading) {
@@ -119,6 +137,109 @@ export function EmployeeDetail() {
           </Typography>
         </Box>
         <EmployeeCard employee={employee} />
+        {/* 角色信息卡片 */}
+        <Card>
+          <CardContent sx={{ pt: 3 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+              角色信息
+            </Typography>
+            {roleLoading && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <Typography color="text.secondary">加载角色信息...</Typography>
+              </Box>
+            )}
+            {roleError && (
+              <Typography color="error">
+                加载角色信息失败: {roleError.message}
+              </Typography>
+            )}
+            {role && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    角色名称
+                  </Typography>
+                  <Typography variant="body1">{role.name}</Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    描述
+                  </Typography>
+                  <Typography variant="body1">{role.description}</Typography>
+                </Box>
+                {role.requiredArgs &&
+                  Object.keys(role.requiredArgs).length > 0 && (
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 0.5 }}
+                      >
+                        必需参数
+                      </Typography>
+                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                        {Object.entries(role.requiredArgs).map(
+                          ([key, value]) => (
+                            <li key={key}>
+                              <Typography variant="body2">
+                                <strong>{key}</strong> ({value.type}):{" "}
+                                {value.description}
+                              </Typography>
+                            </li>
+                          )
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+                {role.canHire && role.canHire.length > 0 && (
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 0.5 }}
+                    >
+                      可雇佣角色
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {role.canHire.map((pattern: string) => (
+                        <Badge key={pattern} variant="secondary">
+                          {pattern}
+                        </Badge>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                {role.groups && role.groups.length > 0 && (
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 0.5 }}
+                    >
+                      所属组
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {role.groups.map((group: string) => (
+                        <Badge key={group} variant="outline">
+                          {group}
+                        </Badge>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
         <Tabs
           value={currentTab}
           onValueChange={(value) => {
