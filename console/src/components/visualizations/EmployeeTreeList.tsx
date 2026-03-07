@@ -3,11 +3,13 @@ import { useNavigate, useParams } from "react-router-dom"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import IconButton from "@mui/material/IconButton"
-import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
+import { ChevronDown, ChevronRight, ExternalLink, Pause, Play } from "lucide-react"
 import type { EmployeeHierarchy, EmployeeStatus } from "../../types"
+import { apiClient } from "../../services"
 
 interface EmployeeTreeListProps {
   hierarchy: EmployeeHierarchy
+  onRefresh?: () => void
 }
 
 const STATUS_COLORS: Record<EmployeeStatus, string> = {
@@ -34,6 +36,7 @@ interface TreeNodeProps {
   path: string
   isLast: boolean
   parentLines: boolean[]
+  onRefresh?: () => void
 }
 
 function TreeNode({
@@ -44,12 +47,14 @@ function TreeNode({
   path,
   isLast,
   parentLines,
+  onRefresh,
 }: TreeNodeProps) {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
   const hasChildren = node.children && node.children.length > 0
   const isExpanded = expandedNodes.has(path)
   const indent = level * 32
+  const [pauseResumeLoading, setPauseResumeLoading] = useState(false)
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -64,6 +69,29 @@ function TreeNode({
       navigate(`/projects/${projectId}/boss/${node.name}`)
     } else {
       navigate(`/projects/${projectId}/employee/${node.name}`)
+    }
+  }
+
+  const handlePauseResume = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    if (!projectId) return
+
+    setPauseResumeLoading(true)
+    try {
+      if (node.status === "offline") {
+        await apiClient.resumeEmployee(projectId, node.name)
+      } else {
+        await apiClient.pauseEmployee(projectId, node.name)
+      }
+
+      // 触发刷新
+      onRefresh?.()
+    } catch (error) {
+      console.error("Pause/Resume failed:", error)
+      // TODO: 显示错误提示（可以使用 toast 通知）
+    } finally {
+      setPauseResumeLoading(false)
     }
   }
 
@@ -236,6 +264,26 @@ function TreeNode({
         >
           <ExternalLink size={16} />
         </IconButton>
+
+        {/* 暂停/恢复按钮 */}
+        {node.role !== "Boss" && (
+          <IconButton
+            size="small"
+            onClick={handlePauseResume}
+            disabled={pauseResumeLoading}
+            sx={{
+              flexShrink: 0,
+              ml: 1,
+            }}
+            title={node.status === "offline" ? "恢复" : "暂停"}
+          >
+            {node.status === "offline" ? (
+              <Play size={16} />
+            ) : (
+              <Pause size={16} />
+            )}
+          </IconButton>
+        )}
       </Box>
 
       {/* 子节点 */}
@@ -254,6 +302,7 @@ function TreeNode({
                 path={`${path}-${index}`}
                 isLast={childIsLast}
                 parentLines={newParentLines}
+                onRefresh={onRefresh}
               />
             )
           })}
@@ -263,7 +312,10 @@ function TreeNode({
   )
 }
 
-export function EmployeeTreeList({ hierarchy }: EmployeeTreeListProps) {
+export function EmployeeTreeList({
+  hierarchy,
+  onRefresh,
+}: EmployeeTreeListProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     // 默认全部展开 - 递归收集所有节点路径
     const allPaths = new Set<string>()
@@ -310,6 +362,7 @@ export function EmployeeTreeList({ hierarchy }: EmployeeTreeListProps) {
         path="root"
         isLast={true}
         parentLines={[]}
+        onRefresh={onRefresh}
       />
     </Box>
   )

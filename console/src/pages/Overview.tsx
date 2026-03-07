@@ -5,7 +5,7 @@ import { EmployeeTreeList } from "../components/visualizations/EmployeeTreeList"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Loader2 } from "lucide-react"
 import { apiClient } from "../services"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import type { EmployeeHierarchy } from "../types"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -14,6 +14,8 @@ export function Overview() {
   const { projectId } = useParams<{ projectId: string }>()
   const [hierarchy, setHierarchy] = useState<EmployeeHierarchy[]>([])
   const [hierarchyLoading, setHierarchyLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
   useEffect(() => {
     if (!projectId) {
       setHierarchyLoading(false)
@@ -27,7 +29,11 @@ export function Overview() {
         console.error("获取雇佣关系失败:", err)
       })
       .finally(() => setHierarchyLoading(false))
-  }, [projectId])
+  }, [projectId, refreshTrigger])
+
+  const handleRefresh = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1)
+  }, [])
 
   if (hierarchyLoading) {
     return (
@@ -79,7 +85,11 @@ export function Overview() {
             </CardHeader>
             <CardContent>
               {hierarchy.map((root) => (
-                <EmployeeTreeList key={root.name} hierarchy={root} />
+                <EmployeeTreeList
+                  key={root.name}
+                  hierarchy={root}
+                  onRefresh={handleRefresh}
+                />
               ))}
             </CardContent>
           </Card>
