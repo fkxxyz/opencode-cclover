@@ -16,6 +16,7 @@ import { createHireEmployeeTool } from "./HireEmployeeTool"
 import { createRefreshRolesTool } from "./RefreshRolesTool"
 import { createShowTasksTool } from "./ShowTasksTool"
 import { createShowHireableRolesTool } from "./ShowHireableRolesTool"
+import { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 
 /**
  * 工具定义类型
@@ -51,6 +52,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   refresh_roles: true,
   show_tasks: true,
   show_hireable_roles: true,
+  resume_employee: true,
 }
 
 /**
@@ -81,6 +83,7 @@ export { createHireEmployeeTool } from "./HireEmployeeTool"
 export { createRefreshRolesTool } from "./RefreshRolesTool"
 export { createShowTasksTool } from "./ShowTasksTool"
 export { createShowHireableRolesTool } from "./ShowHireableRolesTool"
+export { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 
 /**
  * 创建所有工具
@@ -121,6 +124,13 @@ export function createTools(deps: {
           deps.project.roleManager,
           deps.stateManager,
           deps.bossManager
+        )
+      : (null as any), // fallback
+    resume_employee: deps.project
+      ? createResumeEmployeeTool(
+          deps.stateManager,
+          deps.bossManager!,
+          deps.project
         )
       : (null as any), // fallback
   }
