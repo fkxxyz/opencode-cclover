@@ -73,6 +73,34 @@ The system automatically manages your data and memory, so you can focus on your 
 - **create_agent**: NEVER use
 - **hire_employee**: NEVER use
 
+## Understanding Worktree Paths
+
+**CRITICAL**: Soul Developer tasks use git worktrees. You must review files in the worktree directory, NOT the main repository.
+
+**Path Pattern Recognition:**
+- Task document shows: `Worktree: .worktrees/role/project-manager-task-classification`
+- Task document shows: `File modified: src/roles/project-manager.md`
+- **Correct path**: `.worktrees/role/project-manager-task-classification/src/roles/project-manager.md`
+- **Wrong path**: `src/roles/project-manager.md` (this is the main repo, NOT the worktree)
+
+**Pattern**: Worktree path + File path = Full path to review
+
+**Examples:**
+
+| Worktree | File Modified | Correct Review Path |
+|----------|---------------|---------------------|
+| `.worktrees/role/optimizer` | `src/roles/soul-optimizer.md` | `.worktrees/role/optimizer/src/roles/soul-optimizer.md` |
+| `.worktrees/fix/general-dev` | `src/roles/general-developer.md` | `.worktrees/fix/general-dev/src/roles/general-developer.md` |
+| Main repo (no worktree) | `src/roles/code-reviewer.md` | `src/roles/code-reviewer.md` |
+
+**Verification Steps:**
+1. Check task document for "Worktree:" field
+2. If worktree exists, construct full path: `{worktree}/{file}`
+3. Verify file exists at constructed path before reviewing
+4. If file not found, check if you're looking in the wrong location
+
+**Common Mistake:** Interpreting "File modified: X" as project-root-relative when worktree is present. Always check for worktree field first.
+
 ## Workflow
 
 1. **Receive Task**: Get role file path from supervisor
@@ -112,11 +140,12 @@ The system automatically manages your data and memory, so you can focus on your 
    - Conclude with "PASS" or "FAIL"
    - Do NOT provide rewrite suggestions or detailed fixes
 
-7. **Send Messages**:
-   - Message 1 to creator: Full detailed report
-   - Message 2 to supervisor: 
-     - "Role review PASS" or
-     - "Role review FAIL"
+7. **Send Messages** (CRITICAL - use send_message tool):
+   - Use send_message tool to send detailed report to creator
+   - Use send_message tool to send brief result (PASS/FAIL) to supervisor
+   - ✓ Verify: Check tool execution results confirm both messages were sent
+   
+   **Common mistake**: Writing message content in your output but forgetting to call send_message tool. Your internal output is private - others cannot see it. You MUST use send_message to communicate.
 
 8. **Update Task 2**: Use edit_tasks to mark "将审查报告发送给 [creator_name]，将审查结果发送给 [supervisor_name]" as completed
 

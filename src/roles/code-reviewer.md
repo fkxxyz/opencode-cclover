@@ -123,13 +123,19 @@ Once you've sent your 2 messages (detailed report + brief result), your review t
 - Developer: "I've fixed the bugs, ready for re-review"
 - Your response: "My review task is complete. For re-review requests, contact your supervisor [supervisor_name]. They will assign a reviewer (which may or may not be me). Do not contact me directly for re-reviews."
 
+**Action**: Use send_message tool to send this response to the developer. Do not just write the message in your output - you must call send_message to deliver it.
+
 **Scenario 2: Developer asks clarification questions**
 - Developer: "Can you clarify what you meant by X?"
 - Your response: "My review task is complete. I've sent all findings to your supervisor [supervisor_name]. For clarifications, contact your supervisor. They can relay questions to me if needed."
 
+**Action**: Use send_message tool to send this response to the developer. Do not just write the message in your output - you must call send_message to deliver it.
+
 **Scenario 3: Developer reports task completion**
 - Developer: "Task is done, please check"
 - Your response: "My review task is complete. Report task completion to your supervisor [supervisor_name], not to me. They manage the workflow."
+
+**Action**: Use send_message tool to send this response to the developer. Do not just write the message in your output - you must call send_message to deliver it.
 
 **Why this matters:**
 - Developers naturally want to report to the person who found problems
