@@ -7,6 +7,7 @@
 import { tool } from "@opencode-ai/plugin"
 import type { MessageService } from "../core/MessageService"
 import type { BossManager } from "../core/BossManager"
+import type { StateManager } from "../state/StateManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 
 /**
@@ -14,10 +15,12 @@ import { sessionRegistry } from "../utils/SessionRegistry"
  *
  * @param messageService Message service instance
  * @param bossManager Boss manager instance (optional)
+ * @param stateManager State manager instance (optional)
  */
 export function createSendMessageTool(
   messageService: MessageService,
-  bossManager?: BossManager
+  bossManager?: BossManager,
+  stateManager?: StateManager
 ) {
   return tool({
     description:
@@ -49,12 +52,18 @@ export function createSendMessageTool(
         )
       }
 
-      // 2. Record session if sender is boss and has sessionID (BEFORE sending)
+      // 2. Check if recipient is offline
+      const recipient = stateManager?.getEmployee(args.to)
+      if (recipient?.status === "offline") {
+        throw new Error(`Employee is on vacation!`)
+      }
+
+      // 3. Record session if sender is boss and has sessionID (BEFORE sending)
       if (bossManager?.isBoss(from) && context.sessionID) {
         await bossManager.recordSession(from, args.to, context.sessionID)
       }
 
-      // 3. Call message service (let exceptions propagate naturally)
+      // 4. Call message service (let exceptions propagate naturally)
       await messageService.send(
         from,
         args.to,

@@ -97,7 +97,11 @@ export function createTools(deps: {
   project?: ProjectInstance
 }): ToolRegistry {
   return {
-    send_message: createSendMessageTool(deps.messageService, deps.bossManager),
+    send_message: createSendMessageTool(
+      deps.messageService,
+      deps.bossManager,
+      deps.stateManager
+    ),
     edit_tasks: createEditTasksTool(deps.memoryManager),
     create_agent: createCreateAgentTool(deps.opcodeClient, deps.stateManager),
     hire_employee: deps.project
