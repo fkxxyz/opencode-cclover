@@ -20,6 +20,9 @@ fixtures/
 # Ignore runtime data in workspace_test but keep the directory structure
 workspace_test/.cclover
 
+# Test artifacts (created by tests at project root)
+/employees/
+
 # Build artifacts
 *.tsbuildinfo
 
