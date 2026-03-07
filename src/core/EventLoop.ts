@@ -762,18 +762,43 @@ export class EventLoop {
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       // 构建提示词
-      let promptText = `Summarize your knowledge from this session. Include only NEW and VALUABLE information. Organize by priority:
+      let promptText = `⚠️ CRITICAL MEMORY CHECKPOINT ⚠️
 
-1. Original Task Goals - Complete original task description (do NOT simplify or paraphrase)
-2. Task Supplements - Additional requirements from messages (describe as supplements to original task in natural language)
-3. Progress Overview - Current status and what has been accomplished
-4. Decision Records - Technical choices and detailed decisions with reasoning
-5. Collaboration Experience - Interactions and working relationships with other employees
-6. Code Exploration - Requirements, architecture, design, file layout, key identifiers (class/instance/variable names), code line counts (do NOT include specific data structure definitions)
-7. Problems and Solutions - Issues encountered and how they were resolved
+This session is about to CLOSE. All conversation history will be PERMANENTLY DELETED.
+Your summary is the ONLY information preserved for the next session.
+The next "you" will see NOTHING except this summary - no chat history, no context.
+
+MISSION: Ensure the next "you" can seamlessly continue work with ZERO information loss.
+
+Summarize EVERYTHING important from this session. Think carefully: what information is CRITICAL for continuing work?
+
+Common categories to consider (but NOT limited to):
+- Original task goals (complete description, do NOT simplify)
+- Task supplements and requirement changes from messages
+- Current progress and what has been accomplished
+- Work in progress (what you're doing NOW, current step, immediate next steps)
+- Technical decisions and detailed reasoning (why X over Y)
+- Code exploration findings (architecture, design, file layout, key identifiers, line counts)
+- Collaboration context (interactions with other employees, who's waiting for whom)
+- Task assignments (who you assigned what, expected outcomes)
+- Failed attempts and what didn't work (avoid repeating mistakes)
+- Unresolved blockers and known issues
+- Problems solved and their solutions
+- Project-specific conventions, constraints, and special rules
+- Environment and configuration details (if relevant to work)
+- Trade-offs and temporary decisions that need revisiting
+
+YOU decide what matters. Include anything that would cause work disruption if lost.
+
+Self-check before submitting:
+✓ Can the next "me" continue immediately without confusion?
+✓ Have I captured WHY behind decisions, not just WHAT?
+✓ Are ongoing tasks and their status crystal clear?
+✓ Have I documented what NOT to do (failed attempts)?
+✓ Is there ANY context that would be painful to lose?
 
 Return JSON format with:
-- knowledge: string array (each item should be a complete, self-contained statement)
+- knowledge: string array (each item should be complete and self-contained)
 - custom: object (leave empty for now)`
 
       // 如果是重试,添加错误信息
