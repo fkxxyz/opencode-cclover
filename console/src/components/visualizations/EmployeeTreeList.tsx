@@ -252,19 +252,6 @@ function TreeNode({
           </Box>
         </Box>
 
-        {/* 查看详情按钮 */}
-        <IconButton
-          size="small"
-          onClick={handleViewDetails}
-          sx={{
-            flexShrink: 0,
-            ml: 2,
-          }}
-          title="查看详情"
-        >
-          <ExternalLink size={16} />
-        </IconButton>
-
         {/* 暂停/恢复按钮 */}
         {node.role !== "Boss" && (
           <IconButton
@@ -273,7 +260,7 @@ function TreeNode({
             disabled={pauseResumeLoading}
             sx={{
               flexShrink: 0,
-              ml: 1,
+              ml: 2,
             }}
             title={node.status === "offline" ? "恢复" : "暂停"}
           >
@@ -284,6 +271,19 @@ function TreeNode({
             )}
           </IconButton>
         )}
+
+        {/* 查看详情按钮 */}
+        <IconButton
+          size="small"
+          onClick={handleViewDetails}
+          sx={{
+            flexShrink: 0,
+            ml: 1,
+          }}
+          title="查看详情"
+        >
+          <ExternalLink size={16} />
+        </IconButton>
       </Box>
 
       {/* 子节点 */}
