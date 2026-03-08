@@ -18,6 +18,7 @@ import { createShowTasksTool } from "./ShowTasksTool"
 import { createShowHireableRolesTool } from "./ShowHireableRolesTool"
 import { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 import { createPauseEmployeeTool } from "./PauseEmployeeTool"
+import { createIntegrateTool } from "./IntegrateTool"
 
 /**
  * 工具定义类型
@@ -55,6 +56,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   show_hireable_roles: true,
   resume_employee: true,
   pause_employee: true,
+  integrate: true,
 }
 
 /**
@@ -87,6 +89,7 @@ export { createShowTasksTool } from "./ShowTasksTool"
 export { createShowHireableRolesTool } from "./ShowHireableRolesTool"
 export { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 export { createPauseEmployeeTool } from "./PauseEmployeeTool"
+export { createIntegrateTool } from "./IntegrateTool"
 
 /**
  * 创建所有工具
@@ -144,5 +147,12 @@ export function createTools(deps: {
             deps.bossManager
           )
         : (null as any), // fallback
+    integrate: deps.project
+      ? createIntegrateTool(
+          deps.stateManager!,
+          deps.project.roleManager,
+          deps.memoryManager
+        )
+      : (null as any), // fallback
   }
 }
