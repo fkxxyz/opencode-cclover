@@ -5,7 +5,7 @@
  * 用于跟踪由员工创建的 Agent 及其关联任务
  */
 
-import type { InternalAgentEvent } from "../core/EventLoop"
+import type { InternalAgentEvent } from "../core/eventloop"
 
 export interface AgentInfo {
   employeeName: string // 创建该 Agent 的员工名称

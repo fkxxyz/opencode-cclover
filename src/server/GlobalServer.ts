@@ -11,7 +11,7 @@ import { MemoryManager } from "../core/MemoryManager"
 import { BossManager } from "../core/BossManager"
 import { RoleManager } from "../core/RoleManager"
 import { AgentRegistry } from "../utils/AgentRegistry"
-import { EventLoop } from "../core/EventLoop"
+import { EventLoop } from "../core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
 

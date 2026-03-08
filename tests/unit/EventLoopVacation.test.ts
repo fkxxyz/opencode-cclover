@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test"
 import * as fs from "fs/promises"
-import { EventLoop, type Role } from "../../src/core/EventLoop"
+import { EventLoop, type Role } from "../../src/core/eventloop"
 import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"

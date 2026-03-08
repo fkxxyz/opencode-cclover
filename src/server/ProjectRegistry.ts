@@ -4,7 +4,7 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { AgentRegistry } from "../utils/AgentRegistry"
 import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
-import type { EventLoop } from "../core/EventLoop"
+import type { EventLoop } from "../core/eventloop"
 import { createHash } from "node:crypto"
 import EventEmitter from "eventemitter3"
 

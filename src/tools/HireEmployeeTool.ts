@@ -169,7 +169,7 @@ async function startEmployee(
 ): Promise<void> {
   try {
     // Dynamically import EventLoop (avoid circular dependency)
-    const { EventLoop } = await import("../core/EventLoop")
+    const { EventLoop } = await import("../core/eventloop")
     const { GlobalCcloverService } = await import("../server/GlobalServer")
 
     const messageClient = project.messageService.getClient(employeeName)
@@ -191,7 +191,7 @@ async function startEmployee(
     project.eventLoops.set(employeeName, eventLoop)
 
     // Run in background
-    eventLoop.run().catch((error) => {
+    eventLoop.run().catch((error: any) => {
       logger.error(`[${employeeName}] EventLoop crashed:`, error)
     })
 

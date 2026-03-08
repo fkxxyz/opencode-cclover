@@ -1,5 +1,5 @@
 export * from "./MessageService"
 export * from "./MemoryManager"
-export * from "./EventLoop"
+export * from "./eventloop"
 export * from "./BossManager"
 export * from "./RoleManager"
