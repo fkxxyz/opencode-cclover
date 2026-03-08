@@ -40,6 +40,7 @@ export function getBosses(
     name,
     role: "Boss",
     status: "busy" as const,
+    paused: false,
     createdAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
   }))
@@ -173,6 +174,7 @@ export async function getBossDetail(
       name,
       role: "Boss",
       status: "busy" as const,
+      paused: false,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       memory,

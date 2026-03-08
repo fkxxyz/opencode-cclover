@@ -78,6 +78,7 @@ export function createHireEmployeeTool(
           name: args.name,
           role: args.role,
           status: "offline",
+          paused: false,
           createdAt: new Date().toISOString(),
           lastActiveAt: new Date().toISOString(),
           hiredBy,

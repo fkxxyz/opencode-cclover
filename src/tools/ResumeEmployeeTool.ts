@@ -57,8 +57,8 @@ export function createResumeEmployeeTool(
           return `Employee '${args.employeeName}' is not on vacation (current status: ${employee.status}).`
         }
 
-        // 5. Update status to idle
-        await stateManager.updateEmployeeStatus(args.employeeName, "idle")
+        // 5. 恢复员工（更新配置并持久化）
+        await stateManager.resumeEmployee(args.employeeName)
 
         // 6. Start EventLoop (dynamically import to avoid circular dependency)
         try {

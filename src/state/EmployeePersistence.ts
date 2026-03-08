@@ -53,10 +53,21 @@ export class EmployeePersistence {
         return []
       }
 
-      logger.debug(
-        `[EmployeePersistence] Loaded ${data.employees.length} employees`
-      )
-      return data.employees
+      // 迁移旧格式到新格式
+      const employees = data.employees.map((emp: any) => {
+        // 如果旧格式（没有 'paused' 字段），默认为未暂停
+        if (emp.paused === undefined) {
+          return {
+            ...emp,
+            paused: false, // 默认为未暂停（旧系统没有显式暂停配置）
+            status: "idle", // 重置运行时状态（将在启动时重新计算）
+          }
+        }
+        return emp
+      })
+
+      logger.debug(`[EmployeePersistence] Loaded ${employees.length} employees`)
+      return employees
     } catch (error: any) {
       if (error.code === "ENOENT") {
         // 文件不存在，返回空数组

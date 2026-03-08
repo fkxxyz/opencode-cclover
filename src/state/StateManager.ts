@@ -56,9 +56,15 @@ export class StateManager {
    * 注册员工
    */
   async registerEmployee(employee: Employee): Promise<void> {
-    this.employeeRegistry.register(employee)
-    this.taskCount.set(employee.name, 0)
-    this.messageCount.set(employee.name, 0)
+    // 确保 paused 字段存在
+    const employeeWithDefaults = {
+      ...employee,
+      paused: employee.paused ?? false, // 默认不暂停
+    }
+
+    this.employeeRegistry.register(employeeWithDefaults)
+    this.taskCount.set(employeeWithDefaults.name, 0)
+    this.messageCount.set(employeeWithDefaults.name, 0)
     // 持久化到文件（如果有 persistence）
     if (this.employeePersistence) {
       await this.employeePersistence.save(this.employeeRegistry.getAll())
@@ -101,6 +107,73 @@ export class StateManager {
     // 触发事件通知
     this.emit("event", event)
   }
+
+  /**
+   * 暂停员工（修改配置，持久化）
+   */
+  async pauseEmployee(name: string): Promise<void> {
+    const employee = this.employeeRegistry.get(name)
+    if (!employee) {
+      throw new Error(`员工 '${name}' 不存在`)
+    }
+
+    // 1. 更新配置
+    this.employeeRegistry.updatePaused(name, true)
+
+    // 2. 持久化配置
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+
+    // 3. 更新运行时状态（不持久化）
+    this.employeeRegistry.updateStatus(name, "offline")
+
+    // 4. 记录事件
+    const event = {
+      projectId: this.projectId,
+      type: "employee_paused" as const,
+      timestamp: new Date().toISOString(),
+      employeeName: name,
+      details: {},
+    }
+    this.eventHistory.add(event)
+    await this.eventLogger.logEvent(name, event)
+    this.emit("event", event)
+  }
+
+  /**
+   * 恢复员工（修改配置，持久化）
+   */
+  async resumeEmployee(name: string): Promise<void> {
+    const employee = this.employeeRegistry.get(name)
+    if (!employee) {
+      throw new Error(`员工 '${name}' 不存在`)
+    }
+
+    // 1. 更新配置
+    this.employeeRegistry.updatePaused(name, false)
+
+    // 2. 持久化配置
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+
+    // 3. 更新运行时状态（不持久化）
+    this.employeeRegistry.updateStatus(name, "idle")
+
+    // 4. 记录事件
+    const event = {
+      projectId: this.projectId,
+      type: "employee_resumed" as const,
+      timestamp: new Date().toISOString(),
+      employeeName: name,
+      details: {},
+    }
+    this.eventHistory.add(event)
+    await this.eventLogger.logEvent(name, event)
+    this.emit("event", event)
+  }
+
   /**
    * 添加事件
    */

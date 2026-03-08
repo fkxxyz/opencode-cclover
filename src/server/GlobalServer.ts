@@ -212,6 +212,7 @@ export class GlobalCcloverService {
         name: "calculator",
         role: "calculator",
         status: "offline",
+        paused: false,
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
       })
@@ -245,12 +246,22 @@ export class GlobalCcloverService {
         continue
       }
 
-      // 跳过离线状态的员工
-      if (employee.status === "offline") {
+      // 根据配置计算运行时状态
+      if (employee.paused) {
+        // 配置为暂停 → 设置运行时状态为 offline
+        await project.stateManager.updateEmployeeStatus(
+          employee.name,
+          "offline"
+        )
+        // 不启动 EventLoop
         logger.info(
-          `[${project.projectId}] Skipping offline employee: ${employee.name}`
+          `[${project.projectId}] Skipping paused employee: ${employee.name}`
         )
         continue
+      } else {
+        // 配置为活跃 → 设置运行时状态为 idle
+        await project.stateManager.updateEmployeeStatus(employee.name, "idle")
+        // 启动 EventLoop
       }
 
       const messageClient = project.messageService.getClient(employee.name)

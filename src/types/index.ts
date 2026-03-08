@@ -6,6 +6,7 @@ export interface Employee {
   name: string
   role: string
   status: EmployeeStatus
+  paused: boolean
   createdAt: string
   lastActiveAt: string
   hiredBy?: string
@@ -119,6 +120,8 @@ export type EventType =
   | "timer"
   | "employee_hired"
   | "employee_status_changed"
+  | "employee_paused"
+  | "employee_resumed"
   | "session_created"
   | "session_prompt_started"
   | "session_prompt_completed"

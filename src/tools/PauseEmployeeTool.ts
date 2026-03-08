@@ -76,8 +76,8 @@ export function createPauseEmployeeTool(
         timestamp: new Date().toISOString(),
       })
 
-      // 7. 更新员工状态为离线
-      await stateManager.updateEmployeeStatus(args.employeeName, "offline")
+      // 7. 暂停员工（更新配置并持久化）
+      await stateManager.pauseEmployee(args.employeeName)
 
       return `Employee '${args.employeeName}' has been paused. EventLoop will stop shortly.`
     },

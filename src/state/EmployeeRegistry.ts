@@ -81,6 +81,20 @@ export class EmployeeRegistry {
   }
 
   /**
+   * 更新员工 paused 配置
+   */
+  updatePaused(name: string, paused: boolean): void {
+    const employee = this.employees.get(name)
+    if (!employee) {
+      throw new Error(`员工 '${name}' 不存在`)
+    }
+
+    const updated = { ...employee, paused }
+    this.employees.set(name, updated)
+    this.emitter.emit("employee_updated", updated)
+  }
+
+  /**
    * 监听事件
    */
   on(event: string, listener: (...args: any[]) => void): void {
