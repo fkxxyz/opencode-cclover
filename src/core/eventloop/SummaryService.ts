@@ -38,8 +38,10 @@ export class SummaryService {
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       // 构建字段说明
-      let argsFieldsText = ""
-      let roleDataFieldsText = ""
+      let argsSection = ""
+      let roleDataSection = ""
+      let argsExample = "{}"
+      let roleDataExample = "{}"
 
       if (roleMetadata?.requiredArgs) {
         const argsList = Object.entries(roleMetadata.requiredArgs)
@@ -48,7 +50,44 @@ export class SummaryService {
               `  - ${key}: ${spec.type} - ${spec.description}`
           )
           .join("\n")
-        argsFieldsText = `\n\nYour role defines these REQUIRED args fields:\n${argsList}\n\nYou MUST include all these fields in the "args" object.`
+        const exampleFields = Object.entries(roleMetadata.requiredArgs)
+          .map(([key, spec]: [string, any]) => {
+            const exampleValue =
+              spec.type === "string"
+                ? '"example"'
+                : spec.type === "number"
+                  ? "0"
+                  : "null"
+            return `"${key}": ${exampleValue}`
+          })
+          .join(", ")
+        argsExample = `{ ${exampleFields} }`
+        argsSection = `
+## 1. args (Role Parameters)
+
+⚠️ STRICT SCHEMA ENFORCEMENT ⚠️
+
+Your role defines these REQUIRED fields:
+${argsList}
+
+RULES:
+- You MUST include ALL fields listed above
+- You MUST NOT add any custom fields
+- ONLY use the exact field names defined above
+- Do NOT put work context or learnings here (those go in "knowledge")
+
+Example format:
+\`\`\`json
+${argsExample}
+\`\`\``
+      } else {
+        argsSection = `
+## 1. args (Role Parameters)
+
+Your role has NO required args fields.
+Return an empty object: {}
+
+Do NOT add custom fields. This section is for role-defined parameters only.`
       }
 
       if (roleMetadata?.memorySchema) {
@@ -58,7 +97,46 @@ export class SummaryService {
               `  - ${key}: ${spec.type} - ${spec.description}`
           )
           .join("\n")
-        roleDataFieldsText = `\n\nYour role defines these roleData fields:\n${schemaList}\n\nYou MUST include all these fields in the "roleData" object.`
+        const exampleFields = Object.entries(roleMetadata.memorySchema)
+          .map(([key, spec]: [string, any]) => {
+            const exampleValue =
+              spec.type === "string"
+                ? '"example"'
+                : spec.type === "number"
+                  ? "0"
+                  : spec.type === "object"
+                    ? "{}"
+                    : "null"
+            return `"${key}": ${exampleValue}`
+          })
+          .join(", ")
+        roleDataExample = `{ ${exampleFields} }`
+        roleDataSection = `
+## 2. roleData (Role-Specific Working Data)
+
+⚠️ STRICT SCHEMA ENFORCEMENT ⚠️
+
+Your role defines these fields:
+${schemaList}
+
+RULES:
+- You MUST include ALL fields listed above
+- You MUST NOT add any custom fields
+- ONLY use the exact field names defined above
+- Do NOT put work context or learnings here (those go in "knowledge")
+
+Example format:
+\`\`\`json
+${roleDataExample}
+\`\`\``
+      } else {
+        roleDataSection = `
+## 2. roleData (Role-Specific Working Data)
+
+Your role has NO roleData schema defined.
+Return an empty object: {}
+
+Do NOT add custom fields. This section is for role-defined data only.`
       }
 
       // 构建提示词
@@ -70,7 +148,15 @@ The next "you" will see NOTHING except this summary - no chat history, no contex
 
 MISSION: Ensure the next "you" can seamlessly continue work with ZERO information loss.
 
-Summarize EVERYTHING important from this session. Think carefully: what information is CRITICAL for continuing work?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT: You MUST return a JSON object with THREE sections
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${argsSection}
+${roleDataSection}
+
+## 3. knowledge (Work Context & Learnings)
+
+This is where ALL your work context goes. Think carefully: what information is CRITICAL for continuing work?
 
 Common categories to consider (but NOT limited to):
 - Original task goals (complete description, do NOT simplify)
@@ -90,18 +176,36 @@ Common categories to consider (but NOT limited to):
 
 YOU decide what matters. Include anything that would cause work disruption if lost.
 
+RULES:
+- Each item should be complete and self-contained
+- Use clear, descriptive sentences
+- Include enough detail for the next "you" to understand immediately
+
 Self-check before submitting:
 ✓ Can the next "me" continue immediately without confusion?
 ✓ Have I captured WHY behind decisions, not just WHAT?
 ✓ Are ongoing tasks and their status crystal clear?
 ✓ Have I documented what NOT to do (failed attempts)?
 ✓ Is there ANY context that would be painful to lose?
-${argsFieldsText}${roleDataFieldsText}
 
-Return JSON format with THREE sections (in this exact order):
-1. args: object (role-specific parameters, e.g., projectName, teamSize)
-2. roleData: object (role-specific working data, e.g., current configurations, temporary states)
-3. knowledge: string array (each item should be complete and self-contained, general experience and learnings)`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return ONLY a JSON object (or wrap it in a \`\`\`json code block):
+
+{
+  "args": ${argsExample},
+  "roleData": ${roleDataExample},
+  "knowledge": [
+    "First important piece of information...",
+    "Second important piece of information...",
+    "..."
+  ]
+}
+
+⚠️ CRITICAL: Do NOT add custom fields to "args" or "roleData". Only use the exact fields defined above.
+⚠️ ALL work context, progress, decisions, and learnings go in "knowledge" array.`
 
       // 如果是重试,添加错误信息
       if (attempt > 1 && lastError) {
