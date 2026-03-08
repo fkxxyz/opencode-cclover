@@ -99,7 +99,11 @@ export class EventLoop {
     // 这样可以在恢复已有 session 时立即触发总结（如果已超过阈值）
     try {
       await this.sessionManager.ensureSession()
-      await this.sessionManager.summarizeIfNeeded()
+      // 仅 soul: true 的员工需要总结
+      const role = this.roleManager.getRole(this.roleName)
+      if (role?.soul !== false) {
+        await this.sessionManager.summarizeIfNeeded()
+      }
     } catch (error) {
       console.error(
         `[${this.employeeName}] Error during startup session check:`,
@@ -139,8 +143,11 @@ export class EventLoop {
         // 5. 处理事件
         await this.handleEvent(event)
 
-        // 6. 检查是否需要总结
-        await this.sessionManager.summarizeIfNeeded()
+        // 6. 检查是否需要总结（仅 soul: true 的员工）
+        const role = this.roleManager.getRole(this.roleName)
+        if (role?.soul !== false) {
+          await this.sessionManager.summarizeIfNeeded()
+        }
 
         // 成功：重置错误追踪
         this.errorRecovery.resetErrorTracking()

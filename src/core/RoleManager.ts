@@ -126,8 +126,19 @@ export class RoleManager {
 
           if (frontmatterMatch) {
             // 新格式：YAML frontmatter + markdown
-            const metadata = yaml.parse(frontmatterMatch[1]) as RoleMetadata
+            const frontmatterData = yaml.parse(frontmatterMatch[1])
             const systemPrompt = frontmatterMatch[2].trim()
+
+            // 构建 metadata，确保 soul 字段默认为 true
+            const metadata: RoleMetadata = {
+              name: frontmatterData.name,
+              description: frontmatterData.description || "",
+              soul: frontmatterData.soul ?? true, // 默认为 true
+              requiredArgs: frontmatterData.requiredArgs,
+              canHire: frontmatterData.canHire,
+              groups: frontmatterData.groups,
+              memorySchema: frontmatterData.memorySchema,
+            }
 
             this.roles.set(metadata.name, {
               ...metadata,

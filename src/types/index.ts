@@ -173,6 +173,7 @@ export type ConnectionStatus =
 export interface RoleMetadata {
   name: string
   description: string
+  soul?: boolean // true = 持久记忆（自动总结），false = 临时记忆（无总结）
   requiredArgs?: Record<
     string,
     {
