@@ -20,6 +20,39 @@ interface MissingArg {
 }
 
 /**
+ * 将参数格式化为 Markdown 列表
+ *
+ * @param args 参数对象
+ * @param indent 缩进级别
+ * @returns Markdown 行数组
+ */
+function formatArgsAsMarkdown(
+  args: Record<string, any>,
+  indent: number = 0
+): string[] {
+  const lines: string[] = []
+  const prefix = "  ".repeat(indent)
+
+  for (const [key, value] of Object.entries(args)) {
+    if (value === null || value === undefined) {
+      lines.push(`${prefix}- **${key}**: (not set)`)
+    } else if (typeof value === "object" && !Array.isArray(value)) {
+      // 嵌套对象
+      lines.push(`${prefix}- **${key}**:`)
+      lines.push(...formatArgsAsMarkdown(value, indent + 1))
+    } else if (Array.isArray(value)) {
+      // 数组
+      lines.push(`${prefix}- **${key}**: ${JSON.stringify(value)}`)
+    } else {
+      // 简单值
+      lines.push(`${prefix}- **${key}**: ${value}`)
+    }
+  }
+
+  return lines
+}
+
+/**
  * 检查缺失的必需参数
  *
  * @param requiredArgs 必需参数定义
@@ -83,9 +116,8 @@ export function buildSystemPrompt(
   const args = memory.args || {}
   if (Object.keys(args).length > 0) {
     sections.push("## Role Arguments")
-    sections.push("```json")
-    sections.push(JSON.stringify(args, null, 2))
-    sections.push("```")
+    sections.push("")
+    sections.push(...formatArgsAsMarkdown(args))
     sections.push("")
   }
 
@@ -110,7 +142,16 @@ export function buildSystemPrompt(
     }
   }
 
-  // 2.3 经验知识（移到 args 之后）
+  // 2.3 角色数据
+  const roleData = memory.roleData || {}
+  if (Object.keys(roleData).length > 0) {
+    sections.push("## Role Data")
+    sections.push("")
+    sections.push(...formatArgsAsMarkdown(roleData))
+    sections.push("")
+  }
+
+  // 2.4 经验知识
   if (memory.knowledge.length > 0) {
     sections.push("## Knowledge")
     for (const item of memory.knowledge) {
@@ -180,7 +221,7 @@ export function buildSystemPrompt(
     sections.push("# Task Management")
     sections.push("")
 
-    // 3.1 任务管理指南
+    // 5.1 任务管理指南
     sections.push("## Task Management Guide")
     sections.push("")
     sections.push("Task status definitions:")
@@ -202,7 +243,7 @@ export function buildSystemPrompt(
     sections.push("- send_message: Communicate with other employees")
     sections.push("")
 
-    // 3.2 所有任务
+    // 5.2 所有任务
     sections.push("## All Tasks")
     sections.push("")
     for (const task of memory.tasks) {
@@ -218,13 +259,13 @@ export function buildSystemPrompt(
       sections.push("")
     }
 
-    // 3.3 任务依赖图
+    // 5.3 任务依赖图
     sections.push("## Task Dependency Graph")
     sections.push("")
     sections.push(generateMermaid(memory.tasks))
     sections.push("")
 
-    // 3.4 可执行的任务
+    // 5.4 可执行的任务
     const executableTasks = getExecutableTasks(memory.tasks)
     sections.push("## Executable Tasks")
     sections.push("")
@@ -244,7 +285,7 @@ export function buildSystemPrompt(
     )
     sections.push("")
 
-    // 3.5 正在进行的任务
+    // 5.5 正在进行的任务
     const inProgressTasks = memory.tasks.filter(
       (t) => t.status === "in_progress"
     )

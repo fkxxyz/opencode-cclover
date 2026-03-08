@@ -812,18 +812,47 @@ export class EventLoop {
    * 支持重试机制和智能 JSON 解析
    */
   private async requestSummary(): Promise<{
-    knowledge: string[]
     args: Record<string, any>
+    roleData: Record<string, any>
+    knowledge: string[]
   }> {
     if (!this.currentSession) {
       throw new Error("No active session")
     }
+
+    // 获取角色元数据
+    const role = this.roleManager.getRole(this.roleName)
+    const roleMetadata = role ? (role as any).metadata : undefined
 
     const MAX_RETRIES = 3
     let lastError: string | null = null
     let lastResponseText: string | null = null
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      // 构建字段说明
+      let argsFieldsText = ""
+      let roleDataFieldsText = ""
+
+      if (roleMetadata?.requiredArgs) {
+        const argsList = Object.entries(roleMetadata.requiredArgs)
+          .map(
+            ([key, spec]: [string, any]) =>
+              `  - ${key}: ${spec.type} - ${spec.description}`
+          )
+          .join("\n")
+        argsFieldsText = `\n\nYour role defines these REQUIRED args fields:\n${argsList}\n\nYou MUST include all these fields in the "args" object.`
+      }
+
+      if (roleMetadata?.memorySchema) {
+        const schemaList = Object.entries(roleMetadata.memorySchema)
+          .map(
+            ([key, spec]: [string, any]) =>
+              `  - ${key}: ${spec.type} - ${spec.description}`
+          )
+          .join("\n")
+        roleDataFieldsText = `\n\nYour role defines these roleData fields:\n${schemaList}\n\nYou MUST include all these fields in the "roleData" object.`
+      }
+
       // 构建提示词
       let promptText = `⚠️ CRITICAL MEMORY CHECKPOINT ⚠️
 
@@ -859,10 +888,12 @@ Self-check before submitting:
 ✓ Are ongoing tasks and their status crystal clear?
 ✓ Have I documented what NOT to do (failed attempts)?
 ✓ Is there ANY context that would be painful to lose?
+${argsFieldsText}${roleDataFieldsText}
 
-Return JSON format with:
-- knowledge: string array (each item should be complete and self-contained)
-- args: object (leave empty for now)`
+Return JSON format with THREE sections (in this exact order):
+1. args: object (role-specific parameters, e.g., projectName, teamSize)
+2. roleData: object (role-specific working data, e.g., current configurations, temporary states)
+3. knowledge: string array (each item should be complete and self-contained, general experience and learnings)`
 
       // 如果是重试,添加错误信息
       if (attempt > 1 && lastError) {
@@ -908,8 +939,9 @@ Return JSON format with:
       const parseResult = this.parseJSON(text)
       if (parseResult.success) {
         return {
-          knowledge: parseResult.data.knowledge ?? [],
           args: parseResult.data.args ?? {},
+          roleData: parseResult.data.roleData ?? {},
+          knowledge: parseResult.data.knowledge ?? [],
         }
       }
 
@@ -936,7 +968,7 @@ Return JSON format with:
     console.error(
       `[${this.employeeName}] Failed to parse summary JSON after ${MAX_RETRIES} attempts`
     )
-    return { knowledge: [], args: {} }
+    return { args: {}, roleData: {}, knowledge: [] }
   }
 
   /**
@@ -995,8 +1027,9 @@ Return JSON format with:
    * 保存总结到记忆
    */
   private async saveSummary(summary: {
-    knowledge: string[]
     args: Record<string, any>
+    roleData: Record<string, any>
+    knowledge: string[]
   }): Promise<void> {
     // 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeName)
@@ -1007,11 +1040,15 @@ Return JSON format with:
     // 合并 args
     const args = { ...memory.args, ...summary.args }
 
+    // 合并 roleData
+    const roleData = { ...memory.roleData, ...summary.roleData }
+
     // 写入更新后的记忆
     await this.memoryManager.write(this.employeeName, {
       knowledge: Array.from(knowledgeSet),
       tasks: memory.tasks, // tasks 不需要总结，保持原样
       args, // 更新 args
+      roleData, // 更新 roleData
     })
   }
 
