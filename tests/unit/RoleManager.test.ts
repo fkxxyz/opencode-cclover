@@ -166,6 +166,76 @@ This is the system prompt for the test role.`
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
+  test("should parse memorySchema from YAML frontmatter", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: module-maintainer
+description: Maintains a module
+memorySchema:
+  ownedUnits:
+    type: string[]
+    description: List of owned code units
+    required: true
+  delegatedUnits:
+    type: object
+    description: Delegated units mapping
+    required: false
+---
+
+You are a module maintainer.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "module-maintainer.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("module-maintainer")
+
+    expect(role).toBeDefined()
+    expect(role?.memorySchema).toEqual({
+      ownedUnits: {
+        type: "string[]",
+        description: "List of owned code units",
+        required: true,
+      },
+      delegatedUnits: {
+        type: "object",
+        description: "Delegated units mapping",
+        required: false,
+      },
+    })
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should work without memorySchema (backward compatibility)", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: simple-role
+description: A simple role without memorySchema
+---
+
+You are a simple role.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "simple-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("simple-role")
+
+    expect(role).toBeDefined()
+    expect(role?.memorySchema).toBeUndefined()
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
   test("should reject old format without frontmatter", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })

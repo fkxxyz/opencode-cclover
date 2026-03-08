@@ -35,6 +35,7 @@ export interface Memory {
   knowledge: string[] // 经验知识
   tasks: Task[] // 任务列表
   args: Record<string, any> // 角色参数
+  roleData?: Record<string, any> // 角色特定数据
   sessionId?: string // Session ID（可选）
 
   // Session 创建时的快照
@@ -107,6 +108,7 @@ export class MemoryManager {
         knowledge: data?.knowledge ?? [],
         tasks: data?.tasks ?? [],
         args: data.args,
+        roleData: data?.roleData ?? {},
         sessionId: data?.sessionId ?? undefined,
         sessionSnapshot: data?.sessionSnapshot ?? undefined,
       }
@@ -117,6 +119,7 @@ export class MemoryManager {
           knowledge: [],
           tasks: [],
           args: {},
+          roleData: {},
         }
       }
       throw error
@@ -162,6 +165,7 @@ export class MemoryManager {
         knowledge: memory.knowledge,
         tasks: memory.tasks,
         args: memory.args,
+        roleData: memory.roleData,
         sessionId: memory.sessionId,
         sessionSnapshot: memory.sessionSnapshot,
       }
@@ -511,7 +515,7 @@ export class MemoryManager {
     memory.knowledge = summary.knowledge
     memory.args = summary.args
 
-    // tasks 保持不变
+    // tasks 和 roleData 保持不变
     await this.write(employeeName, memory)
   }
 
@@ -530,6 +534,26 @@ export class MemoryManager {
 
     // 写入
     await this.write(employeeName, memory)
+  }
+
+  /**
+   * 更新角色数据
+   */
+  async updateRoleData(
+    employeeName: string,
+    roleData: Record<string, any>
+  ): Promise<void> {
+    const memory = await this.read(employeeName)
+    memory.roleData = roleData
+    await this.write(employeeName, memory)
+  }
+
+  /**
+   * 获取角色数据
+   */
+  async getRoleData(employeeName: string): Promise<Record<string, any>> {
+    const memory = await this.read(employeeName)
+    return memory.roleData ?? {}
   }
 
   /**

@@ -78,6 +78,10 @@ export interface Memory {
   knowledge: string[]
   tasks: Task[]
   args: Record<string, any> // Role arguments
+
+  // 角色特定数据
+  roleData?: Record<string, any>
+
   sessionId?: string
   sessionSnapshot?: {
     knowledge: string[]
@@ -175,6 +179,16 @@ export interface RoleMetadata {
   >
   canHire?: string[]
   groups?: string[]
+
+  // 角色记忆模式定义
+  memorySchema?: Record<
+    string,
+    {
+      type: string // "string" | "string[]" | "object" | "array" | "number" | "boolean"
+      description: string
+      required?: boolean
+    }
+  >
 }
 
 // 角色（包含元数据和系统提示词）

@@ -37,6 +37,7 @@ describe("MemoryManager", () => {
         knowledge: [],
         tasks: [],
         args: {},
+        roleData: {},
       })
     })
 
@@ -370,6 +371,98 @@ describe("MemoryManager", () => {
       expect(memory.knowledge).toEqual(["new knowledge"])
       expect(memory.args).toEqual({ new: "value" })
       expect(memory.tasks).toHaveLength(1) // tasks 保持不变
+    })
+
+    test("should preserve roleData when summarizing", async () => {
+      // 添加初始记忆（包含 roleData）
+      await manager.write("alice", {
+        knowledge: ["old knowledge"],
+        tasks: [],
+        args: { old: "value" },
+        roleData: { ownedUnits: ["unit1", "unit2"] },
+      })
+
+      // 总结
+      await manager.summarize("alice", {
+        knowledge: ["new knowledge"],
+        args: { new: "value" },
+      })
+
+      const memory = await manager.read("alice")
+      expect(memory.knowledge).toEqual(["new knowledge"])
+      expect(memory.args).toEqual({ new: "value" })
+      expect(memory.roleData).toEqual({ ownedUnits: ["unit1", "unit2"] }) // roleData 保持不变
+    })
+  })
+
+  describe("roleData", () => {
+    test("should read roleData from memory.yaml", async () => {
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+        roleData: { ownedUnits: ["unit1"], delegatedBy: "boss" },
+      })
+
+      const memory = await manager.read("alice")
+      expect(memory.roleData).toEqual({
+        ownedUnits: ["unit1"],
+        delegatedBy: "boss",
+      })
+    })
+
+    test("should return empty object for missing roleData", async () => {
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      const memory = await manager.read("alice")
+      expect(memory.roleData).toEqual({})
+    })
+
+    test("should update roleData with updateRoleData", async () => {
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+        roleData: { ownedUnits: ["unit1"] },
+      })
+
+      await manager.updateRoleData("alice", {
+        ownedUnits: ["unit1", "unit2"],
+        delegatedBy: "boss",
+      })
+
+      const memory = await manager.read("alice")
+      expect(memory.roleData).toEqual({
+        ownedUnits: ["unit1", "unit2"],
+        delegatedBy: "boss",
+      })
+    })
+
+    test("should get roleData with getRoleData", async () => {
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+        roleData: { ownedUnits: ["unit1"] },
+      })
+
+      const roleData = await manager.getRoleData("alice")
+      expect(roleData).toEqual({ ownedUnits: ["unit1"] })
+    })
+
+    test("should return empty object when roleData is missing", async () => {
+      await manager.write("alice", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      const roleData = await manager.getRoleData("alice")
+      expect(roleData).toEqual({})
     })
   })
 
