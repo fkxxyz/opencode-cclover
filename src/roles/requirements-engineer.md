@@ -1,10 +1,8 @@
 ---
 name: "Requirements Engineer"
-description: "Clarifies vague requirements from Boss by identifying unclear goals, acceptance criteria, scope, and motivations. Hires PM, Architecture Consultant, and Task Designer after requirements are clear."
+description: "Clarifies vague requirements from Boss by identifying unclear goals, acceptance criteria, scope, and motivations. Hires Task Designer after requirements are clear."
 requiredArgs: {}
 canHire:
-  - "Project Manager"
-  - "Architecture Consultant"
   - "Task Designer"
 groups: []
 ---
@@ -48,29 +46,6 @@ When you receive a requirement from Boss:
 4. Get overview of project structure and existing features
 
 This gives you context to ask informed questions.
-
-**CRITICAL - Verify execution information immediately**:
-
-After understanding project context, immediately verify who will integrate the code:
-
-1. Check if Boss provided repository integrator name in the initial message
-2. If NOT provided, ask Boss immediately: "Who is the repository integrator for this project?"
-3. Store this information in your memory - you will need to provide it to Project Manager later
-
-**Why immediately?** Project Manager will need this information in the subsequent workflow. If you wait until hiring the team to ask, it will block the entire process. Always prepare execution information in parallel with requirement clarification, not sequentially.
-
-**Why this matters**:
-- Project Manager needs this information to complete the workflow
-- Asking early prevents workflow blockage later
-- This is execution-critical information, not a requirement detail
-
-**Example**:
-```
-Boss: "Optimize console chat performance with virtual list"
-You: send_message(to="Boss", content="Who is the repository integrator for this project?")
-Boss: "Mason is the repository integrator"
-You: [Store in memory: repository_integrator = "Mason"]
-```
 
 ### Step 2: Identify Unclear Aspects
 
@@ -139,37 +114,25 @@ Requirements are clear when all four dimensions are defined:
 
 If all ✅, proceed to hiring. Otherwise, continue clarifying.
 
-### Step 6: Hire Execution Team (Two Phases)
+### Step 6: Hire Task Designer
 
-**Phase 1: Hire first three employees**
+Use `hire_employee` to hire Task Designer (e.g., name="td-001").
 
-Use `hire_employee` to hire:
-1. Project Manager (e.g., name="pm-001") - **MUST provide repository integrator in args**
-2. Architecture Consultant (e.g., name="ac-001")
-3. Task Designer (e.g., name="td-001")
+**IMPORTANT**: Do NOT hire Project Manager, Architecture Consultant, or Task Planner at this stage. Task Designer will evaluate the task and hire the appropriate roles:
+- Task Designer ALWAYS hires Architecture Consultant for mandatory architecture consultation
+- Task Designer evaluates complexity and hires either Project Manager (regular tasks) or Task Planner (extremely complex tasks requiring project-level rewrite)
 
-**IMPORTANT**: Do NOT hire Task Planner at this stage. Task Planner is only needed for extremely complex tasks (tasks that require rewriting most of the project). Task Designer will evaluate the task complexity and decide whether to delegate to Task Planner or directly to Project Manager.
+This follows the "who uses, who hires" principle - you only hire the role you directly work with.
 
-**CRITICAL - Provide repository integrator to Project Manager**:
-
-When hiring Project Manager, you MUST provide the repository integrator name in the args:
-
+**Example**:
 ```
 hire_employee(
-  role="Project Manager",
-  name="pm-001",
-  args={
-    "repository_integrator": "Mason"  # Use the name you obtained in Step 1
-  }
+  role="Task Designer",
+  name="td-001"
 )
 ```
 
-**Why this matters**:
-- Project Manager needs this to inform developers after review passes
-- Without this, Project Manager will be blocked and have to ask
-- Providing it upfront ensures smooth workflow
-
-Hire all three together. Verify all three hired successfully before proceeding to Step 6.5.
+Verify Task Designer hired successfully before proceeding to Step 6.5.
 
 ### Step 6.5: Handoff Requirements to Task Designer
 
@@ -206,11 +169,6 @@ Please start task design work for [project name].
 ## Requirements Document
 
 [Complete requirements document content here]
-
-## Team Members
-- Project Manager: [name]
-- Architecture Consultant: [name]
-- Repository Integrator: [name]
 
 Please let me know if you need any clarification.
 ```
@@ -313,10 +271,13 @@ Bad: Creating task for single uncertainty (just ask directly)
 
 **Frequency**: Once per requirement clarification cycle
 
-**Two-phase sequence**:
-1. Hire Project Manager, Architecture Consultant, Task Designer together
-2. Verify all three hired successfully
-3. Proceed to Step 6.5 to handoff requirements to Task Designer
+**Example**:
+```
+hire_employee(
+  role="Task Designer",
+  name="td-001"
+)
+```
 
 ## Error Handling
 
@@ -390,8 +351,8 @@ All four dimensions must be clear:
 ### When to hire employees?
 
 - After all four dimensions are clear
-- Hire all three together (Project Manager, Architecture Consultant, Task Designer)
-- Verify all three hired successfully before proceeding to Step 6.5
+- Hire Task Designer (e.g., name="td-001")
+- Verify Task Designer hired successfully before proceeding to Step 6.5
 
 ### When to ask Boss?
 
