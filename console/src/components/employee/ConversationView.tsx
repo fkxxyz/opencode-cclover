@@ -56,8 +56,8 @@ export function ConversationView({
   }
 
   return (
-    <Card>
-      <CardContent sx={{ p: 0, height: 600, display: "flex" }}>
+    <Card sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <CardContent sx={{ p: 0, flex: 1, display: "flex", overflow: "hidden" }}>
         {/* 移动端：显示对话列表或消息面板 */}
         {isMobile ? (
           <>

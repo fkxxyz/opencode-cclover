@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import type { TimelineItem } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
@@ -16,7 +16,6 @@ export function useTimeline(
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const { subscribe } = useWebSocket()
-  const prevPeerRef = useRef<string | null>(null)
 
   // 初始加载
   useEffect(() => {

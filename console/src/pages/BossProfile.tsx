@@ -1,29 +1,24 @@
 import { useEffect, useState } from "react"
-import { useParams, useNavigate, useSearchParams } from "react-router-dom"
-import { ArrowLeft, Loader2, User } from "lucide-react"
+import { useParams, useNavigate } from "react-router-dom"
+import { ArrowLeft, Loader2, MessageSquare } from "lucide-react"
 import { apiClient } from "../services"
 import { Button } from "../components/ui/button"
 import { Card, CardContent } from "../components/ui/card"
-import { ConversationView } from "../components/employee/ConversationView"
+import { EmployeeCard } from "../components/employee/EmployeeCard"
 import type { EmployeeDetail as EmployeeDetailType } from "../types"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
-export function BossDetail() {
+export function BossProfile() {
   const { projectId, name } = useParams<{ projectId: string; name: string }>()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
   const [boss, setBoss] = useState<EmployeeDetailType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  // 从 URL 读取当前聊天对象
-  const currentPeer = searchParams.get("peer") || null
-
   useEffect(() => {
     if (!name || !projectId) return
     setLoading(true)
-    // 使用 boss 专用 API
     apiClient
       .getBossDetail(projectId, name)
       .then(setBoss)
@@ -87,74 +82,40 @@ export function BossDetail() {
   }
 
   return (
-    <Box
-      sx={{
-        height: ["100vh", "100dvh"],
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <Box sx={{ minHeight: "100vh" }}>
       <Box
         sx={{
           maxWidth: "lg",
           mx: "auto",
           p: 3,
           display: "flex",
-          alignItems: "center",
-          gap: 2,
-          width: "100%",
-        }}
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate(`/projects/${projectId}`)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          返回
-        </Button>
-        <Typography variant="h5" fontWeight="bold">
-          {boss.name} (Boss)
-        </Typography>
-        <Button
-          variant="outline"
-          size="sm"
-          sx={{ marginLeft: "auto" }}
-          onClick={() =>
-            navigate(`/projects/${projectId}/boss/${name}/profile`)
-          }
-        >
-          <User className="h-4 w-4 mr-2" />
-          查看资料
-        </Button>
-      </Box>
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          maxWidth: "lg",
-          mx: "auto",
-          width: "100%",
-          px: 3,
-          pb: 3,
+          gap: 3,
         }}
       >
-        <ConversationView
-          projectId={projectId!}
-          employeeName={boss.name}
-          selectedPeer={currentPeer}
-          onPeerChange={(peer) => {
-            const newParams = new URLSearchParams(searchParams)
-            if (peer) {
-              newParams.set("peer", peer)
-            } else {
-              newParams.delete("peer")
-            }
-            setSearchParams(newParams)
-          }}
-        />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/projects/${projectId}/boss/${name}`)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            返回消息
+          </Button>
+          <Typography variant="h3" fontWeight="bold">
+            {boss.name} (Boss) - 资料
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => navigate(`/projects/${projectId}/boss/${name}`)}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            消息
+          </Button>
+        </Box>
+        <EmployeeCard employee={boss} />
       </Box>
     </Box>
   )

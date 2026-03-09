@@ -38,13 +38,12 @@ const VirtualMessageItem = memo(
   ({
     message,
     index,
-    employeeName,
+    employeeName: _employeeName,
   }: {
     message: Message
     index: number
     employeeName: string
   }) => {
-    const theme = useTheme()
     const isSent = message.direction === "send"
 
     return (
@@ -194,7 +193,7 @@ export function MessagePanel({
         ? (element) => element.getBoundingClientRect().height
         : undefined,
     overscan: 5,
-    onChange: (instance) => {
+    onChange: (_instance) => {
       // 恢复滚动位置（在测量完成后）
       const scrollElement = messagesContainerRef.current
       if (scrollRestoreTarget !== null && scrollElement) {
