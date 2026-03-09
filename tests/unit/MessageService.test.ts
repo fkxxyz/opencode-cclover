@@ -258,6 +258,9 @@ describe("MessageService", () => {
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},
+        recordSession: async () => {},
+        getSession: async () => undefined,
+        clearSession: async () => {},
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,

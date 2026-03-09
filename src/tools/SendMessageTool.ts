@@ -58,8 +58,8 @@ export function createSendMessageTool(
         throw new Error(`Employee is on vacation!`)
       }
 
-      // 3. Record session if sender is boss and has sessionID (BEFORE sending)
-      if (bossManager?.isBoss(from) && context.sessionID) {
+      // 3. Record session if sender has sessionID (BEFORE sending)
+      if (bossManager && context.sessionID) {
         await bossManager.recordSession(from, args.to, context.sessionID)
       }
 

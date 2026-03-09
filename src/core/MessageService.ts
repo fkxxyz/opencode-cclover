@@ -215,11 +215,11 @@ export class MessageService {
     // 4. 触发事件通知接收方
     this.notifyNewMessage(to)
 
-    // 5. 转发消息到 boss session（如果接收方是 boss）
-    if (this.bossManager?.isBoss(to)) {
+    // 5. 转发消息到用户 session（如果接收方有记录的 session）
+    if (this.bossManager) {
       const sessionId = await this.bossManager.getSession(to, from)
       if (sessionId && this.opcodeClient) {
-        await this.forwardToBossSession(
+        await this.forwardToSession(
           sessionId,
           from,
           to,
@@ -383,15 +383,15 @@ export class MessageService {
   }
 
   /**
-   * 转发消息到 boss 的 OpenCode session
-   * @param sessionId Boss 的 session ID
+   * 转发消息到用户的 OpenCode session
+   * @param sessionId 用户的 session ID
    * @param from 发送者名称
-   * @param to Boss 名称
+   * @param to 用户名称
    * @param content 消息内容
    * @param reference_docs 参考文档（可选）
    * @param fromRole 发送者角色（可选）
    */
-  private async forwardToBossSession(
+  private async forwardToSession(
     sessionId: string,
     from: string,
     to: string,
@@ -424,7 +424,7 @@ export class MessageService {
       // projectPath: /path/to/project
       const projectPath = path.dirname(path.dirname(this.workspaceRoot))
 
-      // 转发到 boss session
+      // 转发到用户 session
       await this.opcodeClient!.session.prompt({
         path: { id: sessionId },
         body: {
@@ -442,12 +442,12 @@ export class MessageService {
       })
 
       logger.info(
-        `[MessageService] Forwarded message from ${from} to boss ${to}'s session ${sessionId}`
+        `[MessageService] Forwarded message from ${from} to user ${to}'s session ${sessionId}`
       )
     } catch (error: any) {
       // 记录错误但不抛出（session 可能已关闭）
       logger.warn(
-        `[MessageService] Failed to forward message to boss session ${sessionId}: ${error.message}`
+        `[MessageService] Failed to forward message to user session ${sessionId}: ${error.message}`
       )
 
       // 清除无效的 session 映射
