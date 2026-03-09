@@ -176,8 +176,16 @@ export function MessagePanel({
             (message.from === peer && message.to === employeeName)
           )
         }
-        // 事件总是显示
-        return true
+        // 事件也需要过滤
+        const event = item.data as Event
+        // 判断事件是否与peer相关
+        // 1. 检查事件的employeeName是否是peer
+        // 2. 检查事件details中的from/to是否涉及peer
+        return (
+          event.employeeName === peer ||
+          event.details?.from === peer ||
+          event.details?.to === peer
+        )
       }) || [],
     [timeline, employeeName, peer]
   )
