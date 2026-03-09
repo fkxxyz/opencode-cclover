@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react"
 import { useTimeline } from "../../hooks/useTimeline"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -132,10 +132,10 @@ export function MessagePanel({
   }
 
   // 初始加载时直接定位到底部，后续新消息根据位置决定
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (filteredTimeline.length > 0) {
       if (isInitialLoadRef.current) {
-        // 初始加载：直接跳到底部
+        // 初始加载：使用 layoutEffect 确保在浏览器绘制前滚动
         scrollToBottom()
         isInitialLoadRef.current = false
       } else if (isNearBottom) {
@@ -146,12 +146,12 @@ export function MessagePanel({
         setHasNewMessages(true)
       }
     }
-  }, [filteredTimeline])
+  }, [filteredTimeline, isNearBottom])
 
   // 切换 peer 时重置状态
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prevPeerRef.current !== peer) {
-      // 重置滚动到底部
+      // 重置滚动到底部（使用 layoutEffect 确保同步）
       if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTop =
           messagesContainerRef.current.scrollHeight
