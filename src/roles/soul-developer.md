@@ -399,9 +399,31 @@ This prevents branch accumulation. Always delete both worktree and branch after 
 
 **CRITICAL**: Only call refresh_roles AFTER integration is complete. Do NOT call it during worktree development - it will have no effect because the system runs on the master branch.
 
-```bash
-# This is done via tool, not bash command
-# The tool reloads all role definitions in RoleManager
+**How to call refresh_roles**:
+
+Call the refresh_roles tool directly from your system prompt tool list:
+
+```xml
+<invoke name="refresh_roles"></invoke>
+```
+
+**DO NOT**:
+- ❌ Look for HTTP API endpoints in the code
+- ❌ Try to find bash commands
+- ❌ Read RefreshRolesTool.ts or other source files
+- ❌ Assume you need special permissions
+- ❌ Ask your supervisor to call it for you
+
+**DO**:
+- ✅ Call the tool directly using `<invoke name="refresh_roles"></invoke>`
+- ✅ It's that simple - the tool is already in your tool list
+- ✅ You have permission to call it - just do it
+
+**Why this matters**: The tool is already available in your system prompt. You don't need to look for it in code or APIs. Just invoke it directly like any other tool (send_message, edit_tasks, etc.).
+
+**Expected output**:
+```
+Roles refreshed successfully. Available roles: [list of roles]. Updated system prompts for N running employee(s).
 ```
 
 Without this final step, the system won't recognize your changes even though they're in the main branch.
