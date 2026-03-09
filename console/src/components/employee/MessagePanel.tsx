@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useMemo, memo } from "react"
-import { useVirtualizer } from "@tanstack/react-virtual"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useTimeline } from "../../hooks/useTimeline"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -33,104 +32,6 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-// 记忆化消息组件
-const VirtualMessageItem = memo(
-  ({
-    message,
-    index,
-    employeeName: _employeeName,
-  }: {
-    message: Message
-    index: number
-    employeeName: string
-  }) => {
-    const isSent = message.direction === "send"
-
-    return (
-      <Box
-        key={`message-${message.timestamp}-${index}`}
-        sx={{
-          display: "flex",
-          justifyContent: isSent ? "flex-end" : "flex-start",
-        }}
-      >
-        <Box
-          sx={{
-            maxWidth: "70%",
-            borderRadius: 2,
-            p: 1.5,
-            bgcolor: isSent
-              ? "primary.main"
-              : (theme) =>
-                  theme.palette.mode === "dark" ? "grey.800" : "grey.200",
-            color: isSent
-              ? "primary.contrastText"
-              : (theme) =>
-                  theme.palette.mode === "dark" ? "grey.100" : "grey.900",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              mb: 0.5,
-            }}
-          >
-            <Typography variant="caption" fontWeight="medium">
-              {isSent ? message.from : message.from}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: isSent
-                  ? "rgba(255, 255, 255, 0.7)"
-                  : (theme) =>
-                      theme.palette.mode === "dark"
-                        ? "grey.400"
-                        : "text.secondary",
-              }}
-            >
-              {formatTimestamp(message.timestamp)}
-            </Typography>
-          </Box>
-          <Typography
-            variant="body2"
-            sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-          >
-            {message.content}
-          </Typography>
-        </Box>
-      </Box>
-    )
-  }
-)
-
-VirtualMessageItem.displayName = "VirtualMessageItem"
-
-// 记忆化事件组件
-const VirtualEventItem = memo(
-  ({
-    event,
-    projectPath,
-    index,
-  }: {
-    event: Event
-    projectPath: string
-    index: number
-  }) => {
-    return (
-      <EventItem
-        key={`event-${event.timestamp}-${index}`}
-        event={event}
-        projectPath={projectPath}
-      />
-    )
-  }
-)
-
-VirtualEventItem.displayName = "VirtualEventItem"
-
 export function MessagePanel({
   projectId,
   employeeName,
@@ -147,9 +48,6 @@ export function MessagePanel({
   const [project, setProject] = useState<Project | null>(null)
   const [isNearBottom, setIsNearBottom] = useState(true)
   const [hasNewMessages, setHasNewMessages] = useState(false)
-  const [scrollRestoreTarget, setScrollRestoreTarget] = useState<number | null>(
-    null
-  )
   const prevPeerRef = useRef(peer)
 
   // 获取项目信息以获得 directory
@@ -183,28 +81,6 @@ export function MessagePanel({
     [timeline, employeeName, peer]
   )
 
-  // 虚拟列表配置
-  const virtualizer = useVirtualizer({
-    count: filteredTimeline.length,
-    getScrollElement: () => messagesContainerRef.current,
-    estimateSize: () => 100, // 初始估计高度
-    measureElement:
-      typeof window !== "undefined" &&
-      navigator.userAgent.indexOf("Firefox") === -1
-        ? (element) => element.getBoundingClientRect().height
-        : undefined,
-    overscan: 5,
-    onChange: (_instance) => {
-      // 恢复滚动位置（在测量完成后）
-      const scrollElement = messagesContainerRef.current
-      if (scrollRestoreTarget !== null && scrollElement) {
-        scrollElement.scrollTop =
-          scrollElement.scrollHeight - scrollRestoreTarget
-        setScrollRestoreTarget(null)
-      }
-    },
-  })
-
   // 滚动到底部
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -237,15 +113,22 @@ export function MessagePanel({
     const scrollElement = messagesContainerRef.current
     if (!scrollElement || !hasMore || loadingMore) return
 
-    // 保存距离底部的滚动位置
-    const scrollFromBottom =
-      scrollElement.scrollHeight - scrollElement.scrollTop
+    // 保存当前滚动位置（距离顶部）
+    const oldScrollTop = scrollElement.scrollTop
+    const oldScrollHeight = scrollElement.scrollHeight
 
     // 触发加载
     await loadMoreMessages()
 
-    // 设置恢复目标（onChange 会处理实际恢复）
-    setScrollRestoreTarget(scrollFromBottom)
+    // 加载完成后，恢复相对位置
+    // 新内容会被插入到顶部，所以需要调整 scrollTop
+    requestAnimationFrame(() => {
+      if (scrollElement) {
+        const newScrollHeight = scrollElement.scrollHeight
+        const heightDiff = newScrollHeight - oldScrollHeight
+        scrollElement.scrollTop = oldScrollTop + heightDiff
+      }
+    })
   }
 
   // 初始加载时直接定位到底部，后续新消息根据位置决定
@@ -393,42 +276,87 @@ export function MessagePanel({
           </Box>
         ) : (
           <Box
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              position: "relative",
-              padding: "16px",
+            sx={{
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
             }}
           >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const item = filteredTimeline[virtualItem.index]
+            {filteredTimeline.map((item, index) => {
+              if (item.type === "event") {
+                return (
+                  <EventItem
+                    key={`event-${item.data.timestamp}-${index}`}
+                    event={item.data as Event}
+                    projectPath={project?.directory || ""}
+                  />
+                )
+              }
+
+              // 消息渲染
+              const message = item.data as Message
+              const isSent = message.direction === "send"
 
               return (
                 <Box
-                  key={virtualItem.key}
-                  data-index={virtualItem.index}
-                  ref={virtualizer.measureElement}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                    padding: "0 16px",
+                  key={`message-${message.timestamp}-${index}`}
+                  sx={{
+                    display: "flex",
+                    justifyContent: isSent ? "flex-end" : "flex-start",
                   }}
                 >
-                  {item.type === "event" ? (
-                    <VirtualEventItem
-                      event={item.data as Event}
-                      projectPath={project?.directory || ""}
-                      index={virtualItem.index}
-                    />
-                  ) : (
-                    <VirtualMessageItem
-                      message={item.data as Message}
-                      index={virtualItem.index}
-                      employeeName={employeeName}
-                    />
-                  )}
+                  <Box
+                    sx={{
+                      maxWidth: "70%",
+                      borderRadius: 2,
+                      p: 1.5,
+                      bgcolor: isSent
+                        ? "primary.main"
+                        : (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "grey.800"
+                              : "grey.200",
+                      color: isSent
+                        ? "primary.contrastText"
+                        : (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "grey.100"
+                              : "grey.900",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography variant="caption" fontWeight="medium">
+                        {message.from}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: isSent
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? "grey.400"
+                                  : "text.secondary",
+                        }}
+                      >
+                        {formatTimestamp(message.timestamp)}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                    >
+                      {message.content}
+                    </Typography>
+                  </Box>
                 </Box>
               )
             })}
