@@ -85,6 +85,7 @@ export function ConversationList({
         width: isMobile ? "100%" : 280,
         borderRight: isMobile ? 0 : 1,
         borderColor: "divider",
+        minHeight: 0,
         overflowY: "auto",
       }}
     >

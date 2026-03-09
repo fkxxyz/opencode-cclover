@@ -88,7 +88,8 @@ export function EmployeeDetail() {
   return (
     <Box
       sx={{
-        height: ["100vh", "100dvh"],
+        flex: 1,
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
       }}

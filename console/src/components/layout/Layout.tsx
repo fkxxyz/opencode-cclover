@@ -1,4 +1,5 @@
-import { ReactNode, useState } from "react"
+import { ReactNode, useState, useRef, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { Sidebar } from "./Sidebar"
 import Box from "@mui/material/Box"
 import IconButton from "@mui/material/IconButton"
@@ -14,6 +15,14 @@ export function Layout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { toggleTheme, resolvedTheme } = useSettings()
+  const location = useLocation()
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0
+    }
+  }, [location.pathname])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -79,7 +88,17 @@ export function Layout({ children }: { children: ReactNode }) {
             </IconButton>
           </Box>
         </Box>
-        <Box sx={{ flex: 1, overflow: "auto" }}>{children}</Box>
+        <Box
+          ref={contentRef}
+          sx={{
+            flex: 1,
+            overflow: "auto",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {children}
+        </Box>
       </Box>
 
       {/* 设置对话框 */}
