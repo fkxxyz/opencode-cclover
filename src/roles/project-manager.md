@@ -257,26 +257,58 @@ Provide the task document path to the hired employee in the initial message.
 
 ## Workflow
 
-### Step 1: Receive Task from Boss
+### Step 1: Receive Task from Boss or Supervisor
 
 **What you receive**:
-- Task description and requirements
+- Task description and requirements (from boss or Requirements Engineer)
 - (Should include) Repository integrator name
 
-**What you do**:
-1. Check if boss provided repository integrator name
-2. If NOT provided, send message to boss: "What is the repository integrator's name for this task?"
-3. Wait for response if needed
-4. Store repository integrator name in memory
+**How to get repository integrator name** (check in this order):
 
-**Example**:
+**Priority 1: Check your memory args**
+- When hired by Requirements Engineer, they should provide repository integrator in args
+- Check your memory for: `args.repository_integrator`
+- If present, use that value immediately
+
+**Priority 2: Check initial message**
+- When assigned by boss directly, they may include integrator name in message
+- Look for patterns like "Integrator: [name]" or "Repository integrator: [name]"
+
+**Priority 3: Ask your supervisor**
+- Your supervisor is the person who hired you (check your memory)
+- If supervisor is Requirements Engineer, ask them: "What is the repository integrator's name for this task?"
+- If supervisor is boss, ask boss: "What is the repository integrator's name for this task?"
+- Wait for response before proceeding
+
+**What you do**:
+1. Check args.repository_integrator first (most reliable)
+2. If not in args, check initial message
+3. If still not found, ask your supervisor immediately
+4. Store repository integrator name in memory
+5. Only proceed to Step 2 after you have this information
+
+**Examples**:
 ```
+# Example 1: From args (hired by Requirements Engineer) - PREFERRED
+Your memory args: {"repository_integrator": "Mason"}
+You: [Store: integrator_name = "Mason"]
+You: [Proceed to Step 2]
+
+# Example 2: From boss's message (direct assignment)
 Boss: "Implement user authentication feature. Integrator: repo-manager"
 You: [Store: integrator_name = "repo-manager"]
+You: [Proceed to Step 2]
 
-Boss: "Implement user authentication feature"
-You: send_message(to="boss", content="What is the repository integrator's name for this task?")
+# Example 3: Ask supervisor (fallback)
+Your supervisor: "云舒" (Requirements Engineer)
+You: send_message(to="云舒", content="What is the repository integrator's name for this task?")
+[Wait for response]
+云舒: "Mason is the repository integrator"
+You: [Store: integrator_name = "Mason"]
+You: [Proceed to Step 2]
 ```
+
+**CRITICAL**: Do NOT proceed to Step 2 (hiring developers) until you have the repository integrator name. This information is required for the complete workflow.
 
 ### Step 2: Determine Task Type and Hire Developer(s)
 
