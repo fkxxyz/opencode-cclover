@@ -446,4 +446,179 @@ You are a project manager.`
       expect(employee?.role).toBe("developer")
     })
   })
+
+  describe("Employee Hired Event", () => {
+    test("records employee_hired event after hiring", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "nancy",
+          role: "developer",
+        },
+        context
+      )
+
+      // 验证事件已记录
+      const events = stateManager.getEvents("nancy")
+      const hiredEvent = events.find((e) => e.type === "employee_hired")
+
+      expect(hiredEvent).toBeDefined()
+      expect(hiredEvent?.employeeName).toBe("nancy")
+      expect(hiredEvent?.details.hiredBy).toBe("boss")
+      expect(hiredEvent?.details.role).toBe("developer")
+      expect(hiredEvent?.details.initialMessage).toBeUndefined()
+    })
+
+    test("records employee_hired event with initial_message", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "oliver",
+          role: "tester",
+          initial_message: "Welcome aboard!",
+        },
+        context
+      )
+
+      // 验证事件已记录
+      const events = stateManager.getEvents("oliver")
+      const hiredEvent = events.find((e) => e.type === "employee_hired")
+
+      expect(hiredEvent).toBeDefined()
+      expect(hiredEvent?.employeeName).toBe("oliver")
+      expect(hiredEvent?.details.hiredBy).toBe("boss")
+      expect(hiredEvent?.details.role).toBe("tester")
+      expect(hiredEvent?.details.initialMessage).toBe("Welcome aboard!")
+    })
+  })
+
+  describe("Default Message", () => {
+    test("sends default message when no initial_message provided", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "peter",
+          role: "tester",
+        },
+        context
+      )
+
+      expect(result).toContain("Successfully hired employee 'peter'")
+      expect(result).toContain("Default message sent")
+
+      // 验证消息已发送
+      const peterClient = messageService.getClient("peter")
+      const messages = await peterClient.history("boss")
+      expect(messages.length).toBeGreaterThan(0)
+
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.from).toBe("boss")
+      expect(lastMessage.to).toBe("peter")
+      expect(lastMessage.content).toContain("Hello! I am boss")
+      expect(lastMessage.content).toContain("Your role is tester")
+      expect(lastMessage.content).toContain(
+        "Please start working according to your role definition"
+      )
+    })
+
+    test("default message includes role parameters reminder for role with requiredArgs", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "quinn",
+          role: "developer",
+        },
+        context
+      )
+
+      // 验证消息已发送
+      const quinnClient = messageService.getClient("quinn")
+      const messages = await quinnClient.history("boss")
+      expect(messages.length).toBeGreaterThan(0)
+
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.content).toContain(
+        "Your role requires the following parameters"
+      )
+      expect(lastMessage.content).toContain("projectPath (string)")
+      expect(lastMessage.content).toContain("Path to the project directory")
+      expect(lastMessage.content).toContain("language (string)")
+      expect(lastMessage.content).toContain("Primary programming language")
+      expect(lastMessage.content).toContain(
+        "Please check your memory to confirm these parameters are provided"
+      )
+    })
+
+    test("default message does not include parameters reminder for role without requiredArgs", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "rachel",
+          role: "tester",
+        },
+        context
+      )
+
+      // 验证消息已发送
+      const rachelClient = messageService.getClient("rachel")
+      const messages = await rachelClient.history("boss")
+      expect(messages.length).toBeGreaterThan(0)
+
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.content).not.toContain(
+        "Your role requires the following parameters"
+      )
+      expect(lastMessage.content).toContain(
+        "Please start working according to your role definition"
+      )
+    })
+
+    test("sends custom initial_message instead of default message", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "sam",
+          role: "designer",
+          initial_message: "Welcome to the design team!",
+        },
+        context
+      )
+
+      expect(result).toContain("Successfully hired employee 'sam'")
+      expect(result).toContain("Initial message sent")
+      expect(result).not.toContain("Default message sent")
+
+      // 验证消息已发送
+      const samClient = messageService.getClient("sam")
+      const messages = await samClient.history("boss")
+      expect(messages.length).toBeGreaterThan(0)
+
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.content).toBe("Welcome to the design team!")
+    })
+  })
 })

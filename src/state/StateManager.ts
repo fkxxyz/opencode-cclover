@@ -53,6 +53,13 @@ export class StateManager {
   }
 
   /**
+   * 获取项目 ID
+   */
+  getProjectId(): string {
+    return this.projectId
+  }
+
+  /**
    * 注册员工
    */
   async registerEmployee(employee: Employee): Promise<void> {

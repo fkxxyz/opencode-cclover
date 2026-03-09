@@ -84,17 +84,31 @@ export function createHireEmployeeTool(
           hiredBy,
         })
 
-        // 6. Start employee's EventLoop
+        // 6. Record employee_hired event
+        const hiredEvent = {
+          projectId: stateManager.getProjectId(),
+          type: "employee_hired" as const,
+          timestamp: new Date().toISOString(),
+          employeeName: args.name,
+          details: {
+            hiredBy,
+            role: args.role,
+            initialMessage: args.initial_message,
+          },
+        }
+        await stateManager.addEvent(hiredEvent)
+
+        // 7. Start employee's EventLoop
         await startEmployee(project, args.name, roleDefinition)
 
         logger.info(
           `[HireEmployeeTool] Employee '${args.name}' hired by '${hiredBy}' with role '${args.role}'`
         )
 
-        // 7. Build success message with parameter reminder
+        // 8. Build success message with parameter reminder
         let successMessage = `Successfully hired employee '${args.name}', role: ${args.role}`
 
-        // 8. Add required parameters reminder if role has requiredArgs
+        // 9. Add required parameters reminder if role has requiredArgs
         if (roleDefinition.requiredArgs) {
           const requiredParams = Object.entries(roleDefinition.requiredArgs)
           if (requiredParams.length > 0) {
@@ -106,8 +120,9 @@ export function createHireEmployeeTool(
           }
         }
 
-        // 9. If initial_message is provided, send it to the new employee immediately
+        // 10. Send message to new employee
         if (args.initial_message) {
+          // 如果提供了 initial_message，发送自定义消息
           await project.messageService.send(
             hiredBy,
             args.name,
@@ -117,6 +132,29 @@ export function createHireEmployeeTool(
             `[HireEmployeeTool] Initial message sent to '${args.name}' from '${hiredBy}'`
           )
           successMessage += `\n\nInitial message sent.`
+        } else {
+          // 如果没有提供 initial_message，发送默认消息
+          let defaultMessage = `Hello! I am ${hiredBy}, and I just hired you. Your role is ${args.role}.`
+
+          // 如果角色有 requiredArgs，添加参数提醒
+          if (roleDefinition.requiredArgs) {
+            const requiredParams = Object.entries(roleDefinition.requiredArgs)
+            if (requiredParams.length > 0) {
+              defaultMessage += `\n\nYour role requires the following parameters:\n`
+              for (const [key, value] of requiredParams) {
+                defaultMessage += `- ${key} (${value.type}): ${value.description}\n`
+              }
+              defaultMessage += `\n\nPlease check your memory to confirm these parameters are provided. If missing, ask your employer.`
+            }
+          }
+
+          defaultMessage += `\n\nPlease start working according to your role definition.`
+
+          await project.messageService.send(hiredBy, args.name, defaultMessage)
+          logger.info(
+            `[HireEmployeeTool] Default message sent to '${args.name}' from '${hiredBy}'`
+          )
+          successMessage += `\n\nDefault message sent.`
         }
 
         return successMessage
