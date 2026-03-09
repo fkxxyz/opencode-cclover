@@ -176,16 +176,9 @@ export function MessagePanel({
             (message.from === peer && message.to === employeeName)
           )
         }
-        // 事件也需要过滤
+        // 事件：显示当前员工自己的事件
         const event = item.data as Event
-        // 判断事件是否与peer相关
-        // 1. 检查事件的employeeName是否是peer
-        // 2. 检查事件details中的from/to是否涉及peer
-        return (
-          event.employeeName === peer ||
-          event.details?.from === peer ||
-          event.details?.to === peer
-        )
+        return event.employeeName === employeeName
       }) || [],
     [timeline, employeeName, peer]
   )
@@ -335,7 +328,9 @@ export function MessagePanel({
   }
 
   return (
-    <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+    >
       <Box
         sx={{
           p: 2,
