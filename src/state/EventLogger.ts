@@ -88,8 +88,13 @@ export class EventLogger {
   /**
    * 读取员工的事件历史
    * @param limit 返回最近的 N 条事件，默认 50
+   * @param before 游标时间戳，返回此时间之前的事件
    */
-  async getEvents(employeeName: string, limit: number = 50): Promise<Event[]> {
+  async getEvents(
+    employeeName: string,
+    limit: number = 50,
+    before?: string
+  ): Promise<Event[]> {
     const filePath = this.getEventFilePath(employeeName)
 
     try {
@@ -99,11 +104,16 @@ export class EventLogger {
         .split("\n")
         .filter((line) => line.length > 0)
 
-      // 取最后 N 行
-      const recentLines = lines.slice(-limit)
-
       // 解析 JSON
-      return recentLines.map((line) => JSON.parse(line))
+      const events = lines.map((line) => JSON.parse(line))
+
+      // 如果提供了游标，过滤出游标之前的事件
+      const filtered = before
+        ? events.filter((event) => event.timestamp < before)
+        : events
+
+      // 取最后 N 行
+      return filtered.slice(-limit)
     } catch (error: any) {
       if (error.code === "ENOENT") {
         return []
@@ -117,14 +127,20 @@ export class EventLogger {
    * @param employeeName 员工名称
    * @param messageService 消息服务（用于获取消息）
    * @param limit 返回最近的 N 条，默认 50
+   * @param before 游标时间戳，返回此时间之前的消息
    */
   async getTimeline(
     employeeName: string,
     messageService: any,
-    limit: number = 50
+    limit: number = 50,
+    before?: string
   ): Promise<TimelineItem[]> {
+    // 加载 limit * 2 以确保合并后有足够的项
+    // (因为消息和事件是分开加载的，需要一些缓冲)
+    const loadLimit = limit * 2
+
     // 获取事件
-    const events = await this.getEvents(employeeName, limit * 2)
+    const events = await this.getEvents(employeeName, loadLimit, before)
 
     // 获取消息（从所有对话对象）
     const peers = await messageService.getPeers(employeeName)
@@ -134,7 +150,7 @@ export class EventLogger {
     const client = messageService.getClient(employeeName)
 
     for (const peer of peers) {
-      const messages = await client.history(peer, limit * 2)
+      const messages = await client.history(peer, loadLimit, before)
       allMessages.push(...messages)
     }
 
@@ -152,10 +168,10 @@ export class EventLogger {
       })),
     ]
 
-    // 按时间戳排序
+    // 按时间戳排序（升序）
     timeline.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
 
-    // 取最后 N 条
+    // 返回最后 N 条（最近的）
     return timeline.slice(-limit)
   }
 

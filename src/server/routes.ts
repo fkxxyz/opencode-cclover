@@ -796,6 +796,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *
    * @queryParams
    *   - limit: 返回数量，默认 50，最大 200（可选）
+   *   - before: 游标时间戳，返回此时间之前的消息（可选）
    *
    * @response {
    *   success: true,
@@ -826,6 +827,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *
    * @example
    * GET /api/projects/abc123/employees/calculator/timeline?limit=10
+   * GET /api/projects/abc123/employees/calculator/timeline?limit=50&before=2026-03-03T10:00:00.000Z
    * Response: { success: true, data: { timeline: [...] } }
    */
   [
@@ -836,11 +838,13 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       const limit = url.searchParams.get("limit")
         ? parseInt(url.searchParams.get("limit")!)
         : 50
+      const before = url.searchParams.get("before") || undefined
       return timeline.getTimeline(
         employeeName,
         deps.messageService,
         deps.stateManager,
-        limit
+        limit,
+        before
       )
     },
   ],

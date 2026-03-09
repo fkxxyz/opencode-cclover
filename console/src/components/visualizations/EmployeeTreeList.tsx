@@ -3,7 +3,13 @@ import { useNavigate, useParams } from "react-router-dom"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import IconButton from "@mui/material/IconButton"
-import { ChevronDown, ChevronRight, ExternalLink, Pause, Play } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  Pause,
+  Play,
+} from "lucide-react"
 import type { EmployeeHierarchy, EmployeeStatus } from "../../types"
 import { apiClient } from "../../services"
 

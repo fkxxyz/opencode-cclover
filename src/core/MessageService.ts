@@ -79,7 +79,11 @@ export class MessageClient {
    * @param peer 对方名称
    * @param limit 返回消息数量（可选，返回最近的 N 条）
    */
-  async history(peer: string, limit?: number): Promise<Message[]> {
+  async history(
+    peer: string,
+    limit?: number,
+    before?: string
+  ): Promise<Message[]> {
     // 1. 读取消息文件
     const filePath = this.service.getMessageFilePath(this.employeeName, peer)
 
@@ -103,12 +107,17 @@ export class MessageClient {
         ...(msg.fromRole && { fromRole: msg.fromRole }),
       }))
 
-      // 4. 限制数量（返回最近的 N 条）
+      // 4. 如果提供了游标，过滤出游标之前的消息
+      const filtered = before
+        ? result.filter((msg) => msg.timestamp < before)
+        : result
+
+      // 5. 限制数量（返回最近的 N 条）
       if (limit) {
-        return result.slice(-limit)
+        return filtered.slice(-limit)
       }
 
-      return result
+      return filtered
     } catch (error: any) {
       // 文件不存在时返回空数组
       if (error.code === "ENOENT") {

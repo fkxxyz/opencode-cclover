@@ -240,10 +240,12 @@ export class ApiClient {
   async getTimeline(
     projectId: string,
     employeeName: string,
-    limit?: number
+    limit?: number,
+    before?: string
   ): Promise<TimelineItem[]> {
     const params = new URLSearchParams()
     if (limit) params.append("limit", limit.toString())
+    if (before) params.append("before", before)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ timeline: TimelineItem[] }>(
       `/projects/${projectId}/employees/${employeeName}/timeline${query}`
@@ -267,10 +269,7 @@ export class ApiClient {
     )
   }
 
-  async pauseEmployee(
-    projectId: string,
-    employeeName: string
-  ): Promise<void> {
+  async pauseEmployee(projectId: string, employeeName: string): Promise<void> {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/pause`,
@@ -295,10 +294,7 @@ export class ApiClient {
     }
   }
 
-  async resumeEmployee(
-    projectId: string,
-    employeeName: string
-  ): Promise<void> {
+  async resumeEmployee(projectId: string, employeeName: string): Promise<void> {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/resume`,

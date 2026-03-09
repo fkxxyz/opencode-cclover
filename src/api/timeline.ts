@@ -8,7 +8,8 @@ export async function getTimeline(
   employeeName: string,
   messageService: any,
   stateManager: StateManager,
-  limit: number = 50
+  limit: number = 50,
+  before?: string
 ): Promise<{ success: true; data: { timeline: TimelineItem[] } }> {
   if (!employeeName) {
     throw new Error("INVALID_PARAMETER: employeeName is required")
@@ -29,7 +30,8 @@ export async function getTimeline(
   const timeline = await eventLogger.getTimeline(
     employeeName,
     messageService,
-    limit
+    limit,
+    before
   )
 
   return {

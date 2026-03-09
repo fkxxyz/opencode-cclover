@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import type { TimelineItem } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
@@ -12,7 +12,11 @@ export function useTimeline(
 ) {
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [oldestTimestamp, setOldestTimestamp] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const { subscribe } = useWebSocket()
+  const prevPeerRef = useRef<string | null>(null)
 
   // 初始加载
   useEffect(() => {
@@ -20,14 +24,48 @@ export function useTimeline(
 
     setLoading(true)
     apiClient
-      .getTimeline(projectId, employeeName, limit || 100000)
-      .then(setTimeline)
+      .getTimeline(projectId, employeeName, limit || 100)
+      .then((data) => {
+        setTimeline(data)
+        // 设置最旧的时间戳
+        if (data.length > 0) {
+          setOldestTimestamp(data[0].timestamp)
+        }
+      })
       .catch((err: Error) => {
         console.error("获取时间线失败:", err)
         setTimeline([])
       })
       .finally(() => setLoading(false))
   }, [projectId, employeeName, limit])
+
+  // 加载更多消息
+  const loadMoreMessages = async () => {
+    if (!oldestTimestamp || !hasMore || loadingMore || !projectId) return
+
+    setLoadingMore(true)
+    try {
+      const olderMessages = await apiClient.getTimeline(
+        projectId,
+        employeeName,
+        50, // 加载 50 条更早的消息
+        oldestTimestamp // 游标
+      )
+
+      if (olderMessages.length === 0) {
+        setHasMore(false)
+      } else {
+        // 前置更早的消息（保持升序）
+        setTimeline((prev) => [...olderMessages, ...prev])
+        // 更新游标到最旧的消息
+        setOldestTimestamp(olderMessages[0].timestamp)
+      }
+    } catch (err) {
+      console.error("加载更多消息失败:", err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // 实时更新 - 监听所有事件类型
   useEffect(() => {
@@ -94,5 +132,5 @@ export function useTimeline(
     return unsubscribe
   }, [subscribe, employeeName])
 
-  return { timeline, loading }
+  return { timeline, loading, loadMoreMessages, hasMore, loadingMore }
 }
