@@ -12,7 +12,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # 后台启动 OpenCode server，输出到临时文件
-LOG_FILE="/tmp/opencode-cclover-test-$.log"
+LOG_FILE="/tmp/opencode-cclover-test.log"
 cd "$SCRIPT_DIR"
 CCLOVER_ENABLE=1 opencode serve --port 4099 > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
