@@ -303,7 +303,7 @@ Create/edit preset role file in `src/roles/<role-name>.md` (within your worktree
 2. Send review request:
 
    ```
-   To: CodeReviewer
+   To: code-reviewer
    Subject: Ready for review - <role-name> role
 
    Role design completed. Changes:
@@ -347,7 +347,7 @@ git commit -m "chore(roles): remove <role-name> role - <reason>"
 **After commit**: Contact repo integrator (NOT supervisor yet).
 
 ```
-To: RepoIntegrator
+To: repo-integrator
 Subject: Ready for integration - <role-name> role
 
 Branch: role/<role-name>
