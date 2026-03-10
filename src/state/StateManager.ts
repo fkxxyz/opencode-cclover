@@ -182,6 +182,27 @@ export class StateManager {
   }
 
   /**
+   * 更新员工的活跃 session ID
+   */
+  async updateActiveSessionId(
+    name: string,
+    sessionId: string | undefined
+  ): Promise<void> {
+    const employee = this.employeeRegistry.get(name)
+    if (!employee) {
+      throw new Error(`员工 '${name}' 不存在`)
+    }
+
+    // 更新 activeSessionId
+    this.employeeRegistry.updateActiveSessionId(name, sessionId)
+
+    // 持久化到文件（如果有 persistence）
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+  }
+
+  /**
    * 添加事件
    */
   async addEvent(event: Event): Promise<void> {

@@ -8,6 +8,7 @@ import { SessionManager } from "./SessionManager"
 import { SummaryService } from "./SummaryService"
 import { ErrorRecovery } from "./ErrorRecovery"
 import { ProgressTracker } from "./ProgressTracker"
+import { ReplyTracker } from "./ReplyTracker"
 import { buildEventMessage } from "../../utils/ContextBuilder"
 import { agentRegistry } from "../../utils/AgentRegistry"
 import { sessionRegistry } from "../../utils/SessionRegistry"
@@ -35,6 +36,7 @@ export class EventLoop {
   private summaryService: SummaryService
   private errorRecovery: ErrorRecovery
   private progressTracker: ProgressTracker
+  private replyTracker: ReplyTracker
 
   constructor(
     private projectPath: string,
@@ -68,6 +70,12 @@ export class EventLoop {
     this.errorRecovery = new ErrorRecovery(employeeName, stateManager)
     this.progressTracker = new ProgressTracker(
       employeeName,
+      memoryManager,
+      stateManager
+    )
+    this.replyTracker = new ReplyTracker(
+      employeeName,
+      (messageClient as any).service,
       memoryManager,
       stateManager
     )
@@ -264,9 +272,22 @@ export class EventLoop {
           },
         }
       }
+
+      // 7. 检查未回复的 expect_reply=true 消息
+      const unrepliedSenders = await this.replyTracker.getUnrepliedSenders()
+      if (unrepliedSenders.length > 0) {
+        return {
+          projectId: "",
+          type: "reply_reminder",
+          timestamp: new Date().toISOString(),
+          details: {
+            senders: unrepliedSenders,
+          },
+        }
+      }
     }
 
-    // 7. 以上都没有，阻塞等待
+    // 8. 以上都没有，阻塞等待
     return Promise.race([this.waitForMessage(), this.waitForAgentCompletion()])
   }
 
@@ -463,6 +484,13 @@ export class EventLoop {
     // 2. 如果是消息或 agent 事件，清空快照并恢复正常状态
     if (event.type === "message" || event.type === "agent_completed") {
       this.progressTracker.clearProgressTracking()
+      // 只有当员工发送消息时才清空回复跟踪
+      if (
+        event.type === "message" &&
+        event.details.from === this.employeeName
+      ) {
+        this.replyTracker.clearReplyTracking()
+      }
       const employee = await this.stateManager?.getEmployee(this.employeeName)
       if (employee?.status === "abnormal") {
         await this.stateManager?.updateEmployeeStatus(this.employeeName, "busy")
@@ -472,22 +500,28 @@ export class EventLoop {
       }
     }
 
-    // 2. 确保 session 存在
+    // 3. 确保 session 存在
     const session = await this.sessionManager.ensureSession()
     console.log(
       `[${this.employeeName}] Handling event in session: ${session.id}`
     )
 
-    // 3. 读取当前记忆
+    // 4. 更新 activeSessionId
+    await this.stateManager?.updateActiveSessionId(
+      this.employeeName,
+      session.id
+    )
+
+    // 5. 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeName)
 
-    // 4. 构建事件消息
+    // 6. 构建事件消息
     const eventMessage = buildEventMessage(event)
 
-    // 5. 使用缓存的系统提示词（每次都传递）
+    // 7. 使用缓存的系统提示词（每次都传递）
     const systemPrompt = session.systemPrompt
 
-    // 6. 记录 session prompt 开始事件
+    // 8. 记录 session prompt 开始事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "session_prompt_started",
@@ -500,8 +534,8 @@ export class EventLoop {
       },
     })
 
-    // 7. 发送给 AI
-    await this.opcodeClient.session.prompt({
+    // 9. 发送给 AI
+    const result = await this.opcodeClient.session.prompt({
       path: { id: session.id },
       body: {
         agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
@@ -518,10 +552,21 @@ export class EventLoop {
       },
     })
 
-    // 8. 更新 session 信息
+    // 10. 清除 activeSessionId
+    await this.stateManager?.updateActiveSessionId(this.employeeName, undefined)
+
+    // 11. 检查是否被紧急消息中断
+    if (result.data?.info.error?.name === "MessageAbortedError") {
+      logger.info(
+        `[${this.employeeName}] Session aborted by urgent message, continuing to next event`
+      )
+      return
+    }
+
+    // 12. 更新 session 信息
     this.sessionManager.incrementMessageCount()
 
-    // 9. 记录 session prompt 完成事件
+    // 13. 记录 session prompt 完成事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "session_prompt_completed",
@@ -533,9 +578,14 @@ export class EventLoop {
       },
     })
 
-    // 10. 如果是任务事件，检测进展
+    // 14. 如果是任务事件，检测进展
     if (event.type === "task_available" || event.type === "task_reminder") {
       await this.progressTracker.checkProgress()
+    }
+
+    // 15. 如果是回复提醒事件，检测进展
+    if (event.type === "reply_reminder") {
+      await this.replyTracker.checkProgress()
     }
 
     console.log(`[${this.employeeName}] Event handled`)

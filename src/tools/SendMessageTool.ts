@@ -32,6 +32,17 @@ export function createSendMessageTool(
         .array(tool.schema.string())
         .optional()
         .describe("Reference document path list (optional)"),
+      urgent: tool.schema
+        .boolean()
+        .optional()
+        .describe(
+          "Whether this is an urgent message that should interrupt the recipient's current session (default: false)"
+        ),
+      expect_reply: tool.schema
+        .boolean()
+        .describe(
+          "Whether you expect a reply from the recipient. Unless you are about to terminate the conversation with the recipient, please set to true. The system will remind the recipient if they don't reply."
+        ),
     },
     async execute(args, context) {
       // 1. Get caller information
@@ -68,7 +79,9 @@ export function createSendMessageTool(
         from,
         args.to,
         args.content,
-        args.reference_docs
+        args.reference_docs,
+        args.urgent,
+        args.expect_reply
       )
 
       return `Message sent to ${args.to}`

@@ -10,6 +10,7 @@ export interface Employee {
   createdAt: string
   lastActiveAt: string
   hiredBy?: string
+  activeSessionId?: string
 }
 
 // 员工详细信息
@@ -39,6 +40,8 @@ export interface Message {
   direction: MessageDirection
   reference_docs?: string[]
   fromRole?: string
+  urgent?: boolean
+  expect_reply?: boolean
 }
 
 // 对话对象（带最后消息信息）
@@ -115,6 +118,7 @@ export type EventType =
   | "task_decomposed"
   | "task_available"
   | "task_reminder"
+  | "reply_reminder"
   | "agent_completed"
   | "agent_failed"
   | "timer"

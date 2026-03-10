@@ -19,6 +19,8 @@ interface YamlMessage {
   content: string
   reference_docs?: string[]
   fromRole?: string
+  urgent?: boolean
+  expect_reply?: boolean
 }
 
 /**
@@ -69,9 +71,18 @@ export class MessageClient {
   async send(
     to: string,
     content: string,
-    reference_docs?: string[]
+    reference_docs?: string[],
+    urgent?: boolean,
+    expect_reply?: boolean
   ): Promise<void> {
-    await this.service.send(this.employeeName, to, content, reference_docs)
+    await this.service.send(
+      this.employeeName,
+      to,
+      content,
+      reference_docs,
+      urgent,
+      expect_reply
+    )
   }
 
   /**
@@ -105,6 +116,10 @@ export class MessageClient {
             reference_docs: msg.reference_docs,
           }),
         ...(msg.fromRole && { fromRole: msg.fromRole }),
+        ...(msg.urgent !== undefined && { urgent: msg.urgent }),
+        ...(msg.expect_reply !== undefined && {
+          expect_reply: msg.expect_reply,
+        }),
       }))
 
       // 4. 如果提供了游标，过滤出游标之前的消息
@@ -165,7 +180,9 @@ export class MessageService {
     from: string,
     to: string,
     content: string,
-    reference_docs?: string[]
+    reference_docs?: string[],
+    urgent?: boolean,
+    expect_reply?: boolean
   ): Promise<void> {
     // 1. 校验：不能向自己发送
     if (from === to) {
@@ -198,6 +215,8 @@ export class MessageService {
       direction: "receive",
       ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
       ...(fromRole && { fromRole }),
+      ...(urgent !== undefined && { urgent }),
+      ...(expect_reply !== undefined && { expect_reply }),
     }
 
     // 1. 写入发送方的消息文件
@@ -207,6 +226,8 @@ export class MessageService {
       content,
       ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
       ...(fromRole && { fromRole }),
+      ...(urgent !== undefined && { urgent }),
+      ...(expect_reply !== undefined && { expect_reply }),
     })
 
     // 2. 写入接收方的消息文件
@@ -216,15 +237,26 @@ export class MessageService {
       content,
       ...(reference_docs && reference_docs.length > 0 && { reference_docs }),
       ...(fromRole && { fromRole }),
+      ...(urgent !== undefined && { urgent }),
+      ...(expect_reply !== undefined && { expect_reply }),
     })
 
-    // 3. 添加到接收方的未读队列
-    this.addToUnreadQueue(to, message)
+    // 3. 处理紧急消息中断
+    if (urgent) {
+      await this.handleUrgentInterruption(to)
+    }
 
-    // 4. 触发事件通知接收方
+    // 4. 添加到接收方的未读队列（紧急消息插入队首）
+    if (urgent) {
+      this.addToUnreadQueueFront(to, message)
+    } else {
+      this.addToUnreadQueue(to, message)
+    }
+
+    // 5. 触发事件通知接收方
     this.notifyNewMessage(to)
 
-    // 5. 转发消息到用户 session（如果接收方有记录的 session）
+    // 6. 转发消息到用户 session（如果接收方有记录的 session）
     if (this.bossManager) {
       const sessionId = await this.bossManager.getSession(to, from)
       if (sessionId && this.opcodeClient) {
@@ -239,7 +271,7 @@ export class MessageService {
       }
     }
 
-    // 6. 发射事件到 StateManager
+    // 7. 发射事件到 StateManager
     this.stateManager?.addEvent({
       projectId: this.projectId,
       type: "message",
@@ -381,6 +413,43 @@ export class MessageService {
   private addToUnreadQueue(employeeName: string, message: Message): void {
     const queue = this.getUnreadQueue(employeeName)
     queue.push(message)
+  }
+
+  /**
+   * 添加到未读队列队首（紧急消息）
+   */
+  private addToUnreadQueueFront(employeeName: string, message: Message): void {
+    const queue = this.getUnreadQueue(employeeName)
+    queue.unshift(message)
+  }
+
+  /**
+   * 处理紧急消息中断
+   * 如果接收方有活跃的 session，调用 abort() 中断
+   */
+  private async handleUrgentInterruption(to: string): Promise<void> {
+    // 获取接收方的活跃 session ID
+    const employee = this.stateManager?.getEmployee(to)
+    if (!employee?.activeSessionId) {
+      logger.debug(
+        `[MessageService] No active session for ${to}, skipping interruption`
+      )
+      return
+    }
+
+    // 调用 abort() 中断 session
+    try {
+      await this.opcodeClient?.session.abort({
+        path: { id: employee.activeSessionId },
+      })
+      logger.info(
+        `[MessageService] Aborted session ${employee.activeSessionId} for urgent message to ${to}`
+      )
+    } catch (error: any) {
+      logger.error(
+        `[MessageService] Failed to abort session ${employee.activeSessionId}: ${error.message}`
+      )
+    }
   }
 
   /**

@@ -95,6 +95,20 @@ export class EmployeeRegistry {
   }
 
   /**
+   * 更新员工 activeSessionId
+   */
+  updateActiveSessionId(name: string, sessionId: string | undefined): void {
+    const employee = this.employees.get(name)
+    if (!employee) {
+      throw new Error(`员工 '${name}' 不存在`)
+    }
+
+    const updated = { ...employee, activeSessionId: sessionId }
+    this.employees.set(name, updated)
+    this.emitter.emit("employee_updated", updated)
+  }
+
+  /**
    * 监听事件
    */
   on(event: string, listener: (...args: any[]) => void): void {

@@ -368,6 +368,19 @@ export function buildEventMessage(event: Event): string {
       "**Reminder**: You have unfinished tasks. Please continue working on them. If a task is waiting for messages from other employees to proceed, please use edit_tasks to set the task status to waiting_for_message with an explanation, otherwise you will keep receiving this event reminder."
     )
     sections.push(`Time: ${event.timestamp}`)
+  } else if (event.type === "reply_reminder") {
+    sections.push("You have unreplied messages from the following senders:")
+    sections.push("")
+    for (const sender of event.details.senders) {
+      sections.push(`- ${sender}`)
+    }
+    sections.push("")
+    sections.push("---")
+    sections.push("")
+    sections.push(
+      "**Reminder**: The above senders sent you messages with expect_reply=true, but you haven't replied yet. When you see this event, it means you may have directly output a reply without using send_message tool. Please use send_message to reply to them, otherwise you will keep receiving this event reminder."
+    )
+    sections.push(`Time: ${event.timestamp}`)
   } else {
     // 通用处理：输出所有字段
     for (const [key, value] of Object.entries(event.details)) {
