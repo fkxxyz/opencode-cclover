@@ -1,13 +1,44 @@
 import { useEffect, useState } from "react"
-import type { TimelineItem } from "../types/index"
+import type { TimelineItem, Message } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
 
 const MAX_TIMELINE_ITEMS = 500
 
+// 合并两个timeline并去重
+function mergeTimelines(
+  timeline1: TimelineItem[],
+  timeline2: TimelineItem[]
+): TimelineItem[] {
+  const messageKeys = new Set<string>()
+  const merged: TimelineItem[] = []
+
+  // 合并两个timeline
+  const all = [...timeline1, ...timeline2]
+
+  for (const item of all) {
+    if (item.type === "message") {
+      // 消息去重：使用 timestamp-from-to 作为唯一键
+      const message = item.data as Message
+      const key = `${item.timestamp}-${message.from}-${message.to}`
+      if (!messageKeys.has(key)) {
+        messageKeys.add(key)
+        merged.push(item)
+      }
+    } else {
+      // 事件不会重复，直接添加
+      merged.push(item)
+    }
+  }
+
+  // 按时间戳排序
+  return merged.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+}
+
 export function useTimeline(
   projectId: string | undefined,
   employeeName: string,
+  peer?: string,
   limit?: number
 ) {
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
@@ -22,13 +53,24 @@ export function useTimeline(
     if (!projectId) return
 
     setLoading(true)
-    apiClient
-      .getTimeline(projectId, employeeName, limit || 100)
-      .then((data) => {
-        setTimeline(data)
+
+    // 如果有peer，同时获取两个timeline
+    const promises = [
+      apiClient.getTimeline(projectId, employeeName, limit || 100),
+    ]
+    if (peer) {
+      promises.push(apiClient.getTimeline(projectId, peer, limit || 100))
+    }
+
+    Promise.all(promises)
+      .then((results) => {
+        const merged = peer
+          ? mergeTimelines(results[0], results[1])
+          : results[0]
+        setTimeline(merged)
         // 设置最旧的时间戳
-        if (data.length > 0) {
-          setOldestTimestamp(data[0].timestamp)
+        if (merged.length > 0) {
+          setOldestTimestamp(merged[0].timestamp)
         }
       })
       .catch((err: Error) => {
@@ -36,7 +78,7 @@ export function useTimeline(
         setTimeline([])
       })
       .finally(() => setLoading(false))
-  }, [projectId, employeeName, limit])
+  }, [projectId, employeeName, peer, limit])
 
   // 加载更多消息
   const loadMoreMessages = async () => {
@@ -69,18 +111,23 @@ export function useTimeline(
   // 实时更新 - 监听所有事件类型
   useEffect(() => {
     const unsubscribe = subscribe("*", (event) => {
-      // 检查事件是否与当前员工相关
+      // 检查事件是否与当前员工或peer相关
       let isRelevant = false
 
       if (event.type === "message") {
-        // 消息事件：检查 from 或 to 是否是当前员工
+        // 消息事件：检查 from 或 to 是否是当前员工或peer
         const details = event.details as any
         const from = details?.from as string
         const to = details?.to as string
-        isRelevant = from === employeeName || to === employeeName
+        isRelevant =
+          from === employeeName ||
+          to === employeeName ||
+          (!!peer && (from === peer || to === peer))
       } else {
-        // 其他事件：检查 employeeName 字段
-        isRelevant = event.employeeName === employeeName
+        // 其他事件：检查 employeeName 字段是否是当前员工或peer
+        isRelevant =
+          event.employeeName === employeeName ||
+          (!!peer && event.employeeName === peer)
       }
 
       if (isRelevant) {
@@ -106,6 +153,18 @@ export function useTimeline(
             },
           }
           setTimeline((prev) => {
+            // 检查消息是否已存在（去重）
+            const message = messageItem.data as Message
+            const key = `${messageItem.timestamp}-${message.from}-${message.to}`
+            const exists = prev.some((item) => {
+              if (item.type === "message") {
+                const m = item.data as Message
+                return `${item.timestamp}-${m.from}-${m.to}` === key
+              }
+              return false
+            })
+            if (exists) return prev
+
             const newTimeline = [...prev, messageItem]
             // 只保留最近的 MAX_TIMELINE_ITEMS 条
             return newTimeline.slice(-MAX_TIMELINE_ITEMS)
@@ -129,7 +188,7 @@ export function useTimeline(
     })
 
     return unsubscribe
-  }, [subscribe, employeeName])
+  }, [subscribe, employeeName, peer])
 
   return { timeline, loading, loadMoreMessages, hasMore, loadingMore }
 }

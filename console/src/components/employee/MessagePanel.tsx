@@ -39,7 +39,7 @@ export function MessagePanel({
   onBack,
 }: MessagePanelProps) {
   const { timeline, loading, loadMoreMessages, hasMore, loadingMore } =
-    useTimeline(projectId, employeeName)
+    useTimeline(projectId, employeeName, peer)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [inputValue, setInputValue] = useState("")
@@ -74,9 +74,9 @@ export function MessagePanel({
             (message.from === peer && message.to === employeeName)
           )
         }
-        // 事件：显示当前员工自己的事件
+        // 事件：显示对方（peer）的事件
         const event = item.data as Event
-        return event.employeeName === employeeName
+        return event.employeeName === peer
       }) || [],
     [timeline, employeeName, peer]
   )
