@@ -41,7 +41,7 @@ export function createSendMessageTool(
       expect_reply: tool.schema
         .boolean()
         .describe(
-          "Whether you expect a reply from the recipient. Unless you are about to terminate the conversation with the recipient, please set to true. The system will remind the recipient if they don't reply."
+          "Whether you need a reply from the recipient. The system will remind them if they forget to respond."
         ),
     },
     async execute(args, context) {
