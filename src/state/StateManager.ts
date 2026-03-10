@@ -4,6 +4,7 @@ import { EventLogger } from "./EventLogger"
 import { EmployeePersistence } from "./EmployeePersistence"
 import type { Employee, EmployeeStatus, Event, EventType } from "../types/index"
 import EventEmitter from "eventemitter3"
+import { logger } from "../lib/logger"
 
 /**
  * 统一状态管理器
@@ -410,13 +411,30 @@ export class StateManager {
       return
     }
     const employees = await this.employeePersistence.load()
+    logger.debug(
+      `[StateManager] loadEmployees: loaded ${employees.length} employees from persistence`
+    )
     for (const employee of employees) {
+      const employeeId = getEmployeeId(employee)
+      logger.debug(
+        `[StateManager] loadEmployees: processing employee ${employee.name} (employeeId: ${employeeId})`
+      )
       // 检查是否已经注册（避免重复）
-      if (!this.employeeRegistry.get(employee.name)) {
+      if (!this.employeeRegistry.get(employeeId)) {
+        logger.debug(
+          `[StateManager] loadEmployees: registering employee ${employeeId}`
+        )
         this.employeeRegistry.register(employee)
-        this.taskCount.set(employee.name, 0)
-        this.messageCount.set(employee.name, 0)
+        this.taskCount.set(employeeId, 0)
+        this.messageCount.set(employeeId, 0)
+      } else {
+        logger.debug(
+          `[StateManager] loadEmployees: employee ${employeeId} already registered, skipping`
+        )
       }
     }
+    logger.debug(
+      `[StateManager] loadEmployees: completed, total employees in registry: ${this.employeeRegistry.getAll().length}`
+    )
   }
 }

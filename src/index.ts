@@ -53,7 +53,13 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   // 5. 启动 EventLoop (在 tools 注册之后)
   // 使用 setImmediate 确保 tools 已经返回给 OpenCode
   setImmediate(async () => {
+    logger.debug(
+      `[Cclover] setImmediate callback triggered for project: ${project.projectName}`
+    )
     await globalService.startEmployees(project)
+    logger.debug(
+      `[Cclover] startEmployees completed for project: ${project.projectName}`
+    )
   })
 
   // 6. 返回工具和 hooks(注册到 OpenCode)

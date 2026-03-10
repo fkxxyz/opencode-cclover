@@ -198,13 +198,25 @@ export class GlobalCcloverService {
    * 由 CcloverPlugin 调用，确保 tools 已注册
    */
   async startEmployees(project: ProjectInstance): Promise<void> {
+    logger.debug(
+      `[GlobalServer] startEmployees called for project: ${project.projectName}`
+    )
     // 防止重复启动
     if (project.eventLoopStarted) {
+      logger.debug(
+        `[GlobalServer] EventLoop already started for project: ${project.projectName}`
+      )
       return
     }
 
     // 1. 从持久化文件加载员工列表
+    logger.debug(
+      `[GlobalServer] Loading employees for project: ${project.projectName}`
+    )
     await project.stateManager.loadEmployees()
+    logger.debug(
+      `[GlobalServer] Employees loaded for project: ${project.projectName}`
+    )
 
     // 2. 注册初始员工（如果不存在）
     if (!project.stateManager.getEmployee("calculator")) {
@@ -233,10 +245,19 @@ export class GlobalCcloverService {
 
     // 4. 为所有员工启动 EventLoop
     const employees = project.stateManager.getEmployees()
+    logger.debug(
+      `[GlobalServer] Found ${employees.length} employees for project: ${project.projectName}`
+    )
+    logger.debug(
+      `[GlobalServer] Employee list: ${employees.map((e) => e.name).join(", ")}`
+    )
     const opcodeClient = this.getOpencodeClient()
     let startedCount = 0
 
     for (const employee of employees) {
+      logger.debug(
+        `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
+      )
       // 验证角色存在
       const role = project.roleManager.getRole(employee.role)
       if (!role) {
@@ -266,6 +287,9 @@ export class GlobalCcloverService {
 
       const messageClient = project.messageService.getClient(employee.name)
 
+      logger.debug(
+        `[GlobalServer] Creating EventLoop for employee: ${employee.name}`
+      )
       const eventLoop = new EventLoop(
         project.directory,
         employee.name,
@@ -281,6 +305,9 @@ export class GlobalCcloverService {
       project.eventLoops.set(employee.name, eventLoop)
 
       // 后台运行
+      logger.debug(
+        `[GlobalServer] Starting EventLoop.run() for employee: ${employee.name}`
+      )
       eventLoop.run().catch((error) => {
         logger.error(`[${employee.name}] EventLoop crashed:`, error)
       })

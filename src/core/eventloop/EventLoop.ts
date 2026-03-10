@@ -92,24 +92,33 @@ export class EventLoop {
     )
 
     // 启动 Agent 监听器（后台运行，不阻塞）
+    logger.debug(`[${this.employeeName}] Starting agent listener`)
     this.waitForAgentCompletion().catch((error) => {
       console.error(`[${this.employeeName}] Agent listener error:`, error)
     })
 
     // 启动时检查是否有立即可用的事件，决定初始状态
+    logger.debug(`[${this.employeeName}] Checking for immediate events`)
     const hasImmediate = await this.hasImmediateEvent()
+    logger.debug(`[${this.employeeName}] Has immediate event: ${hasImmediate}`)
     await this.stateManager?.updateEmployeeStatus(
       this.employeeName,
       hasImmediate ? "busy" : "idle"
     )
+    logger.debug(
+      `[${this.employeeName}] Initial status set to: ${hasImmediate ? "busy" : "idle"}`
+    )
 
     // 启动时确保 session 存在并检查是否需要总结
     // 这样可以在恢复已有 session 时立即触发总结（如果已超过阈值）
+    logger.debug(`[${this.employeeName}] Ensuring session exists`)
     try {
       await this.sessionManager.ensureSession()
+      logger.debug(`[${this.employeeName}] Session ensured`)
       // 仅 soul: true 的员工需要总结
       const role = this.roleManager.getRole(this.roleName)
       if (role?.soul !== false) {
+        logger.debug(`[${this.employeeName}] Checking if summary needed`)
         await this.sessionManager.summarizeIfNeeded()
       }
     } catch (error) {
@@ -119,6 +128,7 @@ export class EventLoop {
       )
     }
 
+    logger.debug(`[${this.employeeName}] Entering main event loop`)
     while (this.running) {
       try {
         // 1. 检查是否有立即可用的事件
