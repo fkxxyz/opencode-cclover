@@ -415,21 +415,20 @@ export class StateManager {
       `[StateManager] loadEmployees: loaded ${employees.length} employees from persistence`
     )
     for (const employee of employees) {
-      const employeeId = getEmployeeId(employee)
       logger.debug(
-        `[StateManager] loadEmployees: processing employee ${employee.name} (employeeId: ${employeeId})`
+        `[StateManager] loadEmployees: processing employee ${employee.name}`
       )
       // 检查是否已经注册（避免重复）
-      if (!this.employeeRegistry.get(employeeId)) {
+      if (!this.employeeRegistry.get(employee.name)) {
         logger.debug(
-          `[StateManager] loadEmployees: registering employee ${employeeId}`
+          `[StateManager] loadEmployees: registering employee ${employee.name}`
         )
         this.employeeRegistry.register(employee)
-        this.taskCount.set(employeeId, 0)
-        this.messageCount.set(employeeId, 0)
+        this.taskCount.set(employee.name, 0)
+        this.messageCount.set(employee.name, 0)
       } else {
         logger.debug(
-          `[StateManager] loadEmployees: employee ${employeeId} already registered, skipping`
+          `[StateManager] loadEmployees: employee ${employee.name} already registered, skipping`
         )
       }
     }

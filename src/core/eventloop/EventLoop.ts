@@ -133,7 +133,7 @@ export class EventLoop {
       try {
         // 1. 检查是否有立即可用的事件
         const hasImmediate = await this.hasImmediateEvent()
-        logger.debug(`[${this.employeeId}] hasImmediate=${hasImmediate}`)
+        logger.debug(`[${this.employeeName}] hasImmediate=${hasImmediate}`)
 
         // 2. 只有在没有立即可用事件时，才设置为 idle
         if (!hasImmediate) {
@@ -141,49 +141,49 @@ export class EventLoop {
             this.employeeName,
             "idle"
           )
-          logger.debug(`[${this.employeeId}] Status updated to idle`)
+          logger.debug(`[${this.employeeName}] Status updated to idle`)
         }
 
         // 3. 等待事件
-        logger.debug(`[${this.employeeId}] Waiting for event...`)
+        logger.debug(`[${this.employeeName}] Waiting for event...`)
         const event = await this.waitForEvent()
         console.log(`[${this.employeeName}] Received event:`, event.type)
         if (event.type === "message") {
           logger.debug(
-            `[${this.employeeId}] Message from ${event.details.from}: ${event.details.content}`
+            `[${this.employeeName}] Message from ${event.details.from}: ${event.details.content}`
           )
         } else if (event.type === "agent_completed") {
           logger.debug(
-            `[${this.employeeId}] Agent completed: ${event.details.taskName}`
+            `[${this.employeeName}] Agent completed: ${event.details.taskName}`
           )
         }
 
         // 4. 更新状态为 busy（处理事件）
-        await this.stateManager?.updateEmployeeStatus(this.employeeId, "busy")
-        logger.debug(`[${this.employeeId}] Status updated to busy`)
+        await this.stateManager?.updateEmployeeStatus(this.employeeName, "busy")
+        logger.debug(`[${this.employeeName}] Status updated to busy`)
 
         // 5. 处理事件
         logger.debug(
-          `[${this.employeeId}] Starting to handle event: ${event.type}`
+          `[${this.employeeName}] Starting to handle event: ${event.type}`
         )
         await this.handleEvent(event)
         logger.debug(
-          `[${this.employeeId}] Finished handling event: ${event.type}`
+          `[${this.employeeName}] Finished handling event: ${event.type}`
         )
 
         // 6. 检查是否需要总结（仅 soul: true 的员工）
         const role = this.roleManager.getRole(this.roleName)
         if (role?.soul !== false) {
-          logger.debug(`[${this.employeeId}] Checking if summary needed`)
+          logger.debug(`[${this.employeeName}] Checking if summary needed`)
           await this.sessionManager.summarizeIfNeeded()
-          logger.debug(`[${this.employeeId}] Summary check completed`)
+          logger.debug(`[${this.employeeName}] Summary check completed`)
         }
 
         // 成功：重置错误追踪
         this.errorRecovery.resetErrorTracking()
       } catch (error) {
         logger.debug(
-          `[${this.employeeId}] [ERROR] Caught error in event loop: ${(error as any).message}`
+          `[${this.employeeName}] [ERROR] Caught error in event loop: ${(error as any).message}`
         )
 
         // 检查是否是假期请求导致的退出
@@ -201,7 +201,7 @@ export class EventLoop {
 
         if (shouldStop) {
           logger.debug(
-            `[${this.employeeId}] Stopping event loop due to error recovery decision`
+            `[${this.employeeName}] Stopping event loop due to error recovery decision`
           )
           await this.cleanup()
           return
@@ -566,7 +566,7 @@ export class EventLoop {
 
     // 9. 发送给 AI
     logger.debug(
-      `[${this.employeeId}] Calling AI (session.prompt)`
+      `[${this.employeeName}] Calling AI (session.prompt)`
     )
     const result = await this.opcodeClient.session.prompt({
       path: { id: session.id },
@@ -585,7 +585,7 @@ export class EventLoop {
       },
     })
     logger.debug(
-      `[${this.employeeId}] AI call completed, received result`
+      `[${this.employeeName}] AI call completed, received result`
     )
 
     // 10. 清除 activeSessionId
