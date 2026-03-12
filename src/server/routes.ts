@@ -960,6 +960,19 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       try {
         const { employeeName } = params
 
+        // 查找员工 ID
+        const allEmployees = deps.stateManager.getEmployees()
+        const employee = allEmployees.find((e: any) => e.name === employeeName)
+        if (!employee) {
+          return {
+            success: false,
+            error: {
+              code: "EMPLOYEE_NOT_FOUND",
+              message: `Employee '${employeeName}' not found`,
+            },
+          }
+        }
+
         // 创建 pause_employee 工具（直接使用 deps 中的服务）
         const { createPauseEmployeeTool } = await import("../tools")
         const pauseTool = createPauseEmployeeTool(
@@ -987,7 +1000,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         sessionRegistry.register(tempSessionID, operatorName)
 
         // 执行工具
-        const result = await pauseTool.execute({ employeeName }, {
+        const result = await pauseTool.execute({ employeeId: employee.employeeId }, {
           sessionID: tempSessionID,
         } as any)
 
@@ -1045,6 +1058,19 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       try {
         const { employeeName } = params
 
+        // 查找员工 ID
+        const allEmployees = deps.stateManager.getEmployees()
+        const employee = allEmployees.find((e: any) => e.name === employeeName)
+        if (!employee) {
+          return {
+            success: false,
+            error: {
+              code: "EMPLOYEE_NOT_FOUND",
+              message: `Employee '${employeeName}' not found`,
+            },
+          }
+        }
+
         // 创建 resume_employee 工具（直接使用 deps 中的服务）
         const { createResumeEmployeeTool } = await import("../tools")
         const resumeTool = createResumeEmployeeTool(
@@ -1072,7 +1098,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         sessionRegistry.register(tempSessionID, operatorName)
 
         // 执行工具
-        const result = await resumeTool.execute({ employeeName }, {
+        const result = await resumeTool.execute({ employeeId: employee.employeeId }, {
           sessionID: tempSessionID,
         } as any)
 

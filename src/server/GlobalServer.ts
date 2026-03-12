@@ -334,11 +334,11 @@ export class GlobalCcloverService {
   /**
    * 启动单个员工的 EventLoop
    * @param projectId 项目 ID
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    */
   async startEmployeeEventLoop(
     projectId: string,
-    employeeName: string
+    employeeId: string
   ): Promise<void> {
     // 1. 获取项目实例
     const project = this.projectRegistry.get(projectId)
@@ -347,15 +347,15 @@ export class GlobalCcloverService {
     }
 
     // 2. 验证员工存在
-    const employee = project.stateManager.getEmployee(employeeName)
+    const employee = project.stateManager.getEmployee(employeeId)
     if (!employee) {
-      throw new Error(`Employee not found: ${employeeName}`)
+      throw new Error(`Employee not found: ${employeeId}`)
     }
 
     // 3. 检查 EventLoop 是否已运行
-    if (project.eventLoops.has(employeeName)) {
+    if (project.eventLoops.has(employee.name)) {
       logger.warn(
-        `[${projectId}] EventLoop already running for employee: ${employeeName}`
+        `[${projectId}] EventLoop already running for employee: ${employee.name}`
       )
       return
     }
@@ -364,7 +364,7 @@ export class GlobalCcloverService {
     const role = project.roleManager.getRole(employee.role)
     if (!role) {
       throw new Error(
-        `Role '${employee.role}' not found for employee '${employee.name}'`
+        `Role '${employee.role}' not found for employee '${employeeId}'`
       )
     }
 
@@ -375,7 +375,7 @@ export class GlobalCcloverService {
     const opcodeClient = this.getOpencodeClient()
     const eventLoop = new EventLoop(
       project.directory,
-      employee.name,
+      employeeId,
       employee.role,
       project.roleManager,
       messageClient,
@@ -384,16 +384,16 @@ export class GlobalCcloverService {
       project.stateManager
     )
 
-    // 7. 存储到 Map
-    project.eventLoops.set(employee.name, eventLoop)
+    // 7. 存储到 Map（使用 employeeId 作为 key）
+    project.eventLoops.set(employeeId, eventLoop)
 
     // 8. 启动 EventLoop
     eventLoop.run().catch((error) => {
-      logger.error(`[${employee.name}] EventLoop crashed:`, error)
+      logger.error(`[${employeeId}] EventLoop crashed:`, error)
     })
 
     logger.info(
-      `[${projectId}] Started EventLoop for employee: ${employeeName}`
+      `[${projectId}] Started EventLoop for employee: ${employee.name} (${employeeId})`
     )
   }
 

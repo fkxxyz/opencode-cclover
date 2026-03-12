@@ -70,8 +70,9 @@ export async function getEmployeeRole(
   stateManager: StateManager,
   roleManager: RoleManager
 ) {
-  // 获取员工状态
-  const employee = await stateManager.getEmployee(employeeName)
+  // 根据 employeeName 查找员工
+  const employees = await stateManager.getEmployees()
+  const employee = employees.find((e) => e.name === employeeName)
 
   if (!employee) {
     return {

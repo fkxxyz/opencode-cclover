@@ -65,7 +65,9 @@ export async function getEmployeeDetail(
   agentRegistry: any,
   workspaceRoot: string
 ): Promise<SuccessResponse<EmployeeDetail> | ErrorResponse> {
-  const employee = stateManager.getEmployee(name)
+  // 根据 name 查找员工
+  const employees = stateManager.getEmployees()
+  const employee = employees.find((e) => e.name === name)
 
   if (!employee) {
     return {
@@ -78,14 +80,14 @@ export async function getEmployeeDetail(
   }
 
   try {
-    // 读取员工记忆
-    const memory = await memoryManager.read(name)
+    // 读取员工记忆（使用 employeeId）
+    const memory = await memoryManager.read(employee.employeeId)
 
     // 获取员工的任务
     const tasks = memory.tasks || []
 
-    // 获取员工创建的 Agent 执行记录
-    const agentIds = agentRegistry.getAgentsByEmployee(name)
+    // 获取员工创建的 Agent 执行记录（使用 employeeId）
+    const agentIds = agentRegistry.getAgentsByEmployee(employee.employeeId)
     const agents = agentIds.map((agentId: string) => {
       const info = agentRegistry.getInfo(agentId)
       return {

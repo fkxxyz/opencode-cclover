@@ -71,9 +71,14 @@ You are a test role. This is your system prompt.
 
     // 注册测试员工
     const testEmployee: Employee = {
+      employeeId: "0-test-employee",
       name: "test-employee",
+      taskId: 0,
       role: "test-role",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     }

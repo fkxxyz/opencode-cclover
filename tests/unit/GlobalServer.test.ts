@@ -95,9 +95,14 @@ Test role system prompt`
 
     // 注册测试员工
     await stateManager.registerEmployee({
+      employeeId: "0-test-employee",
       name: "test-employee",
+      taskId: 0,
       role: "test-role",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
@@ -139,11 +144,11 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 启动 EventLoop
-    await service.startEmployeeEventLoop(projectId, "test-employee")
+    await service.startEmployeeEventLoop(projectId, "0-test-employee")
 
     // 验证 EventLoop 已创建并存储
-    expect(projectInstance.eventLoops.has("test-employee")).toBe(true)
-    const eventLoop = projectInstance.eventLoops.get("test-employee")
+    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
+    const eventLoop = projectInstance.eventLoops.get("0-test-employee")
     expect(eventLoop).toBeInstanceOf(EventLoop)
   })
 
@@ -169,11 +174,11 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 第一次启动
-    await service.startEmployeeEventLoop(projectId, "test-employee")
+    await service.startEmployeeEventLoop(projectId, "0-test-employee")
     const firstEventLoop = projectInstance.eventLoops.get("test-employee")
 
     // 第二次启动（应该返回而不是创建新的）
-    await service.startEmployeeEventLoop(projectId, "test-employee")
+    await service.startEmployeeEventLoop(projectId, "0-test-employee")
     const secondEventLoop = projectInstance.eventLoops.get("test-employee")
 
     // 验证是同一个 EventLoop 实例
@@ -186,18 +191,23 @@ Test role system prompt`
 
     // 注册一个角色不存在的员工
     await projectInstance.stateManager.registerEmployee({
+      employeeId: "0-employee-with-missing-role",
       name: "employee-with-missing-role",
+      taskId: 0,
       role: "non-existent-role",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
 
     // 尝试启动 EventLoop
     await expect(
-      service.startEmployeeEventLoop(projectId, "employee-with-missing-role")
+      service.startEmployeeEventLoop(projectId, "0-employee-with-missing-role")
     ).rejects.toThrow(
-      "Role 'non-existent-role' not found for employee 'employee-with-missing-role'"
+      "Role 'non-existent-role' not found for employee '0-employee-with-missing-role'"
     )
   })
 
@@ -205,10 +215,10 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 启动 EventLoop
-    await service.startEmployeeEventLoop(projectId, "test-employee")
+    await service.startEmployeeEventLoop(projectId, "0-test-employee")
 
     // 验证 EventLoop 已创建
-    expect(projectInstance.eventLoops.has("test-employee")).toBe(true)
+    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
 
     // 注意：EventLoop.run() 的错误处理是通过 .catch() 完成的
     // 这里我们只验证 EventLoop 被正确创建和存储
@@ -220,20 +230,25 @@ Test role system prompt`
 
     // 注册第二个员工
     await projectInstance.stateManager.registerEmployee({
+      employeeId: "0-test-employee-2",
       name: "test-employee-2",
+      taskId: 0,
       role: "test-role",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
 
     // 启动两个 EventLoop
-    await service.startEmployeeEventLoop(projectId, "test-employee")
-    await service.startEmployeeEventLoop(projectId, "test-employee-2")
+    await service.startEmployeeEventLoop(projectId, "0-test-employee")
+    await service.startEmployeeEventLoop(projectId, "0-test-employee-2")
 
     // 验证两个 EventLoop 都已创建
     expect(projectInstance.eventLoops.size).toBe(2)
-    expect(projectInstance.eventLoops.has("test-employee")).toBe(true)
-    expect(projectInstance.eventLoops.has("test-employee-2")).toBe(true)
+    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
+    expect(projectInstance.eventLoops.has("0-test-employee-2")).toBe(true)
   })
 })

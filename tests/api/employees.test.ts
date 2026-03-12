@@ -34,20 +34,29 @@ describe("Employees API", () => {
     const stateManager = new StateManager()
 
     const employee1: Employee = {
+      employeeId: "0-calculator",
       name: "calculator",
+      taskId: 0,
       role: "Calculator",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:05:00.000Z",
     }
 
     const employee2: Employee = {
+      employeeId: "0-coder",
       name: "coder",
+      taskId: 0,
       role: "Coder",
       status: "active",
+      paused: false,
+      hiredBy: "0-calculator",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:02:00.000Z",
       lastActiveAt: "2026-03-01T10:06:00.000Z",
-      hiredBy: "calculator",
     }
 
     stateManager.registerEmployee(employee1)
@@ -66,17 +75,22 @@ describe("Employees API", () => {
     const memoryManager = new MemoryManager(testWorkspace)
 
     const employee: Employee = {
+      employeeId: "0-calculator",
       name: "calculator",
+      taskId: 0,
       role: "Calculator",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:05:00.000Z",
     }
 
     stateManager.registerEmployee(employee)
 
-    // 创建员工目录和记忆文件
-    const employeeDir = path.join(testWorkspace, "employees", "calculator")
+    // 创建员工目录和记忆文件（使用 employeeId）
+    const employeeDir = path.join(testWorkspace, "employees", "0-calculator")
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -137,9 +151,14 @@ describe("Employees API", () => {
     const bossManager = new BossManager(testWorkspace)
 
     const employee: Employee = {
+      employeeId: "0-calculator",
       name: "calculator",
+      taskId: 0,
       role: "Calculator",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:05:00.000Z",
     }
@@ -150,8 +169,9 @@ describe("Employees API", () => {
 
     expect(response.success).toBe(true)
     expect(response.data.hierarchy).toHaveLength(1)
-    expect(response.data.hierarchy[0].name).toBe("calculator")
-    expect(response.data.hierarchy[0].children).toHaveLength(0)
+    expect(response.data.hierarchy[0].name).toBe("boss1")
+    expect(response.data.hierarchy[0].children).toHaveLength(1)
+    expect(response.data.hierarchy[0].children[0].name).toBe("calculator")
   })
 
   it("should return hierarchy with multiple levels", () => {
@@ -159,29 +179,42 @@ describe("Employees API", () => {
     const bossManager = new BossManager(testWorkspace)
 
     const root: Employee = {
+      employeeId: "0-calculator",
       name: "calculator",
+      taskId: 0,
       role: "Calculator",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:05:00.000Z",
     }
 
     const child: Employee = {
+      employeeId: "0-coder",
       name: "coder",
+      taskId: 0,
       role: "Coder",
       status: "active",
+      paused: false,
+      hiredBy: "0-calculator",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:02:00.000Z",
       lastActiveAt: "2026-03-01T10:06:00.000Z",
-      hiredBy: "calculator",
     }
 
     const grandchild: Employee = {
+      employeeId: "0-tester",
       name: "tester",
+      taskId: 0,
       role: "Tester",
       status: "idle",
+      paused: false,
+      hiredBy: "0-coder",
+      activeSessionId: null,
       createdAt: "2026-03-01T10:03:00.000Z",
       lastActiveAt: "2026-03-01T10:07:00.000Z",
-      hiredBy: "coder",
     }
 
     stateManager.registerEmployee(root)
@@ -192,11 +225,13 @@ describe("Employees API", () => {
 
     expect(response.success).toBe(true)
     expect(response.data.hierarchy).toHaveLength(1)
-    expect(response.data.hierarchy[0].name).toBe("calculator")
+    expect(response.data.hierarchy[0].name).toBe("boss1")
     expect(response.data.hierarchy[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].name).toBe("coder")
+    expect(response.data.hierarchy[0].children[0].name).toBe("calculator")
     expect(response.data.hierarchy[0].children[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].children[0].name).toBe(
+    expect(response.data.hierarchy[0].children[0].children[0].name).toBe("coder")
+    expect(response.data.hierarchy[0].children[0].children[0].children).toHaveLength(1)
+    expect(response.data.hierarchy[0].children[0].children[0].children[0].name).toBe(
       "tester"
     )
   })

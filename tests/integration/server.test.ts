@@ -33,9 +33,14 @@ describe("Console Server", () => {
     const roleManager = new RoleManager(TEST_WORKSPACE)
     const testAgentRegistry = new AgentRegistry()
     const testEmployee: Employee = {
+      employeeId: "0-calculator",
       name: "calculator",
+      taskId: 0,
       role: "Calculator",
       status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     }
