@@ -51,6 +51,16 @@ export interface PeerWithLastMessage {
   lastMessageContent?: string
 }
 
+// 消息路由
+export type {
+  EmployeeId,
+  TaskId,
+  BossId,
+  RecipientResolution,
+  MessageRouter,
+} from "./message-routing"
+export { RoutingRules } from "./message-routing"
+
 // 任务状态类型
 export type TaskStatus =
   | "pending"
