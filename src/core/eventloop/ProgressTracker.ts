@@ -1,5 +1,6 @@
 import type { MemoryManager, Task } from "../MemoryManager"
 import type { StateManager } from "../../state/StateManager"
+import type { EmployeeId } from "../../types"
 import { agentRegistry } from "../../utils/AgentRegistry"
 import { logger } from "../../lib/logger"
 import * as crypto from "node:crypto"
@@ -23,7 +24,7 @@ export class ProgressTracker {
   private readonly NO_PROGRESS_THRESHOLD = 3 // 无进展阈值
 
   constructor(
-    private employeeName: string,
+    private employeeId: EmployeeId,
     private memoryManager: MemoryManager,
     private stateManager?: StateManager
   ) {}
@@ -40,7 +41,7 @@ export class ProgressTracker {
       this.progressSnapshot = currentSnapshot
       this.noProgressCount = 1
       logger.info(
-        `[${this.employeeName}] First task event, recording snapshot (count: 1)`
+        `[${this.employeeId}] First task event, recording snapshot (count: 1)`
       )
       return
     }
@@ -54,12 +55,12 @@ export class ProgressTracker {
       // 有进展，重置计数器
       this.progressSnapshot = currentSnapshot
       this.noProgressCount = 1
-      logger.info(`[${this.employeeName}] Progress detected, resetting counter`)
+      logger.info(`[${this.employeeId}] Progress detected, resetting counter`)
     } else {
       // 无进展，增加计数器
       this.noProgressCount++
       logger.info(
-        `[${this.employeeName}] No progress detected (count: ${this.noProgressCount})`
+        `[${this.employeeId}] No progress detected (count: ${this.noProgressCount})`
       )
 
       // 4. 检查是否达到阈值
@@ -74,11 +75,11 @@ export class ProgressTracker {
    */
   async getCurrentSnapshot(): Promise<ProgressSnapshot> {
     // 1. 获取 agent 数量
-    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeId)
     const agentCount = runningAgents.length
 
     // 2. 获取任务列表并计算哈希
-    const memory = await this.memoryManager.read(this.employeeName)
+    const memory = await this.memoryManager.read(this.employeeId)
     const tasksHash = this.hashTasks(memory.tasks)
 
     return { agentCount, tasksHash }
@@ -97,18 +98,18 @@ export class ProgressTracker {
    */
   async markAsAbnormal(): Promise<void> {
     logger.warn(
-      `[${this.employeeName}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
+      `[${this.employeeId}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
     )
 
     // 1. 更新状态
-    await this.stateManager?.updateEmployeeStatus(this.employeeName, "abnormal")
+    await this.stateManager?.updateEmployeeStatus(this.employeeId, "abnormal")
 
     // 2. 记录事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "employee_status_changed",
       timestamp: new Date().toISOString(),
-      employeeName: this.employeeName,
+      employeeId: this.employeeId,
       details: {
         oldStatus: "busy",
         newStatus: "abnormal",
@@ -118,7 +119,7 @@ export class ProgressTracker {
     })
 
     logger.warn(
-      `[${this.employeeName}] Marked as abnormal. Employee will no longer receive task events until status is manually changed.`
+      `[${this.employeeId}] Marked as abnormal. Employee will no longer receive task events until status is manually changed.`
     )
   }
 

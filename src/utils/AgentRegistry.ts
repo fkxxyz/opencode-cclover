@@ -6,9 +6,10 @@
  */
 
 import type { InternalAgentEvent } from "../core/eventloop"
+import type { EmployeeId } from "../types"
 
 export interface AgentInfo {
-  employeeName: string // 创建该 Agent 的员工名称
+  employeeId: EmployeeId // 创建该 Agent 的员工 ID
   taskName: string // Agent 关联的任务名称
 }
 
@@ -47,10 +48,10 @@ export class AgentRegistry {
   /**
    * 获取某个员工创建的所有 Agent
    */
-  getAgentsByEmployee(employeeName: string): string[] {
+  getAgentsByEmployee(employeeId: EmployeeId): string[] {
     const result: string[] = []
     for (const [agentId, info] of this.agents.entries()) {
-      if (info.employeeName === employeeName) {
+      if (info.employeeId === employeeId) {
         result.push(agentId)
       }
     }
@@ -60,19 +61,19 @@ export class AgentRegistry {
   /**
    * 添加完成事件到队列
    */
-  addCompletedEvent(employeeName: string, event: InternalAgentEvent): void {
-    if (!this.completedQueues.has(employeeName)) {
-      this.completedQueues.set(employeeName, [])
+  addCompletedEvent(employeeId: EmployeeId, event: InternalAgentEvent): void {
+    if (!this.completedQueues.has(employeeId)) {
+      this.completedQueues.set(employeeId, [])
     }
-    this.completedQueues.get(employeeName)!.push(event)
+    this.completedQueues.get(employeeId)!.push(event)
   }
 
   /**
    * 非阻塞取出完成事件
    * 返回 null 表示队列为空
    */
-  getCompletedEvent(employeeName: string): InternalAgentEvent | null {
-    const queue = this.completedQueues.get(employeeName)
+  getCompletedEvent(employeeId: EmployeeId): InternalAgentEvent | null {
+    const queue = this.completedQueues.get(employeeId)
     if (!queue || queue.length === 0) {
       return null
     }
@@ -82,8 +83,8 @@ export class AgentRegistry {
   /**
    * 清空某个员工的完成队列
    */
-  clearCompletedQueue(employeeName: string): void {
-    this.completedQueues.delete(employeeName)
+  clearCompletedQueue(employeeId: EmployeeId): void {
+    this.completedQueues.delete(employeeId)
   }
 
   /**

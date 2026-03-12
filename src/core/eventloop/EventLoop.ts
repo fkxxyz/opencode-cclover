@@ -1,6 +1,6 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { MessageClient } from "../MessageService"
-import type { Event, Message } from "../../types"
+import type { Event, Message, EmployeeId } from "../../types"
 import type { MemoryManager } from "../MemoryManager"
 import type { RoleManager } from "../RoleManager"
 import type { StateManager } from "../../state/StateManager"
@@ -40,7 +40,7 @@ export class EventLoop {
 
   constructor(
     private projectPath: string,
-    private employeeName: string,
+    private employeeId: EmployeeId,
     private roleName: string,
     private roleManager: RoleManager,
     private messageClient: MessageClient,
@@ -51,7 +51,7 @@ export class EventLoop {
     // 初始化子模块
     this.sessionManager = new SessionManager(
       projectPath,
-      employeeName,
+      employeeId,
       roleName,
       roleManager,
       memoryManager,
@@ -60,21 +60,21 @@ export class EventLoop {
     )
     this.summaryService = new SummaryService(
       projectPath,
-      employeeName,
+      employeeId,
       roleName,
       roleManager,
       memoryManager,
       opcodeClient,
       stateManager
     )
-    this.errorRecovery = new ErrorRecovery(employeeName, stateManager)
+    this.errorRecovery = new ErrorRecovery(employeeId, stateManager)
     this.progressTracker = new ProgressTracker(
-      employeeName,
+      employeeId,
       memoryManager,
       stateManager
     )
     this.replyTracker = new ReplyTracker(
-      employeeName,
+      employeeId,
       (messageClient as any).service,
       memoryManager,
       stateManager
@@ -88,108 +88,108 @@ export class EventLoop {
    */
   async run(): Promise<void> {
     logger.debug(
-      `[${this.employeeName}] Starting event loop for project ${this.projectPath} with role ${this.roleName}`
+      `[${this.employeeId}] Starting event loop for project ${this.projectPath} with role ${this.roleName}`
     )
 
     // 启动 Agent 监听器（后台运行，不阻塞）
-    logger.debug(`[${this.employeeName}] Starting agent listener`)
+    logger.debug(`[${this.employeeId}] Starting agent listener`)
     this.waitForAgentCompletion().catch((error) => {
-      console.error(`[${this.employeeName}] Agent listener error:`, error)
+      console.error(`[${this.employeeId}] Agent listener error:`, error)
     })
 
     // 启动时检查是否有立即可用的事件，决定初始状态
-    logger.debug(`[${this.employeeName}] Checking for immediate events`)
+    logger.debug(`[${this.employeeId}] Checking for immediate events`)
     const hasImmediate = await this.hasImmediateEvent()
-    logger.debug(`[${this.employeeName}] Has immediate event: ${hasImmediate}`)
+    logger.debug(`[${this.employeeId}] Has immediate event: ${hasImmediate}`)
     await this.stateManager?.updateEmployeeStatus(
-      this.employeeName,
+      this.employeeId,
       hasImmediate ? "busy" : "idle"
     )
     logger.debug(
-      `[${this.employeeName}] Initial status set to: ${hasImmediate ? "busy" : "idle"}`
+      `[${this.employeeId}] Initial status set to: ${hasImmediate ? "busy" : "idle"}`
     )
 
     // 启动时确保 session 存在并检查是否需要总结
     // 这样可以在恢复已有 session 时立即触发总结（如果已超过阈值）
-    logger.debug(`[${this.employeeName}] Ensuring session exists`)
+    logger.debug(`[${this.employeeId}] Ensuring session exists`)
     try {
       await this.sessionManager.ensureSession()
-      logger.debug(`[${this.employeeName}] Session ensured`)
+      logger.debug(`[${this.employeeId}] Session ensured`)
       // 仅 soul: true 的员工需要总结
       const role = this.roleManager.getRole(this.roleName)
       if (role?.soul !== false) {
-        logger.debug(`[${this.employeeName}] Checking if summary needed`)
+        logger.debug(`[${this.employeeId}] Checking if summary needed`)
         await this.sessionManager.summarizeIfNeeded()
       }
     } catch (error) {
       console.error(
-        `[${this.employeeName}] Error during startup session check:`,
+        `[${this.employeeId}] Error during startup session check:`,
         error
       )
     }
 
-    logger.debug(`[${this.employeeName}] Entering main event loop`)
+    logger.debug(`[${this.employeeId}] Entering main event loop`)
     while (this.running) {
       try {
         // 1. 检查是否有立即可用的事件
         const hasImmediate = await this.hasImmediateEvent()
-        logger.debug(`[${this.employeeName}] hasImmediate=${hasImmediate}`)
+        logger.debug(`[${this.employeeId}] hasImmediate=${hasImmediate}`)
 
         // 2. 只有在没有立即可用事件时，才设置为 idle
         if (!hasImmediate) {
           await this.stateManager?.updateEmployeeStatus(
-            this.employeeName,
+            this.employeeId,
             "idle"
           )
-          logger.debug(`[${this.employeeName}] Status updated to idle`)
+          logger.debug(`[${this.employeeId}] Status updated to idle`)
         }
 
         // 3. 等待事件
-        logger.debug(`[${this.employeeName}] Waiting for event...`)
+        logger.debug(`[${this.employeeId}] Waiting for event...`)
         const event = await this.waitForEvent()
-        console.log(`[${this.employeeName}] Received event:`, event.type)
+        console.log(`[${this.employeeId}] Received event:`, event.type)
         if (event.type === "message") {
           logger.debug(
-            `[${this.employeeName}] Message from ${event.details.from}: ${event.details.content}`
+            `[${this.employeeId}] Message from ${event.details.from}: ${event.details.content}`
           )
         } else if (event.type === "agent_completed") {
           logger.debug(
-            `[${this.employeeName}] Agent completed: ${event.details.taskName}`
+            `[${this.employeeId}] Agent completed: ${event.details.taskName}`
           )
         }
 
         // 4. 更新状态为 busy（处理事件）
-        await this.stateManager?.updateEmployeeStatus(this.employeeName, "busy")
-        logger.debug(`[${this.employeeName}] Status updated to busy`)
+        await this.stateManager?.updateEmployeeStatus(this.employeeId, "busy")
+        logger.debug(`[${this.employeeId}] Status updated to busy`)
 
         // 5. 处理事件
         logger.debug(
-          `[${this.employeeName}] Starting to handle event: ${event.type}`
+          `[${this.employeeId}] Starting to handle event: ${event.type}`
         )
         await this.handleEvent(event)
         logger.debug(
-          `[${this.employeeName}] Finished handling event: ${event.type}`
+          `[${this.employeeId}] Finished handling event: ${event.type}`
         )
 
         // 6. 检查是否需要总结（仅 soul: true 的员工）
         const role = this.roleManager.getRole(this.roleName)
         if (role?.soul !== false) {
-          logger.debug(`[${this.employeeName}] Checking if summary needed`)
+          logger.debug(`[${this.employeeId}] Checking if summary needed`)
           await this.sessionManager.summarizeIfNeeded()
-          logger.debug(`[${this.employeeName}] Summary check completed`)
+          logger.debug(`[${this.employeeId}] Summary check completed`)
         }
 
         // 成功：重置错误追踪
         this.errorRecovery.resetErrorTracking()
       } catch (error) {
         logger.debug(
-          `[${this.employeeName}] [ERROR] Caught error in event loop: ${(error as any).message}`
+          `[${this.employeeId}] [ERROR] Caught error in event loop: ${(error as any).message}`
         )
 
         // 检查是否是假期请求导致的退出
         if ((error as any).message === "VACATION_REQUESTED") {
           logger.info(
-            `[${this.employeeName}] EventLoop exiting due to vacation request`
+            `[${this.employeeId}] EventLoop exiting due to vacation request`
           )
           return // 正常退出，不记录错误
         }
@@ -201,7 +201,7 @@ export class EventLoop {
 
         if (shouldStop) {
           logger.debug(
-            `[${this.employeeName}] Stopping event loop due to error recovery decision`
+            `[${this.employeeId}] Stopping event loop due to error recovery decision`
           )
           await this.cleanup()
           return
@@ -216,7 +216,7 @@ export class EventLoop {
    */
   private async waitForEvent(): Promise<Event> {
     // 0. HIGHEST PRIORITY: Check vacation notification
-    const vacationEvent = vacationRegistry.getVacationEvent(this.employeeName)
+    const vacationEvent = vacationRegistry.getVacationEvent(this.employeeId)
     if (vacationEvent) {
       return {
         projectId: "",
@@ -228,7 +228,7 @@ export class EventLoop {
 
     // 1. 非阻塞检查未读消息
     const messageService = (this.messageClient as any).service
-    const unreadQueue = messageService.getUnreadQueue(this.employeeName)
+    const unreadQueue = messageService.getUnreadQueue(this.employeeId)
     if (unreadQueue.length > 0) {
       const msg = unreadQueue.shift()!
       // 收到消息，清空快照和计数器
@@ -247,7 +247,7 @@ export class EventLoop {
     }
 
     // 2. 非阻塞检查 Agent 完成队列
-    const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
+    const completedAgent = agentRegistry.getCompletedEvent(this.employeeId)
     if (completedAgent) {
       // Agent 完成，清空快照和计数器
       this.progressTracker.clearProgressTracking()
@@ -264,18 +264,18 @@ export class EventLoop {
     }
 
     // 3. 检查是否有运行中的 Agent
-    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeId)
     const hasRunningAgent = runningAgents.length > 0
 
     // 4. 获取当前员工状态
-    const employee = await this.stateManager?.getEmployee(this.employeeName)
+    const employee = await this.stateManager?.getEmployee(this.employeeId)
     const isAbnormal = employee?.status === "abnormal"
 
     // 只有在没有运行中的 Agent 且不是异常状态时才检查任务
     if (!hasRunningAgent && !isAbnormal) {
       // 5. 检查可执行任务
       const executableTasks = await this.memoryManager.getExecutableTasks(
-        this.employeeName
+        this.employeeId
       )
       if (executableTasks.length > 0) {
         return {
@@ -290,7 +290,7 @@ export class EventLoop {
 
       // 6. 检查 in_progress 任务
       const inProgressTasks = await this.memoryManager.getInProgressTasks(
-        this.employeeName
+        this.employeeId
       )
       if (inProgressTasks.length > 0) {
         return {
@@ -327,38 +327,38 @@ export class EventLoop {
    */
   private async hasImmediateEvent(): Promise<boolean> {
     // 0. 检查假期通知
-    if (vacationRegistry.hasVacationEvent(this.employeeName)) {
+    if (vacationRegistry.hasVacationEvent(this.employeeId)) {
       return true
     }
 
     // 1. 检查未读消息
     const messageService = (this.messageClient as any).service
-    const unreadQueue = messageService.getUnreadQueue(this.employeeName)
+    const unreadQueue = messageService.getUnreadQueue(this.employeeId)
     if (unreadQueue.length > 0) return true
 
     // 2. 检查 Agent 完成队列
-    const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
+    const completedAgent = agentRegistry.getCompletedEvent(this.employeeId)
     if (completedAgent) {
       // 放回队列（因为只是检查，不是真正取出）
-      agentRegistry.addCompletedEvent(this.employeeName, completedAgent)
+      agentRegistry.addCompletedEvent(this.employeeId, completedAgent)
       return true
     }
 
     // 3. 检查是否有运行中的 Agent
-    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
+    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeId)
     const hasRunningAgent = runningAgents.length > 0
 
     // 只有在没有运行中的 Agent 时才检查任务
     if (!hasRunningAgent) {
       // 4. 检查可执行任务
       const executableTasks = await this.memoryManager.getExecutableTasks(
-        this.employeeName
+        this.employeeId
       )
       if (executableTasks.length > 0) return true
 
       // 5. 检查 in_progress 任务
       const inProgressTasks = await this.memoryManager.getInProgressTasks(
-        this.employeeName
+        this.employeeId
       )
       if (inProgressTasks.length > 0) return true
     }
@@ -423,7 +423,7 @@ export class EventLoop {
               projectId: "",
               type: "agent_completed",
               timestamp: agentEvent.timestamp,
-              employeeName: this.employeeName,
+              employeeId: this.employeeId,
               details: {
                 agentId: sessionId,
                 taskName: agentInfo.taskName,
@@ -432,8 +432,8 @@ export class EventLoop {
             })
 
             // 如果是当前员工的 agent，放入队列
-            if (agentInfo.employeeName === this.employeeName) {
-              agentRegistry.addCompletedEvent(this.employeeName, agentEvent)
+            if (agentInfo.employeeId === this.employeeId) {
+              agentRegistry.addCompletedEvent(this.employeeId, agentEvent)
             }
 
             // 继续监听（不返回，让 waitForEvent 从队列中取）
@@ -475,7 +475,7 @@ export class EventLoop {
 
       return textParts.map((p) => (p as any).text).join("\n")
     } catch (error) {
-      console.error(`[${this.employeeName}] Failed to get agent result:`, error)
+      console.error(`[${this.employeeId}] Failed to get agent result:`, error)
       return "获取 Agent 结果失败"
     }
   }
@@ -484,13 +484,13 @@ export class EventLoop {
    * 处理事件
    */
   private async handleEvent(event: Event): Promise<void> {
-    console.log(`[${this.employeeName}] Received event:`, event.type)
+    console.log(`[${this.employeeId}] Received event:`, event.type)
 
     // 1. 处理假期请求事件
     if (event.type === "vacation_requested") {
       // 更新状态为 offline
       await this.stateManager?.updateEmployeeStatus(
-        this.employeeName,
+        this.employeeId,
         "offline"
       )
 
@@ -499,7 +499,7 @@ export class EventLoop {
         projectId: "",
         type: "employee_status_changed",
         timestamp: new Date().toISOString(),
-        employeeName: this.employeeName,
+        employeeId: this.employeeId,
         details: {
           oldStatus: "busy", // or get from stateManager
           newStatus: "offline",
@@ -517,15 +517,15 @@ export class EventLoop {
       // 只有当员工发送消息时才清空回复跟踪
       if (
         event.type === "message" &&
-        event.details.from === this.employeeName
+        event.details.from === this.employeeId
       ) {
         this.replyTracker.clearReplyTracking()
       }
-      const employee = await this.stateManager?.getEmployee(this.employeeName)
+      const employee = await this.stateManager?.getEmployee(this.employeeId)
       if (employee?.status === "abnormal") {
-        await this.stateManager?.updateEmployeeStatus(this.employeeName, "busy")
+        await this.stateManager?.updateEmployeeStatus(this.employeeId, "busy")
         logger.info(
-          `[${this.employeeName}] Recovered from abnormal status due to ${event.type} event`
+          `[${this.employeeId}] Recovered from abnormal status due to ${event.type} event`
         )
       }
     }
@@ -533,17 +533,17 @@ export class EventLoop {
     // 3. 确保 session 存在
     const session = await this.sessionManager.ensureSession()
     console.log(
-      `[${this.employeeName}] Handling event in session: ${session.id}`
+      `[${this.employeeId}] Handling event in session: ${session.id}`
     )
 
     // 4. 更新 activeSessionId
     await this.stateManager?.updateActiveSessionId(
-      this.employeeName,
+      this.employeeId,
       session.id
     )
 
     // 5. 读取当前记忆
-    const memory = await this.memoryManager.read(this.employeeName)
+    const memory = await this.memoryManager.read(this.employeeId)
 
     // 6. 构建事件消息
     const eventMessage = buildEventMessage(event)
@@ -556,7 +556,7 @@ export class EventLoop {
       projectId: "",
       type: "session_prompt_started",
       timestamp: new Date().toISOString(),
-      employeeName: this.employeeName,
+      employeeId: this.employeeId,
       details: {
         sessionId: session.id,
         eventType: event.type,
@@ -566,7 +566,7 @@ export class EventLoop {
 
     // 9. 发送给 AI
     logger.debug(
-      `[${this.employeeName}] Calling AI (session.prompt)`
+      `[${this.employeeId}] Calling AI (session.prompt)`
     )
     const result = await this.opcodeClient.session.prompt({
       path: { id: session.id },
@@ -585,16 +585,16 @@ export class EventLoop {
       },
     })
     logger.debug(
-      `[${this.employeeName}] AI call completed, received result`
+      `[${this.employeeId}] AI call completed, received result`
     )
 
     // 10. 清除 activeSessionId
-    await this.stateManager?.updateActiveSessionId(this.employeeName, undefined)
+    await this.stateManager?.updateActiveSessionId(this.employeeId, null)
 
     // 11. 检查是否被紧急消息中断
     if (result.data?.info.error?.name === "MessageAbortedError") {
       logger.info(
-        `[${this.employeeName}] Session aborted by urgent message, continuing to next event`
+        `[${this.employeeId}] Session aborted by urgent message, continuing to next event`
       )
       return
     }
@@ -607,7 +607,7 @@ export class EventLoop {
       projectId: "",
       type: "session_prompt_completed",
       timestamp: new Date().toISOString(),
-      employeeName: this.employeeName,
+      employeeId: this.employeeId,
       details: {
         sessionId: session.id,
         messageCount: session.messageCount,
@@ -624,7 +624,7 @@ export class EventLoop {
       await this.replyTracker.checkProgress()
     }
 
-    console.log(`[${this.employeeName}] Event handled`)
+    console.log(`[${this.employeeId}] Event handled`)
   }
 
   /**
@@ -638,7 +638,7 @@ export class EventLoop {
    * 清理资源
    */
   private async cleanup(): Promise<void> {
-    logger.info(`[${this.employeeName}] Cleaning up resources`)
+    logger.info(`[${this.employeeId}] Cleaning up resources`)
 
     // 关闭 session
     await this.sessionManager.closeSession()
@@ -650,7 +650,7 @@ export class EventLoop {
    * 优雅停止事件循环
    */
   async stop(): Promise<void> {
-    logger.info(`[${this.employeeName}] Stopping event loop`)
+    logger.info(`[${this.employeeId}] Stopping event loop`)
     this.running = false
     await this.cleanup()
   }

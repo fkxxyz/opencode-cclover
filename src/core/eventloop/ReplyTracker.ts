@@ -1,6 +1,7 @@
 import type { MessageService } from "../MessageService"
 import type { MemoryManager, Task } from "../MemoryManager"
 import type { StateManager } from "../../state/StateManager"
+import type { EmployeeId } from "../../types"
 import { logger } from "../../lib/logger"
 
 /**
@@ -22,7 +23,7 @@ export class ReplyTracker {
   private readonly NO_PROGRESS_THRESHOLD = 3 // 无进展阈值
 
   constructor(
-    private employeeName: string,
+    private employeeId: EmployeeId,
     private messageService: MessageService,
     private memoryManager: MemoryManager,
     private stateManager?: StateManager
@@ -34,7 +35,7 @@ export class ReplyTracker {
    */
   async getUnrepliedSenders(): Promise<string[]> {
     // 1. 获取所有对话对象
-    const peers = await this.messageService.getPeers(this.employeeName)
+    const peers = await this.messageService.getPeers(this.employeeId)
 
     const unrepliedSenders: string[] = []
 
@@ -54,7 +55,7 @@ export class ReplyTracker {
    */
   private async hasUnrepliedMessage(peer: string): Promise<boolean> {
     // 1. 获取与该对话对象的消息历史
-    const client = this.messageService.getClient(this.employeeName)
+    const client = this.messageService.getClient(this.employeeId)
     const messages = await client.history(peer)
 
     // 2. 遍历消息，找到所有 expect_reply=true 的消息，检查是否有后续回复
@@ -67,7 +68,7 @@ export class ReplyTracker {
         let hasReply = false
         for (let j = i + 1; j < messages.length; j++) {
           if (
-            messages[j].from === this.employeeName &&
+            messages[j].from === this.employeeId &&
             messages[j].to === peer
           ) {
             hasReply = true
@@ -98,7 +99,7 @@ export class ReplyTracker {
       this.replySnapshot = currentSnapshot
       this.noProgressCount = 1
       logger.info(
-        `[${this.employeeName}] First reply_reminder event, recording snapshot (count: 1)`
+        `[${this.employeeId}] First reply_reminder event, recording snapshot (count: 1)`
       )
       return
     }
@@ -112,12 +113,12 @@ export class ReplyTracker {
       // 有进展，重置计数器
       this.replySnapshot = currentSnapshot
       this.noProgressCount = 1
-      logger.info(`[${this.employeeName}] Progress detected, resetting counter`)
+      logger.info(`[${this.employeeId}] Progress detected, resetting counter`)
     } else {
       // 无进展，增加计数器
       this.noProgressCount++
       logger.info(
-        `[${this.employeeName}] No progress detected (count: ${this.noProgressCount})`
+        `[${this.employeeId}] No progress detected (count: ${this.noProgressCount})`
       )
 
       // 4. 检查是否达到阈值
@@ -136,7 +137,7 @@ export class ReplyTracker {
     const unrepliedCount = unrepliedSenders.length
 
     // 2. 获取任务列表并计算哈希
-    const memory = await this.memoryManager.read(this.employeeName)
+    const memory = await this.memoryManager.read(this.employeeId)
     const tasksHash = this.hashTasks(memory.tasks)
 
     return { unrepliedCount, tasksHash }
@@ -155,18 +156,18 @@ export class ReplyTracker {
    */
   async markAsAbnormal(): Promise<void> {
     logger.warn(
-      `[${this.employeeName}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
+      `[${this.employeeId}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
     )
 
     // 1. 更新状态
-    await this.stateManager?.updateEmployeeStatus(this.employeeName, "abnormal")
+    await this.stateManager?.updateEmployeeStatus(this.employeeId, "abnormal")
 
     // 2. 记录事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "employee_status_changed",
       timestamp: new Date().toISOString(),
-      employeeName: this.employeeName,
+      employeeId: this.employeeId,
       details: {
         oldStatus: "busy",
         newStatus: "abnormal",
@@ -176,7 +177,7 @@ export class ReplyTracker {
     })
 
     logger.warn(
-      `[${this.employeeName}] Marked as abnormal. Employee will no longer receive reply_reminder events until status is manually changed.`
+      `[${this.employeeId}] Marked as abnormal. Employee will no longer receive reply_reminder events until status is manually changed.`
     )
   }
 

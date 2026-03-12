@@ -1,5 +1,9 @@
 // 导出新的员工相关类型
-import type { Employee as EmployeeBase, EmployeeStatus } from "./employee"
+import type {
+  Employee as EmployeeBase,
+  EmployeeStatus,
+  EmployeeId,
+} from "./employee"
 export type {
   TaskId,
   EmployeeId,
@@ -150,7 +154,7 @@ export interface Event {
   projectId: string
   type: EventType
   timestamp: string
-  employeeName?: string
+  employeeId?: EmployeeId
   details: Record<string, any>
 }
 

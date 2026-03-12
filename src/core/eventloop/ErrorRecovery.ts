@@ -1,4 +1,5 @@
 import type { StateManager } from "../../state/StateManager"
+import type { EmployeeId } from "../../types"
 import { logger } from "../../lib/logger"
 
 /**
@@ -12,7 +13,7 @@ export class ErrorRecovery {
   private readonly MAX_BACKOFF = 30000 // 30 秒
 
   constructor(
-    private employeeName: string,
+    private employeeId: EmployeeId,
     private stateManager?: StateManager
   ) {}
 
@@ -25,10 +26,10 @@ export class ErrorRecovery {
     // 1. 致命错误：立即退出
     if (this.isFatalError(error)) {
       logger.error(
-        `[${this.employeeName}] Fatal error in event loop, exiting:`,
+        `[${this.employeeId}] Fatal error in event loop, exiting:`,
         error
       )
-      await this.stateManager?.updateEmployeeStatus(this.employeeName, "error")
+      await this.stateManager?.updateEmployeeStatus(this.employeeId, "error")
       await this.cleanup()
       onStop()
       return true // 停止运行
@@ -43,13 +44,13 @@ export class ErrorRecovery {
       this.errorCount >= this.MAX_CONSECUTIVE_ERRORS
     ) {
       logger.error(
-        `[${this.employeeName}] Circuit breaker triggered ` +
+        `[${this.employeeId}] Circuit breaker triggered ` +
           `(${this.errorCount}/${this.MAX_CONSECUTIVE_ERRORS} errors)`,
         error
       )
 
       await this.stateManager?.updateEmployeeStatus(
-        this.employeeName,
+        this.employeeId,
         "abnormal"
       )
 
@@ -64,13 +65,13 @@ export class ErrorRecovery {
 
     // 4. 瞬态错误：指数退避
     logger.warn(
-      `[${this.employeeName}] Transient error ` +
+      `[${this.employeeId}] Transient error ` +
         `(${this.errorCount}/${this.MAX_CONSECUTIVE_ERRORS}), ` +
         `retrying after ${this.backoffDelay}ms`,
       error
     )
 
-    await this.stateManager?.updateEmployeeStatus(this.employeeName, "error")
+    await this.stateManager?.updateEmployeeStatus(this.employeeId, "error")
 
     // 等待后重试
     await new Promise((resolve) => setTimeout(resolve, this.backoffDelay))
@@ -85,7 +86,7 @@ export class ErrorRecovery {
    */
   async enterDegradedMode(): Promise<void> {
     logger.warn(
-      `[${this.employeeName}] Entering degraded mode, ` +
+      `[${this.employeeId}] Entering degraded mode, ` +
         `waiting 30 seconds before retry`
     )
 
@@ -93,7 +94,7 @@ export class ErrorRecovery {
     await new Promise((resolve) => setTimeout(resolve, 30000))
 
     logger.info(
-      `[${this.employeeName}] Exiting degraded mode, resuming normal operation`
+      `[${this.employeeId}] Exiting degraded mode, resuming normal operation`
     )
   }
 
@@ -166,7 +167,7 @@ export class ErrorRecovery {
    * 清理资源
    */
   async cleanup(): Promise<void> {
-    logger.info(`[${this.employeeName}] Cleaning up resources`)
+    logger.info(`[${this.employeeId}] Cleaning up resources`)
     // 清理工作由 EventLoop 协调
   }
 
