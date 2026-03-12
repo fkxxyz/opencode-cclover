@@ -13,7 +13,7 @@ describe("AgentRegistry", () => {
 
   test("should register and retrieve agent info", () => {
     const info: AgentInfo = {
-      employeeName: "calculator",
+      employeeId: "0-calculator",
       taskName: "复杂计算",
     }
 
@@ -30,7 +30,7 @@ describe("AgentRegistry", () => {
 
   test("should check if agent is registered", () => {
     const info: AgentInfo = {
-      employeeName: "calculator",
+      employeeId: "0-calculator",
       taskName: "复杂计算",
     }
 
@@ -42,7 +42,7 @@ describe("AgentRegistry", () => {
 
   test("should unregister agent", () => {
     const info: AgentInfo = {
-      employeeName: "calculator",
+      employeeId: "0-calculator",
       taskName: "复杂计算",
     }
 
@@ -55,35 +55,35 @@ describe("AgentRegistry", () => {
 
   test("should get agents by employee", () => {
     agentRegistry.register("agent_001", {
-      employeeName: "calculator",
+      employeeId: "0-calculator",
       taskName: "任务1",
     })
     agentRegistry.register("agent_002", {
-      employeeName: "calculator",
+      employeeId: "0-calculator",
       taskName: "任务2",
     })
     agentRegistry.register("agent_003", {
-      employeeName: "coder",
+      employeeId: "0-coder",
       taskName: "任务3",
     })
 
-    const calculatorAgents = agentRegistry.getAgentsByEmployee("calculator")
+    const calculatorAgents = agentRegistry.getAgentsByEmployee("0-calculator")
     expect(calculatorAgents).toHaveLength(2)
     expect(calculatorAgents).toContain("agent_001")
     expect(calculatorAgents).toContain("agent_002")
 
-    const coderAgents = agentRegistry.getAgentsByEmployee("coder")
+    const coderAgents = agentRegistry.getAgentsByEmployee("0-coder")
     expect(coderAgents).toHaveLength(1)
     expect(coderAgents).toContain("agent_003")
   })
 
   test("should clear all registrations", () => {
     agentRegistry.register("agent_001", {
-      employeeName: "calculator",
+      employeeId: "0-calculator",
       taskName: "任务1",
     })
     agentRegistry.register("agent_002", {
-      employeeName: "coder",
+      employeeId: "0-coder",
       taskName: "任务2",
     })
 

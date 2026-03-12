@@ -14,12 +14,12 @@ describe("SessionRegistry", () => {
   test("should register and retrieve session", () => {
     sessionRegistry.register("session_001", "calculator")
 
-    const employeeName = sessionRegistry.getEmployeeName("session_001")
+    const employeeName = sessionRegistry.getEmployeeId("session_001")
     expect(employeeName).toBe("calculator")
   })
 
   test("should return undefined for unregistered session", () => {
-    const employeeName = sessionRegistry.getEmployeeName("unknown_session")
+    const employeeName = sessionRegistry.getEmployeeId("unknown_session")
     expect(employeeName).toBeUndefined()
   })
 
@@ -35,7 +35,7 @@ describe("SessionRegistry", () => {
     sessionRegistry.unregister("session_001")
 
     expect(sessionRegistry.has("session_001")).toBe(false)
-    expect(sessionRegistry.getEmployeeName("session_001")).toBeUndefined()
+    expect(sessionRegistry.getEmployeeId("session_001")).toBeUndefined()
   })
 
   test("should get all registered sessions", () => {

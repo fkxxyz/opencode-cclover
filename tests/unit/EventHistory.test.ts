@@ -14,7 +14,7 @@ describe("EventHistory", () => {
       const event: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
-        employeeName: "alice",
+        employeeId: "0-alice",
         details: {
           from: "alice",
           to: "bob",
@@ -30,14 +30,14 @@ describe("EventHistory", () => {
       const event1: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
-        employeeName: "alice",
+        employeeId: "0-alice",
         details: { from: "alice", to: "bob", content: "first" },
       }
 
       const event2: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:01.000Z",
-        employeeName: "bob",
+        employeeId: "0-bob",
         details: { from: "bob", to: "alice", content: "second" },
       }
 
@@ -54,7 +54,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
@@ -70,7 +70,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
@@ -85,7 +85,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
@@ -106,21 +106,21 @@ describe("EventHistory", () => {
       const event1: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
-        employeeName: "alice",
+        employeeId: "0-alice",
         details: { from: "alice", to: "bob", content: "msg1" },
       }
 
       const event2: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:01.000Z",
-        employeeName: "bob",
+        employeeId: "0-bob",
         details: { from: "bob", to: "alice", content: "msg2" },
       }
 
       const event3: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:02.000Z",
-        employeeName: "alice",
+        employeeId: "0-alice",
         details: { from: "alice", to: "bob", content: "msg3" },
       }
 
@@ -128,9 +128,9 @@ describe("EventHistory", () => {
       history.add(event2)
       history.add(event3)
 
-      const aliceEvents = history.getByEmployee("alice")
+      const aliceEvents = history.getByEmployee("0-alice")
       expect(aliceEvents.length).toBe(2)
-      expect(aliceEvents.every((e) => e.employeeName === "alice")).toBe(true)
+      expect(aliceEvents.every((e) => e.employeeId === "0-alice")).toBe(true)
     })
 
     it("should respect limit parameter", () => {
@@ -138,13 +138,13 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
       }
 
-      const aliceEvents = history.getByEmployee("alice", 5)
+      const aliceEvents = history.getByEmployee("0-alice", 5)
       expect(aliceEvents.length).toBe(5)
     })
 
@@ -159,21 +159,21 @@ describe("EventHistory", () => {
       const event1: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
-        employeeName: "alice",
+        employeeId: "0-alice",
         details: { from: "alice", to: "bob", content: "msg" },
       }
 
       const event2: Event = {
         type: "task_completed",
         timestamp: "2026-03-01T10:00:01.000Z",
-        employeeName: "alice",
+        employeeId: "0-alice",
         details: { taskName: "task1", result: "done" },
       }
 
       const event3: Event = {
         type: "message",
         timestamp: "2026-03-01T10:00:02.000Z",
-        employeeName: "bob",
+        employeeId: "0-bob",
         details: { from: "bob", to: "alice", content: "msg2" },
       }
 
@@ -195,7 +195,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
@@ -217,7 +217,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
@@ -239,7 +239,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)
@@ -259,7 +259,7 @@ describe("EventHistory", () => {
         const event: Event = {
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
-          employeeName: "alice",
+          employeeId: "0-alice",
           details: { from: "alice", to: "bob", content: `msg${i}` },
         }
         history.add(event)

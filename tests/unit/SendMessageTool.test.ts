@@ -33,18 +33,28 @@ describe("SendMessageTool with Boss", () => {
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     await stateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: 0,
+      hiredBy: null,
       role: "test",
+      paused: false,
       status: "inactive",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
     })
     await stateManager.registerEmployee({
+      employeeId: "0-bob",
       name: "bob",
+      taskId: 0,
+      hiredBy: null,
       role: "test",
+      paused: false,
       status: "inactive",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
     })
 
     // 创建 MessageService
@@ -56,7 +66,11 @@ describe("SendMessageTool with Boss", () => {
     )
 
     // 创建 SendMessageTool
-    sendMessageTool = createSendMessageTool(messageService, bossManager)
+    sendMessageTool = createSendMessageTool(
+      messageService,
+      bossManager,
+      stateManager
+    )
   })
 
   afterEach(async () => {
@@ -73,18 +87,18 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "alice",
+        to: "0-alice",
         content: "Hello from boss",
       },
       context
     )
 
-    expect(result).toBe("Message sent to alice")
+    expect(result).toBe("Message sent to 0-alice")
 
     // 验证消息已发送
-    const employeeClient = messageService.getClient("alice")
+    const employeeClient = messageService.getClient("0-alice")
     const message = await employeeClient.recv()
-    expect(message.from).toBe("bayecao")
+    expect(message.from).toBe("0-bayecao")
     expect(message.content).toBe("Hello from boss")
   })
 
@@ -98,7 +112,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "alice",
+          to: "0-alice",
           content: "Hello",
         },
         context
@@ -109,7 +123,7 @@ describe("SendMessageTool with Boss", () => {
   test("should work with employee from SessionRegistry", async () => {
     // 注册员工到 SessionRegistry
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-employee", "alice")
+    sessionRegistry.register("test-session-employee", "0-alice")
 
     const context = {
       sessionID: "test-session-employee",
@@ -118,18 +132,18 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "bob",
+        to: "0-bob",
         content: "Hello from employee",
       },
       context
     )
 
-    expect(result).toBe("Message sent to bob")
+    expect(result).toBe("Message sent to 0-bob")
 
     // 验证消息已发送
-    const bobClient = messageService.getClient("bob")
+    const bobClient = messageService.getClient("0-bob")
     const message = await bobClient.recv()
-    expect(message.from).toBe("alice")
+    expect(message.from).toBe("0-alice")
     expect(message.content).toBe("Hello from employee")
 
     // 清理
@@ -139,7 +153,7 @@ describe("SendMessageTool with Boss", () => {
   test("should prioritize SessionRegistry over context.agent", async () => {
     // 注册员工到 SessionRegistry
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-priority", "alice")
+    sessionRegistry.register("test-session-priority", "0-alice")
 
     const context = {
       sessionID: "test-session-priority",
@@ -148,18 +162,18 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "bob",
+        to: "0-bob",
         content: "Hello",
       },
       context
     )
 
-    expect(result).toBe("Message sent to bob")
+    expect(result).toBe("Message sent to 0-bob")
 
     // 验证消息来自 alice（SessionRegistry），不是 bayecao（agent）
-    const bobClient = messageService.getClient("bob")
+    const bobClient = messageService.getClient("0-bob")
     const message = await bobClient.recv()
-    expect(message.from).toBe("alice")
+    expect(message.from).toBe("0-alice")
 
     // 清理
     sessionRegistry.unregister("test-session-priority")
@@ -174,7 +188,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "alice",
+          to: "0-alice",
           content: "Hello",
         },
         context

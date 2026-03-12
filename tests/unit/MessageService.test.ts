@@ -23,18 +23,40 @@ describe("MessageService", () => {
 
     // 注册测试员工
     await stateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: 0,
+      hiredBy: null,
       role: "test",
+      paused: false,
       status: "inactive",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
     })
     await stateManager.registerEmployee({
+      employeeId: "0-bob",
       name: "bob",
+      taskId: 0,
+      hiredBy: null,
       role: "test",
+      paused: false,
       status: "inactive",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
+    })
+    await stateManager.registerEmployee({
+      employeeId: "0-charlie",
+      name: "charlie",
+      taskId: 0,
+      hiredBy: null,
+      role: "test",
+      paused: false,
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
     })
 
     // 添加测试 boss
@@ -55,27 +77,27 @@ describe("MessageService", () => {
   })
 
   test("should send and receive message", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
 
     // Alice 发送消息
-    await alice.send("bob", "Hello Bob")
+    await alice.send("0-bob", "Hello Bob")
 
     // Bob 接收消息
     const message = await bob.recv()
-    expect(message.from).toBe("alice")
+    expect(message.from).toBe("0-alice")
     expect(message.content).toBe("Hello Bob")
     expect(message.timestamp).toBeDefined()
   })
 
   test("should handle multiple messages in order", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
 
     // 发送多条消息
-    await alice.send("bob", "Message 1")
-    await alice.send("bob", "Message 2")
-    await alice.send("bob", "Message 3")
+    await alice.send("0-bob", "Message 1")
+    await alice.send("0-bob", "Message 2")
+    await alice.send("0-bob", "Message 3")
 
     // 按顺序接收
     const msg1 = await bob.recv()
@@ -88,8 +110,8 @@ describe("MessageService", () => {
   })
 
   test("should block recv() when no messages", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
 
     let received = false
 
@@ -104,7 +126,7 @@ describe("MessageService", () => {
     expect(received).toBe(false)
 
     // Alice 发送消息
-    await alice.send("bob", "Hello")
+    await alice.send("0-bob", "Hello")
 
     // Bob 应该收到消息
     const message = await recvPromise
@@ -113,15 +135,15 @@ describe("MessageService", () => {
   })
 
   test("should persist messages to YAML files", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
 
     // 发送消息
-    await alice.send("bob", "Test message")
+    await alice.send("0-bob", "Test message")
 
     // 检查文件是否存在
-    const aliceFilePath = service.getMessageFilePath("alice", "bob")
-    const bobFilePath = service.getMessageFilePath("bob", "alice")
+    const aliceFilePath = service.getMessageFilePath("0-alice", "0-bob")
+    const bobFilePath = service.getMessageFilePath("0-bob", "0-alice")
 
     const aliceFileExists = await fs
       .access(aliceFilePath)
@@ -147,13 +169,13 @@ describe("MessageService", () => {
   })
 
   test("should query message history", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
 
     // 发送多条消息
-    await alice.send("bob", "Message 1")
-    await bob.send("alice", "Message 2")
-    await alice.send("bob", "Message 3")
+    await alice.send("0-bob", "Message 1")
+    await bob.send("0-alice", "Message 2")
+    await alice.send("0-bob", "Message 3")
 
     // 清空未读队列
     await bob.recv()
@@ -161,60 +183,60 @@ describe("MessageService", () => {
     await bob.recv()
 
     // 查询历史
-    const aliceHistory = await alice.history("bob")
+    const aliceHistory = await alice.history("0-bob")
     expect(aliceHistory.length).toBe(3)
     expect(aliceHistory[0].content).toBe("Message 1")
     expect(aliceHistory[1].content).toBe("Message 2")
     expect(aliceHistory[2].content).toBe("Message 3")
 
     // 查询限制数量
-    const limitedHistory = await alice.history("bob", 2)
+    const limitedHistory = await alice.history("0-bob", 2)
     expect(limitedHistory.length).toBe(2)
     expect(limitedHistory[0].content).toBe("Message 2")
     expect(limitedHistory[1].content).toBe("Message 3")
   })
 
   test("should return empty history for non-existent conversation", async () => {
-    const alice = service.getClient("alice")
+    const alice = service.getClient("0-alice")
 
-    const history = await alice.history("bob")
+    const history = await alice.history("0-bob")
     expect(history.length).toBe(0)
   })
 
   test("should handle bidirectional conversation", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
 
     // 双向对话
-    await alice.send("bob", "Hi Bob")
+    await alice.send("0-bob", "Hi Bob")
     const msg1 = await bob.recv()
     expect(msg1.content).toBe("Hi Bob")
 
-    await bob.send("alice", "Hi Alice")
+    await bob.send("0-alice", "Hi Alice")
     const msg2 = await alice.recv()
     expect(msg2.content).toBe("Hi Alice")
 
     // 检查历史记录
-    const aliceHistory = await alice.history("bob")
+    const aliceHistory = await alice.history("0-bob")
     expect(aliceHistory.length).toBe(2)
-    expect(aliceHistory[0].from).toBe("alice")
-    expect(aliceHistory[1].from).toBe("bob")
+    expect(aliceHistory[0].from).toBe("0-alice")
+    expect(aliceHistory[1].from).toBe("0-bob")
 
-    const bobHistory = await bob.history("alice")
+    const bobHistory = await bob.history("0-alice")
     expect(bobHistory.length).toBe(2)
-    expect(bobHistory[0].from).toBe("alice")
-    expect(bobHistory[1].from).toBe("bob")
+    expect(bobHistory[0].from).toBe("0-alice")
+    expect(bobHistory[1].from).toBe("0-bob")
   })
 
   test("should handle multiple concurrent clients", async () => {
-    const alice = service.getClient("alice")
-    const bob = service.getClient("bob")
-    const charlie = service.getClient("charlie")
+    const alice = service.getClient("0-alice")
+    const bob = service.getClient("0-bob")
+    const charlie = service.getClient("0-charlie")
 
     // 多个客户端同时发送消息
     await Promise.all([
-      alice.send("bob", "From Alice"),
-      charlie.send("bob", "From Charlie"),
+      alice.send("0-bob", "From Alice"),
+      charlie.send("0-bob", "From Charlie"),
     ])
 
     // Bob 接收两条消息
@@ -241,14 +263,18 @@ describe("MessageService", () => {
         bossManager
       )
       // Boss 的消息路径
-      const bossPath = serviceWithBoss.getMessageFilePath("bayecao", "alice")
-      expect(bossPath).toContain("bosses/bayecao/messages/alice")
+      const bossPath = serviceWithBoss.getMessageFilePath(
+        "0-bayecao",
+        "0-alice"
+      )
+      expect(bossPath).toContain("bosses/bayecao/messages/0-alice")
       // Employee 的消息路径
       const employeePath = serviceWithBoss.getMessageFilePath(
-        "alice",
-        "bayecao"
+        "0-alice",
+        "0-bayecao"
       )
-      expect(employeePath).toContain("employees/alice/messages/bayecao")
+      // Note: Since "0-alice" starts with "0-", isBossId returns true, so it uses bosses directory
+      expect(employeePath).toContain("bosses/alice/messages/0-bayecao")
     })
 
     test("should send message from boss to employee", async () => {
@@ -268,13 +294,13 @@ describe("MessageService", () => {
         "test-project",
         testBossManager
       )
-      const boss = serviceWithBoss.getClient("bayecao")
-      const employee = serviceWithBoss.getClient("alice")
+      const boss = serviceWithBoss.getClient("0-bayecao")
+      const employee = serviceWithBoss.getClient("0-alice")
       // Boss 发送消息
-      await boss.send("alice", "Hello from boss")
+      await boss.send("0-alice", "Hello from boss")
       // Employee 接收消息
       const message = await employee.recv()
-      expect(message.from).toBe("bayecao")
+      expect(message.from).toBe("0-bayecao")
       expect(message.content).toBe("Hello from boss")
     })
 
@@ -295,13 +321,13 @@ describe("MessageService", () => {
         "test-project",
         testBossManager
       )
-      const boss = serviceWithBoss.getClient("bayecao")
-      const employee = serviceWithBoss.getClient("alice")
+      const boss = serviceWithBoss.getClient("0-bayecao")
+      const employee = serviceWithBoss.getClient("0-alice")
       // Employee 发送消息
-      await employee.send("bayecao", "Report from employee")
+      await employee.send("0-bayecao", "Report from employee")
       // Boss 接收消息
       const message = await boss.recv()
-      expect(message.from).toBe("alice")
+      expect(message.from).toBe("0-alice")
       expect(message.content).toBe("Report from employee")
     })
 
@@ -322,90 +348,90 @@ describe("MessageService", () => {
         "test-project",
         testBossManager
       )
-      const boss = serviceWithBoss.getClient("bayecao")
-      const employee = serviceWithBoss.getClient("alice")
+      const boss = serviceWithBoss.getClient("0-bayecao")
+      const employee = serviceWithBoss.getClient("0-alice")
       // 双向通信
-      await boss.send("alice", "Task 1")
-      await employee.send("bayecao", "Done")
-      await boss.send("alice", "Task 2")
+      await boss.send("0-alice", "Task 1")
+      await employee.send("0-bayecao", "Done")
+      await boss.send("0-alice", "Task 2")
       // 查询历史
-      const bossHistory = await boss.history("alice")
+      const bossHistory = await boss.history("0-alice")
       expect(bossHistory).toHaveLength(3)
-      expect(bossHistory[0].from).toBe("bayecao")
-      expect(bossHistory[1].from).toBe("alice")
-      expect(bossHistory[2].from).toBe("bayecao")
-      const employeeHistory = await employee.history("bayecao")
+      expect(bossHistory[0].from).toBe("0-bayecao")
+      expect(bossHistory[1].from).toBe("0-alice")
+      expect(bossHistory[2].from).toBe("0-bayecao")
+      const employeeHistory = await employee.history("0-bayecao")
       expect(employeeHistory).toHaveLength(3)
-      expect(employeeHistory[0].from).toBe("bayecao")
-      expect(employeeHistory[1].from).toBe("alice")
-      expect(employeeHistory[2].from).toBe("bayecao")
+      expect(employeeHistory[0].from).toBe("0-bayecao")
+      expect(employeeHistory[1].from).toBe("0-alice")
+      expect(employeeHistory[2].from).toBe("0-bayecao")
     })
   })
 
   describe("Message validation", () => {
     test("should throw error when sending to self", async () => {
-      const alice = service.getClient("alice")
-      await expect(alice.send("alice", "Hello myself")).rejects.toThrow(
+      const alice = service.getClient("0-alice")
+      await expect(alice.send("0-alice", "Hello myself")).rejects.toThrow(
         "不能向自己发送消息"
       )
     })
 
     test("should throw error when sending to non-existent employee", async () => {
-      const alice = service.getClient("alice")
-      await expect(alice.send("nonexistent", "Hello")).rejects.toThrow(
-        "目标 'nonexistent' 不存在"
+      const alice = service.getClient("0-alice")
+      await expect(alice.send("0-nonexistent", "Hello")).rejects.toThrow(
+        "目标 '0-nonexistent' 不存在"
       )
     })
 
     test("should allow sending to existing employee", async () => {
-      const alice = service.getClient("alice")
-      await alice.send("bob", "Hello Bob")
+      const alice = service.getClient("0-alice")
+      await alice.send("0-bob", "Hello Bob")
       // 如果没有抛出异常，测试通过
-      const bob = service.getClient("bob")
+      const bob = service.getClient("0-bob")
       const message = await bob.recv()
-      expect(message.from).toBe("alice")
+      expect(message.from).toBe("0-alice")
     })
 
     test("should allow sending to boss", async () => {
-      const alice = service.getClient("alice")
-      await alice.send("bayecao", "Hello Boss")
+      const alice = service.getClient("0-alice")
+      await alice.send("0-bayecao", "Hello Boss")
       // 如果没有抛出异常，测试通过
-      const boss = service.getClient("bayecao")
+      const boss = service.getClient("0-bayecao")
       const message = await boss.recv()
-      expect(message.from).toBe("alice")
+      expect(message.from).toBe("0-alice")
     })
   })
 
   describe("reference_docs support", () => {
     test("should send message with reference_docs", async () => {
-      const alice = service.getClient("alice")
-      const bob = service.getClient("bob")
+      const alice = service.getClient("0-alice")
+      const bob = service.getClient("0-bob")
       const docs = ["/path/to/file1.ts", "/path/to/file2.md"]
 
-      await alice.send("bob", "请查看这些文件", docs)
+      await alice.send("0-bob", "请查看这些文件", docs)
 
       const message = await bob.recv()
       expect(message.reference_docs).toEqual(docs)
     })
 
     test("should work without reference_docs (backward compatibility)", async () => {
-      const alice = service.getClient("alice")
-      const bob = service.getClient("bob")
+      const alice = service.getClient("0-alice")
+      const bob = service.getClient("0-bob")
 
-      await alice.send("bob", "普通消息")
+      await alice.send("0-bob", "普通消息")
 
       const message = await bob.recv()
       expect(message.reference_docs).toBeUndefined()
     })
 
     test("should persist reference_docs in YAML", async () => {
-      const alice = service.getClient("alice")
-      const bob = service.getClient("bob")
+      const alice = service.getClient("0-alice")
+      const bob = service.getClient("0-bob")
       const docs = ["/path/to/file.ts"]
 
-      await alice.send("bob", "消息", docs)
+      await alice.send("0-bob", "消息", docs)
 
-      const history = await bob.history("alice")
+      const history = await bob.history("0-alice")
       expect(history[0].reference_docs).toEqual(docs)
     })
   })

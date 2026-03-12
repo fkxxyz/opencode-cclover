@@ -110,21 +110,45 @@ You are a project manager.`
     // 创建 StateManager
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
 
-    // 注册测试员工
+    // 注册 boss 员工
     await stateManager.registerEmployee({
-      name: "alice",
-      role: "developer",
+      employeeId: "0-boss",
+      name: "boss",
+      taskId: 0,
+      hiredBy: null,
+      role: "manager",
+      paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
+    })
+
+    // 注册测试员工
+    await stateManager.registerEmployee({
+      employeeId: "0-alice",
+      name: "alice",
+      taskId: 0,
+      hiredBy: null,
+      role: "developer",
+      paused: false,
+      status: "offline",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
     })
 
     await stateManager.registerEmployee({
+      employeeId: "0-bob",
       name: "bob",
+      taskId: 0,
+      hiredBy: null,
       role: "manager",
+      paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
     })
 
     // 创建 RoleManager 并加载角色
@@ -181,11 +205,13 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'charlie'")
+      expect(result).toContain(
+        "Successfully hired employee '0-charlie' (name: charlie)"
+      )
       expect(result).toContain("role: developer")
 
       // 验证员工已注册
-      const employee = stateManager.getEmployee("charlie")
+      const employee = stateManager.getEmployee("0-charlie")
       expect(employee).toBeDefined()
       expect(employee?.role).toBe("developer")
     })
@@ -193,7 +219,7 @@ You are a project manager.`
     test("employee can hire permitted role", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "alice")
+      sessionRegistry.register("test-session-alice", "0-alice")
 
       const context = {
         sessionID: "test-session-alice",
@@ -209,11 +235,13 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'dave'")
+      expect(result).toContain(
+        "Successfully hired employee '0-dave' (name: dave)"
+      )
       expect(result).toContain("role: tester")
 
       // 验证员工已注册
-      const employee = stateManager.getEmployee("dave")
+      const employee = stateManager.getEmployee("0-dave")
       expect(employee).toBeDefined()
       expect(employee?.role).toBe("tester")
 
@@ -223,7 +251,7 @@ You are a project manager.`
     test("employee cannot hire unpermitted role", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "alice")
+      sessionRegistry.register("test-session-alice", "0-alice")
 
       const context = {
         sessionID: "test-session-alice",
@@ -243,7 +271,7 @@ You are a project manager.`
       expect(result).toContain("show_hireable_roles")
 
       // 验证员工未注册
-      const employee = stateManager.getEmployee("eve")
+      const employee = stateManager.getEmployee("0-eve")
       expect(employee).toBeUndefined()
 
       sessionRegistry.unregister("test-session-alice")
@@ -252,7 +280,7 @@ You are a project manager.`
     test("employee can hire role via group reference", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-bob", "bob")
+      sessionRegistry.register("test-session-bob", "0-bob")
 
       const context = {
         sessionID: "test-session-bob",
@@ -268,7 +296,9 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'frank'")
+      expect(result).toContain(
+        "Successfully hired employee '0-frank' (name: frank)"
+      )
       expect(result).toContain("role: developer")
 
       sessionRegistry.unregister("test-session-bob")
@@ -290,7 +320,9 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'george'")
+      expect(result).toContain(
+        "Successfully hired employee '0-george' (name: george)"
+      )
       expect(result).toContain(
         "IMPORTANT: This role requires the following parameters"
       )
@@ -319,7 +351,9 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'helen'")
+      expect(result).toContain(
+        "Successfully hired employee '0-helen' (name: helen)"
+      )
       expect(result).not.toContain("IMPORTANT: This role requires")
     })
 
@@ -338,7 +372,9 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'ivan'")
+      expect(result).toContain(
+        "Successfully hired employee '0-ivan' (name: ivan)"
+      )
       expect(result).toContain("IMPORTANT: This role requires")
       expect(result).toContain("Initial message sent")
     })
@@ -366,7 +402,7 @@ You are a project manager.`
     test("suggests show_hireable_roles when permission denied", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "alice")
+      sessionRegistry.register("test-session-alice", "0-alice")
 
       const context = {
         sessionID: "test-session-alice",
@@ -401,7 +437,7 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Error: Employee 'alice' already exists")
+      expect(result).toContain("Error: Employee '0-alice' already exists")
     })
 
     test("rejects when caller cannot be identified", async () => {
@@ -438,11 +474,13 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'mike'")
+      expect(result).toContain(
+        "Successfully hired employee '0-mike' (name: mike)"
+      )
       expect(result).toContain("role: developer")
 
       // 验证员工的角色是 name 字段
-      const employee = stateManager.getEmployee("mike")
+      const employee = stateManager.getEmployee("0-mike")
       expect(employee?.role).toBe("developer")
     })
   })
@@ -463,12 +501,12 @@ You are a project manager.`
       )
 
       // 验证事件已记录
-      const events = stateManager.getEvents("nancy")
+      const events = stateManager.getEvents("0-nancy")
       const hiredEvent = events.find((e) => e.type === "employee_hired")
 
       expect(hiredEvent).toBeDefined()
-      expect(hiredEvent?.employeeName).toBe("nancy")
-      expect(hiredEvent?.details.hiredBy).toBe("boss")
+      expect(hiredEvent?.employeeId).toBe("0-nancy")
+      expect(hiredEvent?.details.hiredBy).toBe("0-boss")
       expect(hiredEvent?.details.role).toBe("developer")
       expect(hiredEvent?.details.initialMessage).toBeUndefined()
     })
@@ -489,12 +527,12 @@ You are a project manager.`
       )
 
       // 验证事件已记录
-      const events = stateManager.getEvents("oliver")
+      const events = stateManager.getEvents("0-oliver")
       const hiredEvent = events.find((e) => e.type === "employee_hired")
 
       expect(hiredEvent).toBeDefined()
-      expect(hiredEvent?.employeeName).toBe("oliver")
-      expect(hiredEvent?.details.hiredBy).toBe("boss")
+      expect(hiredEvent?.employeeId).toBe("0-oliver")
+      expect(hiredEvent?.details.hiredBy).toBe("0-boss")
       expect(hiredEvent?.details.role).toBe("tester")
       expect(hiredEvent?.details.initialMessage).toBe("Welcome aboard!")
     })
@@ -515,17 +553,19 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'peter'")
+      expect(result).toContain(
+        "Successfully hired employee '0-peter' (name: peter)"
+      )
       expect(result).toContain("Default message sent")
 
       // 验证消息已发送
-      const peterClient = messageService.getClient("peter")
-      const messages = await peterClient.history("boss")
+      const peterClient = messageService.getClient("0-peter")
+      const messages = await peterClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
       const lastMessage = messages[messages.length - 1]
-      expect(lastMessage.from).toBe("boss")
-      expect(lastMessage.to).toBe("peter")
+      expect(lastMessage.from).toBe("0-boss")
+      expect(lastMessage.to).toBe("0-peter")
       expect(lastMessage.content).toContain("Hello! I am boss")
       expect(lastMessage.content).toContain("Your role is tester")
       expect(lastMessage.content).toContain(
@@ -548,8 +588,8 @@ You are a project manager.`
       )
 
       // 验证消息已发送
-      const quinnClient = messageService.getClient("quinn")
-      const messages = await quinnClient.history("boss")
+      const quinnClient = messageService.getClient("0-quinn")
+      const messages = await quinnClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
       const lastMessage = messages[messages.length - 1]
@@ -580,8 +620,8 @@ You are a project manager.`
       )
 
       // 验证消息已发送
-      const rachelClient = messageService.getClient("rachel")
-      const messages = await rachelClient.history("boss")
+      const rachelClient = messageService.getClient("0-rachel")
+      const messages = await rachelClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
       const lastMessage = messages[messages.length - 1]
@@ -608,13 +648,15 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'sam'")
+      expect(result).toContain(
+        "Successfully hired employee '0-sam' (name: sam)"
+      )
       expect(result).toContain("Initial message sent")
       expect(result).not.toContain("Default message sent")
 
       // 验证消息已发送
-      const samClient = messageService.getClient("sam")
-      const messages = await samClient.history("boss")
+      const samClient = messageService.getClient("0-sam")
+      const messages = await samClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
       const lastMessage = messages[messages.length - 1]
