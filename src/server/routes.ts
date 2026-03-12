@@ -958,7 +958,14 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
     "POST:/employees/:employeeName/pause",
     async (req, params, deps) => {
       try {
+<<<<<<< HEAD
         const { employeeName } = params
+=======
+        const employeeId = params.employeeId
+        const [taskIdStr, ...nameParts] =
+          decodeURIComponent(employeeId).split("-")
+        const employeeName = nameParts.join("-")
+>>>>>>> 6161978 (refactor: add comprehensive debug logging to EventLoop and format routes.ts)
 
         // 创建 pause_employee 工具（直接使用 deps 中的服务）
         const { createPauseEmployeeTool } = await import("../tools")
