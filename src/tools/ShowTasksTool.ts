@@ -39,7 +39,7 @@ export function createShowTasksTool(
       const employeeName = employee.name
 
       // 2. Read employee memory
-      const memory = await memoryManager.read(employeeName)
+      const memory = await memoryManager.read(employeeId)
 
       if (!memory || !memory.tasks || memory.tasks.length === 0) {
         return "Currently no tasks"
@@ -55,7 +55,7 @@ export function createShowTasksTool(
 
       // 4. Part 2: Executable Tasks
       const executableTasks =
-        await memoryManager.getExecutableTasks(employeeName)
+        await memoryManager.getExecutableTasks(employeeId)
       sections.push("## Executable Tasks")
       sections.push("")
       if (executableTasks.length > 0) {
