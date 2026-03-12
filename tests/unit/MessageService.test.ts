@@ -402,6 +402,145 @@ describe("MessageService", () => {
     })
   })
 
+  describe("Message routing", () => {
+    test("should route messages between employees in same task", async () => {
+      // alice 和 bob 都在 taskId=0
+      const alice = service.getClient("0-alice")
+      const bob = service.getClient("0-bob")
+
+      await alice.send("0-bob", "Same task message")
+
+      const message = await bob.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.content).toBe("Same task message")
+
+      // 验证文件路径格式
+      const aliceFilePath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "0-alice",
+        "messages",
+        "0-bob",
+        "chat.yaml"
+      )
+      const fileExists = await fs
+        .access(aliceFilePath)
+        .then(() => true)
+        .catch(() => false)
+      expect(fileExists).toBe(true)
+    })
+
+    test("should route messages between employees in different tasks", async () => {
+      // 注册一个 taskId=1 的员工
+      await stateManager.registerEmployee({
+        employeeId: "1-dave",
+        name: "dave",
+        taskId: 1,
+        hiredBy: "0-alice",
+        role: "test",
+        paused: false,
+        status: "inactive",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const alice = service.getClient("0-alice") // taskId=0
+      const dave = service.getClient("1-dave") // taskId=1
+
+      // Alice (task 0) 发送消息给 Dave (task 1)
+      await alice.send("1-dave", "Cross-task message")
+
+      const message = await dave.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.content).toBe("Cross-task message")
+
+      // 验证文件路径格式 (employeeId 包含 taskId 前缀)
+      const aliceFilePath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "0-alice",
+        "messages",
+        "1-dave",
+        "chat.yaml"
+      )
+      const daveFilePath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "1-dave",
+        "messages",
+        "0-alice",
+        "chat.yaml"
+      )
+
+      const aliceFileExists = await fs
+        .access(aliceFilePath)
+        .then(() => true)
+        .catch(() => false)
+      const daveFileExists = await fs
+        .access(daveFilePath)
+        .then(() => true)
+        .catch(() => false)
+
+      expect(aliceFileExists).toBe(true)
+      expect(daveFileExists).toBe(true)
+    })
+
+    test("should route messages from boss to employee", async () => {
+      // Boss 发送消息给员工
+      const boss = service.getClient("0-bayecao")
+      const alice = service.getClient("0-alice")
+
+      await boss.send("0-alice", "Boss message")
+
+      const message = await alice.recv()
+      expect(message.from).toBe("0-bayecao")
+      expect(message.content).toBe("Boss message")
+
+      // 验证 boss 使用 bosses 目录
+      const bossFilePath = path.join(
+        TEST_WORKSPACE,
+        "bosses",
+        "bayecao",
+        "messages",
+        "0-alice",
+        "chat.yaml"
+      )
+      const fileExists = await fs
+        .access(bossFilePath)
+        .then(() => true)
+        .catch(() => false)
+      expect(fileExists).toBe(true)
+    })
+
+    test("should route messages from employee to boss", async () => {
+      // 员工发送消息给 Boss
+      const alice = service.getClient("0-alice")
+      const boss = service.getClient("0-bayecao")
+
+      await alice.send("0-bayecao", "Message to boss")
+
+      const message = await boss.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.content).toBe("Message to boss")
+
+      // 验证员工使用 employees 目录
+      const aliceFilePath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "0-alice",
+        "messages",
+        "0-bayecao",
+        "chat.yaml"
+      )
+      const fileExists = await fs
+        .access(aliceFilePath)
+        .then(() => true)
+        .catch(() => false)
+      expect(fileExists).toBe(true)
+    })
+  })
+
   describe("reference_docs support", () => {
     test("should send message with reference_docs", async () => {
       const alice = service.getClient("0-alice")

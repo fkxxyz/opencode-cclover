@@ -50,6 +50,7 @@ requiredArgs:
 canHire:
   - tester
   - designer
+  - worker
 groups:
   - engineering
 ---
@@ -69,6 +70,21 @@ groups:
 ---
 
 You are a software tester.`
+    )
+
+    // 2b. worker 角色（无 requiredArgs，非 soul - 用于跨任务测试）
+    await fs.writeFile(
+      path.join(rolesDir, "worker.md"),
+      `---
+name: worker
+description: General worker
+soul: false
+canHire: []
+groups:
+  - engineering
+---
+
+You are a general worker.`
     )
 
     // 3. designer 角色（无 requiredArgs）
@@ -661,6 +677,118 @@ You are a project manager.`
 
       const lastMessage = messages[messages.length - 1]
       expect(lastMessage.content).toBe("Welcome to the design team!")
+    })
+  })
+
+  describe("TaskId Inheritance", () => {
+    test("boss-hired soul employee gets taskId=0", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "tom",
+          role: "tester", // soul role
+        },
+        context
+      )
+
+      // 验证员工的 taskId
+      const employee = await stateManager.getEmployee("0-tom")
+      expect(employee).toBeDefined()
+      expect(employee!.taskId).toBe(0)
+      expect(employee!.employeeId).toBe("0-tom")
+      expect(employee!.hiredBy).toBe("0-boss") // Boss-hired employees have hiredBy set to boss ID
+    })
+
+    test("employee-hired worker inherits hirer's taskId", async () => {
+      // 注册一个 taskId=1 的员工
+      await stateManager.registerEmployee({
+        employeeId: "1-alice",
+        name: "alice",
+        taskId: 1,
+        hiredBy: "0-boss",
+        role: "developer",
+        paused: false,
+        status: "inactive",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      // 注册 alice 到 SessionRegistry
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-alice", "1-alice")
+
+      const context = {
+        sessionID: "test-session-alice",
+        agent: undefined,
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "jerry",
+          role: "worker", // non-soul role
+        },
+        context
+      )
+
+      // 验证新员工继承了 alice 的 taskId
+      const employee = await stateManager.getEmployee("1-jerry")
+      expect(employee).toBeDefined()
+      expect(employee!.taskId).toBe(1)
+      expect(employee!.employeeId).toBe("1-jerry")
+      expect(employee!.hiredBy).toBe("1-alice")
+
+      // 清理
+      sessionRegistry.unregister("test-session-alice")
+    })
+
+    test("employee in different task can hire with correct taskId", async () => {
+      // 注册一个 taskId=2 的员工
+      await stateManager.registerEmployee({
+        employeeId: "2-bob",
+        name: "bob",
+        taskId: 2,
+        hiredBy: "0-boss",
+        role: "manager",
+        paused: false,
+        status: "inactive",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      // 注册 bob 到 SessionRegistry
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-bob", "2-bob")
+
+      const context = {
+        sessionID: "test-session-bob",
+        agent: undefined,
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "kate",
+          role: "worker", // non-soul role
+        },
+        context
+      )
+
+      // 验证新员工的 taskId=2
+      const employee = await stateManager.getEmployee("2-kate")
+      expect(employee).toBeDefined()
+      expect(employee!.taskId).toBe(2)
+      expect(employee!.employeeId).toBe("2-kate")
+      expect(employee!.hiredBy).toBe("2-bob")
+
+      // 清理
+      sessionRegistry.unregister("test-session-bob")
     })
   })
 })

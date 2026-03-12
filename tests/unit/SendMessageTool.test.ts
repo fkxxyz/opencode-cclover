@@ -195,4 +195,140 @@ describe("SendMessageTool with Boss", () => {
       )
     ).rejects.toThrow("Unable to identify caller")
   })
+
+  describe("Message routing", () => {
+    test("should route messages between employees in same task", async () => {
+      // 注册 alice 到 SessionRegistry
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-same-task", "0-alice")
+
+      const context = {
+        sessionID: "test-session-same-task",
+        agent: undefined,
+      }
+
+      // Alice (taskId=0) 发送消息给 Bob (taskId=0)
+      const result = await sendMessageTool.execute(
+        {
+          to: "0-bob",
+          content: "Same task message",
+        },
+        context
+      )
+
+      expect(result).toBe("Message sent to 0-bob")
+
+      // 验证消息已发送
+      const bobClient = messageService.getClient("0-bob")
+      const message = await bobClient.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.content).toBe("Same task message")
+
+      // 清理
+      sessionRegistry.unregister("test-session-same-task")
+    })
+
+    test("should route messages between employees in different tasks", async () => {
+      // 注册一个 taskId=1 的员工
+      await stateManager.registerEmployee({
+        employeeId: "1-dave",
+        name: "dave",
+        taskId: 1,
+        hiredBy: "0-alice",
+        role: "test",
+        paused: false,
+        status: "inactive",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      // 注册 alice 到 SessionRegistry
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-cross-task", "0-alice")
+
+      const context = {
+        sessionID: "test-session-cross-task",
+        agent: undefined,
+      }
+
+      // Alice (taskId=0) 发送消息给 Dave (taskId=1)
+      const result = await sendMessageTool.execute(
+        {
+          to: "1-dave",
+          content: "Cross-task message",
+        },
+        context
+      )
+
+      expect(result).toBe("Message sent to 1-dave")
+
+      // 验证消息已发送
+      const daveClient = messageService.getClient("1-dave")
+      const message = await daveClient.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.content).toBe("Cross-task message")
+
+      // 清理
+      sessionRegistry.unregister("test-session-cross-task")
+    })
+
+    test("should route messages from boss to employee", async () => {
+      const context = {
+        sessionID: "test-session-boss-routing",
+        agent: "bayecao", // Boss
+      }
+
+      // Boss 发送消息给员工
+      const result = await sendMessageTool.execute(
+        {
+          to: "0-alice",
+          content: "Boss routing message",
+        },
+        context
+      )
+
+      expect(result).toBe("Message sent to 0-alice")
+
+      // 验证消息已发送
+      const aliceClient = messageService.getClient("0-alice")
+      const message = await aliceClient.recv()
+      expect(message.from).toBe("0-bayecao")
+      expect(message.content).toBe("Boss routing message")
+    })
+
+    test("should route messages from employee to boss", async () => {
+      // 注册 alice 到 SessionRegistry
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-to-boss", "0-alice")
+
+      const context = {
+        sessionID: "test-session-to-boss",
+        agent: undefined,
+      }
+
+      // Alice 发送消息给 Boss
+      const result = await sendMessageTool.execute(
+        {
+          to: "0-bayecao",
+          content: "Message to boss",
+        },
+        context
+      )
+
+      expect(result).toBe("Message sent to 0-bayecao")
+
+      // 验证消息已发送
+      const bossClient = messageService.getClient("0-bayecao")
+      const message = await bossClient.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.content).toBe("Message to boss")
+
+      // 清理
+      sessionRegistry.unregister("test-session-to-boss")
+    })
+  })
 })

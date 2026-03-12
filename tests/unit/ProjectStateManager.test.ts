@@ -84,7 +84,10 @@ class RealProjectStateManager implements ProjectStateManager {
 }
 
 describe("ProjectStateManager", () => {
-  const testRoot = path.join(__dirname, "../fixtures/project-state-manager-test")
+  const testRoot = path.join(
+    __dirname,
+    "../fixtures/project-state-manager-test"
+  )
   let stateManager: ProjectStateManager
 
   beforeEach(async () => {
@@ -150,7 +153,11 @@ describe("ProjectStateManager", () => {
     )
 
     it("should create state file if it doesn't exist", async () => {
-      const stateFilePath = path.join(testRoot, ".cclover", "project-state.yaml")
+      const stateFilePath = path.join(
+        testRoot,
+        ".cclover",
+        "project-state.yaml"
+      )
 
       // 确认文件不存在
       await expect(fs.access(stateFilePath)).rejects.toThrow()
@@ -205,7 +212,11 @@ describe("ProjectStateManager", () => {
     })
 
     it("should create state file if it doesn't exist", async () => {
-      const stateFilePath = path.join(testRoot, ".cclover", "project-state.yaml")
+      const stateFilePath = path.join(
+        testRoot,
+        ".cclover",
+        "project-state.yaml"
+      )
 
       // 确认文件不存在
       await expect(fs.access(stateFilePath)).rejects.toThrow()
@@ -223,7 +234,11 @@ describe("ProjectStateManager", () => {
     it("should use correct YAML format", async () => {
       await stateManager.getNextTaskId()
 
-      const stateFilePath = path.join(testRoot, ".cclover", "project-state.yaml")
+      const stateFilePath = path.join(
+        testRoot,
+        ".cclover",
+        "project-state.yaml"
+      )
       const content = await fs.readFile(stateFilePath, "utf-8")
       const state = yaml.parse(content)
 
@@ -238,7 +253,11 @@ describe("ProjectStateManager", () => {
       await stateManager.getNextTaskId()
 
       // 读取状态文件
-      const stateFilePath = path.join(testRoot, ".cclover", "project-state.yaml")
+      const stateFilePath = path.join(
+        testRoot,
+        ".cclover",
+        "project-state.yaml"
+      )
       const content = await fs.readFile(stateFilePath, "utf-8")
       const state = yaml.parse(content)
 
