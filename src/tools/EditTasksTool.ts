@@ -86,14 +86,6 @@ export function createEditTasksTool(
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
 
-      // 2. Look up employee to get name
-      const employee = stateManager.getEmployee(employeeId)
-      if (!employee) {
-        return `Error: Employee not found (employeeId: ${employeeId})`
-      }
-
-      const employeeName = employee.name
-
       const results: string[] = []
       let hasSuccess = false
 
@@ -109,7 +101,7 @@ export function createEditTasksTool(
               continue
             }
 
-            await memoryManager.addTask(employeeName, {
+            await memoryManager.addTask(employeeId, {
               name: op.name,
               status: "pending",
               description: op.description,
@@ -135,10 +127,10 @@ export function createEditTasksTool(
               updates.completed = new Date().toISOString()
             }
 
-            await memoryManager.updateTask(employeeName, op.name, updates)
+            await memoryManager.updateTask(employeeId, op.name, updates)
 
             // Get updated task to show current status
-            const memory = await memoryManager.read(employeeName)
+            const memory = await memoryManager.read(employeeId)
             const updatedTask = memory.tasks.find((t) => t.name === op.name)
             const status = updatedTask?.status || "unknown"
             results.push(`✓ Updated task: ${op.name} [${status}]`)
@@ -151,7 +143,7 @@ export function createEditTasksTool(
             }
 
             const { affectedTasks } = await memoryManager.deleteTaskWithCleanup(
-              employeeName,
+              employeeId,
               op.name
             )
 
@@ -194,7 +186,7 @@ export function createEditTasksTool(
             }
 
             await memoryManager.decomposeTask(
-              employeeName,
+              employeeId,
               op.name,
               op.subtasks
             )
@@ -214,9 +206,9 @@ export function createEditTasksTool(
       if (hasSuccess) {
         try {
           const inProgressTasks =
-            await memoryManager.getInProgressTasks(employeeName)
+            await memoryManager.getInProgressTasks(employeeId)
           const executableTasks =
-            await memoryManager.getExecutableTasks(employeeName)
+            await memoryManager.getExecutableTasks(employeeId)
 
           results.push("")
           results.push(
