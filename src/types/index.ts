@@ -1,20 +1,24 @@
-// 员工状态类型
-export type EmployeeStatus = "busy" | "idle" | "error" | "offline" | "abnormal"
-
-// 员工基本信息
-export interface Employee {
-  name: string
-  role: string
-  status: EmployeeStatus
-  paused: boolean
-  createdAt: string
-  lastActiveAt: string
-  hiredBy?: string
-  activeSessionId?: string
-}
+// 导出新的员工相关类型
+import type { Employee as EmployeeBase, EmployeeStatus } from "./employee"
+export type {
+  TaskId,
+  EmployeeId,
+  EmployeeName,
+  BossId,
+  ProjectState,
+  EmployeeStatus,
+} from "./employee"
+export type { Employee } from "./employee"
+export {
+  isValidEmployeeName,
+  parseEmployeeId,
+  formatEmployeeId,
+  formatBossId,
+  isBossId,
+} from "./employee"
 
 // 员工详细信息
-export interface EmployeeDetail extends Employee {
+export interface EmployeeDetail extends EmployeeBase {
   memory: Memory
   tasks: Task[]
   agents: AgentExecution[]
