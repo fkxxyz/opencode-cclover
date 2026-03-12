@@ -49,10 +49,7 @@ export class ErrorRecovery {
         error
       )
 
-      await this.stateManager?.updateEmployeeStatus(
-        this.employeeId,
-        "abnormal"
-      )
+      await this.stateManager?.updateEmployeeStatus(this.employeeId, "abnormal")
 
       // 进入降级模式
       await this.enterDegradedMode()

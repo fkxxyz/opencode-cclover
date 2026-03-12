@@ -69,7 +69,7 @@ export function createCreateAgentTool(
 
         // 4. Record agent information (for subsequent event matching)
         agentRegistry.register(agentId, {
-          employeeId: employeeName,
+          employeeId: employeeId,
           taskName: args.task_name,
         })
         // 4. Record agent creation event
@@ -77,7 +77,7 @@ export function createCreateAgentTool(
           projectId: "",
           type: "agent_created",
           timestamp: new Date().toISOString(),
-          employeeId: employeeName,
+          employeeId: employeeId,
           details: {
             agentId,
             taskName: args.task_name,

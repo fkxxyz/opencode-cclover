@@ -67,10 +67,7 @@ export class ReplyTracker {
         // 检查后续是否有我发送给对方的消息
         let hasReply = false
         for (let j = i + 1; j < messages.length; j++) {
-          if (
-            messages[j].from === this.employeeId &&
-            messages[j].to === peer
-          ) {
+          if (messages[j].from === this.employeeId && messages[j].to === peer) {
             hasReply = true
             break
           }

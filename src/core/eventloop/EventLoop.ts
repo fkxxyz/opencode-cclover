@@ -137,10 +137,7 @@ export class EventLoop {
 
         // 2. 只有在没有立即可用事件时，才设置为 idle
         if (!hasImmediate) {
-          await this.stateManager?.updateEmployeeStatus(
-            this.employeeId,
-            "idle"
-          )
+          await this.stateManager?.updateEmployeeStatus(this.employeeId, "idle")
           logger.debug(`[${this.employeeId}] Status updated to idle`)
         }
 
@@ -489,10 +486,7 @@ export class EventLoop {
     // 1. 处理假期请求事件
     if (event.type === "vacation_requested") {
       // 更新状态为 offline
-      await this.stateManager?.updateEmployeeStatus(
-        this.employeeId,
-        "offline"
-      )
+      await this.stateManager?.updateEmployeeStatus(this.employeeId, "offline")
 
       // 记录状态变更事件
       await this.stateManager?.addEvent({
@@ -515,10 +509,7 @@ export class EventLoop {
     if (event.type === "message" || event.type === "agent_completed") {
       this.progressTracker.clearProgressTracking()
       // 只有当员工发送消息时才清空回复跟踪
-      if (
-        event.type === "message" &&
-        event.details.from === this.employeeId
-      ) {
+      if (event.type === "message" && event.details.from === this.employeeId) {
         this.replyTracker.clearReplyTracking()
       }
       const employee = await this.stateManager?.getEmployee(this.employeeId)
@@ -532,15 +523,10 @@ export class EventLoop {
 
     // 3. 确保 session 存在
     const session = await this.sessionManager.ensureSession()
-    console.log(
-      `[${this.employeeId}] Handling event in session: ${session.id}`
-    )
+    console.log(`[${this.employeeId}] Handling event in session: ${session.id}`)
 
     // 4. 更新 activeSessionId
-    await this.stateManager?.updateActiveSessionId(
-      this.employeeId,
-      session.id
-    )
+    await this.stateManager?.updateActiveSessionId(this.employeeId, session.id)
 
     // 5. 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeId)
@@ -565,9 +551,7 @@ export class EventLoop {
     })
 
     // 9. 发送给 AI
-    logger.debug(
-      `[${this.employeeId}] Calling AI (session.prompt)`
-    )
+    logger.debug(`[${this.employeeId}] Calling AI (session.prompt)`)
     const result = await this.opcodeClient.session.prompt({
       path: { id: session.id },
       body: {
@@ -584,9 +568,7 @@ export class EventLoop {
         "x-opencode-directory": this.projectPath,
       },
     })
-    logger.debug(
-      `[${this.employeeId}] AI call completed, received result`
-    )
+    logger.debug(`[${this.employeeId}] AI call completed, received result`)
 
     // 10. 清除 activeSessionId
     await this.stateManager?.updateActiveSessionId(this.employeeId, null)

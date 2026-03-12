@@ -7,11 +7,7 @@ import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { StateManager } from "../state/StateManager"
 import type { BossManager } from "./BossManager"
 import type { Message, MessageDirection, Event } from "../types"
-import type {
-  EmployeeId,
-  BossId,
-  TaskId,
-} from "../types/employee"
+import type { EmployeeId, BossId, TaskId } from "../types/employee"
 import type {
   RecipientResolution,
   MessageRouter,
@@ -426,7 +422,12 @@ export class MessageService implements MessageRouter {
     let messagesDir: string
     if (isBossId(employeeId)) {
       const bossName = RoutingRules.extractNameFromBossId(employeeId)
-      messagesDir = path.join(this.workspaceRoot, "bosses", bossName, "messages")
+      messagesDir = path.join(
+        this.workspaceRoot,
+        "bosses",
+        bossName,
+        "messages"
+      )
     } else {
       messagesDir = path.join(
         this.workspaceRoot,
