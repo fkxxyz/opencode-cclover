@@ -8,7 +8,7 @@ import { useState, useEffect } from "react"
 
 interface TimelineProps {
   projectId: string
-  employeeName: string
+  employeeId: string
   peer?: string
   limit?: number
 }
@@ -102,13 +102,13 @@ function TimelineItemComponent({
 
 export function Timeline({
   projectId,
-  employeeName,
+  employeeId,
   peer,
   limit,
 }: TimelineProps) {
   const { timeline, loading } = useTimeline(
     projectId,
-    employeeName,
+    employeeId,
     peer,
     limit
   )
@@ -133,8 +133,8 @@ export function Timeline({
         if (item.type === "message") {
           const message = item.data as Message
           return (
-            (message.from === employeeName && message.to === peer) ||
-            (message.from === peer && message.to === employeeName)
+            (message.from === employeeId && message.to === peer) ||
+            (message.from === peer && message.to === employeeId)
           )
         }
         // 事件总是显示

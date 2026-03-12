@@ -144,7 +144,7 @@ export function BossDetail() {
       >
         <ConversationView
           projectId={projectId!}
-          employeeName={boss.name}
+          employeeId={boss.name}
           selectedPeer={currentPeer}
           onPeerChange={(peer) => {
             const newParams = new URLSearchParams(searchParams)

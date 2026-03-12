@@ -4,7 +4,7 @@ import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
 export function useMessages(
   projectId: string | undefined,
-  employeeName: string,
+  employeeId: string,
   peer?: string
 ) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -15,14 +15,14 @@ export function useMessages(
     if (!projectId) return
     setLoading(true)
     apiClient
-      .getMessages(projectId, employeeName, peer)
+      .getMessages(projectId, employeeId, peer)
       .then(setMessages)
       .catch((err: Error) => {
         console.error("获取消息失败:", err)
         setMessages([])
       })
       .finally(() => setLoading(false))
-  }, [projectId, employeeName, peer])
+  }, [projectId, employeeId, peer])
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("message", (event) => {
@@ -38,8 +38,8 @@ export function useMessages(
 
       // 检查消息是否与当前员工和对话对象相关
       const isRelevant =
-        (from === employeeName && (!peer || to === peer)) ||
-        (to === employeeName && (!peer || from === peer))
+        (from === employeeId && (!peer || to === peer)) ||
+        (to === employeeId && (!peer || from === peer))
 
       if (isRelevant) {
         // 构造完整的 Message 对象
@@ -48,12 +48,12 @@ export function useMessages(
           to,
           content,
           timestamp: event.timestamp,
-          direction: from === employeeName ? "send" : "receive",
+          direction: from === employeeId ? "send" : "receive",
         }
         setMessages((prev) => [...prev, message])
       }
     })
     return unsubscribe
-  }, [subscribe, employeeName, peer])
+  }, [subscribe, employeeId, peer])
   return { messages, loading }
 }

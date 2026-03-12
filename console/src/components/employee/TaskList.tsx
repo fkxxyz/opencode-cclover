@@ -16,7 +16,7 @@ import CircularProgress from "@mui/material/CircularProgress"
 
 interface TaskListProps {
   projectId: string
-  employeeName: string
+  employeeId: string
 }
 
 const statusVariants: Record<
@@ -48,8 +48,8 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-export function TaskList({ projectId, employeeName }: TaskListProps) {
-  const { tasks, executableTasks, loading } = useTasks(projectId, employeeName)
+export function TaskList({ projectId, employeeId }: TaskListProps) {
+  const { tasks, executableTasks, loading } = useTasks(projectId, employeeId)
   if (loading) {
     return (
       <Card>

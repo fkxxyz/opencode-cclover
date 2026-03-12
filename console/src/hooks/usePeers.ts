@@ -3,7 +3,7 @@ import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
 import type { PeerWithLastMessage } from "../types/index"
 
-export function usePeers(projectId: string | undefined, employeeName: string) {
+export function usePeers(projectId: string | undefined, employeeId: string) {
   const [peers, setPeers] = useState<PeerWithLastMessage[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
@@ -14,14 +14,14 @@ export function usePeers(projectId: string | undefined, employeeName: string) {
 
     setLoading(true)
     apiClient
-      .getPeers(projectId, employeeName)
+      .getPeers(projectId, employeeId)
       .then(setPeers)
       .catch((err: Error) => {
         console.error("获取对话列表失败:", err)
         setPeers([])
       })
       .finally(() => setLoading(false))
-  }, [projectId, employeeName])
+  }, [projectId, employeeId])
 
   // 实时更新：收到新消息时更新对话列表
   useEffect(() => {

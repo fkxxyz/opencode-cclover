@@ -7,27 +7,27 @@ const MAX_EVENTS = 500
 
 export function useEvents(
   projectId: string | undefined,
-  options?: { limit?: number; employeeName?: string }
+  options?: { limit?: number; employeeId?: string }
 ) {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const { subscribe } = useWebSocket()
-  const employeeNameRef = useRef(options?.employeeName)
+  const employeeIdRef = useRef(options?.employeeId)
   const limitRef = useRef(options?.limit)
 
   // 更新 refs
   useEffect(() => {
-    employeeNameRef.current = options?.employeeName
+    employeeIdRef.current = options?.employeeId
     limitRef.current = options?.limit
-  }, [options?.employeeName, options?.limit])
+  }, [options?.employeeId, options?.limit])
 
   // 使用 useMemo 稳定 options 对象
   const stableOptions = useMemo(
     () => ({
       limit: options?.limit,
-      employeeName: options?.employeeName,
+      employeeId: options?.employeeId,
     }),
-    [options?.limit, options?.employeeName]
+    [options?.limit, options?.employeeId]
   )
 
   // 初始加载
@@ -48,7 +48,7 @@ export function useEvents(
   useEffect(() => {
     const unsubscribe = subscribe("*", (event) => {
       // 如果指定了 employeeName，检查事件是否与该员工相关
-      if (employeeNameRef.current) {
+      if (employeeIdRef.current) {
         // 对于消息事件，检查 from 或 to 是否是当前员工
         if (
           event.type === "message" ||
@@ -59,14 +59,14 @@ export function useEvents(
           const from = details?.from as string
           const to = details?.to as string
           if (
-            from !== employeeNameRef.current &&
-            to !== employeeNameRef.current
+            from !== employeeIdRef.current &&
+            to !== employeeIdRef.current
           ) {
             return
           }
         } else {
           // 其他事件：检查 employeeName 字段
-          if (event.employeeName !== employeeNameRef.current) {
+          if (event.employeeName !== employeeIdRef.current) {
             return
           }
         }

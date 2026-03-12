@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import type { Task } from "../types/index"
 import { apiClient } from "../services/index"
 import { useWebSocket } from "./useWebSocket"
-export function useTasks(projectId: string | undefined, employeeName: string) {
+export function useTasks(projectId: string | undefined, employeeId: string) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [executableTasks, setExecutableTasks] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
@@ -12,7 +12,7 @@ export function useTasks(projectId: string | undefined, employeeName: string) {
     if (!projectId) return
     setLoading(true)
     apiClient
-      .getTasks(projectId, employeeName)
+      .getTasks(projectId, employeeId)
       .then((data) => {
         setTasks(data.tasks)
         setExecutableTasks(data.executableTasks)
@@ -23,7 +23,7 @@ export function useTasks(projectId: string | undefined, employeeName: string) {
         setExecutableTasks([])
       })
       .finally(() => setLoading(false))
-  }, [projectId, employeeName])
+  }, [projectId, employeeId])
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("task_updated", (event) => {

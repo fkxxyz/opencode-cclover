@@ -17,7 +17,7 @@ import { handleError, ValidationError } from "../../lib/error-handler"
 
 interface MessagePanelProps {
   projectId: string
-  employeeName: string
+  employeeId: string
   peer: string
   onBack?: () => void
 }
@@ -34,12 +34,12 @@ function formatTimestamp(timestamp: string): string {
 
 export function MessagePanel({
   projectId,
-  employeeName,
+  employeeId,
   peer,
   onBack,
 }: MessagePanelProps) {
   const { timeline, loading, loadMoreMessages, hasMore, loadingMore } =
-    useTimeline(projectId, employeeName, peer)
+    useTimeline(projectId, employeeId, peer)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [inputValue, setInputValue] = useState("")
@@ -70,15 +70,15 @@ export function MessagePanel({
         if (item.type === "message") {
           const message = item.data as Message
           return (
-            (message.from === employeeName && message.to === peer) ||
-            (message.from === peer && message.to === employeeName)
+            (message.from === employeeId && message.to === peer) ||
+            (message.from === peer && message.to === employeeId)
           )
         }
         // 事件：显示对方（peer）的事件
         const event = item.data as Event
         return event.employeeName === peer
       }) || [],
-    [timeline, employeeName, peer]
+    [timeline, employeeId, peer]
   )
 
   // 滚动到底部
@@ -176,7 +176,7 @@ export function MessagePanel({
     setInputValue("") // 立即清空输入框（乐观更新）
 
     try {
-      await apiClient.sendMessage(projectId, employeeName, peer, messageContent)
+      await apiClient.sendMessage(projectId, employeeId, peer, messageContent)
     } catch (error) {
       // 统一错误处理
       const appError = handleError(error, "发送消息")

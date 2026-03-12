@@ -10,14 +10,14 @@ import { usePeers } from "../../hooks/usePeers"
 
 interface ConversationViewProps {
   projectId: string
-  employeeName: string
+  employeeId: string
   selectedPeer?: string | null
   onPeerChange?: (peer: string | null) => void
 }
 
 export function ConversationView({
   projectId,
-  employeeName,
+  employeeId,
   selectedPeer: externalSelectedPeer,
   onPeerChange,
 }: ConversationViewProps) {
@@ -26,7 +26,7 @@ export function ConversationView({
   >(null)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
-  const { peers, loading } = usePeers(projectId, employeeName)
+  const { peers, loading } = usePeers(projectId, employeeId)
   // 使用外部传入的 selectedPeer，如果没有则使用内部状态
   const selectedPeer =
     externalSelectedPeer !== undefined
@@ -71,7 +71,7 @@ export function ConversationView({
             ) : (
               <MessagePanel
                 projectId={projectId}
-                employeeName={employeeName}
+                employeeId={employeeId}
                 peer={selectedPeer}
                 onBack={handleBack}
               />
@@ -89,7 +89,7 @@ export function ConversationView({
             {selectedPeer ? (
               <MessagePanel
                 projectId={projectId}
-                employeeName={employeeName}
+                employeeId={employeeId}
                 peer={selectedPeer}
               />
             ) : (

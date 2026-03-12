@@ -16,7 +16,7 @@ import { apiClient } from "../../services"
 
 interface EventTimelineProps {
   projectId: string
-  employeeName: string
+  employeeId: string
 }
 
 const eventTypeColors: Partial<
@@ -169,8 +169,8 @@ function getEventDescription(
   }
 }
 
-export function EventTimeline({ projectId, employeeName }: EventTimelineProps) {
-  const { events, loading } = useEvents(projectId, { employeeName })
+export function EventTimeline({ projectId, employeeId }: EventTimelineProps) {
+  const { events, loading } = useEvents(projectId, { employeeId })
   const [filterType, setFilterType] = useState<EventType | "all">("all")
   const [project, setProject] = useState<Project | null>(null)
 

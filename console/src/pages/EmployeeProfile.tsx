@@ -271,7 +271,7 @@ export function EmployeeProfile() {
             value="tasks"
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <TaskList projectId={projectId!} employeeName={employee.name} />
+            <TaskList projectId={projectId!} employeeId={employee.name} />
             <Card>
               <CardContent sx={{ pt: 3 }}>
                 <Box sx={{ height: 600 }}>
@@ -298,7 +298,7 @@ export function EmployeeProfile() {
           >
             <EventTimeline
               projectId={projectId!}
-              employeeName={employee.name}
+              employeeId={employee.name}
             />
           </TabsContent>
         </Tabs>

@@ -6,7 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress"
 
 interface MessageListProps {
   projectId: string
-  employeeName: string
+  employeeId: string
   peer?: string
 }
 
@@ -22,10 +22,10 @@ function formatTimestamp(timestamp: string): string {
 
 export function MessageList({
   projectId,
-  employeeName,
+  employeeId,
   peer,
 }: MessageListProps) {
-  const { messages, loading } = useMessages(projectId, employeeName, peer)
+  const { messages, loading } = useMessages(projectId, employeeId, peer)
   if (loading) {
     return (
       <Card>

@@ -37,7 +37,7 @@ function mergeTimelines(
 
 export function useTimeline(
   projectId: string | undefined,
-  employeeName: string,
+  employeeId: string,
   peer?: string,
   limit?: number
 ) {
@@ -56,7 +56,7 @@ export function useTimeline(
 
     // 如果有peer，同时获取两个timeline
     const promises = [
-      apiClient.getTimeline(projectId, employeeName, limit || 100),
+      apiClient.getTimeline(projectId, employeeId, limit || 100),
     ]
     if (peer) {
       promises.push(apiClient.getTimeline(projectId, peer, limit || 100))
@@ -78,7 +78,7 @@ export function useTimeline(
         setTimeline([])
       })
       .finally(() => setLoading(false))
-  }, [projectId, employeeName, peer, limit])
+  }, [projectId, employeeId, peer, limit])
 
   // 加载更多消息
   const loadMoreMessages = async () => {
@@ -88,7 +88,7 @@ export function useTimeline(
     try {
       const olderMessages = await apiClient.getTimeline(
         projectId,
-        employeeName,
+        employeeId,
         50, // 加载 50 条更早的消息
         oldestTimestamp // 游标
       )
@@ -120,8 +120,8 @@ export function useTimeline(
         const from = details?.from as string
         const to = details?.to as string
         isRelevant =
-          from === employeeName ||
-          to === employeeName ||
+          from === employeeId ||
+          to === employeeId ||
           (!!peer && (from === peer || to === peer))
       } else {
         // 其他事件：检查 employeeName 字段是否是当前员工或peer
@@ -147,7 +147,7 @@ export function useTimeline(
               to: details.to as string,
               content: details.content as string,
               direction:
-                details.from === employeeName
+                details.from === employeeId
                   ? ("send" as const)
                   : ("receive" as const),
             },
@@ -188,7 +188,7 @@ export function useTimeline(
     })
 
     return unsubscribe
-  }, [subscribe, employeeName, peer])
+  }, [subscribe, employeeId, peer])
 
   return { timeline, loading, loadMoreMessages, hasMore, loadingMore }
 }
