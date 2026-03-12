@@ -46,22 +46,19 @@ export function createSendMessageTool(
         ),
     },
     async execute(args, context) {
-      // 1. Get caller information
+      // 1. Get caller employeeId
       let from: string | undefined
       // 2. First try to get from SessionRegistry (employee)
       const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
-      if (employeeId && stateManager) {
-        const employee = stateManager.getEmployee(employeeId)
-        if (employee) {
-          from = employee.name
-        }
+      if (employeeId) {
+        from = employeeId
       }
       // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
       if (!from && context.agent) {
         const agentName = context.agent
         // Check if it's a boss
         if (bossManager?.isBoss(agentName)) {
-          from = agentName
+          from = formatBossId(agentName)
         }
       }
       if (!from) {
@@ -70,25 +67,33 @@ export function createSendMessageTool(
         )
       }
 
-      // 2. Check if recipient is offline
-      if (stateManager) {
-        // Try to find recipient by name
+      // 2. Check if recipient is offline (only for employees, not Boss)
+      if (stateManager && !bossManager?.isBoss(args.to)) {
+        // Try to find recipient by name or employeeId
         const allEmployees = stateManager.getEmployees()
-        const recipient = allEmployees.find((e) => e.name === args.to)
+        const recipient = allEmployees.find(
+          (e) => e.name === args.to || e.employeeId === args.to
+        )
         if (recipient?.status === "offline") {
           throw new Error(`Employee is on vacation!`)
         }
       }
 
-      // 3. Record session if sender has sessionID (BEFORE sending)
-      if (bossManager && stateManager && context.sessionID) {
+      // 3. Record session if sender is Boss (BEFORE sending)
+      // recordSession tracks which session a Boss is using to communicate with employees
+      if (bossManager && stateManager && context.sessionID && from.startsWith("0-")) {
+        // Sender is Boss - extract boss name from BossId
+        const bossName = from.substring(2) // Remove "0-" prefix
+        
         // Look up recipient employeeId
         let recipientEmployeeId: string | undefined
         if (bossManager.isBoss(args.to)) {
           recipientEmployeeId = formatBossId(args.to)
         } else {
           const allEmployees = stateManager.getEmployees()
-          const recipient = allEmployees.find((e) => e.name === args.to)
+          const recipient = allEmployees.find(
+            (e) => e.name === args.to || e.employeeId === args.to
+          )
           if (recipient) {
             recipientEmployeeId = recipient.employeeId
           }
@@ -96,7 +101,7 @@ export function createSendMessageTool(
 
         if (recipientEmployeeId) {
           await bossManager.recordSession(
-            from,
+            bossName,
             recipientEmployeeId,
             context.sessionID
           )
