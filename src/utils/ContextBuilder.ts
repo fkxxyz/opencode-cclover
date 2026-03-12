@@ -390,7 +390,11 @@ export function buildEventMessage(event: Event): string {
 
   sections.push("")
   sections.push(
-    "Remember: What you write here is just for you - like taking notes. If you want to talk to other employees, use send_message."
+    "💡 System Tip: What you output here is private - only the system sees it. Feel free to show your step-by-step reasoning in your response as you work through the event - it helps you make better decisions."
+  )
+  sections.push("")
+  sections.push(
+    "When you're ready to communicate with other employees, use send_message to send your message. That's how you actually talk to them and they can see and respond to you."
   )
 
   return sections.join("\n")
