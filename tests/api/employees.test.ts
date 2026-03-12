@@ -229,10 +229,14 @@ describe("Employees API", () => {
     expect(response.data.hierarchy[0].children).toHaveLength(1)
     expect(response.data.hierarchy[0].children[0].name).toBe("calculator")
     expect(response.data.hierarchy[0].children[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].children[0].name).toBe("coder")
-    expect(response.data.hierarchy[0].children[0].children[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].children[0].children[0].name).toBe(
-      "tester"
+    expect(response.data.hierarchy[0].children[0].children[0].name).toBe(
+      "coder"
     )
+    expect(
+      response.data.hierarchy[0].children[0].children[0].children
+    ).toHaveLength(1)
+    expect(
+      response.data.hierarchy[0].children[0].children[0].children[0].name
+    ).toBe("tester")
   })
 })

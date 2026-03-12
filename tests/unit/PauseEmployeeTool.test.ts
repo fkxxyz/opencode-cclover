@@ -191,7 +191,7 @@ describe("PauseEmployeeTool", () => {
     await expect(
       tool.execute({ employeeId: "0-unknown-employee" }, {
         sessionID: "session-1",
-      agent: "boss1",
+        agent: "boss1",
       } as any)
     ).rejects.toThrow("Employee '0-unknown-employee' not found")
   })
@@ -317,10 +317,10 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     await expect(
-      tool.execute(
-        { employeeId: "0-dev-1" },
-        { sessionID: "session-1", agent: "boss1" } as any
-      )
+      tool.execute({ employeeId: "0-dev-1" }, {
+        sessionID: "session-1",
+        agent: "boss1",
+      } as any)
     ).rejects.toThrow("Cannot pause employee with pending or in-progress tasks")
   })
 
@@ -362,10 +362,10 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     await expect(
-      tool.execute(
-        { employeeId: "0-dev-1" },
-        { sessionID: "session-1", agent: "boss1" } as any
-      )
+      tool.execute({ employeeId: "0-dev-1" }, {
+        sessionID: "session-1",
+        agent: "boss1",
+      } as any)
     ).rejects.toThrow("Cannot pause employee with pending or in-progress tasks")
   })
 
@@ -423,7 +423,7 @@ describe("PauseEmployeeTool", () => {
     try {
       await tool.execute({ employeeId: "0-dev-1" }, {
         sessionID: "session-1",
-      agent: "boss1",
+        agent: "boss1",
       } as any)
       throw new Error("Should have thrown")
     } catch (error: any) {

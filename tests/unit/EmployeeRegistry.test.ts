@@ -12,15 +12,20 @@ describe("EmployeeRegistry", () => {
   describe("register", () => {
     it("should register a new employee", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
-      const retrieved = registry.get("alice")
+      const retrieved = registry.get("0-alice")
 
       expect(retrieved).toBeDefined()
       expect(retrieved?.name).toBe("alice")
@@ -29,11 +34,16 @@ describe("EmployeeRegistry", () => {
 
     it("should throw error when registering duplicate employee", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
@@ -42,11 +52,16 @@ describe("EmployeeRegistry", () => {
 
     it("should emit employee_registered event", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       let emitted = false
@@ -63,17 +78,22 @@ describe("EmployeeRegistry", () => {
   describe("update", () => {
     it("should update employee information", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
-      registry.update("alice", { status: "idle" })
+      registry.update("0-alice", { status: "idle" })
 
-      const updated = registry.get("alice")
+      const updated = registry.get("0-alice")
       expect(updated?.status).toBe("idle")
     })
 
@@ -83,11 +103,16 @@ describe("EmployeeRegistry", () => {
 
     it("should emit employee_updated event", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
@@ -98,7 +123,7 @@ describe("EmployeeRegistry", () => {
         expect(emp.status).toBe("idle")
       })
 
-      registry.update("alice", { status: "idle" })
+      registry.update("0-alice", { status: "idle" })
       expect(emitted).toBe(true)
     })
   })
@@ -106,15 +131,20 @@ describe("EmployeeRegistry", () => {
   describe("get", () => {
     it("should return employee by name", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
-      const retrieved = registry.get("alice")
+      const retrieved = registry.get("0-alice")
 
       expect(retrieved).toBeDefined()
       expect(retrieved?.name).toBe("alice")
@@ -127,21 +157,26 @@ describe("EmployeeRegistry", () => {
 
     it("should return a copy of employee data", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
-      const retrieved = registry.get("alice")
+      const retrieved = registry.get("0-alice")
 
       if (retrieved) {
         retrieved.status = "error"
       }
 
-      const original = registry.get("alice")
+      const original = registry.get("0-alice")
       expect(original?.status).toBe("active")
     })
   })
@@ -149,19 +184,29 @@ describe("EmployeeRegistry", () => {
   describe("getAll", () => {
     it("should return all employees", () => {
       const emp1: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       const emp2: Employee = {
+        employeeId: "0-bob",
         name: "bob",
+        taskId: null,
         role: "Coder",
         status: "idle",
         createdAt: "2026-03-01T10:01:00.000Z",
         lastActiveAt: "2026-03-01T10:01:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(emp1)
@@ -182,17 +227,22 @@ describe("EmployeeRegistry", () => {
   describe("updateStatus", () => {
     it("should update employee status", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
-      registry.updateStatus("alice", "idle")
+      registry.updateStatus("0-alice", "idle")
 
-      const updated = registry.get("alice")
+      const updated = registry.get("0-alice")
       expect(updated?.status).toBe("idle")
     })
 
@@ -202,11 +252,16 @@ describe("EmployeeRegistry", () => {
 
     it("should emit status_changed event", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)
@@ -214,12 +269,12 @@ describe("EmployeeRegistry", () => {
       let emitted = false
       registry.on("status_changed", (data: any) => {
         emitted = true
-        expect(data.name).toBe("alice")
+        expect(data.employeeId).toBe("0-alice")
         expect(data.oldStatus).toBe("active")
         expect(data.newStatus).toBe("idle")
       })
 
-      registry.updateStatus("alice", "idle")
+      registry.updateStatus("0-alice", "idle")
       expect(emitted).toBe(true)
     })
   })
@@ -227,27 +282,42 @@ describe("EmployeeRegistry", () => {
   describe("getByStatus", () => {
     it("should return employees by status", () => {
       const emp1: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       const emp2: Employee = {
+        employeeId: "0-bob",
         name: "bob",
+        taskId: null,
         role: "Coder",
         status: "idle",
         createdAt: "2026-03-01T10:01:00.000Z",
         lastActiveAt: "2026-03-01T10:01:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       const emp3: Employee = {
+        employeeId: "0-charlie",
         name: "charlie",
+        taskId: null,
         role: "Tester",
         status: "active",
         createdAt: "2026-03-01T10:02:00.000Z",
         lastActiveAt: "2026-03-01T10:02:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(emp1)
@@ -272,11 +342,16 @@ describe("EmployeeRegistry", () => {
   describe("clear", () => {
     it("should clear all employees", () => {
       const employee: Employee = {
+        employeeId: "0-alice",
         name: "alice",
+        taskId: null,
         role: "Calculator",
         status: "active",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
       }
 
       registry.register(employee)

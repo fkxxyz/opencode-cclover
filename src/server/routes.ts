@@ -1000,9 +1000,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         sessionRegistry.register(tempSessionID, operatorName)
 
         // 执行工具
-        const result = await pauseTool.execute({ employeeId: employee.employeeId }, {
-          sessionID: tempSessionID,
-        } as any)
+        const result = await pauseTool.execute(
+          { employeeId: employee.employeeId },
+          {
+            sessionID: tempSessionID,
+          } as any
+        )
 
         // 清理临时 sessionID
         sessionRegistry.unregister(tempSessionID)
@@ -1098,9 +1101,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
         sessionRegistry.register(tempSessionID, operatorName)
 
         // 执行工具
-        const result = await resumeTool.execute({ employeeId: employee.employeeId }, {
-          sessionID: tempSessionID,
-        } as any)
+        const result = await resumeTool.execute(
+          { employeeId: employee.employeeId },
+          {
+            sessionID: tempSessionID,
+          } as any
+        )
 
         // 清理临时 sessionID
         sessionRegistry.unregister(tempSessionID)

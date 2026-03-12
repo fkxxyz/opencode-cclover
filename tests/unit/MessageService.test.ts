@@ -273,8 +273,8 @@ describe("MessageService", () => {
         "0-alice",
         "0-bayecao"
       )
-      // Note: Since "0-alice" starts with "0-", isBossId returns true, so it uses bosses directory
-      expect(employeePath).toContain("bosses/alice/messages/0-bayecao")
+      // alice is an employee (not a boss), so it uses employees directory
+      expect(employeePath).toContain("employees/0-alice/messages/0-bayecao")
     })
 
     test("should send message from boss to employee", async () => {

@@ -181,7 +181,11 @@ export class MessageService implements MessageRouter {
     recipient: string
   ): RecipientResolution {
     // Special handling for Boss sender
-    if (isBossId(sender)) {
+    const senderIsBoss =
+      isBossId(sender) &&
+      this.bossManager &&
+      this.bossManager.isBoss(RoutingRules.extractNameFromBossId(sender))
+    if (senderIsBoss) {
       // Boss can only send to full employeeId or BossId
       if (!RoutingRules.isFullEmployeeId(recipient)) {
         throw new Error(
@@ -284,7 +288,11 @@ export class MessageService implements MessageRouter {
 
     // 3. 查询发送者角色
     let fromRole: string | undefined
-    if (isBossId(from)) {
+    const fromIsBoss =
+      isBossId(from) &&
+      this.bossManager &&
+      this.bossManager.isBoss(RoutingRules.extractNameFromBossId(from))
+    if (fromIsBoss) {
       fromRole = "boss"
     } else {
       const employee = this.stateManager?.getEmployee(from)
@@ -391,17 +399,19 @@ export class MessageService implements MessageRouter {
     owner: EmployeeId | BossId,
     peer: EmployeeId | BossId
   ): string {
-    // 检查 owner 是否是 boss
-    if (isBossId(owner)) {
+    // 检查 owner 是否是 boss (需要同时满足格式和在 boss 列表中)
+    if (isBossId(owner) && this.bossManager) {
       const bossName = RoutingRules.extractNameFromBossId(owner)
-      return path.join(
-        this.workspaceRoot,
-        "bosses",
-        bossName,
-        "messages",
-        peer,
-        "chat.yaml"
-      )
+      if (this.bossManager.isBoss(bossName)) {
+        return path.join(
+          this.workspaceRoot,
+          "bosses",
+          bossName,
+          "messages",
+          peer,
+          "chat.yaml"
+        )
+      }
     }
     // employee 的消息
     return path.join(
@@ -420,14 +430,23 @@ export class MessageService implements MessageRouter {
   async getPeers(employeeId: EmployeeId | BossId): Promise<string[]> {
     // 获取消息目录路径
     let messagesDir: string
-    if (isBossId(employeeId)) {
+    if (isBossId(employeeId) && this.bossManager) {
       const bossName = RoutingRules.extractNameFromBossId(employeeId)
-      messagesDir = path.join(
-        this.workspaceRoot,
-        "bosses",
-        bossName,
-        "messages"
-      )
+      if (this.bossManager.isBoss(bossName)) {
+        messagesDir = path.join(
+          this.workspaceRoot,
+          "bosses",
+          bossName,
+          "messages"
+        )
+      } else {
+        messagesDir = path.join(
+          this.workspaceRoot,
+          "employees",
+          employeeId,
+          "messages"
+        )
+      }
     } else {
       messagesDir = path.join(
         this.workspaceRoot,

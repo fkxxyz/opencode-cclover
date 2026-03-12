@@ -26,11 +26,16 @@ describe("StateManager.loadHistoricalEvents", () => {
   test("应该从文件加载历史事件到内存", async () => {
     // 1. 注册员工
     stateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: null,
       role: "tester",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 2. 添加一些事件（会持久化到文件）
@@ -38,7 +43,7 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "message",
       timestamp: "2026-03-01T10:01:00.000Z",
-      employeeName: "alice",
+      employeeId: "0-alice",
       details: { from: "bob", to: "alice", content: "Hello" },
     }
 
@@ -46,7 +51,7 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "task_completed",
       timestamp: "2026-03-01T10:02:00.000Z",
-      employeeName: "alice",
+      employeeId: "0-alice",
       details: { taskName: "Task1", result: "Done" },
     }
 
@@ -62,11 +67,16 @@ describe("StateManager.loadHistoricalEvents", () => {
 
     // 5. 重新注册员工
     newStateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: null,
       role: "tester",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 6. 验证重启后内存中没有事件
@@ -78,10 +88,10 @@ describe("StateManager.loadHistoricalEvents", () => {
 
     // 8. 验证事件已加载到内存
     const eventsAfterLoad = newStateManager.getEvents({ limit: 10 })
-    // 消息事件会记录到双方的文件中，所以 calculator 会有 2 个事件：
-    // 1. task_completed (只记录到 calculator)
-    // 2. message (记录到 calculator，因为他是接收方)
-    expect(eventsAfterLoad.length).toBe(3)
+    // 只注册了 alice，所以只有 alice 的 2 个事件：
+    // 1. task_completed
+    // 2. message
+    expect(eventsAfterLoad.length).toBe(2)
     expect(eventsAfterLoad[0].type).toBe("task_completed")
     expect(eventsAfterLoad[1].type).toBe("message")
   })
@@ -89,19 +99,29 @@ describe("StateManager.loadHistoricalEvents", () => {
   test("应该加载多个员工的历史事件", async () => {
     // 1. 注册多个员工
     stateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: null,
       role: "tester",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     stateManager.registerEmployee({
+      employeeId: "0-bob",
       name: "bob",
+      taskId: null,
       role: "developer",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 2. 为每个员工添加事件
@@ -109,43 +129,53 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "message",
       timestamp: "2026-03-01T10:01:00.000Z",
-      employeeName: "alice",
-      details: { from: "bob", to: "alice", content: "Hello Alice" },
+      employeeId: "0-alice",
+      details: { from: "0-bob", to: "0-alice", content: "Hello Alice" },
     })
 
     await stateManager.addEvent({
       projectId,
       type: "message",
       timestamp: "2026-03-01T10:02:00.000Z",
-      employeeName: "bob",
-      details: { from: "alice", to: "bob", content: "Hello Bob" },
+      employeeId: "0-bob",
+      details: { from: "0-alice", to: "0-bob", content: "Hello Bob" },
     })
 
     // 3. 模拟重启
     const newStateManager = new StateManager(projectId, testWorkspace)
 
     newStateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: null,
       role: "tester",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     newStateManager.registerEmployee({
+      employeeId: "0-bob",
       name: "bob",
+      taskId: null,
       role: "developer",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 4. 加载历史事件
     await newStateManager.loadHistoricalEvents()
 
     // 5. 验证两个员工的事件都被加载
-    const aliceEvents = newStateManager.getEvents({ employeeName: "alice" })
-    const bobEvents = newStateManager.getEvents({ employeeName: "bob" })
+    const aliceEvents = newStateManager.getEvents({ employeeName: "0-alice" })
+    const bobEvents = newStateManager.getEvents({ employeeName: "0-bob" })
 
     // 每个员工都会有 2 个消息事件：
     // alice: 1. bob 发送给她的消息, 2. 她发送给 bob 的消息
@@ -157,11 +187,16 @@ describe("StateManager.loadHistoricalEvents", () => {
   test("应该正确处理没有历史事件的员工", async () => {
     // 1. 注册新员工（没有历史事件）
     stateManager.registerEmployee({
+      employeeId: "0-charlie",
       name: "charlie",
+      taskId: null,
       role: "newbie",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 2. 加载历史事件（不应该抛出错误）
@@ -175,11 +210,16 @@ describe("StateManager.loadHistoricalEvents", () => {
   test("应该同步更新统计数据", async () => {
     // 1. 注册员工
     stateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: null,
       role: "tester",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 2. 添加消息和任务事件
@@ -187,7 +227,7 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "message",
       timestamp: "2026-03-01T10:01:00.000Z",
-      employeeName: "alice",
+      employeeName: "0-alice",
       details: { from: "bob", to: "alice", content: "Hello" },
     })
 
@@ -195,7 +235,7 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "task_completed",
       timestamp: "2026-03-01T10:02:00.000Z",
-      employeeName: "alice",
+      employeeName: "0-alice",
       details: { taskName: "Task1", result: "Done" },
     })
 
@@ -203,11 +243,16 @@ describe("StateManager.loadHistoricalEvents", () => {
     const newStateManager = new StateManager(projectId, testWorkspace)
 
     newStateManager.registerEmployee({
+      employeeId: "0-alice",
       name: "alice",
+      taskId: null,
       role: "tester",
       status: "inactive",
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     })
 
     // 4. 加载历史事件

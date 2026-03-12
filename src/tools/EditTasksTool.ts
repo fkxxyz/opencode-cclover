@@ -185,11 +185,7 @@ export function createEditTasksTool(
               continue
             }
 
-            await memoryManager.decomposeTask(
-              employeeId,
-              op.name,
-              op.subtasks
-            )
+            await memoryManager.decomposeTask(employeeId, op.name, op.subtasks)
             results.push(
               `✓ Decomposed task: ${op.name} into ${op.subtasks.length} subtasks [pending]`
             )

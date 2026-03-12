@@ -88,8 +88,13 @@ describe("EventLoop Vacation Mechanism", () => {
 
     // 初始化员工状态
     await stateManager.registerEmployee({
+      employeeId: "0-Alice",
       name: "Alice",
       role: "test-role",
+      taskId: null,
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
       status: "idle",
       hiredBy: "Boss",
     })
@@ -103,20 +108,20 @@ describe("EventLoop Vacation Mechanism", () => {
   describe("Vacation Check Priority", () => {
     test("should check vacation before messages", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 添加消息（应该被忽略）
-      const messageClient = messageService.getClient("Alice")
-      await messageService.send("Bob", "Alice", "Hello", "test-role")
+      const messageClient = messageService.getClient("0-Alice")
+      await messageService.send("0-Bob", "0-Alice", "Hello", "test-role")
 
       // 创建 EventLoop
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -129,24 +134,24 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
 
       // 验证消息仍在队列中（未被处理）
-      const unreadQueue = (messageService as any).getUnreadQueue("Alice")
+      const unreadQueue = (messageService as any).getUnreadQueue("0-Alice")
       expect(unreadQueue.length).toBe(1)
     })
 
     test("should check vacation before agent completions", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 添加 agent 完成事件
-      agentRegistry.addCompletedEvent("Alice", {
+      agentRegistry.addCompletedEvent("0-Alice", {
         type: "agent_completed",
         agentId: "agent-123",
         taskName: "test-task",
@@ -155,10 +160,10 @@ describe("EventLoop Vacation Mechanism", () => {
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -171,24 +176,24 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
 
       // 验证 agent 事件仍在队列中（未被处理）
-      const completedEvent = agentRegistry.getCompletedEvent("Alice")
+      const completedEvent = agentRegistry.getCompletedEvent("0-Alice")
       expect(completedEvent).not.toBeNull()
     })
 
     test("should check vacation before tasks", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 添加可执行任务
-      await memoryManager.write("Alice", {
+      await memoryManager.write("0-Alice", {
         knowledge: [],
         tasks: [
           {
@@ -202,10 +207,10 @@ describe("EventLoop Vacation Mechanism", () => {
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -218,11 +223,11 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
 
       // 验证任务仍然是 pending（未被处理）
-      const memory = await memoryManager.read("Alice")
+      const memory = await memoryManager.read("0-Alice")
       expect(memory.tasks[0].status).toBe("pending")
     })
   })
@@ -230,17 +235,17 @@ describe("EventLoop Vacation Mechanism", () => {
   describe("Vacation Event Handling", () => {
     test("should update employee status to offline", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -253,23 +258,23 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
     })
 
     test("should log status change event", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -296,17 +301,17 @@ describe("EventLoop Vacation Mechanism", () => {
   describe("Graceful Exit", () => {
     test("should exit cleanly when vacation requested", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -321,17 +326,17 @@ describe("EventLoop Vacation Mechanism", () => {
 
     test("should not leave zombie processes", async () => {
       // 添加假期事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -346,7 +351,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 验证 EventLoop 正常退出（不抛出错误）
       // 注意：session 不会被清理，因为员工可能稍后恢复
       // 这是预期行为，不是 bug
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
     })
   })
@@ -354,19 +359,19 @@ describe("EventLoop Vacation Mechanism", () => {
   describe("Integration Behavior", () => {
     test("should process vacation and exit before processing messages", async () => {
       // 添加假期和消息
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
-      await messageService.send("Bob", "Alice", "Hello", "test-role")
+      await messageService.send("0-Bob", "0-Alice", "Hello", "test-role")
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -379,23 +384,23 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline（假期已处理）
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
 
       // 验证消息未被处理（仍在队列中）
-      const unreadQueue = (messageService as any).getUnreadQueue("Alice")
+      const unreadQueue = (messageService as any).getUnreadQueue("0-Alice")
       expect(unreadQueue.length).toBe(1)
     })
 
     test("should process vacation and exit before processing agent completions", async () => {
       // 添加假期和 agent 完成事件
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
-      agentRegistry.addCompletedEvent("Alice", {
+      agentRegistry.addCompletedEvent("0-Alice", {
         type: "agent_completed",
         agentId: "agent-123",
         taskName: "test-task",
@@ -404,10 +409,10 @@ describe("EventLoop Vacation Mechanism", () => {
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -420,23 +425,23 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline（假期已处理）
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
 
       // 验证 agent 事件未被处理（仍在队列中）
-      const completedEvent = agentRegistry.getCompletedEvent("Alice")
+      const completedEvent = agentRegistry.getCompletedEvent("0-Alice")
       expect(completedEvent).not.toBeNull()
     })
 
     test("should process vacation and exit before processing tasks", async () => {
       // 添加假期和任务
-      vacationRegistry.addVacationEvent("Alice", {
+      vacationRegistry.addVacationEvent("0-Alice", {
         type: "vacation_requested",
-        employeeName: "Alice",
+        employeeName: "0-Alice",
         timestamp: new Date().toISOString(),
       })
 
-      await memoryManager.write("Alice", {
+      await memoryManager.write("0-Alice", {
         knowledge: [],
         tasks: [
           {
@@ -450,10 +455,10 @@ describe("EventLoop Vacation Mechanism", () => {
       })
 
       // 创建 EventLoop
-      const messageClient = messageService.getClient("Alice")
+      const messageClient = messageService.getClient("0-Alice")
       const eventLoop = new EventLoop(
         testWorkspace,
-        "Alice",
+        "0-Alice",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -466,11 +471,11 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证状态更新为 offline（假期已处理）
-      const employee = await stateManager.getEmployee("Alice")
+      const employee = await stateManager.getEmployee("0-Alice")
       expect(employee?.status).toBe("offline")
 
       // 验证任务未被处理（仍然是 pending）
-      const memory = await memoryManager.read("Alice")
+      const memory = await memoryManager.read("0-Alice")
       expect(memory.tasks[0].status).toBe("pending")
     })
   })

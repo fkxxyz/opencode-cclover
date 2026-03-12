@@ -22,7 +22,11 @@ describe("ShowTasksTool", () => {
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
 
     // 创建 StateManager 并注册测试员工
-    stateManager = new StateManager("test-project", TEST_WORKSPACE, TEST_WORKSPACE)
+    stateManager = new StateManager(
+      "test-project",
+      TEST_WORKSPACE,
+      TEST_WORKSPACE
+    )
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       taskId: 0,

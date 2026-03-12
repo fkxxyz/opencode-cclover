@@ -54,8 +54,7 @@ export function createShowTasksTool(
       sections.push("")
 
       // 4. Part 2: Executable Tasks
-      const executableTasks =
-        await memoryManager.getExecutableTasks(employeeId)
+      const executableTasks = await memoryManager.getExecutableTasks(employeeId)
       sections.push("## Executable Tasks")
       sections.push("")
       if (executableTasks.length > 0) {

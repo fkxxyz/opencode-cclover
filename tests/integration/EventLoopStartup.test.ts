@@ -58,22 +58,32 @@ You are a valid test role.`
 
     // 注册一个有效角色的员工
     const validEmployee: Employee = {
+      employeeId: "0-valid-employee",
       name: "valid-employee",
+      taskId: null,
       role: "Valid Role",
       status: "idle",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
+      createdAt: "2026-03-01T10:00:00.000Z",
+      lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     }
 
     await stateManager.registerEmployee(validEmployee)
 
     // 注册一个无效角色的员工
     const invalidEmployee: Employee = {
+      employeeId: "0-invalid-employee",
       name: "invalid-employee",
+      taskId: null,
       role: "Non Existent Role",
       status: "idle",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
+      createdAt: "2026-03-01T10:00:00.000Z",
+      lastActiveAt: "2026-03-01T10:00:00.000Z",
+      hiredBy: null,
+      paused: false,
+      activeSessionId: null,
     }
 
     await stateManager.registerEmployee(invalidEmployee)
@@ -111,16 +121,26 @@ You are a valid test role.`
     // 注册多个无效角色的员工
     const invalidEmployees: Employee[] = [
       {
+        employeeId: "0-invalid-1",
         name: "invalid-1",
+        taskId: null,
         role: "Non Existent Role 1",
         status: "idle",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
       },
       {
+        employeeId: "0-invalid-2",
         name: "invalid-2",
+        taskId: null,
         role: "Non Existent Role 2",
         status: "idle",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
       },
@@ -158,22 +178,37 @@ You are a valid test role.`
     // 注册混合的员工
     const employees: Employee[] = [
       {
+        employeeId: "0-valid-1",
         name: "valid-1",
+        taskId: null,
         role: "Valid Role",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
         status: "idle",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
       },
       {
+        employeeId: "0-invalid-1",
         name: "invalid-1",
+        taskId: null,
         role: "Invalid Role",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
         status: "idle",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
       },
       {
+        employeeId: "0-valid-2",
         name: "valid-2",
+        taskId: null,
         role: "Valid Role",
+        hiredBy: null,
+        paused: false,
+        activeSessionId: null,
         status: "idle",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),

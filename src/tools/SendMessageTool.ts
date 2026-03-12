@@ -81,10 +81,15 @@ export function createSendMessageTool(
 
       // 3. Record session if sender is Boss (BEFORE sending)
       // recordSession tracks which session a Boss is using to communicate with employees
-      if (bossManager && stateManager && context.sessionID && from.startsWith("0-")) {
+      if (
+        bossManager &&
+        stateManager &&
+        context.sessionID &&
+        from.startsWith("0-")
+      ) {
         // Sender is Boss - extract boss name from BossId
         const bossName = from.substring(2) // Remove "0-" prefix
-        
+
         // Look up recipient employeeId
         let recipientEmployeeId: string | undefined
         if (bossManager.isBoss(args.to)) {

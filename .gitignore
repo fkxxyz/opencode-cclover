@@ -45,3 +45,11 @@ console/docs/optimizations/
 # Temporary development scripts
 fix-*.ts
 fix-*.sh
+
+# Temporary migration scripts (hotfix development)
+migrate*.ts
+
+# Temporary test/debug files
+test-debug.ts
+test-message-path*.ts
+test-workspace-msg/

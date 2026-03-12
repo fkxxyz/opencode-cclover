@@ -179,19 +179,27 @@ Soulful developer role.
   test("should reset multiple soulless employees with active sessions", async () => {
     // 注册多个 soulless 员工
     await stateManager.registerEmployee({
+      employeeId: "0-dev-1",
       name: "dev-1",
+      taskId: null,
       role: "soulless-dev",
       status: "busy",
+      hiredBy: null,
       paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
 
     await stateManager.registerEmployee({
+      employeeId: "0-dev-2",
       name: "dev-2",
+      taskId: null,
       role: "soulless-dev",
       status: "busy",
+      hiredBy: null,
       paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
@@ -255,20 +263,28 @@ Soulful developer role.
   test("should only reset soulless employees, not soulful ones", async () => {
     // 注册 soulless 员工
     await stateManager.registerEmployee({
+      employeeId: "0-soulless-1",
       name: "soulless-1",
+      taskId: null,
       role: "soulless-dev",
       status: "busy",
+      hiredBy: null,
       paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
 
     // 注册 soulful 员工
     await stateManager.registerEmployee({
+      employeeId: "0-soulful-1",
       name: "soulful-1",
+      taskId: null,
       role: "soulful-dev",
       status: "busy",
+      hiredBy: null,
       paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
