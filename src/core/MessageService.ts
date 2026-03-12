@@ -368,7 +368,7 @@ export class MessageService implements MessageRouter {
       projectId: this.projectId,
       type: "message",
       timestamp,
-      employeeName: from,
+      employeeId: from,
       details: {
         from,
         to: targetEmployeeId,
@@ -596,7 +596,7 @@ export class MessageService implements MessageRouter {
         projectId: this.projectId,
         type: "message",
         timestamp: new Date().toISOString(),
-        employeeName: to,
+        employeeId: to,
         details: {
           from,
           to,

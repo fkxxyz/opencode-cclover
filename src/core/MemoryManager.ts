@@ -208,7 +208,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_created",
       timestamp: newTask.created,
-      employeeName: parseEmployeeId(employeeId).name,
+      employeeId: employeeId,
       details: {
         taskName: newTask.name,
         description: newTask.description,
@@ -246,13 +246,12 @@ export class MemoryManager {
 
     // 发射事件到 StateManager
     const timestamp = new Date().toISOString()
-    const employeeName = parseEmployeeId(employeeId).name
     if (updates.status === "completed") {
       this.stateManager?.addEvent({
         projectId: this.projectId,
         type: "task_completed",
         timestamp,
-        employeeName,
+        employeeId: employeeId,
         details: {
           taskName,
           result: updates.result,
@@ -263,7 +262,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_cancelled",
         timestamp,
-        employeeName,
+        employeeId: employeeId,
         details: {
           taskName,
           reason: updates.statusReason || "cancelled by user",
@@ -275,7 +274,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_waiting_for_message",
         timestamp,
-        employeeName,
+        employeeId: employeeId,
         details: {
           taskName,
           reason: updates.statusReason || "waiting_for_message",
@@ -292,7 +291,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_modified",
         timestamp,
-        employeeName,
+        employeeId: employeeId,
         details: {
           taskName,
           changes: updates,
@@ -355,7 +354,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_deleted",
       timestamp,
-      employeeName: parseEmployeeId(employeeId).name,
+      employeeId: employeeId,
       details: {
         taskName,
         affectedTasks,
@@ -396,7 +395,6 @@ export class MemoryManager {
     // 3. 创建子任务
     const timestamp = new Date().toISOString()
     const subtaskNames: string[] = []
-    const employeeName = parseEmployeeId(employeeId).name
 
     for (const subtask of subtasks) {
       // 检查子任务名称是否已存在
@@ -427,7 +425,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_created",
         timestamp,
-        employeeName,
+        employeeId: employeeId,
         details: {
           taskName: subtask.name,
           description: subtask.description,
@@ -448,7 +446,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_decomposed",
       timestamp,
-      employeeName,
+      employeeId: employeeId,
       details: {
         originalTask: taskName,
         subtasks: subtaskNames,

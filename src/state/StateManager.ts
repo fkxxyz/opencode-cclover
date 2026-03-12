@@ -236,12 +236,8 @@ export class StateManager {
     this.eventHistory.add(event)
 
     // 持久化事件到 JSONL 文件
-    // 需要从 employeeName 查找 employeeId
-    if (event.employeeName) {
-      const employee = this.findEmployeeByName(event.employeeName)
-      if (employee) {
-        await this.eventLogger.logEvent(employee.employeeId, event)
-      }
+    if (event.employeeId) {
+      await this.eventLogger.logEvent(event.employeeId, event)
     }
 
     // 对于消息事件，同时记录到接收方的 events.jsonl
@@ -250,31 +246,22 @@ export class StateManager {
       const to = event.details.to as string
       // 如果接收方不是发送方（避免重复记录）
       if (to && to !== from) {
-        const toEmployee = this.findEmployeeByName(to)
-        if (toEmployee) {
-          await this.eventLogger.logEvent(toEmployee.employeeId, event)
-        }
+        await this.eventLogger.logEvent(to, event)
       }
     }
 
     // 更新统计数据
-    if (event.type === "message" && event.employeeName) {
-      const employee = this.findEmployeeByName(event.employeeName)
-      if (employee) {
-        const count = this.messageCount.get(employee.employeeId) || 0
-        this.messageCount.set(employee.employeeId, count + 1)
-      }
+    if (event.type === "message" && event.employeeId) {
+      const count = this.messageCount.get(event.employeeId) || 0
+      this.messageCount.set(event.employeeId, count + 1)
     }
 
     if (
       (event.type === "task_completed" || event.type === "task_cancelled") &&
-      event.employeeName
+      event.employeeId
     ) {
-      const employee = this.findEmployeeByName(event.employeeName)
-      if (employee) {
-        const count = this.taskCount.get(employee.employeeId) || 0
-        this.taskCount.set(employee.employeeId, count + 1)
-      }
+      const count = this.taskCount.get(event.employeeId) || 0
+      this.taskCount.set(event.employeeId, count + 1)
     }
 
     // 触发事件通知（让 ConsoleServer 能够广播到前端）
@@ -399,24 +386,18 @@ export class StateManager {
           this.eventHistory.add(event)
 
           // 同步更新统计数据
-          if (event.type === "message" && event.employeeName) {
-            const emp = this.findEmployeeByName(event.employeeName)
-            if (emp) {
-              const count = this.messageCount.get(emp.employeeId) || 0
-              this.messageCount.set(emp.employeeId, count + 1)
-            }
+          if (event.type === "message" && event.employeeId) {
+            const count = this.messageCount.get(event.employeeId) || 0
+            this.messageCount.set(event.employeeId, count + 1)
           }
 
           if (
             (event.type === "task_completed" ||
               event.type === "task_cancelled") &&
-            event.employeeName
+            event.employeeId
           ) {
-            const emp = this.findEmployeeByName(event.employeeName)
-            if (emp) {
-              const count = this.taskCount.get(emp.employeeId) || 0
-              this.taskCount.set(emp.employeeId, count + 1)
-            }
+            const count = this.taskCount.get(event.employeeId) || 0
+            this.taskCount.set(event.employeeId, count + 1)
           }
         }
       } catch (error: any) {

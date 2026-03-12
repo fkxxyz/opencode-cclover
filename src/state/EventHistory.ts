@@ -34,8 +34,8 @@ export class EventHistory {
   /**
    * 按员工筛选事件
    */
-  getByEmployee(employeeName: string, limit?: number): Event[] {
-    const filtered = this.events.filter((e) => e.employeeName === employeeName)
+  getByEmployee(employeeId: string, limit?: number): Event[] {
+    const filtered = this.events.filter((e) => e.employeeId === employeeId)
     return limit ? filtered.slice(0, limit) : filtered
   }
 
