@@ -87,7 +87,7 @@ function checkMissingArgs(
  *
  * @param rolePrompt 角色的系统提示词
  * @param memory 员工的记忆
- * @param employeeName 员工名称
+ * @param employeeId 员工 ID
  * @param workspaceRoot 工作区根目录
  * @param roleMetadata 角色元数据（可选）
  * @param supervisor 主管信息（可选）
@@ -96,7 +96,7 @@ function checkMissingArgs(
 export function buildSystemPrompt(
   rolePrompt: string,
   memory: Memory,
-  employeeName: string,
+  employeeId: string,
   workspaceRoot: string,
   roleMetadata?: RoleMetadata,
   supervisor?: { name: string; role: string }
@@ -164,7 +164,7 @@ export function buildSystemPrompt(
   sections.push("# Workspace Files")
   sections.push("")
   sections.push("Your workspace is located at:")
-  sections.push(`\`${workspaceRoot}/employees/${employeeName}/\``)
+  sections.push(`\`${workspaceRoot}/employees/${employeeId}/\``)
   sections.push("")
   sections.push("**Messages**: `messages/{peer}/chat.yaml`")
   sections.push("- Conversation history with each employee (one file per peer)")
@@ -172,7 +172,7 @@ export function buildSystemPrompt(
     "- ⚠️ May be very large! Use Bash with tail to read recent messages"
   )
   sections.push(
-    `- Example: \`bash("tail -n 50 ${workspaceRoot}/employees/${employeeName}/messages/{peer}/chat.yaml")\``
+    `- Example: \`bash("tail -n 50 ${workspaceRoot}/employees/${employeeId}/messages/{peer}/chat.yaml")\``
   )
   sections.push(
     '- Or use Grep to search historical keywords: `grep(pattern="keyword", path="...")`'
@@ -187,7 +187,7 @@ export function buildSystemPrompt(
     "- ⚠️ May be very large! Use Bash with tail to read recent events"
   )
   sections.push(
-    `- Example: \`bash("tail -n 100 ${workspaceRoot}/employees/${employeeName}/events.jsonl")\``
+    `- Example: \`bash("tail -n 100 ${workspaceRoot}/employees/${employeeId}/events.jsonl")\``
   )
   sections.push(
     '- Or use Grep to search specific event types: `grep(pattern="agent_completed", ...)`'
@@ -427,7 +427,7 @@ export function getExecutableTasks(tasks: Task[]): Task[] {
  *
  * @param rolePrompt 角色提示词
  * @param memory 记忆
- * @param employeeName 员工名称
+ * @param employeeId 员工 ID
  * @param workspaceRoot 工作区根目录
  * @param event 事件
  * @param roleMetadata 角色元数据（可选）
@@ -437,7 +437,7 @@ export function getExecutableTasks(tasks: Task[]): Task[] {
 export function buildFullContext(
   rolePrompt: string,
   memory: Memory,
-  employeeName: string,
+  employeeId: string,
   workspaceRoot: string,
   event: Event,
   roleMetadata?: RoleMetadata,
@@ -447,7 +447,7 @@ export function buildFullContext(
     systemPrompt: buildSystemPrompt(
       rolePrompt,
       memory,
-      employeeName,
+      employeeId,
       workspaceRoot,
       roleMetadata,
       supervisor
