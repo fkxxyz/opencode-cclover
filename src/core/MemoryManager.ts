@@ -3,6 +3,8 @@ import * as path from "path"
 import * as yaml from "yaml"
 import * as lockfile from "proper-lockfile"
 import type { StateManager } from "../state/StateManager"
+import type { EmployeeId } from "../types"
+import { parseEmployeeId } from "../types"
 
 /**
  * 任务状态
@@ -68,13 +70,8 @@ export class MemoryManager {
   /**
    * 获取员工记忆文件路径
    */
-  private getMemoryPath(employeeName: string): string {
-    return path.join(
-      this.workspaceRoot,
-      "employees",
-      employeeName,
-      "memory.yaml"
-    )
+  private getMemoryPath(employeeId: EmployeeId): string {
+    return path.join(this.workspaceRoot, "employees", employeeId, "memory.yaml")
   }
 
   /**
@@ -92,8 +89,8 @@ export class MemoryManager {
    * 读取员工记忆
    * 如果文件不存在，返回空记忆
    */
-  async read(employeeName: string): Promise<Memory> {
-    const memoryPath = this.getMemoryPath(employeeName)
+  async read(employeeId: EmployeeId): Promise<Memory> {
+    const memoryPath = this.getMemoryPath(employeeId)
 
     try {
       const content = await fs.readFile(memoryPath, "utf-8")
@@ -129,8 +126,8 @@ export class MemoryManager {
   /**
    * 写入员工记忆
    */
-  async write(employeeName: string, memory: Memory): Promise<void> {
-    const memoryPath = this.getMemoryPath(employeeName)
+  async write(employeeId: EmployeeId, memory: Memory): Promise<void> {
+    const memoryPath = this.getMemoryPath(employeeId)
     const dirPath = path.dirname(memoryPath)
 
     // 确保目录存在
@@ -188,10 +185,10 @@ export class MemoryManager {
    * 添加任务
    */
   async addTask(
-    employeeName: string,
+    employeeId: EmployeeId,
     task: Omit<Task, "created">
   ): Promise<void> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
 
     // 检查任务名称是否已存在
     if (memory.tasks.some((t) => t.name === task.name)) {
@@ -205,13 +202,13 @@ export class MemoryManager {
     }
 
     memory.tasks.push(newTask)
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
     // 记录 task 创建事件
     await this.stateManager?.addEvent({
       projectId: this.projectId,
       type: "task_created",
       timestamp: newTask.created,
-      employeeName,
+      employeeName: parseEmployeeId(employeeId).name,
       details: {
         taskName: newTask.name,
         description: newTask.description,
@@ -223,11 +220,11 @@ export class MemoryManager {
    * 更新任务
    */
   async updateTask(
-    employeeName: string,
+    employeeId: EmployeeId,
     taskName: string,
     updates: Partial<Task>
   ): Promise<void> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
 
     const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
     if (taskIndex === -1) {
@@ -245,10 +242,11 @@ export class MemoryManager {
       memory.tasks[taskIndex].completed = new Date().toISOString()
     }
 
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
 
     // 发射事件到 StateManager
     const timestamp = new Date().toISOString()
+    const employeeName = parseEmployeeId(employeeId).name
     if (updates.status === "completed") {
       this.stateManager?.addEvent({
         projectId: this.projectId,
@@ -306,8 +304,8 @@ export class MemoryManager {
   /**
    * 删除任务
    */
-  async deleteTask(employeeName: string, taskName: string): Promise<void> {
-    const memory = await this.read(employeeName)
+  async deleteTask(employeeId: EmployeeId, taskName: string): Promise<void> {
+    const memory = await this.read(employeeId)
 
     const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
     if (taskIndex === -1) {
@@ -315,7 +313,7 @@ export class MemoryManager {
     }
 
     memory.tasks.splice(taskIndex, 1)
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
   }
 
   /**
@@ -324,10 +322,10 @@ export class MemoryManager {
    * @returns 受影响的任务名称列表
    */
   async deleteTaskWithCleanup(
-    employeeName: string,
+    employeeId: EmployeeId,
     taskName: string
   ): Promise<{ affectedTasks: string[] }> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
 
     // 1. 检查任务是否存在
     const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
@@ -349,7 +347,7 @@ export class MemoryManager {
     memory.tasks.splice(taskIndex, 1)
 
     // 4. 写入更新后的记忆
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
 
     // 5. 记录 task_deleted 事件
     const timestamp = new Date().toISOString()
@@ -357,7 +355,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_deleted",
       timestamp,
-      employeeName,
+      employeeName: parseEmployeeId(employeeId).name,
       details: {
         taskName,
         affectedTasks,
@@ -371,12 +369,12 @@ export class MemoryManager {
   /**
    * 分解任务为多个子任务
    * 原任务保留并依赖所有子任务,子任务继承原任务的依赖
-   * @param employeeName 员工名称
+   * @param employeeId 员工ID
    * @param taskName 要分解的任务名称
    * @param subtasks 子任务列表
    */
   async decomposeTask(
-    employeeName: string,
+    employeeId: EmployeeId,
     taskName: string,
     subtasks: Array<{
       name: string
@@ -384,7 +382,7 @@ export class MemoryManager {
       dependencies?: string[]
     }>
   ): Promise<void> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
 
     // 1. 找到原任务
     const originalTask = memory.tasks.find((t) => t.name === taskName)
@@ -398,6 +396,7 @@ export class MemoryManager {
     // 3. 创建子任务
     const timestamp = new Date().toISOString()
     const subtaskNames: string[] = []
+    const employeeName = parseEmployeeId(employeeId).name
 
     for (const subtask of subtasks) {
       // 检查子任务名称是否已存在
@@ -442,7 +441,7 @@ export class MemoryManager {
     originalTask.completed = undefined // 清除完成时间
 
     // 5. 写入更新后的记忆
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
 
     // 6. 记录 task_decomposed 事件
     await this.stateManager?.addEvent({
@@ -461,8 +460,11 @@ export class MemoryManager {
   /**
    * 获取任务
    */
-  async getTask(employeeName: string, taskName: string): Promise<Task | null> {
-    const memory = await this.read(employeeName)
+  async getTask(
+    employeeId: EmployeeId,
+    taskName: string
+  ): Promise<Task | null> {
+    const memory = await this.read(employeeId)
     return memory.tasks.find((t) => t.name === taskName) ?? null
   }
 
@@ -470,8 +472,8 @@ export class MemoryManager {
    * 获取可执行的任务
    * 返回所有依赖已满足的 pending 任务
    */
-  async getExecutableTasks(employeeName: string): Promise<Task[]> {
-    const memory = await this.read(employeeName)
+  async getExecutableTasks(employeeId: EmployeeId): Promise<Task[]> {
+    const memory = await this.read(employeeId)
 
     // 获取所有 completed 或 cancelled 任务的名称
     // cancelled 任务也视为依赖已满足，避免阻塞依赖它的任务
@@ -496,8 +498,8 @@ export class MemoryManager {
    * 获取正在进行的任务
    * 返回所有状态为 in_progress 的任务
    */
-  async getInProgressTasks(employeeName: string): Promise<Task[]> {
-    const memory = await this.read(employeeName)
+  async getInProgressTasks(employeeId: EmployeeId): Promise<Task[]> {
+    const memory = await this.read(employeeId)
     return memory.tasks.filter((task) => task.status === "in_progress")
   }
 
@@ -506,17 +508,17 @@ export class MemoryManager {
    * 更新 knowledge 和 args，保留 tasks
    */
   async summarize(
-    employeeName: string,
+    employeeId: EmployeeId,
     summary: { knowledge: string[]; args: Record<string, any> }
   ): Promise<void> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
 
     // 更新 knowledge 和 args
     memory.knowledge = summary.knowledge
     memory.args = summary.args
 
     // tasks 和 roleData 保持不变
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
   }
 
   /**
@@ -524,35 +526,35 @@ export class MemoryManager {
    * 更新 args 字段
    */
   async updateArgs(
-    employeeName: string,
+    employeeId: EmployeeId,
     args: Record<string, any>
   ): Promise<void> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
 
     // 更新 args
     memory.args = args
 
     // 写入
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
   }
 
   /**
    * 更新角色数据
    */
   async updateRoleData(
-    employeeName: string,
+    employeeId: EmployeeId,
     roleData: Record<string, any>
   ): Promise<void> {
-    const memory = await this.read(employeeName)
+    const memory = await this.read(employeeId)
     memory.roleData = roleData
-    await this.write(employeeName, memory)
+    await this.write(employeeId, memory)
   }
 
   /**
    * 获取角色数据
    */
-  async getRoleData(employeeName: string): Promise<Record<string, any>> {
-    const memory = await this.read(employeeName)
+  async getRoleData(employeeId: EmployeeId): Promise<Record<string, any>> {
+    const memory = await this.read(employeeId)
     return memory.roleData ?? {}
   }
 
@@ -560,8 +562,8 @@ export class MemoryManager {
    * 检测循环依赖
    * 返回 true 如果存在循环依赖
    */
-  async detectCycle(employeeName: string): Promise<boolean> {
-    const memory = await this.read(employeeName)
+  async detectCycle(employeeId: EmployeeId): Promise<boolean> {
+    const memory = await this.read(employeeId)
 
     // 构建邻接表
     const graph = new Map<string, string[]>()
