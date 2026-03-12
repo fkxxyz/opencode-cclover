@@ -93,27 +93,46 @@ You are a UI/UX designer.`
     bossManager = new BossManager({ bosses: ["boss-alice"], projects: [] })
 
     // 创建 StateManager 并注册测试员工
-    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    stateManager = new StateManager(
+      "test-project",
+      TEST_WORKSPACE,
+      TEST_WORKSPACE
+    )
     await stateManager.registerEmployee({
+      employeeId: "0-alice",
+      taskId: 0,
       name: "alice",
       role: "developer",
       status: "inactive",
+      paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      hiredBy: "boss-alice",
     })
     await stateManager.registerEmployee({
+      employeeId: "0-bob",
+      taskId: 0,
       name: "bob",
       role: "tester",
       status: "inactive",
+      paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      hiredBy: "boss-alice",
     })
     await stateManager.registerEmployee({
+      employeeId: "0-charlie",
+      taskId: 0,
       name: "charlie",
       role: "manager",
       status: "inactive",
+      paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      hiredBy: "boss-alice",
     })
 
     // 创建 ShowHireableRolesTool
@@ -124,9 +143,9 @@ You are a UI/UX designer.`
     )
 
     // 注册 sessions
-    sessionRegistry.register("test-session-alice", "alice")
-    sessionRegistry.register("test-session-bob", "bob")
-    sessionRegistry.register("test-session-charlie", "charlie")
+    sessionRegistry.register("test-session-alice", "0-alice")
+    sessionRegistry.register("test-session-bob", "0-bob")
+    sessionRegistry.register("test-session-charlie", "0-charlie")
   })
 
   afterEach(async () => {
@@ -248,13 +267,18 @@ You are a role without description.`
   test("should handle employee with non-existent role", async () => {
     // 注册一个角色不存在的员工
     await stateManager.registerEmployee({
+      employeeId: "0-dave",
+      taskId: 0,
       name: "dave",
       role: "non-existent-role",
       status: "inactive",
+      paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      hiredBy: "boss-alice",
     })
-    sessionRegistry.register("test-session-dave", "dave")
+    sessionRegistry.register("test-session-dave", "0-dave")
 
     const context = {
       sessionID: "test-session-dave",
