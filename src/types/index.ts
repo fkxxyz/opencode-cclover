@@ -224,3 +224,13 @@ export interface TimelineItem {
   timestamp: string
   data: Message | Event
 }
+
+// 归档和恢复系统类型
+export type {
+  EmployeeId,
+  TaskId,
+  ArchiveValidation,
+  RestoreValidation,
+  ArchiveManager,
+} from "./archive"
+export { ArchiveErrors } from "./archive"
