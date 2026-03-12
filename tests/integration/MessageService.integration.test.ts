@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { StateManager } from "../../src/state/StateManager"
+import { formatEmployeeId } from "../../src/types/index"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as yaml from "yaml"
