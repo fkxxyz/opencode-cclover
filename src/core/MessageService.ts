@@ -7,6 +7,17 @@ import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { StateManager } from "../state/StateManager"
 import type { BossManager } from "./BossManager"
 import type { Message, MessageDirection, Event } from "../types"
+import type {
+  EmployeeId,
+  BossId,
+  TaskId,
+} from "../types/employee"
+import type {
+  RecipientResolution,
+  MessageRouter,
+} from "../types/message-routing"
+import { RoutingRules } from "../types/message-routing"
+import { parseEmployeeId, isBossId } from "../types/employee"
 import { buildEventMessage } from "../utils/ContextBuilder"
 import { logger } from "../lib/logger"
 
@@ -29,7 +40,7 @@ interface YamlMessage {
  */
 export class MessageClient {
   constructor(
-    private employeeName: string,
+    private employeeId: EmployeeId | BossId,
     private service: MessageService
   ) {}
 
@@ -40,7 +51,7 @@ export class MessageClient {
    */
   async recv(): Promise<Message> {
     // 1. 检查未读队列
-    const queue = this.service.getUnreadQueue(this.employeeName)
+    const queue = this.service.getUnreadQueue(this.employeeId)
 
     if (queue.length > 0) {
       // 2. 如果有未读消息,立即返回第一条
@@ -50,9 +61,9 @@ export class MessageClient {
     // 3. 如果没有未读消息,返回 Promise 并等待
     return new Promise((resolve) => {
       const listener = () => {
-        this.service.eventEmitter.off(`message:${this.employeeName}`, listener)
+        this.service.eventEmitter.off(`message:${this.employeeId}`, listener)
         // 从队列中获取消息(事件只是通知)
-        const queue = this.service.getUnreadQueue(this.employeeName)
+        const queue = this.service.getUnreadQueue(this.employeeId)
         const message = queue.shift()
         // 防御性检查：如果队列为空（竞态条件），递归调用 recv() 继续等待
         if (message) {
@@ -61,7 +72,7 @@ export class MessageClient {
           resolve(this.recv())
         }
       }
-      this.service.eventEmitter.on(`message:${this.employeeName}`, listener)
+      this.service.eventEmitter.on(`message:${this.employeeId}`, listener)
     })
   }
 
@@ -76,7 +87,7 @@ export class MessageClient {
     expect_reply?: boolean
   ): Promise<void> {
     await this.service.send(
-      this.employeeName,
+      this.employeeId,
       to,
       content,
       reference_docs,
@@ -87,16 +98,16 @@ export class MessageClient {
 
   /**
    * 查询历史消息
-   * @param peer 对方名称
+   * @param peer 对方 employeeId 或 BossId
    * @param limit 返回消息数量（可选，返回最近的 N 条）
    */
   async history(
-    peer: string,
+    peer: EmployeeId | BossId,
     limit?: number,
     before?: string
   ): Promise<Message[]> {
     // 1. 读取消息文件
-    const filePath = this.service.getMessageFilePath(this.employeeName, peer)
+    const filePath = this.service.getMessageFilePath(this.employeeId, peer)
 
     try {
       const content = await fs.readFile(filePath, "utf-8")
@@ -106,8 +117,8 @@ export class MessageClient {
 
       // 3. 转换格式
       const result = messages.map((msg) => ({
-        from: msg.direction === "receive" ? peer : this.employeeName,
-        to: msg.direction === "receive" ? this.employeeName : peer,
+        from: msg.direction === "receive" ? peer : this.employeeId,
+        to: msg.direction === "receive" ? this.employeeId : peer,
         content: msg.content,
         timestamp: msg.timestamp,
         direction: msg.direction,
@@ -147,7 +158,7 @@ export class MessageClient {
  * 消息服务
  * 负责消息的发送、接收和持久化
  */
-export class MessageService {
+export class MessageService implements MessageRouter {
   private projectId: string
   private clients: Map<string, MessageClient> = new Map()
   private unreadQueues: Map<string, Message[]> = new Map()
@@ -163,13 +174,95 @@ export class MessageService {
   }
 
   /**
+   * 解析收件人到目标 employeeId 或 BossId
+   * 实现三种路由规则:
+   * 1. 同任务通信 (短名称)
+   * 2. 跨任务通信 (完整 employeeId)
+   * 3. Boss/非任务员工 (特殊处理)
+   */
+  resolveRecipient(
+    sender: EmployeeId | BossId,
+    recipient: string
+  ): RecipientResolution {
+    // Special handling for Boss sender
+    if (isBossId(sender)) {
+      // Boss can only send to full employeeId or BossId
+      if (!RoutingRules.isFullEmployeeId(recipient)) {
+        throw new Error(
+          `Boss cannot use short names. Use full employeeId format: {taskId}-{name}`
+        )
+      }
+      // Continue to Rule 2 or Rule 3
+    }
+
+    // Rule 1: 同任务通信 (短名称) - only for non-Boss senders
+    if (!RoutingRules.isFullEmployeeId(recipient)) {
+      // 提取发送者的 taskId
+      const { taskId: senderTaskId } = parseEmployeeId(sender)
+      const targetEmployeeId = RoutingRules.buildSameTaskEmployeeId(
+        senderTaskId,
+        recipient
+      )
+      return {
+        targetEmployeeId,
+        isBoss: false,
+        isSameTask: true,
+        isCrossTask: false,
+      }
+    }
+
+    // Rule 2: 跨任务通信 (完整 employeeId)
+    if (!RoutingRules.isBossOrNonTask(recipient)) {
+      return {
+        targetEmployeeId: recipient,
+        isBoss: false,
+        isSameTask: false,
+        isCrossTask: true,
+      }
+    }
+
+    // Rule 3: Boss/非任务员工 (特殊处理)
+    const name = RoutingRules.extractNameFromBossId(recipient)
+
+    // 3.1 优先检查是否为 Boss
+    if (this.bossManager?.isBoss(name)) {
+      // 检查是否同时存在员工 "0-{name}"
+      const employee = this.stateManager?.getEmployee(recipient)
+      if (employee) {
+        logger.warn(
+          `[MessageService] Both Boss and employee "${recipient}" exist, routing to Boss`
+        )
+      }
+      return {
+        targetEmployeeId: recipient,
+        isBoss: true,
+        isSameTask: false,
+        isCrossTask: false,
+      }
+    }
+
+    // 3.2 查找非任务员工
+    const employee = this.stateManager?.getEmployee(recipient)
+    if (!employee) {
+      throw new Error(`目标 '${recipient}' 不存在`)
+    }
+
+    return {
+      targetEmployeeId: recipient,
+      isBoss: false,
+      isSameTask: false,
+      isCrossTask: false,
+    }
+  }
+
+  /**
    * 获取员工的消息客户端
    */
-  getClient(employeeName: string): MessageClient {
-    if (!this.clients.has(employeeName)) {
-      this.clients.set(employeeName, new MessageClient(employeeName, this))
+  getClient(employeeId: EmployeeId | BossId): MessageClient {
+    if (!this.clients.has(employeeId)) {
+      this.clients.set(employeeId, new MessageClient(employeeId, this))
     }
-    return this.clients.get(employeeName)!
+    return this.clients.get(employeeId)!
   }
 
   /**
@@ -177,29 +270,25 @@ export class MessageService {
    * 同时写入双方的消息文件，并通知接收方
    */
   async send(
-    from: string,
+    from: EmployeeId | BossId,
     to: string,
     content: string,
     reference_docs?: string[],
     urgent?: boolean,
     expect_reply?: boolean
   ): Promise<void> {
-    // 1. 校验：不能向自己发送
-    if (from === to) {
+    // 1. 解析收件人
+    const resolution = this.resolveRecipient(from, to)
+    const targetEmployeeId = resolution.targetEmployeeId
+
+    // 2. 校验：不能向自己发送
+    if (from === targetEmployeeId) {
       throw new Error(`不能向自己发送消息`)
-    }
-
-    // 2. 校验：目标必须存在（员工或 boss）
-    const isEmployee = this.stateManager?.getEmployee(to) !== undefined
-    const isBoss = this.bossManager?.isBoss(to) === true
-
-    if (!isEmployee && !isBoss) {
-      throw new Error(`目标 '${to}' 不存在`)
     }
 
     // 3. 查询发送者角色
     let fromRole: string | undefined
-    if (this.bossManager?.isBoss(from)) {
+    if (isBossId(from)) {
       fromRole = "boss"
     } else {
       const employee = this.stateManager?.getEmployee(from)
@@ -209,7 +298,7 @@ export class MessageService {
     const timestamp = new Date().toISOString()
     const message: Message = {
       from,
-      to,
+      to: targetEmployeeId,
       content,
       timestamp,
       direction: "receive",
@@ -219,8 +308,8 @@ export class MessageService {
       ...(expect_reply !== undefined && { expect_reply }),
     }
 
-    // 1. 写入发送方的消息文件
-    await this.appendMessage(from, to, {
+    // 4. 写入发送方的消息文件
+    await this.appendMessage(from, targetEmployeeId, {
       timestamp,
       direction: "send",
       content,
@@ -230,8 +319,8 @@ export class MessageService {
       ...(expect_reply !== undefined && { expect_reply }),
     })
 
-    // 2. 写入接收方的消息文件
-    await this.appendMessage(to, from, {
+    // 5. 写入接收方的消息文件
+    await this.appendMessage(targetEmployeeId, from, {
       timestamp,
       direction: "receive",
       content,
@@ -241,29 +330,32 @@ export class MessageService {
       ...(expect_reply !== undefined && { expect_reply }),
     })
 
-    // 3. 处理紧急消息中断
+    // 6. 处理紧急消息中断
     if (urgent) {
-      await this.handleUrgentInterruption(to)
+      await this.handleUrgentInterruption(targetEmployeeId)
     }
 
-    // 4. 添加到接收方的未读队列（紧急消息插入队首）
+    // 7. 添加到接收方的未读队列（紧急消息插入队首）
     if (urgent) {
-      this.addToUnreadQueueFront(to, message)
+      this.addToUnreadQueueFront(targetEmployeeId, message)
     } else {
-      this.addToUnreadQueue(to, message)
+      this.addToUnreadQueue(targetEmployeeId, message)
     }
 
-    // 5. 触发事件通知接收方
-    this.notifyNewMessage(to)
+    // 8. 触发事件通知接收方
+    this.notifyNewMessage(targetEmployeeId)
 
-    // 6. 转发消息到用户 session（如果接收方有记录的 session）
-    if (this.bossManager) {
-      const sessionId = await this.bossManager.getSession(to, from)
+    // 9. 转发消息到用户 session（如果接收方有记录的 session）
+    if (this.bossManager && resolution.isBoss) {
+      const sessionId = await this.bossManager.getSession(
+        targetEmployeeId,
+        from
+      )
       if (sessionId && this.opcodeClient) {
         await this.forwardToSession(
           sessionId,
           from,
-          to,
+          targetEmployeeId,
           content,
           reference_docs,
           fromRole
@@ -271,7 +363,7 @@ export class MessageService {
       }
     }
 
-    // 7. 发射事件到 StateManager
+    // 10. 发射事件到 StateManager
     this.stateManager?.addEvent({
       projectId: this.projectId,
       type: "message",
@@ -279,7 +371,7 @@ export class MessageService {
       employeeName: from,
       details: {
         from,
-        to,
+        to: targetEmployeeId,
         content,
         ...(fromRole && { fromRole }),
       },
@@ -289,29 +381,33 @@ export class MessageService {
   /**
    * 获取未读消息队列
    */
-  getUnreadQueue(employeeName: string): Message[] {
-    if (!this.unreadQueues.has(employeeName)) {
-      this.unreadQueues.set(employeeName, [])
+  getUnreadQueue(employeeId: EmployeeId | BossId): Message[] {
+    if (!this.unreadQueues.has(employeeId)) {
+      this.unreadQueues.set(employeeId, [])
     }
-    return this.unreadQueues.get(employeeName)!
+    return this.unreadQueues.get(employeeId)!
   }
 
   /**
    * 获取消息文件路径
    */
-  getMessageFilePath(owner: string, peer: string): string {
+  getMessageFilePath(
+    owner: EmployeeId | BossId,
+    peer: EmployeeId | BossId
+  ): string {
     // 检查 owner 是否是 boss
-    if (this.bossManager?.isBoss(owner)) {
+    if (isBossId(owner)) {
+      const bossName = RoutingRules.extractNameFromBossId(owner)
       return path.join(
         this.workspaceRoot,
         "bosses",
-        owner,
+        bossName,
         "messages",
         peer,
         "chat.yaml"
       )
     }
-    // 原有逻辑：employee 的消息
+    // employee 的消息
     return path.join(
       this.workspaceRoot,
       "employees",
@@ -325,11 +421,20 @@ export class MessageService {
   /**
    * 获取员工的所有对话对象列表
    */
-  async getPeers(employeeName: string): Promise<string[]> {
+  async getPeers(employeeId: EmployeeId | BossId): Promise<string[]> {
     // 获取消息目录路径
-    const messagesDir = this.bossManager?.isBoss(employeeName)
-      ? path.join(this.workspaceRoot, "bosses", employeeName, "messages")
-      : path.join(this.workspaceRoot, "employees", employeeName, "messages")
+    let messagesDir: string
+    if (isBossId(employeeId)) {
+      const bossName = RoutingRules.extractNameFromBossId(employeeId)
+      messagesDir = path.join(this.workspaceRoot, "bosses", bossName, "messages")
+    } else {
+      messagesDir = path.join(
+        this.workspaceRoot,
+        "employees",
+        employeeId,
+        "messages"
+      )
+    }
 
     try {
       // 读取目录下的所有子目录（每个子目录代表一个对话对象）
@@ -350,8 +455,8 @@ export class MessageService {
    * 追加消息到文件
    */
   private async appendMessage(
-    owner: string,
-    peer: string,
+    owner: EmployeeId | BossId,
+    peer: EmployeeId | BossId,
     message: YamlMessage
   ): Promise<void> {
     const filePath = this.getMessageFilePath(owner, peer)
@@ -410,16 +515,22 @@ export class MessageService {
   /**
    * 添加到未读队列
    */
-  private addToUnreadQueue(employeeName: string, message: Message): void {
-    const queue = this.getUnreadQueue(employeeName)
+  private addToUnreadQueue(
+    employeeId: EmployeeId | BossId,
+    message: Message
+  ): void {
+    const queue = this.getUnreadQueue(employeeId)
     queue.push(message)
   }
 
   /**
    * 添加到未读队列队首（紧急消息）
    */
-  private addToUnreadQueueFront(employeeName: string, message: Message): void {
-    const queue = this.getUnreadQueue(employeeName)
+  private addToUnreadQueueFront(
+    employeeId: EmployeeId | BossId,
+    message: Message
+  ): void {
+    const queue = this.getUnreadQueue(employeeId)
     queue.unshift(message)
   }
 
@@ -427,7 +538,9 @@ export class MessageService {
    * 处理紧急消息中断
    * 如果接收方有活跃的 session，调用 abort() 中断
    */
-  private async handleUrgentInterruption(to: string): Promise<void> {
+  private async handleUrgentInterruption(
+    to: EmployeeId | BossId
+  ): Promise<void> {
     // 获取接收方的活跃 session ID
     const employee = this.stateManager?.getEmployee(to)
     if (!employee?.activeSessionId) {
@@ -456,23 +569,23 @@ export class MessageService {
    * 通知新消息
    * 事件不传递消息数据,只作为唤醒信号
    */
-  private notifyNewMessage(to: string): void {
+  private notifyNewMessage(to: EmployeeId | BossId): void {
     this.eventEmitter.emit(`message:${to}`)
   }
 
   /**
    * 转发消息到用户的 OpenCode session
    * @param sessionId 用户的 session ID
-   * @param from 发送者名称
-   * @param to 用户名称
+   * @param from 发送者 employeeId 或 BossId
+   * @param to 用户 employeeId 或 BossId
    * @param content 消息内容
    * @param reference_docs 参考文档（可选）
    * @param fromRole 发送者角色（可选）
    */
   private async forwardToSession(
     sessionId: string,
-    from: string,
-    to: string,
+    from: EmployeeId | BossId,
+    to: EmployeeId | BossId,
     content: string,
     reference_docs?: string[],
     fromRole?: string

@@ -1,23 +1,4 @@
-/**
- * 员工 ID 类型
- * 格式: {taskId}-{name}
- * 例如: "1-dev-001", "2-td-001"
- */
-export type EmployeeId = string
-
-/**
- * 任务 ID 类型
- * 格式: 数字字符串
- * 例如: "1", "2", "3"
- */
-export type TaskId = string
-
-/**
- * Boss ID 类型
- * 格式: 0-{bossName}
- * 例如: "0-mason"
- */
-export type BossId = string
+import type { EmployeeId, TaskId, BossId } from "./employee"
 
 /**
  * 收件人解析结果

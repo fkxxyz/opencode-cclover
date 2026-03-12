@@ -74,6 +74,8 @@ export function createHireEmployeeTool(
         }
 
         // 5. Register employee (automatically persisted)
+        // @ts-expect-error - Will be fixed in Task 4.4 (Phase 4)
+        // TODO: Update hiring logic to use employeeId
         await stateManager.registerEmployee({
           name: args.name,
           role: args.role,

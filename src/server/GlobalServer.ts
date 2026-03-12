@@ -220,6 +220,8 @@ export class GlobalCcloverService {
 
     // 2. 注册初始员工（如果不存在）
     if (!project.stateManager.getEmployee("calculator")) {
+      // @ts-expect-error - Will be fixed in Task 6.1 (Phase 6)
+      // TODO: Update server to use employeeId
       await project.stateManager.registerEmployee({
         name: "calculator",
         role: "calculator",

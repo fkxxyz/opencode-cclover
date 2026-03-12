@@ -36,6 +36,8 @@ export function getBosses(
   const bossNames = bossManager.getBosses()
 
   // 为每个 boss 构造 Employee 对象
+  // @ts-expect-error - Will be fixed in Task 6.1 (Phase 6)
+  // TODO: Update API to use employeeId
   const bosses: Employee[] = bossNames.map((name) => ({
     name,
     role: "Boss",
@@ -170,6 +172,8 @@ export async function getBossDetail(
       }
     })
 
+    // @ts-expect-error - Will be fixed in Task 6.1 (Phase 6)
+    // TODO: Update API to use employeeId
     const detail: EmployeeDetail = {
       name,
       role: "Boss",
