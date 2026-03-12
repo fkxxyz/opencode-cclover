@@ -56,13 +56,7 @@ export interface PeerWithLastMessage {
 }
 
 // 消息路由
-export type {
-  EmployeeId,
-  TaskId,
-  BossId,
-  RecipientResolution,
-  MessageRouter,
-} from "./message-routing"
+export type { RecipientResolution, MessageRouter } from "./message-routing"
 export { RoutingRules } from "./message-routing"
 
 // 任务状态类型
@@ -231,8 +225,6 @@ export interface TimelineItem {
 
 // 归档和恢复系统类型
 export type {
-  EmployeeId,
-  TaskId,
   ArchiveValidation,
   RestoreValidation,
   ArchiveManager,

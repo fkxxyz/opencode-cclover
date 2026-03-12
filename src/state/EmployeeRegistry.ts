@@ -1,12 +1,18 @@
 import EventEmitter from "eventemitter3"
-import type { Employee, EmployeeStatus } from "../types/index"
+import type {
+  Employee,
+  EmployeeStatus,
+  EmployeeId,
+  TaskId,
+} from "../types/index"
 
 /**
  * 员工状态注册表
  * 管理所有员工的状态信息,支持事件发射
+ * 使用 employeeId 作为主键
  */
 export class EmployeeRegistry {
-  private employees: Map<string, Employee>
+  private employees: Map<EmployeeId, Employee>
   private emitter: EventEmitter
 
   constructor() {
@@ -19,33 +25,33 @@ export class EmployeeRegistry {
    */
   register(employee: Employee): void {
     // 检查员工是否已存在
-    if (this.employees.has(employee.name)) {
-      throw new Error(`员工 '${employee.name}' 已存在`)
+    if (this.employees.has(employee.employeeId)) {
+      throw new Error(`员工 '${employee.employeeId}' 已存在`)
     }
 
-    this.employees.set(employee.name, { ...employee })
+    this.employees.set(employee.employeeId, { ...employee })
     this.emitter.emit("employee_registered", employee)
   }
 
   /**
    * 更新员工信息
    */
-  update(name: string, updates: Partial<Employee>): void {
-    const employee = this.employees.get(name)
+  update(employeeId: EmployeeId, updates: Partial<Employee>): void {
+    const employee = this.employees.get(employeeId)
     if (!employee) {
-      throw new Error(`员工 '${name}' 不存在`)
+      throw new Error(`员工 '${employeeId}' 不存在`)
     }
 
     const updated = { ...employee, ...updates }
-    this.employees.set(name, updated)
+    this.employees.set(employeeId, updated)
     this.emitter.emit("employee_updated", updated)
   }
 
   /**
    * 获取员工
    */
-  get(name: string): Employee | undefined {
-    const employee = this.employees.get(name)
+  get(employeeId: EmployeeId): Employee | undefined {
+    const employee = this.employees.get(employeeId)
     return employee ? { ...employee } : undefined
   }
 
@@ -59,16 +65,20 @@ export class EmployeeRegistry {
   /**
    * 更新员工状态
    */
-  updateStatus(name: string, status: EmployeeStatus): void {
-    const employee = this.employees.get(name)
+  updateStatus(employeeId: EmployeeId, status: EmployeeStatus): void {
+    const employee = this.employees.get(employeeId)
     if (!employee) {
-      throw new Error(`员工 '${name}' 不存在`)
+      throw new Error(`员工 '${employeeId}' 不存在`)
     }
 
     const oldStatus = employee.status
     const updated = { ...employee, status }
-    this.employees.set(name, updated)
-    this.emitter.emit("status_changed", { name, oldStatus, newStatus: status })
+    this.employees.set(employeeId, updated)
+    this.emitter.emit("status_changed", {
+      employeeId,
+      oldStatus,
+      newStatus: status,
+    })
   }
 
   /**
@@ -83,28 +93,31 @@ export class EmployeeRegistry {
   /**
    * 更新员工 paused 配置
    */
-  updatePaused(name: string, paused: boolean): void {
-    const employee = this.employees.get(name)
+  updatePaused(employeeId: EmployeeId, paused: boolean): void {
+    const employee = this.employees.get(employeeId)
     if (!employee) {
-      throw new Error(`员工 '${name}' 不存在`)
+      throw new Error(`员工 '${employeeId}' 不存在`)
     }
 
     const updated = { ...employee, paused }
-    this.employees.set(name, updated)
+    this.employees.set(employeeId, updated)
     this.emitter.emit("employee_updated", updated)
   }
 
   /**
    * 更新员工 activeSessionId
    */
-  updateActiveSessionId(name: string, sessionId: string | undefined): void {
-    const employee = this.employees.get(name)
+  updateActiveSessionId(
+    employeeId: EmployeeId,
+    sessionId: string | null
+  ): void {
+    const employee = this.employees.get(employeeId)
     if (!employee) {
-      throw new Error(`员工 '${name}' 不存在`)
+      throw new Error(`员工 '${employeeId}' 不存在`)
     }
 
     const updated = { ...employee, activeSessionId: sessionId }
-    this.employees.set(name, updated)
+    this.employees.set(employeeId, updated)
     this.emitter.emit("employee_updated", updated)
   }
 
@@ -127,5 +140,32 @@ export class EmployeeRegistry {
    */
   clear(): void {
     this.employees.clear()
+  }
+
+  /**
+   * 根据 taskId 查询员工列表
+   */
+  getByTaskId(taskId: TaskId): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.taskId === taskId)
+      .map((e) => ({ ...e }))
+  }
+
+  /**
+   * 获取活跃员工列表 (taskId > 0)
+   */
+  getActiveEmployees(): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.taskId > 0)
+      .map((e) => ({ ...e }))
+  }
+
+  /**
+   * 获取归档员工列表 (taskId === 0)
+   */
+  getArchivedEmployees(): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.taskId === 0)
+      .map((e) => ({ ...e }))
   }
 }

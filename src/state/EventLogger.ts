@@ -1,11 +1,12 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as lockfile from "proper-lockfile"
-import type { Event, TimelineItem } from "../types/index"
+import type { Event, TimelineItem, EmployeeId } from "../types/index"
 
 /**
  * 事件日志记录器
  * 负责将事件持久化到 JSONL 文件
+ * 使用 employeeId 作为文件路径
  */
 export class EventLogger {
   private workspaceRoot: string
@@ -17,8 +18,8 @@ export class EventLogger {
   /**
    * 记录事件到员工的 events.jsonl 文件
    */
-  async logEvent(employeeName: string, event: Event): Promise<void> {
-    const filePath = this.getEventFilePath(employeeName)
+  async logEvent(employeeId: EmployeeId, event: Event): Promise<void> {
+    const filePath = this.getEventFilePath(employeeId)
 
     // 确保目录存在
     await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -91,11 +92,11 @@ export class EventLogger {
    * @param before 游标时间戳，返回此时间之前的事件
    */
   async getEvents(
-    employeeName: string,
+    employeeId: EmployeeId,
     limit: number = 50,
     before?: string
   ): Promise<Event[]> {
-    const filePath = this.getEventFilePath(employeeName)
+    const filePath = this.getEventFilePath(employeeId)
 
     try {
       const content = await fs.readFile(filePath, "utf-8")
@@ -124,13 +125,13 @@ export class EventLogger {
 
   /**
    * 获取员工的时间线（消息 + 事件混合）
-   * @param employeeName 员工名称
+   * @param employeeId 员工ID
    * @param messageService 消息服务（用于获取消息）
    * @param limit 返回最近的 N 条，默认 50
    * @param before 游标时间戳，返回此时间之前的消息
    */
   async getTimeline(
-    employeeName: string,
+    employeeId: EmployeeId,
     messageService: any,
     limit: number = 50,
     before?: string
@@ -140,14 +141,14 @@ export class EventLogger {
     const loadLimit = limit * 2
 
     // 获取事件
-    const events = await this.getEvents(employeeName, loadLimit, before)
+    const events = await this.getEvents(employeeId, loadLimit, before)
 
     // 获取消息（从所有对话对象）
-    const peers = await messageService.getPeers(employeeName)
+    const peers = await messageService.getPeers(employeeId)
     const allMessages = []
 
     // 创建 MessageClient 来获取历史消息
-    const client = messageService.getClient(employeeName)
+    const client = messageService.getClient(employeeId)
 
     for (const peer of peers) {
       const messages = await client.history(peer, loadLimit, before)
@@ -178,11 +179,11 @@ export class EventLogger {
   /**
    * 获取事件文件路径
    */
-  private getEventFilePath(employeeName: string): string {
+  private getEventFilePath(employeeId: EmployeeId): string {
     return path.join(
       this.workspaceRoot,
       "employees",
-      employeeName,
+      employeeId,
       "events.jsonl"
     )
   }
