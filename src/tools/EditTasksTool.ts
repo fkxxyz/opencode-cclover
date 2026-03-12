@@ -5,14 +5,19 @@
  */
 import { tool } from "@opencode-ai/plugin"
 import type { MemoryManager } from "../core/MemoryManager"
+import type { StateManager } from "../state/StateManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 
 /**
  * Create edit_tasks tool
  *
  * @param memoryManager Memory manager instance
+ * @param stateManager State manager instance
  */
-export function createEditTasksTool(memoryManager: MemoryManager) {
+export function createEditTasksTool(
+  memoryManager: MemoryManager,
+  stateManager: StateManager
+) {
   return tool({
     description: "Batch edit task list (add, update, delete tasks)",
     args: {
@@ -75,11 +80,19 @@ export function createEditTasksTool(memoryManager: MemoryManager) {
     },
     async execute(args, context) {
       // 1. Get caller information
-      const employeeName = sessionRegistry.getEmployeeName(context.sessionID)
+      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
 
-      if (!employeeName) {
+      if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
+
+      // 2. Look up employee to get name
+      const employee = stateManager.getEmployee(employeeId)
+      if (!employee) {
+        return `Error: Employee not found (employeeId: ${employeeId})`
+      }
+
+      const employeeName = employee.name
 
       const results: string[] = []
       let hasSuccess = false

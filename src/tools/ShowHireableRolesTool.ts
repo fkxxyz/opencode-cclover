@@ -29,7 +29,13 @@ export function createShowHireableRolesTool(
           callerName = context.agent
         } else {
           // Try SessionRegistry (employee)
-          callerName = sessionRegistry.getEmployeeName(context.sessionID)
+          const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+          if (employeeId) {
+            const employee = stateManager.getEmployee(employeeId)
+            if (employee) {
+              callerName = employee.name
+            }
+          }
         }
         if (!callerName) {
           return `Error: Unable to identify caller (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
@@ -48,7 +54,8 @@ export function createShowHireableRolesTool(
           )
         } else {
           // Regular employee: get their role from StateManager
-          const employee = stateManager.getEmployee(callerName)
+          const allEmployees = stateManager.getEmployees()
+          const employee = allEmployees.find((e) => e.name === callerName)
           if (!employee) {
             return `Error: Employee '${callerName}' not found`
           }

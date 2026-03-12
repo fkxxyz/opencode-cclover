@@ -5,6 +5,7 @@
  */
 import { tool } from "@opencode-ai/plugin"
 import type { MemoryManager } from "../core/MemoryManager"
+import type { StateManager } from "../state/StateManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 import { generateMermaid } from "../utils/MermaidGenerator"
 
@@ -12,18 +13,30 @@ import { generateMermaid } from "../utils/MermaidGenerator"
  * Create show_tasks tool
  *
  * @param memoryManager Memory manager instance
+ * @param stateManager State manager instance
  */
-export function createShowTasksTool(memoryManager: MemoryManager) {
+export function createShowTasksTool(
+  memoryManager: MemoryManager,
+  stateManager: StateManager
+) {
   return tool({
     description: "Display all tasks with dependency graph visualization",
     args: {},
     async execute(args, context) {
       // 1. Get caller information
-      const employeeName = sessionRegistry.getEmployeeName(context.sessionID)
+      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
 
-      if (!employeeName) {
+      if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
+
+      // 2. Look up employee to get name
+      const employee = stateManager.getEmployee(employeeId)
+      if (!employee) {
+        return `Error: Employee not found (employeeId: ${employeeId})`
+      }
+
+      const employeeName = employee.name
 
       // 2. Read employee memory
       const memory = await memoryManager.read(employeeName)

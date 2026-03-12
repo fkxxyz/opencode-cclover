@@ -62,7 +62,7 @@ export class EmployeePersistence {
           if (!emp.employeeId) {
             // 旧格式: { name, role, ... }
             // 新格式: { employeeId, name, taskId, role, ... }
-            
+
             // 验证 name 格式
             if (!isValidEmployeeName(emp.name)) {
               logger.warn(

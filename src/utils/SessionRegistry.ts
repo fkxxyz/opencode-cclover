@@ -1,53 +1,53 @@
 /**
  * Session Registry
  *
- * 维护 sessionID 到员工名称的映射关系
+ * 维护 sessionID 到员工 ID 的映射关系
  * 用于工具调用时识别调用者身份
  */
 
 class SessionRegistry {
-  private sessionToEmployee = new Map<string, string>()
+  private sessionToEmployeeId = new Map<string, string>()
 
   /**
-   * 注册 session 和员工的映射关系
+   * 注册 session 和员工 ID 的映射关系
    */
-  register(sessionId: string, employeeName: string): void {
-    this.sessionToEmployee.set(sessionId, employeeName)
+  register(sessionId: string, employeeId: string): void {
+    this.sessionToEmployeeId.set(sessionId, employeeId)
   }
 
   /**
-   * 根据 sessionID 获取员工名称
+   * 根据 sessionID 获取员工 ID
    */
-  getEmployeeName(sessionId: string): string | undefined {
-    return this.sessionToEmployee.get(sessionId)
+  getEmployeeId(sessionId: string): string | undefined {
+    return this.sessionToEmployeeId.get(sessionId)
   }
 
   /**
    * 取消注册
    */
   unregister(sessionId: string): void {
-    this.sessionToEmployee.delete(sessionId)
+    this.sessionToEmployeeId.delete(sessionId)
   }
 
   /**
    * 检查 session 是否已注册
    */
   has(sessionId: string): boolean {
-    return this.sessionToEmployee.has(sessionId)
+    return this.sessionToEmployeeId.has(sessionId)
   }
 
   /**
    * 获取所有注册的 session
    */
   getAllSessions(): string[] {
-    return Array.from(this.sessionToEmployee.keys())
+    return Array.from(this.sessionToEmployeeId.keys())
   }
 
   /**
    * 清空所有注册
    */
   clear(): void {
-    this.sessionToEmployee.clear()
+    this.sessionToEmployeeId.clear()
   }
 }
 

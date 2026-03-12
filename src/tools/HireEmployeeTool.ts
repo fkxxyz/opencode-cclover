@@ -35,7 +35,13 @@ export function createHireEmployeeTool(
         // 1. Get caller identity
         let hiredBy: string | undefined
         // 2. First try to get from SessionRegistry (employee)
-        hiredBy = sessionRegistry.getEmployeeName(context.sessionID)
+        const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+        if (employeeId) {
+          const employee = stateManager.getEmployee(employeeId)
+          if (employee) {
+            hiredBy = employee.name
+          }
+        }
         // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
         if (!hiredBy && context.agent) {
           const agentName = context.agent
@@ -75,7 +81,7 @@ export function createHireEmployeeTool(
 
         // 5. Register employee (automatically persisted)
         // @ts-expect-error - Will be fixed in Task 4.4 (Phase 4)
-        // TODO: Update hiring logic to use employeeId
+        // TODO: Update hiring logic to include employeeId, taskId, activeSessionId
         await stateManager.registerEmployee({
           name: args.name,
           role: args.role,

@@ -31,20 +31,39 @@ export function createPauseEmployeeTool(
     },
     async execute(args, context) {
       // 1. 获取操作者名称
-      const operatorName = sessionRegistry.getEmployeeName(context.sessionID)
+      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+      let operatorName: string | undefined
+      if (employeeId) {
+        const employee = stateManager.getEmployee(employeeId)
+        if (employee) {
+          operatorName = employee.name
+        }
+      }
+      // Check if it's a boss
+      if (!operatorName && context.agent) {
+        const agentName = context.agent
+        if (bossManager.isBoss(agentName)) {
+          operatorName = agentName
+        }
+      }
       if (!operatorName) {
         throw new Error("Cannot identify operator")
       }
 
-      // 2. 获取目标员工
-      const employee = stateManager.getEmployee(args.employeeName)
+      // 2. 获取目标员工 (by name)
+      const allEmployees = stateManager.getEmployees()
+      const employee = allEmployees.find((e) => e.name === args.employeeName)
       if (!employee) {
         throw new Error(`Employee '${args.employeeName}' not found`)
       }
 
       // 3. 检查权限
       const isBoss = bossManager.isBoss(operatorName)
-      const isSupervisor = employee.hiredBy === operatorName
+      // Check if operator is supervisor by employeeId
+      let isSupervisor = false
+      if (employeeId) {
+        isSupervisor = employee.hiredBy === employeeId
+      }
       if (!isBoss && !isSupervisor) {
         throw new Error(
           `Permission denied. Only Boss or direct supervisor can pause employees.`

@@ -111,7 +111,7 @@ export function createTools(deps: {
       deps.bossManager,
       deps.stateManager
     ),
-    edit_tasks: createEditTasksTool(deps.memoryManager),
+    edit_tasks: createEditTasksTool(deps.memoryManager, deps.stateManager!),
     create_agent: createCreateAgentTool(deps.opcodeClient, deps.stateManager),
     hire_employee: deps.project
       ? createHireEmployeeTool(
@@ -124,7 +124,7 @@ export function createTools(deps: {
     refresh_roles: deps.project
       ? createRefreshRolesTool(deps.project)
       : (null as any), // fallback
-    show_tasks: createShowTasksTool(deps.memoryManager),
+    show_tasks: createShowTasksTool(deps.memoryManager, deps.stateManager!),
     show_hireable_roles: deps.project
       ? createShowHireableRolesTool(
           deps.project.roleManager,

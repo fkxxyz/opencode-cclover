@@ -5,10 +5,12 @@ import * as lockfile from "proper-lockfile"
 import { ConfigManager } from "../config/ConfigManager"
 import type { CcloverConfig } from "../config/ConfigManager"
 import { logger } from "../lib/logger"
+import type { BossId, EmployeeId } from "../types/index"
+import { formatBossId, isBossId } from "../types/index"
 
 /**
  * Boss 管理器
- * 负责管理全局 boss 列表
+ * 负责管理全局 boss 列表和 Boss 身份识别
  */
 export class BossManager {
   private bosses: Set<string> = new Set()
@@ -39,6 +41,19 @@ export class BossManager {
    */
   isBoss(name: string): boolean {
     return this.bosses.has(name)
+  }
+
+  /**
+   * 从 BossId 获取 Boss 名称
+   * @param bossId Boss ID (格式: "0-{bossName}")
+   * @returns Boss 名称，如果不是有效的 BossId 则返回 null
+   */
+  getBossName(bossId: BossId): string | null {
+    if (!isBossId(bossId)) {
+      return null
+    }
+    const name = bossId.substring(2) // Remove "0-" prefix
+    return this.bosses.has(name) ? name : null
   }
 
   /**
@@ -73,12 +88,12 @@ export class BossManager {
   /**
    * 记录 boss 与员工的 session 映射
    * @param bossName Boss 名称
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    * @param sessionId OpenCode session ID
    */
   async recordSession(
     bossName: string,
-    employeeName: string,
+    employeeId: EmployeeId,
     sessionId: string
   ): Promise<void> {
     if (!this.workspaceRoot) {
@@ -87,46 +102,46 @@ export class BossManager {
     }
 
     const sessions = await this.readSessions(bossName)
-    sessions[employeeName] = sessionId
+    sessions[employeeId] = sessionId
     await this.writeSessions(bossName, sessions)
     logger.debug(
-      `[BossManager] Recorded session for ${bossName} → ${employeeName}: ${sessionId}`
+      `[BossManager] Recorded session for ${bossName} → ${employeeId}: ${sessionId}`
     )
   }
 
   /**
    * 获取 boss 与员工的 session ID
    * @param bossName Boss 名称
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    * @returns Session ID 或 undefined
    */
   async getSession(
     bossName: string,
-    employeeName: string
+    employeeId: EmployeeId
   ): Promise<string | undefined> {
     if (!this.workspaceRoot) {
       return undefined
     }
 
     const sessions = await this.readSessions(bossName)
-    return sessions[employeeName]
+    return sessions[employeeId]
   }
 
   /**
    * 清除 boss 与员工的 session 映射
    * @param bossName Boss 名称
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    */
-  async clearSession(bossName: string, employeeName: string): Promise<void> {
+  async clearSession(bossName: string, employeeId: EmployeeId): Promise<void> {
     if (!this.workspaceRoot) {
       return
     }
 
     const sessions = await this.readSessions(bossName)
-    delete sessions[employeeName]
+    delete sessions[employeeId]
     await this.writeSessions(bossName, sessions)
     logger.debug(
-      `[BossManager] Cleared session for ${bossName} → ${employeeName}`
+      `[BossManager] Cleared session for ${bossName} → ${employeeId}`
     )
   }
 

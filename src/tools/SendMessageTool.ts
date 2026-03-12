@@ -9,6 +9,7 @@ import type { MessageService } from "../core/MessageService"
 import type { BossManager } from "../core/BossManager"
 import type { StateManager } from "../state/StateManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
+import { formatBossId } from "../types"
 
 /**
  * Create send_message tool
@@ -48,7 +49,13 @@ export function createSendMessageTool(
       // 1. Get caller information
       let from: string | undefined
       // 2. First try to get from SessionRegistry (employee)
-      from = sessionRegistry.getEmployeeName(context.sessionID)
+      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+      if (employeeId && stateManager) {
+        const employee = stateManager.getEmployee(employeeId)
+        if (employee) {
+          from = employee.name
+        }
+      }
       // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
       if (!from && context.agent) {
         const agentName = context.agent
@@ -64,14 +71,36 @@ export function createSendMessageTool(
       }
 
       // 2. Check if recipient is offline
-      const recipient = stateManager?.getEmployee(args.to)
-      if (recipient?.status === "offline") {
-        throw new Error(`Employee is on vacation!`)
+      if (stateManager) {
+        // Try to find recipient by name
+        const allEmployees = stateManager.getEmployees()
+        const recipient = allEmployees.find((e) => e.name === args.to)
+        if (recipient?.status === "offline") {
+          throw new Error(`Employee is on vacation!`)
+        }
       }
 
       // 3. Record session if sender has sessionID (BEFORE sending)
-      if (bossManager && context.sessionID) {
-        await bossManager.recordSession(from, args.to, context.sessionID)
+      if (bossManager && stateManager && context.sessionID) {
+        // Look up recipient employeeId
+        let recipientEmployeeId: string | undefined
+        if (bossManager.isBoss(args.to)) {
+          recipientEmployeeId = formatBossId(args.to)
+        } else {
+          const allEmployees = stateManager.getEmployees()
+          const recipient = allEmployees.find((e) => e.name === args.to)
+          if (recipient) {
+            recipientEmployeeId = recipient.employeeId
+          }
+        }
+
+        if (recipientEmployeeId) {
+          await bossManager.recordSession(
+            from,
+            recipientEmployeeId,
+            context.sessionID
+          )
+        }
       }
 
       // 4. Call message service (let exceptions propagate naturally)

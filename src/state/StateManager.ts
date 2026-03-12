@@ -80,9 +80,7 @@ export class StateManager {
 
     // 验证 name 格式
     if (!isValidEmployeeName(employee.name)) {
-      throw new Error(
-        `员工名称 '${employee.name}' 格式无效，不能以数字-开头`
-      )
+      throw new Error(`员工名称 '${employee.name}' 格式无效，不能以数字-开头`)
     }
 
     // 确保 paused 字段存在
@@ -272,9 +270,7 @@ export class StateManager {
    * 根据 name 查找员工（辅助方法）
    */
   private findEmployeeByName(name: string): Employee | undefined {
-    return this.employeeRegistry
-      .getAll()
-      .find((emp) => emp.name === name)
+    return this.employeeRegistry.getAll().find((emp) => emp.name === name)
   }
 
   /**
@@ -378,7 +374,10 @@ export class StateManager {
       try {
         // 从文件加载该员工的历史事件（最多 1000 条）
         // EventLogger.getEvents 返回的是按时间顺序（旧→新）
-        const events = await this.eventLogger.getEvents(employee.employeeId, 1000)
+        const events = await this.eventLogger.getEvents(
+          employee.employeeId,
+          1000
+        )
 
         // 按时间顺序（旧→新）添加到 EventHistory
         // EventHistory.add() 使用 unshift，所以最后添加的（最新的）会在数组开头

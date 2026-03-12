@@ -25,8 +25,15 @@ export function createResumeEmployeeTool(
       try {
         // 1. Get operator identity
         let operatorName: string | undefined
+        let operatorId: string | undefined
         // First try to get from SessionRegistry (employee)
-        operatorName = sessionRegistry.getEmployeeName(context.sessionID)
+        operatorId = sessionRegistry.getEmployeeId(context.sessionID)
+        if (operatorId) {
+          const employee = stateManager.getEmployee(operatorId)
+          if (employee) {
+            operatorName = employee.name
+          }
+        }
         // If not in SessionRegistry, try to get from context.agent (might be boss)
         if (!operatorName && context.agent) {
           const agentName = context.agent
@@ -39,15 +46,19 @@ export function createResumeEmployeeTool(
           return `Error: Unable to identify operator (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         }
 
-        // 2. Validate employee exists
-        const employee = stateManager.getEmployee(args.employeeName)
+        // 2. Validate employee exists (by name)
+        const allEmployees = stateManager.getEmployees()
+        const employee = allEmployees.find((e) => e.name === args.employeeName)
         if (!employee) {
           return `Error: Employee '${args.employeeName}' not found`
         }
 
         // 3. Check permissions (Boss or direct supervisor)
         const isBoss = bossManager.isBoss(operatorName)
-        const isSupervisor = employee.hiredBy === operatorName
+        let isSupervisor = false
+        if (operatorId) {
+          isSupervisor = employee.hiredBy === operatorId
+        }
         if (!isBoss && !isSupervisor) {
           return `Error: Permission denied. Only Boss or direct supervisor can resume employees.`
         }

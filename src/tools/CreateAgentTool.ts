@@ -26,11 +26,23 @@ export function createCreateAgentTool(
     },
     async execute(args, context) {
       // 1. Get caller information
-      const employeeName = sessionRegistry.getEmployeeName(context.sessionID)
+      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
 
-      if (!employeeName) {
+      if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
+
+      // Look up employee to get name
+      if (!stateManager) {
+        return `Error: StateManager not available`
+      }
+
+      const employee = stateManager.getEmployee(employeeId)
+      if (!employee) {
+        return `Error: Employee not found (employeeId: ${employeeId})`
+      }
+
+      const employeeName = employee.name
 
       try {
         // 2. Create agent session
