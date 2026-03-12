@@ -124,10 +124,11 @@ export function useTimeline(
           to === employeeId ||
           (!!peer && (from === peer || to === peer))
       } else {
-        // 其他事件：检查 employeeName 字段是否是当前员工或peer
+        // 其他事件：检查 employeeId 字段是否是当前员工或peer（向后兼容：回退到 employeeName）
+        const eventEmployeeId = event.employeeId || (event as any).employeeName
         isRelevant =
-          event.employeeName === employeeName ||
-          (!!peer && event.employeeName === peer)
+          eventEmployeeId === employeeId ||
+          (!!peer && eventEmployeeId === peer)
       }
 
       if (isRelevant) {

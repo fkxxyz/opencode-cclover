@@ -160,7 +160,8 @@ function getEventDescription(
     case "session_summary_completed":
       return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     case "employee_hired":
-      return `${details.hiredBy} 雇佣了 ${details.employeeName} (${details.role})`
+      // 向后兼容：优先使用 employeeId，回退到 employeeName
+      return `${details.hiredBy} 雇佣了 ${details.employeeId || details.employeeName} (${details.role})`
     case "employee_status_changed":
       return `${employeeName} 状态: ${details.oldStatus} → ${details.newStatus}`
     case "task_updated":
@@ -240,8 +241,9 @@ export function EventStream({ projectId }: EventStreamProps) {
           }}
         >
           {events.map((event, index) => {
-            // 使用 timestamp + employeeName + type + index 作为唯一 key
-            const uniqueKey = `${event.timestamp}-${event.employeeName || "unknown"}-${event.type}-${index}`
+            // 使用 timestamp + employeeId + type + index 作为唯一 key（向后兼容：回退到 employeeName）
+            const eventEmployeeId = event.employeeId || (event as any).employeeName
+            const uniqueKey = `${event.timestamp}-${eventEmployeeId || "unknown"}-${event.type}-${index}`
             return (
               <Box
                 key={uniqueKey}
@@ -280,9 +282,9 @@ export function EventStream({ projectId }: EventStreamProps) {
                       mb: 0.5,
                     }}
                   >
-                    {event.employeeName && (
+                    {eventEmployeeId && (
                       <Typography variant="body2" fontWeight="medium">
-                        {event.employeeName}
+                        {eventEmployeeId}
                       </Typography>
                     )}
                     <Typography variant="caption" color="text.secondary">
@@ -299,7 +301,7 @@ export function EventStream({ projectId }: EventStreamProps) {
                         event.type,
                         event.details,
                         project.directory,
-                        event.employeeName
+                        eventEmployeeId
                       )}
                   </Typography>
                 </Box>

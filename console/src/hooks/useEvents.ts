@@ -47,7 +47,7 @@ export function useEvents(
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("*", (event) => {
-      // 如果指定了 employeeName，检查事件是否与该员工相关
+      // 如果指定了 employeeId，检查事件是否与该员工相关
       if (employeeIdRef.current) {
         // 对于消息事件，检查 from 或 to 是否是当前员工
         if (
@@ -65,8 +65,9 @@ export function useEvents(
             return
           }
         } else {
-          // 其他事件：检查 employeeName 字段
-          if (event.employeeName !== employeeIdRef.current) {
+          // 其他事件：检查 employeeId 字段（向后兼容：回退到 employeeName）
+          const eventEmployeeId = event.employeeId || (event as any).employeeName
+          if (eventEmployeeId !== employeeIdRef.current) {
             return
           }
         }

@@ -30,11 +30,12 @@ export function useEmployees(projectId: string | undefined) {
   // 实时更新
   useEffect(() => {
     const unsubscribe = subscribe("employee_status_changed", (event) => {
-      const employeeName = event.employeeName
-      if (employeeName) {
+      // 向后兼容：优先使用 employeeId，回退到 employeeName
+      const employeeId = event.employeeId || (event as any).employeeName
+      if (employeeId) {
         setEmployees((prev) =>
           prev.map((emp) =>
-            emp.name === employeeName
+            emp.name === employeeId
               ? {
                   ...emp,
                   status:

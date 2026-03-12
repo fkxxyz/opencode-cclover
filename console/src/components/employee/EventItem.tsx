@@ -127,7 +127,8 @@ function getEventDescription(
       return `Agent 失败: ${details.taskName}`
 
     case "employee_hired":
-      return `雇佣员工: ${details.employeeName} (${details.role})`
+      // 向后兼容：优先使用 employeeId，回退到 employeeName
+      return `雇佣员工: ${details.employeeId || details.employeeName} (${details.role})`
 
     case "message":
     case "message_sent":

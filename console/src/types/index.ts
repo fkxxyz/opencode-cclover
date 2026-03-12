@@ -138,7 +138,7 @@ export interface Event {
   projectId: string
   type: EventType
   timestamp: string
-  employeeName?: string
+  employeeId?: string
   details: Record<string, unknown>
 }
 

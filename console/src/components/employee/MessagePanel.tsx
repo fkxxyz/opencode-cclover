@@ -74,9 +74,10 @@ export function MessagePanel({
             (message.from === peer && message.to === employeeId)
           )
         }
-        // 事件：显示对方（peer）的事件
+        // 事件：显示对方（peer）的事件（向后兼容：回退到 employeeName）
         const event = item.data as Event
-        return event.employeeName === peer
+        const eventEmployeeId = event.employeeId || (event as any).employeeName
+        return eventEmployeeId === peer
       }) || [],
     [timeline, employeeId, peer]
   )

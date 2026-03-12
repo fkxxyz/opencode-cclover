@@ -109,7 +109,8 @@ function getEventDescription(
     case "agent_failed":
       return `Agent ${details.agentId} 失败: ${details.error}`
     case "employee_hired":
-      return `雇佣了 ${details.employeeName} (${details.role})`
+      // 向后兼容：优先使用 employeeId，回退到 employeeName
+      return `雇佣了 ${details.employeeId || details.employeeName} (${details.role})`
     case "employee_status_changed":
       return `状态变化: ${details.oldStatus} → ${details.newStatus}`
     case "task_updated":
