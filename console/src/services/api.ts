@@ -123,7 +123,7 @@ export class ApiClient {
 
   async getMessages(
     projectId: string,
-    employeeName: string,
+    employeeId: string,
     peer?: string,
     limit?: number
   ): Promise<Message[]> {
@@ -132,30 +132,30 @@ export class ApiClient {
     if (limit) params.append("limit", limit.toString())
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ messages: Message[] }>(
-      `/projects/${projectId}/employees/${employeeName}/messages${query}`
+      `/projects/${projectId}/employees/${employeeId}/messages${query}`
     )
     return data.messages
   }
 
   async getPeers(
     projectId: string,
-    employeeName: string
+    employeeId: string
   ): Promise<PeerWithLastMessage[]> {
     const data = await this.request<{ peers: PeerWithLastMessage[] }>(
-      `/projects/${projectId}/employees/${employeeName}/peers`
+      `/projects/${projectId}/employees/${employeeId}/peers`
     )
     return data.peers
   }
 
   async sendMessage(
     projectId: string,
-    employeeName: string,
+    employeeId: string,
     to: string,
     content: string
   ): Promise<void> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/messages`,
+        `${API_BASE_URL}/projects/${projectId}/employees/${employeeId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -179,10 +179,10 @@ export class ApiClient {
 
   async getTasks(
     projectId: string,
-    employeeName: string
+    employeeId: string
   ): Promise<TasksResponse> {
     return this.request<TasksResponse>(
-      `/projects/${projectId}/employees/${employeeName}/tasks`
+      `/projects/${projectId}/employees/${employeeId}/tasks`
     )
   }
 
@@ -190,13 +190,13 @@ export class ApiClient {
     projectId: string,
     options?: {
       limit?: number
-      employeeName?: string
+      employeeId?: string
     }
   ): Promise<Event[]> {
     const params = new URLSearchParams()
     if (options?.limit) params.append("limit", options.limit.toString())
-    if (options?.employeeName)
-      params.append("employeeName", options.employeeName)
+    if (options?.employeeId)
+      params.append("employeeId", options.employeeId)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ events: Event[] }>(
       `/projects/${projectId}/events${query}`
@@ -239,7 +239,7 @@ export class ApiClient {
 
   async getTimeline(
     projectId: string,
-    employeeName: string,
+    employeeId: string,
     limit?: number,
     before?: string
   ): Promise<TimelineItem[]> {
@@ -248,7 +248,7 @@ export class ApiClient {
     if (before) params.append("before", before)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ timeline: TimelineItem[] }>(
-      `/projects/${projectId}/employees/${employeeName}/timeline${query}`
+      `/projects/${projectId}/employees/${employeeId}/timeline${query}`
     )
     return data.timeline
   }
@@ -262,17 +262,17 @@ export class ApiClient {
 
   async getEmployeeRole(
     projectId: string,
-    employeeName: string
+    employeeId: string
   ): Promise<Role> {
     return this.request<Role>(
-      `/projects/${projectId}/employees/${employeeName}/role`
+      `/projects/${projectId}/employees/${employeeId}/role`
     )
   }
 
-  async pauseEmployee(projectId: string, employeeName: string): Promise<void> {
+  async pauseEmployee(projectId: string, employeeId: string): Promise<void> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/pause`,
+        `${API_BASE_URL}/projects/${projectId}/employees/${employeeId}/pause`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -294,10 +294,10 @@ export class ApiClient {
     }
   }
 
-  async resumeEmployee(projectId: string, employeeName: string): Promise<void> {
+  async resumeEmployee(projectId: string, employeeId: string): Promise<void> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/employees/${employeeName}/resume`,
+        `${API_BASE_URL}/projects/${projectId}/employees/${employeeId}/resume`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
