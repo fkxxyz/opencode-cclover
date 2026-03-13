@@ -122,7 +122,7 @@ export class StateManager {
       projectId: this.projectId,
       type: "employee_status_changed" as const,
       timestamp: new Date().toISOString(),
-      employeeName: employee.name, // 保留 employeeName 用于事件通知
+      employeeId: employeeId,
       details: {
         employeeId,
         oldStatus,
@@ -161,7 +161,7 @@ export class StateManager {
       projectId: this.projectId,
       type: "employee_paused" as const,
       timestamp: new Date().toISOString(),
-      employeeName: employee.name,
+      employeeId: employeeId,
       details: { employeeId },
     }
     this.eventHistory.add(event)
@@ -194,7 +194,7 @@ export class StateManager {
       projectId: this.projectId,
       type: "employee_resumed" as const,
       timestamp: new Date().toISOString(),
-      employeeName: employee.name,
+      employeeId: employeeId,
       details: { employeeId },
     }
     this.eventHistory.add(event)
