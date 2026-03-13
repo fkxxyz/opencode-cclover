@@ -10,6 +10,7 @@ import type {
   SuccessResponse,
   ErrorResponse,
 } from "../types/index"
+import { formatBossId } from "../types/employee"
 import type { BossManager } from "../core/BossManager"
 
 /**
@@ -36,15 +37,17 @@ export function getBosses(
   const bossNames = bossManager.getBosses()
 
   // 为每个 boss 构造 Employee 对象
-  // @ts-expect-error - Will be fixed in Task 6.1 (Phase 6)
-  // TODO: Update API to use employeeId
   const bosses: Employee[] = bossNames.map((name) => ({
+    employeeId: formatBossId(name),
     name,
+    taskId: 0,
     role: "Boss",
+    hiredBy: null,
     status: "busy" as const,
     paused: false,
     createdAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
+    activeSessionId: null,
   }))
 
   return {
@@ -174,15 +177,17 @@ export async function getBossDetail(
       }
     })
 
-    // @ts-expect-error - Will be fixed in Task 6.1 (Phase 6)
-    // TODO: Update API to use employeeId
     const detail: EmployeeDetail = {
+      employeeId: formatBossId(name),
       name,
+      taskId: 0,
       role: "Boss",
+      hiredBy: null,
       status: "busy" as const,
       paused: false,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      activeSessionId: null,
       memory,
       tasks: memory.tasks || [],
       agents,

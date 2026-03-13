@@ -14,6 +14,7 @@ import { AgentRegistry } from "../utils/AgentRegistry"
 import { EventLoop } from "../core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
+import { formatEmployeeId } from "../types/employee"
 
 /**
  * 全局 Cclover 服务
@@ -220,15 +221,17 @@ export class GlobalCcloverService {
 
     // 2. 注册初始员工（如果不存在）
     if (!project.stateManager.getEmployee("calculator")) {
-      // @ts-expect-error - Will be fixed in Task 6.1 (Phase 6)
-      // TODO: Update server to use employeeId
       await project.stateManager.registerEmployee({
+        employeeId: formatEmployeeId(0, "calculator"),
         name: "calculator",
+        taskId: 0,
         role: "calculator",
+        hiredBy: null,
         status: "offline",
         paused: false,
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
       })
     }
 
