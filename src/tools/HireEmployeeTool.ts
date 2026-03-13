@@ -154,7 +154,7 @@ export function createHireEmployeeTool(
         await stateManager.addEvent(hiredEvent)
 
         // 7. Start employee's EventLoop
-        await startEmployee(project, args.name, roleDefinition)
+        await startEmployee(project, newEmployeeId, roleDefinition)
 
         logger.info(
           `[HireEmployeeTool] Employee '${args.name}' hired by '${hiredBy}' with role '${args.role}'`
@@ -265,21 +265,25 @@ function checkHiringPermission(
  */
 async function startEmployee(
   project: ProjectInstance,
-  employeeName: string,
+  employeeId: EmployeeId,
   role: { name: string; systemPrompt: string }
 ): Promise<void> {
   try {
     // Dynamically import EventLoop (avoid circular dependency)
     const { EventLoop } = await import("../core/eventloop")
     const { GlobalCcloverService } = await import("../server/GlobalServer")
+    const { parseEmployeeId } = await import("../types/employee")
 
-    const messageClient = project.messageService.getClient(employeeName)
+    // Parse employeeId to get name for MessageClient
+    const { name } = parseEmployeeId(employeeId)
+
+    const messageClient = project.messageService.getClient(name)
     const globalService = await GlobalCcloverService.getInstance()
     const opcodeClient = globalService.getOpencodeClient()
 
     const eventLoop = new EventLoop(
       project.directory,
-      employeeName,
+      employeeId,
       role.name,
       project.roleManager,
       messageClient,
@@ -288,22 +292,22 @@ async function startEmployee(
       project.stateManager
     )
 
-    // Store in project.eventLoops
-    project.eventLoops.set(employeeName, eventLoop)
+    // Store in project.eventLoops (use name as key for backward compatibility)
+    project.eventLoops.set(name, eventLoop)
 
     // Run in background
     eventLoop.run().catch((error: any) => {
-      logger.error(`[${employeeName}] EventLoop crashed:`, error)
+      logger.error(`[${employeeId}] EventLoop crashed:`, error)
     })
 
     logger.debug(
-      `[startEmployee] EventLoop started for employee: ${employeeName}`
+      `[startEmployee] EventLoop started for employee: ${employeeId}`
     )
   } catch (error: any) {
     // 在单元测试环境中，GlobalCcloverService 可能未初始化
     // 这种情况下跳过 EventLoop 启动
     logger.debug(
-      `[startEmployee] Skipping EventLoop startup for ${employeeName}: ${error.message}`
+      `[startEmployee] Skipping EventLoop startup for ${employeeId}: ${error.message}`
     )
   }
 }

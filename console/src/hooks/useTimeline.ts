@@ -127,8 +127,7 @@ export function useTimeline(
         // 其他事件：检查 employeeId 字段是否是当前员工或peer（向后兼容：回退到 employeeName）
         const eventEmployeeId = event.employeeId || (event as any).employeeName
         isRelevant =
-          eventEmployeeId === employeeId ||
-          (!!peer && eventEmployeeId === peer)
+          eventEmployeeId === employeeId || (!!peer && eventEmployeeId === peer)
       }
 
       if (isRelevant) {

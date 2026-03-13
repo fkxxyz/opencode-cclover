@@ -20,11 +20,7 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-export function MessageList({
-  projectId,
-  employeeId,
-  peer,
-}: MessageListProps) {
+export function MessageList({ projectId, employeeId, peer }: MessageListProps) {
   const { messages, loading } = useMessages(projectId, employeeId, peer)
   if (loading) {
     return (

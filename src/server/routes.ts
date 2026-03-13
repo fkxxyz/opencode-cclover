@@ -637,17 +637,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
     "GET:/employees/:name/messages",
     async (req, params, deps) => {
       const url = new URL(req.url)
-      const employeeName = params.name
+      const employeeId = params.name
       const peer = url.searchParams.get("peer") || undefined
       const limit = url.searchParams.get("limit")
         ? parseInt(url.searchParams.get("limit")!)
         : 50
-      return messages.getMessages(
-        employeeName,
-        peer,
-        limit,
-        deps.messageService
-      )
+      return messages.getMessages(employeeId, peer, limit, deps.messageService)
     },
   ],
 
@@ -680,9 +675,9 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   [
     "GET:/employees/:name/peers",
     async (req, params, deps) => {
-      const employeeName = params.name
+      const employeeId = params.name
       return messages.getPeers(
-        employeeName,
+        employeeId,
         deps.messageService,
         deps.stateManager,
         deps.bossManager
@@ -725,10 +720,10 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   [
     "POST:/employees/:name/messages",
     async (req, params, deps) => {
-      const employeeName = params.name
+      const employeeId = params.name
       const body = (await req.json()) as { to: string; content: string }
       return messages.sendMessage(
-        employeeName,
+        employeeId,
         body.to,
         body.content,
         deps.messageService,

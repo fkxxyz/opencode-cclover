@@ -106,12 +106,7 @@ export function Timeline({
   peer,
   limit,
 }: TimelineProps) {
-  const { timeline, loading } = useTimeline(
-    projectId,
-    employeeId,
-    peer,
-    limit
-  )
+  const { timeline, loading } = useTimeline(projectId, employeeId, peer, limit)
   const [project, setProject] = useState<Project | null>(null)
 
   // 获取项目信息以获得 directory

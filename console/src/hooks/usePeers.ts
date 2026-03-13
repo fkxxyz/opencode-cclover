@@ -34,8 +34,8 @@ export function usePeers(projectId: string | undefined, employeeId: string) {
       const content = details.content as string
 
       // 如果消息涉及当前员工，更新 peers 列表
-      if (from === employeeName || to === employeeName) {
-        const newPeerName = from === employeeName ? to : from
+      if (from === employeeId || to === employeeId) {
+        const newPeerName = from === employeeId ? to : from
         setPeers((prev) => {
           // 查找是否已存在
           const existingIndex = prev.findIndex((p) => p.name === newPeerName)
@@ -76,7 +76,7 @@ export function usePeers(projectId: string | undefined, employeeId: string) {
     })
 
     return unsubscribe
-  }, [subscribe, employeeName])
+  }, [subscribe, employeeId])
 
   return { peers, loading }
 }

@@ -25,7 +25,7 @@ export async function getStats(
     // 计算待处理任务数
     let pendingTasks = 0
     for (const employee of employees) {
-      const memory = await memoryManager.read(employee.name)
+      const memory = await memoryManager.read(employee.employeeId)
       const employeePendingTasks = memory.tasks.filter(
         (t) => t.status === "pending" || t.status === "in_progress"
       ).length

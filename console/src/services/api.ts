@@ -195,8 +195,7 @@ export class ApiClient {
   ): Promise<Event[]> {
     const params = new URLSearchParams()
     if (options?.limit) params.append("limit", options.limit.toString())
-    if (options?.employeeId)
-      params.append("employeeId", options.employeeId)
+    if (options?.employeeId) params.append("employeeId", options.employeeId)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ events: Event[] }>(
       `/projects/${projectId}/events${query}`
@@ -260,10 +259,7 @@ export class ApiClient {
     return data.roles
   }
 
-  async getEmployeeRole(
-    projectId: string,
-    employeeId: string
-  ): Promise<Role> {
+  async getEmployeeRole(projectId: string, employeeId: string): Promise<Role> {
     return this.request<Role>(
       `/projects/${projectId}/employees/${employeeId}/role`
     )

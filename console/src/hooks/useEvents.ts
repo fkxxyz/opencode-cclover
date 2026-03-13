@@ -58,15 +58,13 @@ export function useEvents(
           const details = event.details as any
           const from = details?.from as string
           const to = details?.to as string
-          if (
-            from !== employeeIdRef.current &&
-            to !== employeeIdRef.current
-          ) {
+          if (from !== employeeIdRef.current && to !== employeeIdRef.current) {
             return
           }
         } else {
           // 其他事件：检查 employeeId 字段（向后兼容：回退到 employeeName）
-          const eventEmployeeId = event.employeeId || (event as any).employeeName
+          const eventEmployeeId =
+            event.employeeId || (event as any).employeeName
           if (eventEmployeeId !== employeeIdRef.current) {
             return
           }

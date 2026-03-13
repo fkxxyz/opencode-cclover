@@ -40,7 +40,7 @@ export function createIntegrateTool(
       const resetEmployees: string[] = []
       for (const employee of soullessEmployees) {
         // 读取记忆
-        const memory = await memoryManager.read(employee.name)
+        const memory = await memoryManager.read(employee.employeeId)
 
         // 如果有活跃的 session，则重置
         if (memory.sessionId) {
@@ -53,7 +53,7 @@ export function createIntegrateTool(
           // 保留 args 和 roleData（不修改）
 
           // 写回记忆
-          await memoryManager.write(employee.name, memory)
+          await memoryManager.write(employee.employeeId, memory)
 
           // 从 sessionRegistry 注销
           sessionRegistry.unregister(sessionId)

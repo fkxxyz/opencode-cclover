@@ -242,7 +242,8 @@ export function EventStream({ projectId }: EventStreamProps) {
         >
           {events.map((event, index) => {
             // 使用 timestamp + employeeId + type + index 作为唯一 key（向后兼容：回退到 employeeName）
-            const eventEmployeeId = event.employeeId || (event as any).employeeName
+            const eventEmployeeId =
+              event.employeeId || (event as any).employeeName
             const uniqueKey = `${event.timestamp}-${eventEmployeeId || "unknown"}-${event.type}-${index}`
             return (
               <Box

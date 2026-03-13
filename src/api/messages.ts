@@ -10,7 +10,7 @@ import type {
  * 获取消息历史
  */
 export async function getMessages(
-  employeeName: string,
+  employeeId: string,
   peer?: string,
   limit?: number,
   messageService?: MessageService
@@ -27,12 +27,12 @@ export async function getMessages(
 
   try {
     // 验证参数
-    if (!employeeName || employeeName.trim() === "") {
+    if (!employeeId || employeeId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工名称不能为空",
+          message: "员工ID不能为空",
         },
       }
     }
@@ -53,14 +53,14 @@ export async function getMessages(
 
     if (peer) {
       // 获取与特定对象的消息
-      const client = messageService.getClient(employeeName)
+      const client = messageService.getClient(employeeId)
       const serviceMessages = await client.history(peer, msgLimit)
       // client.history() 已经返回完整的 Message 对象
       messages = serviceMessages
     } else {
       // 获取所有消息（遍历所有对话）
-      const peers = await messageService.getPeers(employeeName)
-      const client = messageService.getClient(employeeName)
+      const peers = await messageService.getPeers(employeeId)
+      const client = messageService.getClient(employeeId)
 
       // 收集所有对话的消息
       const allMessages: Message[] = []
@@ -101,7 +101,7 @@ export async function getMessages(
  * 获取员工的对话对象列表（包括所有员工和 boss，按最后聊天时间排序）
  */
 export async function getPeers(
-  employeeName: string,
+  employeeId: string,
   messageService?: MessageService,
   stateManager?: any,
   bossManager?: any
@@ -118,12 +118,12 @@ export async function getPeers(
 
   try {
     // 验证参数
-    if (!employeeName || employeeName.trim() === "") {
+    if (!employeeId || employeeId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工名称不能为空",
+          message: "员工ID不能为空",
         },
       }
     }
@@ -132,15 +132,15 @@ export async function getPeers(
     const allPossiblePeers = new Set<string>()
 
     // 添加有消息记录的对话对象
-    const peersWithMessages = await messageService.getPeers(employeeName)
+    const peersWithMessages = await messageService.getPeers(employeeId)
     peersWithMessages.forEach((peer: string) => allPossiblePeers.add(peer))
 
     // 添加所有员工（排除自己）
     if (stateManager) {
       const employees = stateManager.getEmployees()
       employees.forEach((emp: any) => {
-        if (emp.name !== employeeName) {
-          allPossiblePeers.add(emp.name)
+        if (emp.employeeId !== employeeId) {
+          allPossiblePeers.add(emp.employeeId)
         }
       })
     }
@@ -149,14 +149,15 @@ export async function getPeers(
     if (bossManager) {
       const bosses = bossManager.getBosses()
       bosses.forEach((boss: string) => {
-        if (boss !== employeeName) {
-          allPossiblePeers.add(boss)
+        const bossId = `0-${boss}`
+        if (bossId !== employeeId) {
+          allPossiblePeers.add(bossId)
         }
       })
     }
 
     // 2. 获取每个 peer 的最后消息时间
-    const client = messageService.getClient(employeeName)
+    const client = messageService.getClient(employeeId)
     const peersWithTime: PeerWithLastMessage[] = []
 
     for (const peer of allPossiblePeers) {
@@ -234,7 +235,7 @@ export async function getPeers(
  * 发送消息
  */
 export async function sendMessage(
-  employeeName: string,
+  employeeId: string,
   to: string,
   content: string,
   messageService?: MessageService,
@@ -253,12 +254,12 @@ export async function sendMessage(
 
   try {
     // 验证参数
-    if (!employeeName || employeeName.trim() === "") {
+    if (!employeeId || employeeId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工名称不能为空",
+          message: "员工ID不能为空",
         },
       }
     }
@@ -284,7 +285,7 @@ export async function sendMessage(
     }
 
     // 发送消息
-    const client = messageService.getClient(employeeName)
+    const client = messageService.getClient(employeeId)
     await client.send(to, content)
 
     // MessageService.send() 已经通过 stateManager.addEvent() 触发了 "message" 事件

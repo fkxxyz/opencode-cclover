@@ -220,7 +220,7 @@ export class GlobalCcloverService {
     )
 
     // 2. 注册初始员工（如果不存在）
-    if (!project.stateManager.getEmployee("calculator")) {
+    if (!project.stateManager.getEmployee(formatEmployeeId(0, "calculator"))) {
       await project.stateManager.registerEmployee({
         employeeId: formatEmployeeId(0, "calculator"),
         name: "calculator",
@@ -260,65 +260,78 @@ export class GlobalCcloverService {
     let startedCount = 0
 
     for (const employee of employees) {
-      logger.debug(
-        `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
-      )
-      // 验证角色存在
-      const role = project.roleManager.getRole(employee.role)
-      if (!role) {
+      try {
+        logger.debug(
+          `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
+        )
+        // 验证角色存在
+        const role = project.roleManager.getRole(employee.role)
+        if (!role) {
+          logger.error(
+            `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
+          )
+          continue
+        }
+
+        // 根据配置计算运行时状态
+        if (employee.paused) {
+          // 配置为暂停 → 设置运行时状态为 offline
+          await project.stateManager.updateEmployeeStatus(
+            employee.employeeId,
+            "offline"
+          )
+          // 不启动 EventLoop
+          logger.info(
+            `[${project.projectId}] Skipping paused employee: ${employee.name}`
+          )
+          continue
+        } else {
+          // 配置为活跃 → 设置运行时状态为 idle
+          await project.stateManager.updateEmployeeStatus(
+            employee.employeeId,
+            "idle"
+          )
+          // 启动 EventLoop
+        }
+
+        const messageClient = project.messageService.getClient(
+          employee.employeeId
+        )
+
+        logger.debug(
+          `[GlobalServer] Creating EventLoop for employee: ${employee.name}`
+        )
+        const eventLoop = new EventLoop(
+          project.directory,
+          employee.employeeId,
+          employee.role,
+          project.roleManager,
+          messageClient,
+          project.memoryManager,
+          opcodeClient,
+          project.stateManager
+        )
+
+        // 存储到 project.eventLoops
+        project.eventLoops.set(employee.employeeId, eventLoop)
+
+        // 后台运行
+        logger.debug(
+          `[GlobalServer] Starting EventLoop.run() for employee: ${employee.name}`
+        )
+        eventLoop.run().catch((error) => {
+          logger.error(`[${employee.name}] EventLoop crashed:`, error)
+        })
+
+        logger.debug(`EventLoop started for employee: ${employee.name}`)
+        startedCount++
+      } catch (error: any) {
         logger.error(
-          `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
+          `[GlobalServer] Failed to start EventLoop for employee '${employee.name}':`,
+          error
         )
-        continue
+        // 继续处理下一个员工
       }
-
-      // 根据配置计算运行时状态
-      if (employee.paused) {
-        // 配置为暂停 → 设置运行时状态为 offline
-        await project.stateManager.updateEmployeeStatus(
-          employee.name,
-          "offline"
-        )
-        // 不启动 EventLoop
-        logger.info(
-          `[${project.projectId}] Skipping paused employee: ${employee.name}`
-        )
-        continue
-      } else {
-        // 配置为活跃 → 设置运行时状态为 idle
-        await project.stateManager.updateEmployeeStatus(employee.name, "idle")
-        // 启动 EventLoop
-      }
-
-      const messageClient = project.messageService.getClient(employee.name)
-
-      logger.debug(
-        `[GlobalServer] Creating EventLoop for employee: ${employee.name}`
-      )
-      const eventLoop = new EventLoop(
-        project.directory,
-        employee.name,
-        employee.role,
-        project.roleManager,
-        messageClient,
-        project.memoryManager,
-        opcodeClient,
-        project.stateManager
-      )
-
-      // 存储到 project.eventLoops
-      project.eventLoops.set(employee.name, eventLoop)
-
-      // 后台运行
-      logger.debug(
-        `[GlobalServer] Starting EventLoop.run() for employee: ${employee.name}`
-      )
-      eventLoop.run().catch((error) => {
-        logger.error(`[${employee.name}] EventLoop crashed:`, error)
-      })
-
-      logger.debug(`EventLoop started for employee: ${employee.name}`)
-      startedCount++
     }
 
     // 标记为已启动

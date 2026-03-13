@@ -166,7 +166,8 @@ export async function getBossDetail(
     }
 
     // 获取 boss 创建的 Agent 执行记录
-    const agentIds = agentRegistry.getAgentsByEmployee(name)
+    const bossId = formatBossId(name)
+    const agentIds = agentRegistry.getAgentsByEmployee(bossId)
     const agents = agentIds.map((agentId: string) => {
       const info = agentRegistry.getInfo(agentId)
       return {
