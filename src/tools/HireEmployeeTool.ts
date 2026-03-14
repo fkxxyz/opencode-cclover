@@ -274,10 +274,10 @@ async function startEmployee(
     const { GlobalCcloverService } = await import("../server/GlobalServer")
     const { parseEmployeeId } = await import("../types/employee")
 
-    // Parse employeeId to get name for MessageClient
+    // Parse employeeId to get name for backward compatibility
     const { name } = parseEmployeeId(employeeId)
 
-    const messageClient = project.messageService.getClient(name)
+    const messageClient = project.messageService.getClient(employeeId)
     const globalService = await GlobalCcloverService.getInstance()
     const opcodeClient = globalService.getOpencodeClient()
 

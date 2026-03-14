@@ -385,7 +385,7 @@ export class GlobalCcloverService {
     }
 
     // 5. 获取 messageClient
-    const messageClient = project.messageService.getClient(employee.name)
+    const messageClient = project.messageService.getClient(employeeId)
 
     // 6. 创建 EventLoop（参考 startEmployees() 的实现）
     const opcodeClient = this.getOpencodeClient()
