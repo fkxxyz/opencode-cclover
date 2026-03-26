@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename)
  */
 export const CcloverPlugin: Plugin = async (ctx) => {
   try {
-    if (!process.env.CCLOVER_ENABLE) {
+    if (process.env.CCLOVER_ENABLE !== "1") {
       logger.info(
         "[Cclover] Plugin is not enabled, if you want to enable it, set CCLOVER_ENABLE=1"
       )
