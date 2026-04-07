@@ -196,6 +196,49 @@ describe("SendMessageTool with Boss", () => {
     ).rejects.toThrow("Unable to identify caller")
   })
 
+  test("should reject non-existent employee recipient by short name", async () => {
+    const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
+    sessionRegistry.register("test-session-invalid-short-name", "0-alice")
+
+    const context = {
+      sessionID: "test-session-invalid-short-name",
+      agent: undefined,
+    }
+
+    await expect(
+      sendMessageTool.execute(
+        {
+          to: "nonexistent",
+          content: "Hello ghost",
+          expect_reply: false,
+        },
+        context
+      )
+    ).rejects.toThrow("Recipient does not exist")
+
+    sessionRegistry.unregister("test-session-invalid-short-name")
+  })
+
+  test("should fail fast when stateManager is missing", async () => {
+    const toolWithoutStateManager = createSendMessageTool(
+      messageService,
+      bossManager
+    )
+
+    await expect(
+      toolWithoutStateManager.execute(
+        {
+          to: "0-bob",
+          content: "Hello",
+        },
+        {
+          sessionID: "test-session-boss-no-state-manager",
+          agent: "bayecao",
+        }
+      )
+    ).rejects.toThrow("stateManager is required")
+  })
+
   describe("Message routing", () => {
     test("should route messages between employees in same task", async () => {
       // 注册 alice 到 SessionRegistry

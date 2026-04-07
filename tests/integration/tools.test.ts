@@ -96,7 +96,7 @@ describe("Tools Integration", () => {
 
   describe("send_message tool", () => {
     test("should send message successfully", async () => {
-      const tool = createSendMessageTool(messageService)
+      const tool = createSendMessageTool(messageService, undefined, stateManager)
       const sessionId = "test-session-1"
       const employeeName = "0-alice"
 
@@ -108,7 +108,7 @@ describe("Tools Integration", () => {
 
       // 执行工具
       const result = await tool.execute(
-        { to: "0-bob", content: "Hello Bob" },
+        { to: "0-bob", content: "Hello Bob", expect_reply: false },
         {
           sessionID: sessionId,
           messageID: "msg-1",
@@ -130,11 +130,11 @@ describe("Tools Integration", () => {
     })
 
     test("should throw error if session not registered", async () => {
-      const tool = createSendMessageTool(messageService)
+      const tool = createSendMessageTool(messageService, undefined, stateManager)
 
       await expect(
         tool.execute(
-          { to: "0-bob", content: "Hello" },
+          { to: "0-bob", content: "Hello", expect_reply: false },
           {
             sessionID: "unknown-session",
             messageID: "msg-1",
@@ -147,6 +147,30 @@ describe("Tools Integration", () => {
           }
         )
       ).rejects.toThrow("Unable to identify caller")
+    })
+
+    test("should reject non-existent recipient employee", async () => {
+      const tool = createSendMessageTool(messageService, undefined, stateManager)
+      const sessionId = "test-session-invalid-recipient"
+      const employeeName = "0-alice"
+
+      sessionRegistry.register(sessionId, employeeName)
+
+      await expect(
+        tool.execute(
+          { to: "0-nonexistent", content: "Hello", expect_reply: false },
+          {
+            sessionID: sessionId,
+            messageID: "msg-invalid-recipient",
+            agent: "test",
+            directory: TEST_WORKSPACE,
+            worktree: TEST_WORKSPACE,
+            abort: new AbortController().signal,
+            metadata: () => {},
+            ask: async () => {},
+          }
+        )
+      ).rejects.toThrow("Recipient does not exist")
     })
   })
 

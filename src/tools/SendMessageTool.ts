@@ -11,6 +11,32 @@ import type { StateManager } from "../state/StateManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 import { formatBossId } from "../types"
 
+function resolveRecipientId(
+  recipient: string,
+  bossManager: BossManager | undefined,
+  stateManager: StateManager
+): string {
+  // 1. 优先识别 boss 名称或 BossId
+  const normalizedBossName = recipient.startsWith("0-")
+    ? recipient.substring(2)
+    : recipient
+  if (bossManager?.isBoss(normalizedBossName)) {
+    return formatBossId(normalizedBossName)
+  }
+
+  // 2. 再查找员工（支持 name 或 employeeId）
+  const allEmployees = stateManager.getEmployees()
+  const matchedEmployee = allEmployees.find(
+    (employee) => employee.name === recipient || employee.employeeId === recipient
+  )
+
+  if (!matchedEmployee) {
+    throw new Error(`Recipient does not exist: ${recipient}`)
+  }
+
+  return matchedEmployee.employeeId
+}
+
 /**
  * Create send_message tool
  *
@@ -46,6 +72,10 @@ export function createSendMessageTool(
         ),
     },
     async execute(args, context) {
+      if (!stateManager) {
+        throw new Error("SendMessageTool stateManager is required")
+      }
+
       // 1. Get caller employeeId
       let from: string | undefined
       // 2. First try to get from SessionRegistry (employee)
@@ -67,13 +97,11 @@ export function createSendMessageTool(
         )
       }
 
+      const recipientId = resolveRecipientId(args.to, bossManager, stateManager)
+
       // 2. Check if recipient is offline (only for employees, not Boss)
-      if (stateManager && !bossManager?.isBoss(args.to)) {
-        // Try to find recipient by name or employeeId
-        const allEmployees = stateManager.getEmployees()
-        const recipient = allEmployees.find(
-          (e) => e.name === args.to || e.employeeId === args.to
-        )
+      if (!recipientId.startsWith("0-") || !bossManager?.isBoss(recipientId.substring(2))) {
+        const recipient = stateManager.getEmployee(recipientId)
         if (recipient?.status === "offline") {
           throw new Error(`Employee is on vacation!`)
         }
@@ -90,24 +118,10 @@ export function createSendMessageTool(
         // Sender is Boss - extract boss name from BossId
         const bossName = from.substring(2) // Remove "0-" prefix
 
-        // Look up recipient employeeId
-        let recipientEmployeeId: string | undefined
-        if (bossManager.isBoss(args.to)) {
-          recipientEmployeeId = formatBossId(args.to)
-        } else {
-          const allEmployees = stateManager.getEmployees()
-          const recipient = allEmployees.find(
-            (e) => e.name === args.to || e.employeeId === args.to
-          )
-          if (recipient) {
-            recipientEmployeeId = recipient.employeeId
-          }
-        }
-
-        if (recipientEmployeeId) {
+        if (recipientId) {
           await bossManager.recordSession(
             bossName,
-            recipientEmployeeId,
+            recipientId,
             context.sessionID
           )
         }
@@ -116,14 +130,14 @@ export function createSendMessageTool(
       // 4. Call message service (let exceptions propagate naturally)
       await messageService.send(
         from,
-        args.to,
+        recipientId,
         args.content,
         args.reference_docs,
         args.urgent,
         args.expect_reply
       )
 
-      return `Message sent to ${args.to}`
+      return `Message sent to ${recipientId}`
     },
   })
 }
