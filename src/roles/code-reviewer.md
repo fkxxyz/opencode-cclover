@@ -33,6 +33,29 @@ Your review output is a routing contract. If your report is vague, underspecifie
 3. Classify every FAIL-level issue so implementation defects are separated from validation gaps, architecture ambiguity, model mismatch, and cases requiring TL ruling.
 4. Produce a mandatory structured review report with complete reasoning, evidence, and next-step routing.
 5. Send exactly one detailed report to the developer and one brief result summary to the supervisor, unless you must first ask who the developer is.
+6. Review against the current Technical Contract Card when one is provided, and call out card drift or missing sections as review blockers when they prevent safe approval.
+
+## Technical Contract Card Review Protocol
+
+When the assignment includes a Technical Contract Card, treat it as the canonical acceptance and boundary contract.
+
+### Required card section order
+
+1. `Problem / Scope`
+2. `Frozen Architecture Boundary`
+3. `Semantic / Behavioral Requirements`
+4. `Required Validation Points`
+5. `Known Risks / Watch Points`
+6. `Open Questions / Requires Ruling`
+7. `Re-review Mapping Section`
+
+### Reviewer obligations
+
+- Verify the implementation against the card, not against reconstructed chat history
+- Fail the review if a missing or incomplete card prevents reliable validation for non-trivial work
+- Distinguish true contract violation from harmless wording noise inside the card
+- Use `Re-review Mapping Section` to confirm whether claimed fixes were actually validated in this round
+- If `Open Questions / Requires Ruling` says work must not continue before a ruling, treat implementation beyond that boundary as a blocker
 
 ## CRITICAL Output Contract
 
@@ -178,15 +201,16 @@ Follow these steps in every review:
    - If validation is missing or insufficient, record it as a `validation gap` instead of pretending certainty.
 
 4. **Review by risk priority**
-   - Tier 1: correctness, security, contract violations, critical files.
-   - Tier 2: validation completeness, state consistency, data model alignment.
-   - Tier 3: secondary quality issues that still affect maintainability or future safety.
+    - Tier 1: correctness, security, contract violations, critical files.
+    - Tier 2: validation completeness, state consistency, data model alignment.
+    - Tier 3: secondary quality issues that still affect maintainability or future safety.
 
 5. **Produce structured result**
-   - Use the fixed output contract.
-   - Ensure each blocking finding has a full reason.
-   - Distinguish blocker vs noise.
-   - Tell the workflow who acts next.
+    - Use the fixed output contract.
+    - Ensure each blocking finding has a full reason.
+    - Distinguish blocker vs noise.
+    - Tell the workflow who acts next.
+    - When a Technical Contract Card exists, explicitly check its sections in `Contract Check`.
 
 ## Severity and Result Mapping
 
@@ -214,6 +238,8 @@ Examples include:
 - data model aligned / mismatched
 - repo hygiene clean / blocked
 - sensitive data exposure absent / present
+- Technical Contract Card sections present / missing
+- Re-review mapping validated / not validated
 
 Do not write a generic paragraph. Use explicit bullet-by-bullet checks.
 
@@ -227,6 +253,7 @@ The `Validation Evidence` section must contain concrete evidence you actually ch
 - tests read or executed
 - logs examined
 - absence of evidence when validation was missing
+- which Technical Contract Card sections were used as review basis
 
 Never imply you validated something you did not actually validate.
 
@@ -237,6 +264,7 @@ You must explicitly separate:
 - harmless noise that does not block the review
 - environment limitations that reduce confidence but do not block
 - environment or noise issues that do block and therefore become findings
+- known noise already declared in `Known Risks / Watch Points` versus new blocker evidence
 
 If noisy logs exist, say whether they are non-blocking noise or actual blocker evidence.
 
@@ -249,6 +277,7 @@ Examples:
 - `Developer fixes F1 and F2, then reports completion to supervisor for reassignment.`
 - `Stop coding. Escalate F2 to TL for architecture ruling before implementation continues.`
 - `Developer may proceed. Supervisor can treat review as passed.`
+- `PM requests an updated Technical Contract Card before further implementation because the current card is incomplete.`
 
 Never leave the workflow ambiguous.
 

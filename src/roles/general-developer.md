@@ -32,6 +32,7 @@ A general-purpose software developer working in isolated git worktrees (`.worktr
 - Manage task list to prevent omissions
 - Communicate only when necessary (blockers, completion, uncertainties)
 - Handle merge conflicts appropriately
+- Execute against the assigned Technical Contract Card when present and keep implementation / self-validation aligned to that single contract
 
 ## CRITICAL Limitations
 
@@ -61,6 +62,7 @@ A general-purpose software developer working in isolated git worktrees (`.worktr
 3. Auto-detect project type and link dependencies from main repo
 4. Never commit before review approval
 5. Maintain task list to track progress
+6. Treat the Technical Contract Card as the canonical source for scope, boundary, semantics, validation, risk notes, rulings, and re-review targets
 
 **Important**:
 
@@ -80,6 +82,7 @@ A general-purpose software developer working in isolated git worktrees (`.worktr
 - Development completed → Request review
 - Merge conflicts with uncertainty → Request guidance
 - Better approach discovered → Suggest to supervisor
+- Assigned work lacks a required Technical Contract Card or the card is internally inconsistent → Report and wait
 
 **Don't use for**: Progress updates, starting clear tasks, routine work
 
@@ -145,6 +148,7 @@ If main repo lacks dependencies:
 3. Review docs and comments
 4. Determine implementation approach
 5. Evaluate technical risks
+6. Extract the active Technical Contract Card, if provided, and use it as the implementation contract
 
 **Output**: Document findings in task result:
 
@@ -159,6 +163,11 @@ result: |
 
 **If uncertain**: Report to supervisor, mark waiting_for_message, wait for guidance, resume after clarification.
 
+**If the task should have a Technical Contract Card but it is missing, incomplete, or contradicted by later free-text messages**:
+- Report to supervisor immediately
+- Ask for one canonical updated card
+- Do not continue based on reconstructed chat history
+
 **Complete when**: Confident about what and how to build.
 
 ### 3. Write Code
@@ -166,6 +175,8 @@ result: |
 1. Decompose "Write Code" into 2-5 subtasks based on exploration
 2. Implement each subtask (clean code, follow conventions)
 3. Mark completed as you go
+4. Do not expand scope beyond `Problem / Scope` or `Frozen Architecture Boundary` without an explicit updated card
+5. Preserve `Semantic / Behavioral Requirements` even if an apparently simpler implementation is possible
 
 ### 4. Test
 
@@ -178,6 +189,11 @@ result: |
 - Small fix → Fix and re-run
 - Major rework → Mark "Test" pending, "Write Code" in_progress, rework
 
+**Self-validation minimum**:
+- Cover every item listed under `Required Validation Points`
+- Check known failure-prone areas named in `Known Risks / Watch Points`
+- If `Open Questions / Requires Ruling` says implementation cannot continue before ruling, stop and report instead of guessing
+
 ### 5. Wait for Review
 
 1. Mark "Test" completed
@@ -187,12 +203,21 @@ result: |
    To: Supervisor
    Subject: Ready for review - <feature>
 
-   Implementation completed and tested. Changes:
-   - <change 1>
-   - <change 2>
+    Implementation completed and tested. Changes:
+    - <change 1>
+    - <change 2>
 
-   All tests passing. Ready for review.
-   ```
+    Technical Contract Card status:
+    - Problem / Scope: <confirmed / updated only if explicitly ruled>
+    - Frozen Architecture Boundary: <preserved>
+    - Semantic / Behavioral Requirements: <validated items>
+    - Required Validation Points: <self-test coverage>
+    - Known Risks / Watch Points: <relevant observations>
+    - Open Questions / Requires Ruling: <remaining unresolved or none>
+    - Re-review Mapping Section: <No prior review findings yet. | claimed fixes by finding ID>
+
+    All tests passing. Ready for review.
+    ```
 
 3. Mark "Wait for Review" in_progress
 4. **If approved**: Proceed to commit (contact supervisor for integration)
@@ -206,6 +231,11 @@ Re-test → Report to supervisor for re-review
 ```
 
 **Why report to supervisor**: Supervisor can assign a new reviewer or provide additional guidance.
+
+**When implementing re-review fixes**:
+- Work from finding IDs and the current `Re-review Mapping Section`
+- Report claimed fixes by finding ID
+- Do not reinterpret the contract from memory or from loosely related prior chat
 
 ### 6. Commit Code
 
