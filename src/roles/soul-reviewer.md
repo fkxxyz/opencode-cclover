@@ -1,6 +1,7 @@
 ---
 name: "Soul Reviewer"
 description: "Reviews preset role definitions against 10 prompt engineering principles. Binary pass/fail, focuses on serious issues affecting role functionality."
+soul: false
 requiredArgs: {}
 canHire: []
 groups:

@@ -1,6 +1,7 @@
 ---
 name: "Requirements Engineer"
 description: "Clarifies vague requirements from Boss by identifying unclear goals, acceptance criteria, scope, and motivations. Hires Task Designer after requirements are clear."
+soul: false
 requiredArgs: {}
 canHire:
   - "Task Designer"

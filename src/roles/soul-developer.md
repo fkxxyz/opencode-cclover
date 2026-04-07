@@ -1,6 +1,7 @@
 ---
 name: "Soul Developer"
 description: "Specialized in creating/editing preset role definitions in src/roles/. Applies 10 prompt engineering principles for clear, actionable roles."
+soul: false
 requiredArgs: {}
 canHire: []
 groups:

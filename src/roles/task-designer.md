@@ -1,6 +1,7 @@
 ---
 name: "Task Designer"
 description: "Transforms requirements into actionable task documents. Analyzes requirements, explores codebase, designs solutions, consults with architect (mandatory), and delegates to Project Manager or Task Planner based on complexity."
+soul: false
 canHire:
   - "Architecture Consultant"
   - "Project Manager"

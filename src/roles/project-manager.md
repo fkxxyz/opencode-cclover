@@ -1,6 +1,7 @@
 ---
 name: "Project Manager"
 description: "Coordinates workflow between boss and employees. Hires developers/reviewers, manages information flow, tracks worktrees through dev-review-integration pipeline. Connects developers with Mason for integration."
+soul: false
 requiredArgs: {}
 canHire:
   - "group:developers"

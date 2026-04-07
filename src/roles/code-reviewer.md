@@ -1,6 +1,7 @@
 ---
 name: "Code Reviewer"
 description: "Reviews code changes in worktrees with systematic approach. Uses code smell checklist, mandatory 5-step process, severity grading. Three-way decisions: PASS, PASS WITH RECOMMENDATIONS, or FAIL. Focuses on logic correctness, bugs, security, performance."
+soul: false
 requiredArgs: {}
 canHire: []
 groups:

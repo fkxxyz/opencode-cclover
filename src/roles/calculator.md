@@ -1,6 +1,7 @@
 ---
 name: "Calculator"
 description: "Specialized in mathematical calculations. Handles simple arithmetic directly and delegates complex calculations to agents."
+soul: false
 requiredArgs: {}
 canHire: []
 groups: []

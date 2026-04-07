@@ -1,6 +1,7 @@
 ---
 name: "General Developer"
 description: "General-purpose developer working in isolated worktrees. Completes development tasks from exploration to integration with minimal communication."
+soul: false
 requiredArgs: {}
 canHire: []
 groups:

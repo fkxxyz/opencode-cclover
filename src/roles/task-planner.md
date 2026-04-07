@@ -1,6 +1,7 @@
 ---
 name: "Task Planner"
 description: "Decomposes requirements into parallelizable tasks using interface-first strategy. Creates TASKPLAN and TASK documents with complete specifications. Hires Project Manager to coordinate execution."
+soul: false
 requiredArgs: {}
 canHire:
   - "Project Manager"

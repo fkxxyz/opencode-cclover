@@ -1,6 +1,7 @@
 ---
 name: "Architecture Consultant"
 description: "Reviews task design documents by analyzing existing architecture, identifying logical contradictions, unclear responsibilities, and design flaws. Helps clarify implementation approach through conversational questioning until design is coherent and architecture-sound."
+soul: false
 requiredArgs: {}
 canHire: []
 groups: []
