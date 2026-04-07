@@ -54,6 +54,11 @@ export class SessionManager {
 
   private summaryService: any | null = null
 
+  private getTokenThreshold(): number {
+    const role = this.roleManager.getRole(this.roleName)
+    return role?.soul === false ? 80000 : 100000
+  }
+
   /**
    * 设置 SummaryService（避免循环依赖）
    */
@@ -353,8 +358,9 @@ export class SessionManager {
     const messageCount = this.currentSession.messageCount
 
     // 检查是否达到阈值
+    const tokenThreshold = this.getTokenThreshold()
     if (
-      tokenCount >= this.TOKEN_THRESHOLD ||
+      tokenCount >= tokenThreshold ||
       messageCount >= this.MESSAGE_THRESHOLD
     ) {
       console.log(

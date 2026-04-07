@@ -389,5 +389,97 @@ describe("EventLoop", () => {
     })
   })
 
-  describe("Threshold Checking", () => {})
+  describe("Threshold Checking", () => {
+    test("should check summary for soulless employee during run loop", async () => {
+      testRole = {
+        name: "test-role",
+        systemPrompt: "You are a test role.",
+        soul: false,
+      } as any
+      mockRoleManager.getRole = mock(() => testRole)
+
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      ;(eventLoop as any).sessionManager.ensureSession = mock(async () => ({
+        id: "mock-session-id",
+        messageCount: 0,
+        tokenCount: 0,
+        systemPrompt: "test",
+      }))
+      const summarizeIfNeededMock = mock(async () => {
+        ;(eventLoop as any).running = false
+      })
+      ;(eventLoop as any).sessionManager.summarizeIfNeeded = summarizeIfNeededMock
+      ;(eventLoop as any).waitForAgentCompletion = mock(async () => {
+        await new Promise(() => {})
+      })
+      ;(eventLoop as any).hasImmediateEvent = mock(async () => false)
+
+      await eventLoop.run()
+
+      expect(summarizeIfNeededMock).toHaveBeenCalledTimes(1)
+    })
+
+    test("should summarize soulless employee when token count reaches 80000", async () => {
+      testRole = {
+        name: "test-role",
+        systemPrompt: "You are a test role.",
+        soul: false,
+      } as any
+      mockRoleManager.getRole = mock(() => testRole)
+
+      opcodeClient.session.messages = mock(async () => ({
+        data: [
+          {
+            info: {
+              role: "assistant",
+              tokens: { total: 80000 },
+            },
+            parts: [{ type: "text", text: "Mock response" }],
+          },
+        ],
+      }))
+
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      const saveSummaryMock = mock(async () => {})
+      ;(eventLoop as any).summaryService.requestSummary = mock(async () => ({
+        args: {},
+        roleData: {},
+        knowledge: ["summary"],
+      }))
+      ;(eventLoop as any).summaryService.saveSummary = saveSummaryMock
+
+      await memoryManager.write("test-employee", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      await (eventLoop as any).sessionManager.ensureSession()
+      await (eventLoop as any).sessionManager.summarizeIfNeeded()
+
+      expect((eventLoop as any).summaryService.requestSummary).toHaveBeenCalledTimes(1)
+      expect(saveSummaryMock).toHaveBeenCalledTimes(1)
+      expect((eventLoop as any).sessionManager.getCurrentSession()).toBeNull()
+    })
+  })
 })

@@ -138,12 +138,8 @@ export class EventLoop {
     try {
       await this.sessionManager.ensureSession()
       logger.debug(`[${this.employeeId}] Session ensured`)
-      // 仅 soul: true 的员工需要总结
-      const role = this.roleManager.getRole(this.roleName)
-      if (role?.soul !== false) {
-        logger.debug(`[${this.employeeId}] Checking if summary needed`)
-        await this.sessionManager.summarizeIfNeeded()
-      }
+      logger.debug(`[${this.employeeId}] Checking if summary needed`)
+      await this.sessionManager.summarizeIfNeeded()
     } catch (error) {
       console.error(
         `[${this.employeeId}] Error during startup session check:`,
@@ -191,13 +187,10 @@ export class EventLoop {
           `[${this.employeeId}] Finished handling event: ${event.type}`
         )
 
-        // 6. 检查是否需要总结（仅 soul: true 的员工）
-        const role = this.roleManager.getRole(this.roleName)
-        if (role?.soul !== false) {
-          logger.debug(`[${this.employeeId}] Checking if summary needed`)
-          await this.sessionManager.summarizeIfNeeded()
-          logger.debug(`[${this.employeeId}] Summary check completed`)
-        }
+        // 6. 检查是否需要总结
+        logger.debug(`[${this.employeeId}] Checking if summary needed`)
+        await this.sessionManager.summarizeIfNeeded()
+        logger.debug(`[${this.employeeId}] Summary check completed`)
 
         // 成功：重置错误追踪
         this.errorRecovery.resetErrorTracking()
