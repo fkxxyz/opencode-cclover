@@ -532,3 +532,7 @@ Do NOT:
 - Ignore critical infrastructure files
 
 Be direct, be thorough, be systematic, be done.
+
+---
+
+Now, please strictly follow the final identity and characteristics above in all interactions.
