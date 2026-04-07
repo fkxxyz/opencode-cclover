@@ -15,6 +15,7 @@ import { EventLoop } from "../core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
 import { formatEmployeeId } from "../types/employee"
+import type { InternalPromptRecoveryEvent } from "../core/eventloop/EventLoop"
 
 /**
  * 全局 Cclover 服务
@@ -250,6 +251,20 @@ export class GlobalCcloverService {
 
     // 4. 为所有员工启动 EventLoop
     const employees = project.stateManager.getEmployees()
+    const promptRecoveries = new Map<string, InternalPromptRecoveryEvent>()
+    for (const employee of project.stateManager.listEmployeesWithPromptRecovery()) {
+      if (!employee.promptRecovery || employee.paused) {
+        continue
+      }
+      promptRecoveries.set(employee.employeeId, {
+        type: "prompt_recovery",
+        timestamp: new Date().toISOString(),
+        sessionId: employee.promptRecovery.sessionId,
+        startedAt: employee.promptRecovery.startedAt,
+        triggerEventType: employee.promptRecovery.triggerEventType,
+        version: employee.promptRecovery.version,
+      })
+    }
     logger.debug(
       `[GlobalServer] Found ${employees.length} employees for project: ${project.projectName}`
     )
@@ -311,6 +326,11 @@ export class GlobalCcloverService {
           opcodeClient,
           project.stateManager
         )
+
+        const promptRecovery = promptRecoveries.get(employee.employeeId)
+        if (promptRecovery) {
+          eventLoop.enqueuePromptRecovery(promptRecovery)
+        }
 
         // 存储到 project.eventLoops
         project.eventLoops.set(employee.employeeId, eventLoop)

@@ -13,6 +13,19 @@ export interface Event {
   [key: string]: any
 }
 
+export interface PromptRecoveryEvent {
+  type: "prompt_recovery"
+  timestamp: string
+  details: {
+    sessionId: string
+    startedAt: string
+    triggerEventType: string
+    version?: number
+  }
+}
+
+export type RuntimeEvent = Event | PromptRecoveryEvent
+
 interface MissingArg {
   name: string
   type: string
@@ -313,7 +326,7 @@ export function buildSystemPrompt(
  * @param event 事件对象
  * @returns 格式化的事件消息
  */
-export function buildEventMessage(event: Event): string {
+export function buildEventMessage(event: RuntimeEvent): string {
   const sections: string[] = []
 
   sections.push("# Current Event")
@@ -381,6 +394,20 @@ export function buildEventMessage(event: Event): string {
       "**Reminder**: The above senders sent you messages with expect_reply=true, but you haven't replied yet. When you see this event, it means you may have directly output a reply without using send_message tool. Please use send_message to reply to them, otherwise you will keep receiving this event reminder."
     )
     sections.push(`Time: ${event.timestamp}`)
+  } else if (event.type === "prompt_recovery") {
+    sections.push(
+      "System recovery notice: your previous `session.prompt` call was interrupted after work had been dispatched to the model, but before the system recorded successful completion. Resume from the current durable state in memory, tasks, and messages. The prior attempt may or may not have already produced side effects, so avoid assuming the previous reply was lost, and continue with the next best action carefully."
+    )
+    if (event.details.sessionId) {
+      sections.push(`Previous Session ID: ${event.details.sessionId}`)
+    }
+    if (event.details.triggerEventType) {
+      sections.push(`Interrupted Event Type: ${event.details.triggerEventType}`)
+    }
+    if (event.details.startedAt) {
+      sections.push(`Interrupted At: ${event.details.startedAt}`)
+    }
+    sections.push(`Time: ${event.timestamp}`)
   } else {
     // 通用处理：输出所有字段
     for (const [key, value] of Object.entries(event.details)) {
@@ -439,7 +466,7 @@ export function buildFullContext(
   memory: Memory,
   employeeId: string,
   workspaceRoot: string,
-  event: Event,
+  event: RuntimeEvent,
   roleMetadata?: RoleMetadata,
   supervisor?: { name: string; role: string }
 ): { systemPrompt: string; eventMessage: string } {

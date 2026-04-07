@@ -87,6 +87,7 @@ export class EmployeePersistence {
               createdAt: emp.createdAt,
               lastActiveAt: emp.lastActiveAt,
               activeSessionId: null, // 旧员工默认无活跃 session
+              promptRecovery: emp.promptRecovery,
             }
           }
 
@@ -99,7 +100,10 @@ export class EmployeePersistence {
               status: "idle",
             }
           }
-          return emp
+          return {
+            ...emp,
+            promptRecovery: emp.promptRecovery,
+          }
         })
         .filter((emp: any) => emp !== null) // 过滤掉无效的员工
 

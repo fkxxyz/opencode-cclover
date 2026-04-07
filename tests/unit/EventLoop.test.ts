@@ -7,6 +7,7 @@ import { MemoryManager } from "../../src/core/MemoryManager"
 import type { RoleManager } from "../../src/core/RoleManager"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import { agentRegistry } from "../../src/utils/AgentRegistry"
+import { vacationRegistry } from "../../src/utils/VacationRegistry"
 
 const testWorkspace = "./workspace_test_eventloop"
 
@@ -81,6 +82,7 @@ describe("EventLoop", () => {
     // 清空注册表
     sessionRegistry.clear()
     agentRegistry.clear()
+    vacationRegistry.clear()
   })
 
   afterEach(async () => {
@@ -123,6 +125,221 @@ describe("EventLoop", () => {
 
       expect(opcodeClient.session.create).toBeDefined()
     })
+
+    test("should queue prompt recovery before ordinary work", async () => {
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      ;(eventLoop as any).enqueuePromptRecovery({
+        type: "prompt_recovery",
+        timestamp: "2026-04-08T00:00:00.000Z",
+        sessionId: "session-123",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "task_available",
+        version: 1,
+      })
+
+      await memoryManager.write("test-employee", {
+        knowledge: [],
+        tasks: [
+          {
+            name: "task1",
+            description: "Test task",
+            status: "pending",
+            dependencies: [],
+            created: new Date().toISOString(),
+          },
+        ],
+        args: {},
+      })
+
+      const event = await (eventLoop as any).waitForEvent()
+
+      expect(event.type).toBe("prompt_recovery")
+      expect(event.details.sessionId).toBe("session-123")
+      expect(event.details.triggerEventType).toBe("task_available")
+    })
+
+    test("should prioritize vacation gating over prompt recovery", async () => {
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      ;(eventLoop as any).enqueuePromptRecovery({
+        type: "prompt_recovery",
+        timestamp: "2026-04-08T00:00:00.000Z",
+        sessionId: "session-123",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "task_available",
+        version: 1,
+      })
+      vacationRegistry.addVacationEvent("test-employee", {
+        type: "vacation_requested",
+        employeeName: "test-employee",
+        timestamp: "2026-04-08T00:00:01.000Z",
+      })
+
+      const event = await (eventLoop as any).waitForEvent()
+
+      expect(event.type).toBe("vacation_requested")
+    })
+
+    test("should persist prompt recovery before prompt and clear after success", async () => {
+      const { StateManager } = await import("../../src/state/StateManager")
+      const stateManager = new StateManager(
+        "test-project",
+        testWorkspace,
+        testWorkspace
+      )
+      await stateManager.registerEmployee({
+        employeeId: "test-employee",
+        name: "test-employee",
+        taskId: 1,
+        role: testRole.name,
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      messageService = new MessageService(testWorkspace, stateManager)
+      memoryManager = new MemoryManager(testWorkspace)
+      const messageClient = messageService.getClient("test-employee")
+
+      let markerSeenDuringPrompt: any = null
+      opcodeClient.session.prompt = mock(async () => {
+        markerSeenDuringPrompt =
+          stateManager.getEmployee("test-employee")?.promptRecovery
+        return {
+          data: {
+            info: {
+              role: "assistant",
+              time: { completed: Date.now() },
+            },
+          },
+        }
+      })
+
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient,
+        stateManager
+      )
+
+      await memoryManager.write("test-employee", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      await (eventLoop as any).handleEvent({
+        projectId: "",
+        type: "task_available",
+        timestamp: "2026-04-08T00:00:00.000Z",
+        details: {
+          tasks: [],
+        },
+      })
+
+      expect(markerSeenDuringPrompt).toBeDefined()
+      expect(markerSeenDuringPrompt.sessionId).toBe("mock-session-id")
+      expect(markerSeenDuringPrompt.triggerEventType).toBe("task_available")
+      expect(
+        stateManager.getEmployee("test-employee")?.promptRecovery
+      ).toBeUndefined()
+    })
+
+    test("should keep prompt recovery marker when prompt is aborted", async () => {
+      const { StateManager } = await import("../../src/state/StateManager")
+      const stateManager = new StateManager(
+        "test-project",
+        testWorkspace,
+        testWorkspace
+      )
+      await stateManager.registerEmployee({
+        employeeId: "test-employee",
+        name: "test-employee",
+        taskId: 1,
+        role: testRole.name,
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      messageService = new MessageService(testWorkspace, stateManager)
+      memoryManager = new MemoryManager(testWorkspace)
+      const messageClient = messageService.getClient("test-employee")
+
+      opcodeClient.session.prompt = mock(async () => ({
+        data: {
+          info: {
+            error: {
+              name: "MessageAbortedError",
+            },
+          },
+        },
+      }))
+
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient,
+        stateManager
+      )
+
+      await memoryManager.write("test-employee", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      await (eventLoop as any).handleEvent({
+        projectId: "",
+        type: "task_available",
+        timestamp: "2026-04-08T00:00:00.000Z",
+        details: {
+          tasks: [],
+        },
+      })
+
+      expect(stateManager.getEmployee("test-employee")?.promptRecovery).toEqual(
+        {
+          version: 1,
+          sessionId: "mock-session-id",
+          startedAt: expect.any(String),
+          triggerEventType: "task_available",
+        }
+      )
+    })
   })
 
   describe("Memory Management", () => {})
@@ -142,7 +359,7 @@ describe("EventLoop", () => {
 
       // 注册一个 agent
       agentRegistry.register("agent-123", {
-        employeeName: "test-employee",
+        employeeId: "test-employee",
         taskName: "test-task",
       })
 

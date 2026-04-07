@@ -4,6 +4,7 @@ import type { Event, Message, EmployeeId } from "../../types"
 import type { MemoryManager } from "../MemoryManager"
 import type { RoleManager } from "../RoleManager"
 import type { StateManager } from "../../state/StateManager"
+import type { RuntimeEvent } from "../../utils/ContextBuilder"
 import { SessionManager } from "./SessionManager"
 import { SummaryService } from "./SummaryService"
 import { ErrorRecovery } from "./ErrorRecovery"
@@ -26,12 +27,34 @@ export interface InternalAgentEvent {
   timestamp: string
 }
 
+export interface InternalPromptRecoveryEvent {
+  type: "prompt_recovery"
+  timestamp: string
+  sessionId: string
+  startedAt: string
+  triggerEventType: string
+  version?: number
+}
+
+interface RuntimePromptRecoveryEvent {
+  projectId: string
+  type: "prompt_recovery"
+  timestamp: string
+  details: {
+    sessionId: string
+    startedAt: string
+    triggerEventType: string
+    version?: number
+  }
+}
+
 /**
  * 事件循环
  * 员工的核心运行机制，负责等待事件、处理事件、调用 AI、管理 session 生命周期
  */
 export class EventLoop {
   private running = true
+  private recoveryQueue: InternalPromptRecoveryEvent[] = []
   private sessionManager: SessionManager
   private summaryService: SummaryService
   private errorRecovery: ErrorRecovery
@@ -208,10 +231,17 @@ export class EventLoop {
   }
 
   /**
+   * 注入启动恢复事件
+   */
+  enqueuePromptRecovery(event: InternalPromptRecoveryEvent): void {
+    this.recoveryQueue.push(event)
+  }
+
+  /**
    * 等待事件
    * 按优先级顺序检查：假期通知 > 消息 > Agent完成 > 可执行任务 > in_progress任务
    */
-  private async waitForEvent(): Promise<Event> {
+  private async waitForEvent(): Promise<RuntimeEvent> {
     // 0. HIGHEST PRIORITY: Check vacation notification
     const vacationEvent = vacationRegistry.getVacationEvent(this.employeeId)
     if (vacationEvent) {
@@ -221,6 +251,23 @@ export class EventLoop {
         timestamp: vacationEvent.timestamp,
         details: {},
       }
+    }
+
+    // 0.5 启动恢复事件优先于普通工作事件
+    const recoveryEvent = this.recoveryQueue.shift()
+    if (recoveryEvent) {
+      const runtimeRecoveryEvent: RuntimePromptRecoveryEvent = {
+        projectId: "",
+        type: "prompt_recovery",
+        timestamp: recoveryEvent.timestamp,
+        details: {
+          sessionId: recoveryEvent.sessionId,
+          startedAt: recoveryEvent.startedAt,
+          triggerEventType: recoveryEvent.triggerEventType,
+          version: recoveryEvent.version,
+        },
+      }
+      return runtimeRecoveryEvent
     }
 
     // 1. 非阻塞检查未读消息
@@ -325,6 +372,11 @@ export class EventLoop {
   private async hasImmediateEvent(): Promise<boolean> {
     // 0. 检查假期通知
     if (vacationRegistry.hasVacationEvent(this.employeeId)) {
+      return true
+    }
+
+    // 0.5 检查恢复事件
+    if (this.recoveryQueue.length > 0) {
       return true
     }
 
@@ -480,7 +532,7 @@ export class EventLoop {
   /**
    * 处理事件
    */
-  private async handleEvent(event: Event): Promise<void> {
+  private async handleEvent(event: RuntimeEvent): Promise<void> {
     console.log(`[${this.employeeId}] Received event:`, event.type)
 
     // 1. 处理假期请求事件
@@ -505,8 +557,12 @@ export class EventLoop {
       throw new Error("VACATION_REQUESTED")
     }
 
-    // 2. 如果是消息或 agent 事件，清空快照并恢复正常状态
-    if (event.type === "message" || event.type === "agent_completed") {
+    // 2. 如果是消息、agent 或恢复事件，清空快照并恢复正常状态
+    if (
+      event.type === "message" ||
+      event.type === "agent_completed" ||
+      event.type === "prompt_recovery"
+    ) {
       this.progressTracker.clearProgressTracking()
       // 只有当员工发送消息时才清空回复跟踪
       if (event.type === "message" && event.details.from === this.employeeId) {
@@ -550,6 +606,13 @@ export class EventLoop {
       },
     })
 
+    await this.stateManager?.setPromptRecovery(this.employeeId, {
+      version: 1,
+      sessionId: session.id,
+      startedAt: new Date().toISOString(),
+      triggerEventType: event.type,
+    })
+
     // 9. 发送给 AI
     logger.debug(`[${this.employeeId}] Calling AI (session.prompt)`)
     const result = await this.opcodeClient.session.prompt({
@@ -580,6 +643,8 @@ export class EventLoop {
       )
       return
     }
+
+    await this.stateManager?.clearPromptRecovery(this.employeeId)
 
     // 12. 更新 session 信息
     this.sessionManager.incrementMessageCount()

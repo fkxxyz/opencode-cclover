@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
+import * as yaml from "yaml"
 import { StateManager } from "../../src/state/StateManager"
 import type { Employee, EmployeeId, TaskId } from "../../src/types/index"
 import { formatEmployeeId, formatBossId } from "../../src/types/index"
@@ -205,6 +206,113 @@ describe("StateManager - EmployeeId System", () => {
     it("should return undefined for non-existent employeeId", () => {
       const retrieved = stateManager.getEmployee("999-nonexistent")
       expect(retrieved).toBeUndefined()
+    })
+
+    it("should persist and clear prompt recovery marker", async () => {
+      const employee: Employee = {
+        employeeId: formatEmployeeId(1, "dev-001"),
+        name: "dev-001",
+        taskId: 1,
+        role: "developer",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      }
+
+      await stateManager.registerEmployee(employee)
+      await stateManager.setPromptRecovery(employee.employeeId, {
+        version: 1,
+        sessionId: "session-123",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "task_available",
+      })
+
+      const recovered = stateManager.getEmployee(employee.employeeId)
+      expect(recovered?.promptRecovery).toEqual({
+        version: 1,
+        sessionId: "session-123",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "task_available",
+      })
+      expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(1)
+
+      await stateManager.clearPromptRecovery(employee.employeeId)
+
+      const cleared = stateManager.getEmployee(employee.employeeId)
+      expect(cleared?.promptRecovery).toBeUndefined()
+      expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(0)
+    })
+
+    it("should detect prompt recovery marker after reload from persistence", async () => {
+      const persistentWorkspace = path.join(
+        TEST_WORKSPACE,
+        "persistent-project"
+      )
+      await fs.mkdir(persistentWorkspace, { recursive: true })
+
+      const persistentStateManager = new StateManager(
+        "test-project",
+        persistentWorkspace,
+        persistentWorkspace
+      )
+
+      const employee: Employee = {
+        employeeId: formatEmployeeId(1, "dev-reload"),
+        name: "dev-reload",
+        taskId: 1,
+        role: "developer",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      }
+
+      await persistentStateManager.registerEmployee(employee)
+      await persistentStateManager.setPromptRecovery(employee.employeeId, {
+        version: 1,
+        sessionId: "session-reload",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "message",
+      })
+
+      const employeesYamlPath = path.join(
+        persistentWorkspace,
+        ".cclover",
+        "employees.yaml"
+      )
+      const persisted = yaml.parse(
+        await fs.readFile(employeesYamlPath, "utf-8")
+      )
+      expect(persisted.employees[0].promptRecovery).toEqual({
+        version: 1,
+        sessionId: "session-reload",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "message",
+      })
+
+      const reloadedStateManager = new StateManager(
+        "test-project",
+        persistentWorkspace,
+        persistentWorkspace
+      )
+      await reloadedStateManager.loadEmployees()
+
+      expect(
+        reloadedStateManager.listEmployeesWithPromptRecovery()
+      ).toHaveLength(1)
+      expect(
+        reloadedStateManager.getEmployee(employee.employeeId)?.promptRecovery
+      ).toEqual({
+        version: 1,
+        sessionId: "session-reload",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "message",
+      })
     })
   })
 

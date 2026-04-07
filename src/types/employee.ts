@@ -45,6 +45,12 @@ export interface Employee {
   createdAt: string
   lastActiveAt: string // Keep for monitoring
   activeSessionId: string | null // Keep for session management
+  promptRecovery?: {
+    version?: number
+    sessionId: string
+    startedAt: string
+    triggerEventType: string
+  }
 }
 
 /**

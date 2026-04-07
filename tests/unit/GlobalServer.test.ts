@@ -251,4 +251,63 @@ Test role system prompt`
     expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
     expect(projectInstance.eventLoops.has("0-test-employee-2")).toBe(true)
   })
+
+  test("should inject startup prompt recovery event for active employee", async () => {
+    await projectInstance.stateManager.setPromptRecovery("0-test-employee", {
+      version: 1,
+      sessionId: "session-recover",
+      startedAt: "2026-04-08T00:00:00.000Z",
+      triggerEventType: "message",
+    })
+
+    const service = await GlobalCcloverService.getInstance()
+    await service.startEmployees(projectInstance)
+
+    const eventLoop = projectInstance.eventLoops.get("0-test-employee") as any
+    expect(eventLoop).toBeInstanceOf(EventLoop)
+    expect(eventLoop.recoveryQueue).toHaveLength(1)
+    expect(eventLoop.recoveryQueue[0]).toMatchObject({
+      type: "prompt_recovery",
+      sessionId: "session-recover",
+      triggerEventType: "message",
+    })
+  })
+
+  test("should not inject startup prompt recovery event for paused employee", async () => {
+    await projectInstance.stateManager.setPromptRecovery("0-test-employee", {
+      version: 1,
+      sessionId: "session-recover",
+      startedAt: "2026-04-08T00:00:00.000Z",
+      triggerEventType: "message",
+    })
+    await projectInstance.stateManager.pauseEmployee("0-test-employee")
+
+    const service = await GlobalCcloverService.getInstance()
+    await service.startEmployees(projectInstance)
+
+    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(false)
+  })
+
+  test("should not treat persisted runtime offline status as recovery gating", async () => {
+    await projectInstance.stateManager.setPromptRecovery("0-test-employee", {
+      version: 1,
+      sessionId: "session-recover",
+      startedAt: "2026-04-08T00:00:00.000Z",
+      triggerEventType: "message",
+    })
+    await projectInstance.stateManager.updateEmployeeStatus(
+      "0-test-employee",
+      "offline"
+    )
+
+    const service = await GlobalCcloverService.getInstance()
+    await service.startEmployees(projectInstance)
+
+    const eventLoop = projectInstance.eventLoops.get("0-test-employee") as any
+    expect(eventLoop).toBeInstanceOf(EventLoop)
+    expect(eventLoop.recoveryQueue).toHaveLength(1)
+    expect(
+      projectInstance.stateManager.getEmployee("0-test-employee")?.status
+    ).not.toBe("offline")
+  })
 })

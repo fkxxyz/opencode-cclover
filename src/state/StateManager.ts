@@ -224,6 +224,54 @@ export class StateManager {
   }
 
   /**
+   * 更新员工的 prompt recovery 标记
+   */
+  async setPromptRecovery(
+    employeeId: EmployeeId,
+    promptRecovery: NonNullable<Employee["promptRecovery"]>
+  ): Promise<void> {
+    const employee = this.employeeRegistry.get(employeeId)
+    if (!employee) {
+      throw new Error(`员工 '${employeeId}' 不存在`)
+    }
+
+    this.employeeRegistry.update(employeeId, { promptRecovery })
+
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+  }
+
+  /**
+   * 清除员工的 prompt recovery 标记
+   */
+  async clearPromptRecovery(employeeId: EmployeeId): Promise<void> {
+    const employee = this.employeeRegistry.get(employeeId)
+    if (!employee) {
+      throw new Error(`员工 '${employeeId}' 不存在`)
+    }
+
+    if (!employee.promptRecovery) {
+      return
+    }
+
+    this.employeeRegistry.update(employeeId, { promptRecovery: undefined })
+
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+  }
+
+  /**
+   * 获取携带 prompt recovery 标记的员工
+   */
+  listEmployeesWithPromptRecovery(): Employee[] {
+    return this.employeeRegistry
+      .getAll()
+      .filter((employee) => employee.promptRecovery)
+  }
+
+  /**
    * 添加事件
    */
   async addEvent(event: Event): Promise<void> {
