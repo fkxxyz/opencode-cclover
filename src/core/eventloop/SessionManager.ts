@@ -150,7 +150,7 @@ export class SessionManager {
         }
       } catch (error) {
         // Session 无效，继续创建新的
-        console.log(
+        logger.info(
           `[${this.employeeId}] Failed to restore session ${memory.sessionId}, creating new one`
         )
       }
@@ -228,7 +228,7 @@ export class SessionManager {
       systemPrompt,
     }
 
-    console.log(`[${this.employeeId}] Created session: ${sessionId}`)
+    logger.info(`[${this.employeeId}] Created session: ${sessionId}`)
 
     // 记录 session 创建事件
     await this.stateManager?.addEvent({
@@ -250,7 +250,7 @@ export class SessionManager {
   async closeSession(): Promise<void> {
     if (!this.currentSession) return
 
-    console.log(
+    logger.info(
       `[${this.employeeId}] Closing session: ${this.currentSession.id}`
     )
 
@@ -363,7 +363,7 @@ export class SessionManager {
       tokenCount >= tokenThreshold ||
       messageCount >= this.MESSAGE_THRESHOLD
     ) {
-      console.log(
+      logger.info(
         `[${this.employeeId}] Threshold reached (tokens: ${tokenCount}, messages: ${messageCount}), summarizing...`
       )
 
@@ -410,7 +410,7 @@ export class SessionManager {
       // 6. 关闭当前 session
       await this.closeSession()
 
-      console.log(`[${this.employeeId}] Summary completed`)
+      logger.info(`[${this.employeeId}] Summary completed`)
     }
   }
 }

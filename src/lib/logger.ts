@@ -13,7 +13,7 @@ export enum LogLevel {
  */
 class Logger {
   private prefix = "[opencode-cclover]"
-  private level: LogLevel = LogLevel.INFO
+  private level: LogLevel = LogLevel.WARN
 
   /**
    * 设置日志级别
@@ -27,7 +27,7 @@ class Logger {
         info: LogLevel.INFO,
         debug: LogLevel.DEBUG,
       }
-      this.level = levelMap[level.toLowerCase()] ?? LogLevel.INFO
+      this.level = levelMap[level.toLowerCase()] ?? LogLevel.WARN
     } else {
       this.level = level
     }

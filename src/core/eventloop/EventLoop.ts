@@ -163,7 +163,7 @@ export class EventLoop {
         // 3. 等待事件
         logger.debug(`[${this.employeeId}] Waiting for event...`)
         const event = await this.waitForEvent()
-        console.log(`[${this.employeeId}] Received event:`, event.type)
+        logger.info(`[${this.employeeId}] Received event:`, event.type)
         if (event.type === "message") {
           logger.debug(
             `[${this.employeeId}] Message from ${event.details.from}: ${event.details.content}`
@@ -526,7 +526,7 @@ export class EventLoop {
    * 处理事件
    */
   private async handleEvent(event: RuntimeEvent): Promise<void> {
-    console.log(`[${this.employeeId}] Received event:`, event.type)
+    logger.info(`[${this.employeeId}] Received event:`, event.type)
 
     // 1. 处理假期请求事件
     if (event.type === "vacation_requested") {
@@ -572,7 +572,7 @@ export class EventLoop {
 
     // 3. 确保 session 存在
     const session = await this.sessionManager.ensureSession()
-    console.log(`[${this.employeeId}] Handling event in session: ${session.id}`)
+    logger.info(`[${this.employeeId}] Handling event in session: ${session.id}`)
 
     // 4. 更新 activeSessionId
     await this.stateManager?.updateActiveSessionId(this.employeeId, session.id)
@@ -664,7 +664,7 @@ export class EventLoop {
       await this.replyTracker.checkProgress()
     }
 
-    console.log(`[${this.employeeId}] Event handled`)
+    logger.info(`[${this.employeeId}] Event handled`)
   }
 
   /**

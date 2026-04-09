@@ -151,7 +151,7 @@ export class RoleManager {
             )
           } else {
             // 没有 YAML frontmatter，拒绝加载
-            logger.warn(
+            logger.debug(
               `[RoleManager] Role file ${filePath} does not have YAML frontmatter, skipping`
             )
           }
