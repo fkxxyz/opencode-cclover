@@ -178,6 +178,11 @@ Roles are defined using Markdown files with YAML frontmatter. Each role file mus
 2. **Global**: `~/.config/opencode-cclover/roles/<role_name>.md`
 3. **Preset**: `src/roles/<role_name>.md` (lowest priority)
 
+**Authority and navigation**:
+- The governed role-behavior contract follows the role-file path above (`.cclover/roles`, global roles, then `src/roles`).
+- Related prompt artifacts outside that path, such as `src/agents/*.md`, are not equal-default authority sources unless this repository's governed documentation explicitly says so.
+- When both role files and related prompt artifacts exist, follow the governed authority order above rather than inferring parallel authority.
+
 **File Format**:
 ```markdown
 ---
