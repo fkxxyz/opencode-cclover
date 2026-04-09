@@ -60,6 +60,7 @@ export function createHireEmployeeTool(
           !checkHiringPermission(
             hiredBy,
             hiredByEmployeeId,
+            actor?.hasBossAuthority || false,
             args.role,
             stateManager,
             roleManager,
@@ -76,7 +77,7 @@ export function createHireEmployeeTool(
         // Check if role is soul (defaults to true if not specified)
         const isSoulRole = roleDefinition.soul !== false
 
-        if (bossManager?.isBoss(hiredBy)) {
+        if (actor?.hasBossAuthority || bossManager?.isBoss(hiredBy)) {
           // Boss hiring logic
           if (isSoulRole) {
             // Soul employee hired by boss gets taskId=0
@@ -227,13 +228,14 @@ export function createHireEmployeeTool(
 function checkHiringPermission(
   hiredByName: string,
   hiredByEmployeeId: EmployeeId | undefined,
+  hasBossAuthority: boolean,
   targetRole: string,
   stateManager: StateManager,
   roleManager: RoleManager,
   bossManager?: BossManager
 ): boolean {
   // Boss 可以雇佣任何角色
-  if (bossManager?.isBoss(hiredByName)) {
+  if (hasBossAuthority || bossManager?.isBoss(hiredByName)) {
     return true
   }
 

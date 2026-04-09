@@ -52,7 +52,7 @@ export function createPauseEmployeeTool(
       }
 
       // 3. 检查权限
-      const isBoss = bossManager.isBoss(operatorName)
+      const isBoss = actor?.hasBossAuthority || false
       // Check if operator is supervisor by employeeId
       let isSupervisor = false
       if (operatorEmployeeId) {

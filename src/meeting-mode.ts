@@ -14,7 +14,9 @@ export interface MeetingModePrimaryAgentDefinition {
 export interface ResolvedToolActor {
   actorName: string
   actorEmployeeId: string
+  actorType: "boss" | "meeting-role" | "employee"
   isBoss: boolean
+  hasBossAuthority: boolean
   projectedRoleName?: string
 }
 
@@ -78,7 +80,9 @@ export function resolveToolActor(
       return {
         actorName: employeeId,
         actorEmployeeId: employeeId,
+        actorType: "employee",
         isBoss: false,
+        hasBossAuthority: false,
       }
     }
 
@@ -90,7 +94,9 @@ export function resolveToolActor(
     return {
       actorName: employee.name,
       actorEmployeeId: employee.employeeId,
+      actorType: bossManager?.isBoss(employee.name) ? "boss" : "employee",
       isBoss: bossManager?.isBoss(employee.name) || false,
+      hasBossAuthority: bossManager?.isBoss(employee.name) || false,
     }
   }
 
@@ -98,7 +104,9 @@ export function resolveToolActor(
     return {
       actorName: context.agent,
       actorEmployeeId: formatBossId(context.agent),
+      actorType: "boss",
       isBoss: true,
+      hasBossAuthority: true,
     }
   }
 
@@ -106,15 +114,12 @@ export function resolveToolActor(
     context.agent &&
     isMeetingModeProjectedAgent(roleManager, context.agent, bossManager)
   ) {
-    const meetingBoss = bossManager?.getBossBySession(context.sessionID)
-    if (!meetingBoss) {
-      return undefined
-    }
-
     return {
-      actorName: meetingBoss,
-      actorEmployeeId: formatBossId(meetingBoss),
-      isBoss: true,
+      actorName: context.agent,
+      actorEmployeeId: formatBossId(context.agent),
+      actorType: "meeting-role",
+      isBoss: false,
+      hasBossAuthority: true,
       projectedRoleName: context.agent,
     }
   }

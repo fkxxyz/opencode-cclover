@@ -156,6 +156,22 @@ You are a UI/UX designer.`
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
   })
 
+  test("should show all roles for meeting-mode role agent", async () => {
+    const context = {
+      sessionID: "unknown-session",
+      agent: "manager",
+    }
+
+    const result = await showHireableRolesTool.execute({}, context)
+
+    expect(result).toContain("You are a boss and can hire any of the")
+    expect(result).toContain("available roles")
+    expect(result).toContain("- developer: Software developer")
+    expect(result).toContain("- tester: Software tester")
+    expect(result).toContain("- manager: Project manager")
+    expect(result).toContain("- designer: UI/UX designer")
+  })
+
   test("should show all roles for boss", async () => {
     const context = {
       sessionID: "unknown-session",

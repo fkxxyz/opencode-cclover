@@ -233,12 +233,6 @@ You are a project manager.`
     })
 
     test("projected meeting agent can hire with boss-compatible authority", async () => {
-      await bossManager.recordSession(
-        "boss",
-        "0-alice",
-        "test-session-meeting-agent"
-      )
-
       const context = {
         sessionID: "test-session-meeting-agent",
         agent: "manager",
@@ -259,9 +253,10 @@ You are a project manager.`
       const employee = stateManager.getEmployee("0-meeting-hire")
       expect(employee).toBeDefined()
       expect(employee?.role).toBe("developer")
+      expect(employee?.hiredBy).toBe("0-manager")
     })
 
-    test("projected meeting agent uses the invoking boss in multi-boss mode", async () => {
+    test("projected meeting agent does not depend on boss-session mapping", async () => {
       const multiBossManager = new BossManager(
         {
           bosses: ["boss-a", "boss-b"],
@@ -275,12 +270,6 @@ You are a project manager.`
         roleManager,
         project,
         multiBossManager
-      )
-
-      await multiBossManager.recordSession(
-        "boss-b",
-        "0-alice",
-        "test-session-meeting-agent-boss-b"
       )
 
       const result = await multiBossTool.execute(
@@ -300,7 +289,7 @@ You are a project manager.`
 
       const employee = stateManager.getEmployee("0-meeting-hire-b")
       expect(employee).toBeDefined()
-      expect(employee?.hiredBy).toBe("0-boss-b")
+      expect(employee?.hiredBy).toBe("0-manager")
     })
 
     test("employee can hire permitted role", async () => {

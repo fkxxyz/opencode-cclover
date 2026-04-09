@@ -35,7 +35,7 @@ export function createShowHireableRolesTool(
         }
 
         // 2. Check if caller is boss
-        const isBoss = bossManager?.isBoss(callerName) || false
+        const isBoss = actor?.hasBossAuthority || false
 
         // 3. Get hireable roles
         let hireableRoles: string[]

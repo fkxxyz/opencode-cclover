@@ -45,7 +45,7 @@ export function createResumeEmployeeTool(
         }
 
         // 3. Check permissions (Boss or direct supervisor)
-        const isBoss = bossManager.isBoss(operatorName)
+        const isBoss = actor?.hasBossAuthority || false
         let isSupervisor = false
         if (operatorEmployeeId) {
           isSupervisor = employee.hiredBy === operatorEmployeeId
