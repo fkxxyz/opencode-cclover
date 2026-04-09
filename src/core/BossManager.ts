@@ -14,6 +14,7 @@ import { formatBossId, isBossId } from "../types/index"
  */
 export class BossManager {
   private bosses: Set<string> = new Set()
+  private sessionToBoss = new Map<string, string>()
   private workspaceRoot?: string
 
   constructor(config?: CcloverConfig, workspaceRoot?: string) {
@@ -104,9 +105,17 @@ export class BossManager {
     const sessions = await this.readSessions(bossName)
     sessions[employeeId] = sessionId
     await this.writeSessions(bossName, sessions)
+    this.sessionToBoss.set(sessionId, bossName)
     logger.debug(
       `[BossManager] Recorded session for ${bossName} → ${employeeId}: ${sessionId}`
     )
+  }
+
+  /**
+   * 根据 sessionId 获取对应的 boss 名称
+   */
+  getBossBySession(sessionId: string): string | undefined {
+    return this.sessionToBoss.get(sessionId)
   }
 
   /**

@@ -121,7 +121,7 @@ You are a project manager.`
       bosses: ["boss"],
       projects: [],
     }
-    bossManager = new BossManager(config)
+    bossManager = new BossManager(config, TEST_WORKSPACE)
 
     // 创建 StateManager
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
@@ -230,6 +230,77 @@ You are a project manager.`
       const employee = stateManager.getEmployee("0-charlie")
       expect(employee).toBeDefined()
       expect(employee?.role).toBe("developer")
+    })
+
+    test("projected meeting agent can hire with boss-compatible authority", async () => {
+      await bossManager.recordSession(
+        "boss",
+        "0-alice",
+        "test-session-meeting-agent"
+      )
+
+      const context = {
+        sessionID: "test-session-meeting-agent",
+        agent: "manager",
+      }
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "meeting-hire",
+          role: "developer",
+        },
+        context
+      )
+
+      expect(result).toContain(
+        "Successfully hired employee '0-meeting-hire' (name: meeting-hire)"
+      )
+
+      const employee = stateManager.getEmployee("0-meeting-hire")
+      expect(employee).toBeDefined()
+      expect(employee?.role).toBe("developer")
+    })
+
+    test("projected meeting agent uses the invoking boss in multi-boss mode", async () => {
+      const multiBossManager = new BossManager(
+        {
+          bosses: ["boss-a", "boss-b"],
+          projects: [],
+        },
+        TEST_WORKSPACE
+      )
+
+      const multiBossTool = createHireEmployeeTool(
+        stateManager,
+        roleManager,
+        project,
+        multiBossManager
+      )
+
+      await multiBossManager.recordSession(
+        "boss-b",
+        "0-alice",
+        "test-session-meeting-agent-boss-b"
+      )
+
+      const result = await multiBossTool.execute(
+        {
+          name: "meeting-hire-b",
+          role: "developer",
+        },
+        {
+          sessionID: "test-session-meeting-agent-boss-b",
+          agent: "manager",
+        } as any
+      )
+
+      expect(result).toContain(
+        "Successfully hired employee '0-meeting-hire-b' (name: meeting-hire-b)"
+      )
+
+      const employee = stateManager.getEmployee("0-meeting-hire-b")
+      expect(employee).toBeDefined()
+      expect(employee?.hiredBy).toBe("0-boss-b")
     })
 
     test("employee can hire permitted role", async () => {
@@ -517,7 +588,7 @@ You are a project manager.`
       )
 
       // 验证事件已记录
-      const events = stateManager.getEvents("0-nancy")
+      const events = stateManager.getEvents({ limit: 50 })
       const hiredEvent = events.find((e) => e.type === "employee_hired")
 
       expect(hiredEvent).toBeDefined()
@@ -543,7 +614,7 @@ You are a project manager.`
       )
 
       // 验证事件已记录
-      const events = stateManager.getEvents("0-oliver")
+      const events = stateManager.getEvents({ limit: 50 })
       const hiredEvent = events.find((e) => e.type === "employee_hired")
 
       expect(hiredEvent).toBeDefined()
@@ -712,7 +783,7 @@ You are a project manager.`
         hiredBy: "0-boss",
         role: "developer",
         paused: false,
-        status: "inactive",
+        status: "idle",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
         activeSessionId: null,
@@ -756,7 +827,7 @@ You are a project manager.`
         hiredBy: "0-boss",
         role: "manager",
         paused: false,
-        status: "inactive",
+        status: "idle",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
         activeSessionId: null,

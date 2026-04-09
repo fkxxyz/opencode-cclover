@@ -7,8 +7,9 @@
 import { tool } from "@opencode-ai/plugin"
 import type { MessageService } from "../core/MessageService"
 import type { BossManager } from "../core/BossManager"
+import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
+import { resolveToolActor } from "../meeting-mode"
 import { formatBossId } from "../types"
 
 function resolveRecipientId(
@@ -27,7 +28,8 @@ function resolveRecipientId(
   // 2. 再查找员工（支持 name 或 employeeId）
   const allEmployees = stateManager.getEmployees()
   const matchedEmployee = allEmployees.find(
-    (employee) => employee.name === recipient || employee.employeeId === recipient
+    (employee) =>
+      employee.name === recipient || employee.employeeId === recipient
   )
 
   if (!matchedEmployee) {
@@ -47,7 +49,8 @@ function resolveRecipientId(
 export function createSendMessageTool(
   messageService: MessageService,
   bossManager?: BossManager,
-  stateManager?: StateManager
+  stateManager?: StateManager,
+  roleManager?: RoleManager
 ) {
   return tool({
     description:
@@ -76,31 +79,28 @@ export function createSendMessageTool(
         throw new Error("SendMessageTool stateManager is required")
       }
 
-      // 1. Get caller employeeId
-      let from: string | undefined
-      // 2. First try to get from SessionRegistry (employee)
-      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
-      if (employeeId) {
-        from = employeeId
-      }
-      // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
-      if (!from && context.agent) {
-        const agentName = context.agent
-        // Check if it's a boss
-        if (bossManager?.isBoss(agentName)) {
-          from = formatBossId(agentName)
-        }
-      }
-      if (!from) {
+      const actor = resolveToolActor(
+        context,
+        stateManager,
+        bossManager,
+        roleManager
+      )
+
+      if (!actor) {
         throw new Error(
           `Unable to identify caller (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         )
       }
 
+      const from = actor.actorEmployeeId
+
       const recipientId = resolveRecipientId(args.to, bossManager, stateManager)
 
       // 2. Check if recipient is offline (only for employees, not Boss)
-      if (!recipientId.startsWith("0-") || !bossManager?.isBoss(recipientId.substring(2))) {
+      if (
+        !recipientId.startsWith("0-") ||
+        !bossManager?.isBoss(recipientId.substring(2))
+      ) {
         const recipient = stateManager.getEmployee(recipientId)
         if (recipient?.status === "offline") {
           throw new Error(`Employee is on vacation!`)

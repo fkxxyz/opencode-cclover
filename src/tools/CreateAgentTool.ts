@@ -5,9 +5,11 @@
  */
 import { tool } from "@opencode-ai/plugin"
 import type { OpencodeClient } from "@opencode-ai/sdk"
+import type { BossManager } from "../core/BossManager"
+import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
 import { agentRegistry } from "../utils/AgentRegistry"
+import { resolveToolActor } from "../meeting-mode"
 /**
  * Create create_agent tool
  *
@@ -16,7 +18,9 @@ import { agentRegistry } from "../utils/AgentRegistry"
  */
 export function createCreateAgentTool(
   opcodeClient: OpencodeClient,
-  stateManager?: StateManager
+  stateManager?: StateManager,
+  bossManager?: BossManager,
+  roleManager?: RoleManager
 ) {
   return tool({
     description: "Create OpenCode agent to execute task",
@@ -25,8 +29,13 @@ export function createCreateAgentTool(
       prompt: tool.schema.string().describe("Prompt for the agent"),
     },
     async execute(args, context) {
-      // 1. Get caller information
-      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+      const actor = resolveToolActor(
+        context,
+        stateManager,
+        bossManager,
+        roleManager
+      )
+      const employeeId = actor?.actorEmployeeId
 
       if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
@@ -38,11 +47,10 @@ export function createCreateAgentTool(
       }
 
       const employee = stateManager.getEmployee(employeeId)
-      if (!employee) {
+      const employeeName = employee?.name || actor?.actorName
+      if (!employeeName) {
         return `Error: Employee not found (employeeId: ${employeeId})`
       }
-
-      const employeeName = employee.name
 
       try {
         // 2. Create agent session

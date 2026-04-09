@@ -5,8 +5,10 @@
  */
 import { tool } from "@opencode-ai/plugin"
 import type { MemoryManager } from "../core/MemoryManager"
+import type { BossManager } from "../core/BossManager"
+import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
+import { resolveToolActor } from "../meeting-mode"
 import { generateMermaid } from "../utils/MermaidGenerator"
 
 /**
@@ -17,26 +19,26 @@ import { generateMermaid } from "../utils/MermaidGenerator"
  */
 export function createShowTasksTool(
   memoryManager: MemoryManager,
-  stateManager: StateManager
+  stateManager: StateManager,
+  bossManager?: BossManager,
+  roleManager?: RoleManager
 ) {
   return tool({
     description: "Display all tasks with dependency graph visualization",
     args: {},
     async execute(args, context) {
       // 1. Get caller information
-      const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+      const actor = resolveToolActor(
+        context,
+        stateManager,
+        bossManager,
+        roleManager
+      )
+      const employeeId = actor?.actorEmployeeId
 
       if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
-
-      // 2. Look up employee to get name
-      const employee = stateManager.getEmployee(employeeId)
-      if (!employee) {
-        return `Error: Employee not found (employeeId: ${employeeId})`
-      }
-
-      const employeeName = employee.name
 
       // 2. Read employee memory
       const memory = await memoryManager.read(employeeId)

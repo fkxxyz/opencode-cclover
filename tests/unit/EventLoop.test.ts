@@ -418,7 +418,8 @@ describe("EventLoop", () => {
       const summarizeIfNeededMock = mock(async () => {
         ;(eventLoop as any).running = false
       })
-      ;(eventLoop as any).sessionManager.summarizeIfNeeded = summarizeIfNeededMock
+      ;(eventLoop as any).sessionManager.summarizeIfNeeded =
+        summarizeIfNeededMock
       ;(eventLoop as any).waitForAgentCompletion = mock(async () => {
         await new Promise(() => {})
       })
@@ -477,7 +478,9 @@ describe("EventLoop", () => {
       await (eventLoop as any).sessionManager.ensureSession()
       await (eventLoop as any).sessionManager.summarizeIfNeeded()
 
-      expect((eventLoop as any).summaryService.requestSummary).toHaveBeenCalledTimes(1)
+      expect(
+        (eventLoop as any).summaryService.requestSummary
+      ).toHaveBeenCalledTimes(1)
       expect(saveSummaryMock).toHaveBeenCalledTimes(1)
       expect((eventLoop as any).sessionManager.getCurrentSession()).toBeNull()
     })

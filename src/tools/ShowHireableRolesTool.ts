@@ -8,7 +8,7 @@ import { tool } from "@opencode-ai/plugin"
 import type { RoleManager } from "../core/RoleManager"
 import type { BossManager } from "../core/BossManager"
 import type { StateManager } from "../state/StateManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
+import { resolveToolActor } from "../meeting-mode"
 import { logger } from "../lib/logger"
 
 export function createShowHireableRolesTool(
@@ -23,20 +23,13 @@ export function createShowHireableRolesTool(
     async execute(args, context) {
       try {
         // 1. Get caller identity
-        let callerName: string | undefined
-        // First check context.agent (might be boss)
-        if (context.agent && bossManager?.isBoss(context.agent)) {
-          callerName = context.agent
-        } else {
-          // Try SessionRegistry (employee)
-          const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
-          if (employeeId) {
-            const employee = stateManager.getEmployee(employeeId)
-            if (employee) {
-              callerName = employee.name
-            }
-          }
-        }
+        const actor = resolveToolActor(
+          context,
+          stateManager,
+          bossManager,
+          roleManager
+        )
+        const callerName = actor?.actorName
         if (!callerName) {
           return `Error: Unable to identify caller (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         }

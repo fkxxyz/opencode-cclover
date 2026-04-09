@@ -96,7 +96,11 @@ describe("Tools Integration", () => {
 
   describe("send_message tool", () => {
     test("should send message successfully", async () => {
-      const tool = createSendMessageTool(messageService, undefined, stateManager)
+      const tool = createSendMessageTool(
+        messageService,
+        undefined,
+        stateManager
+      )
       const sessionId = "test-session-1"
       const employeeName = "0-alice"
 
@@ -130,7 +134,11 @@ describe("Tools Integration", () => {
     })
 
     test("should throw error if session not registered", async () => {
-      const tool = createSendMessageTool(messageService, undefined, stateManager)
+      const tool = createSendMessageTool(
+        messageService,
+        undefined,
+        stateManager
+      )
 
       await expect(
         tool.execute(
@@ -150,7 +158,11 @@ describe("Tools Integration", () => {
     })
 
     test("should reject non-existent recipient employee", async () => {
-      const tool = createSendMessageTool(messageService, undefined, stateManager)
+      const tool = createSendMessageTool(
+        messageService,
+        undefined,
+        stateManager
+      )
       const sessionId = "test-session-invalid-recipient"
       const employeeName = "0-alice"
 

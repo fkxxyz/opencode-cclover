@@ -8,7 +8,8 @@ import { tool } from "@opencode-ai/plugin"
 import type { StateManager } from "../state/StateManager"
 import type { MemoryManager } from "../core/MemoryManager"
 import type { BossManager } from "../core/BossManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
+import type { RoleManager } from "../core/RoleManager"
+import { resolveToolActor } from "../meeting-mode"
 import { vacationRegistry } from "../utils/VacationRegistry"
 
 /**
@@ -21,7 +22,8 @@ import { vacationRegistry } from "../utils/VacationRegistry"
 export function createPauseEmployeeTool(
   stateManager: StateManager,
   memoryManager: MemoryManager,
-  bossManager: BossManager
+  bossManager: BossManager,
+  roleManager?: RoleManager
 ) {
   return tool({
     description:
@@ -31,23 +33,14 @@ export function createPauseEmployeeTool(
     },
     async execute(args, context) {
       // 1. 获取操作者名称
-      const operatorEmployeeId = sessionRegistry.getEmployeeId(
-        context.sessionID
+      const actor = resolveToolActor(
+        context,
+        stateManager,
+        bossManager,
+        roleManager
       )
-      let operatorName: string | undefined
-      if (operatorEmployeeId) {
-        const operator = stateManager.getEmployee(operatorEmployeeId)
-        if (operator) {
-          operatorName = operator.name
-        }
-      }
-      // Check if it's a boss
-      if (!operatorName && context.agent) {
-        const agentName = context.agent
-        if (bossManager.isBoss(agentName)) {
-          operatorName = agentName
-        }
-      }
+      const operatorEmployeeId = actor?.actorEmployeeId
+      const operatorName = actor?.actorName
       if (!operatorName) {
         throw new Error("Cannot identify operator")
       }

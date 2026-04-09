@@ -109,10 +109,21 @@ export function createTools(deps: {
     send_message: createSendMessageTool(
       deps.messageService,
       deps.bossManager,
-      deps.stateManager
+      deps.stateManager,
+      deps.project?.roleManager
     ),
-    edit_tasks: createEditTasksTool(deps.memoryManager, deps.stateManager!),
-    create_agent: createCreateAgentTool(deps.opcodeClient, deps.stateManager),
+    edit_tasks: createEditTasksTool(
+      deps.memoryManager,
+      deps.stateManager!,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
+    create_agent: createCreateAgentTool(
+      deps.opcodeClient,
+      deps.stateManager,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
     hire_employee: deps.project
       ? createHireEmployeeTool(
           deps.stateManager,
@@ -124,7 +135,12 @@ export function createTools(deps: {
     refresh_roles: deps.project
       ? createRefreshRolesTool(deps.project)
       : (null as any), // fallback
-    show_tasks: createShowTasksTool(deps.memoryManager, deps.stateManager!),
+    show_tasks: createShowTasksTool(
+      deps.memoryManager,
+      deps.stateManager!,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
     show_hireable_roles: deps.project
       ? createShowHireableRolesTool(
           deps.project.roleManager,
@@ -136,7 +152,8 @@ export function createTools(deps: {
       ? createResumeEmployeeTool(
           deps.stateManager,
           deps.bossManager!,
-          deps.project.projectId
+          deps.project.projectId,
+          deps.project.roleManager
         )
       : (null as any), // fallback
     pause_employee:
@@ -144,7 +161,8 @@ export function createTools(deps: {
         ? createPauseEmployeeTool(
             deps.stateManager,
             deps.memoryManager,
-            deps.bossManager
+            deps.bossManager,
+            deps.project?.roleManager
           )
         : (null as any), // fallback
     integrate: deps.project

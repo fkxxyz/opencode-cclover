@@ -7,13 +7,15 @@
 import { tool } from "@opencode-ai/plugin"
 import type { StateManager } from "../state/StateManager"
 import type { BossManager } from "../core/BossManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
+import type { RoleManager } from "../core/RoleManager"
+import { resolveToolActor } from "../meeting-mode"
 import { logger } from "../lib/logger"
 
 export function createResumeEmployeeTool(
   stateManager: StateManager,
   bossManager: BossManager,
-  projectId: string
+  projectId: string,
+  roleManager?: RoleManager
 ) {
   return tool({
     description:
@@ -24,24 +26,14 @@ export function createResumeEmployeeTool(
     async execute(args, context) {
       try {
         // 1. Get operator identity
-        let operatorName: string | undefined
-        let operatorEmployeeId: string | undefined
-        // First try to get from SessionRegistry (employee)
-        operatorEmployeeId = sessionRegistry.getEmployeeId(context.sessionID)
-        if (operatorEmployeeId) {
-          const operator = stateManager.getEmployee(operatorEmployeeId)
-          if (operator) {
-            operatorName = operator.name
-          }
-        }
-        // If not in SessionRegistry, try to get from context.agent (might be boss)
-        if (!operatorName && context.agent) {
-          const agentName = context.agent
-          // Check if it's a boss
-          if (bossManager.isBoss(agentName)) {
-            operatorName = agentName
-          }
-        }
+        const actor = resolveToolActor(
+          context,
+          stateManager,
+          bossManager,
+          roleManager
+        )
+        const operatorName = actor?.actorName
+        const operatorEmployeeId = actor?.actorEmployeeId
         if (!operatorName) {
           return `Error: Unable to identify operator (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         }

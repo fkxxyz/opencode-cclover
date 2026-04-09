@@ -4,6 +4,7 @@ import { logger } from "./lib/logger"
 import { GlobalCcloverService } from "./server/GlobalServer"
 import { CandidateProjectsManager } from "./config/CandidateProjectsManager"
 import { formatToolParameterDescriptions } from "./utils/ZodDescriptionExtractor"
+import { buildMeetingModePrimaryAgents } from "./meeting-mode"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -117,6 +118,14 @@ export const CcloverPlugin: Plugin = async (ctx) => {
           logger.error(
             `[Cclover] Failed to scan agents directory: ${error.message}`
           )
+        }
+
+        // 基于 RoleManager 的最终解析结果注册 Meeting Mode primary agents
+        for (const [agentName, definition] of Object.entries(
+          buildMeetingModePrimaryAgents(project.roleManager)
+        )) {
+          agents[agentName] = definition
+          logger.debug(`[Cclover] Registered Meeting Mode agent: ${agentName}`)
         }
 
         config.agent = agents

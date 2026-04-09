@@ -9,7 +9,7 @@ import type { StateManager } from "../state/StateManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { ProjectInstance } from "../server/ProjectRegistry"
 import type { BossManager } from "../core/BossManager"
-import { sessionRegistry } from "../utils/SessionRegistry"
+import { resolveToolActor } from "../meeting-mode"
 import { logger } from "../lib/logger"
 import type { EmployeeId } from "../types/employee"
 import { formatBossId } from "../types/employee"
@@ -34,28 +34,18 @@ export function createHireEmployeeTool(
     },
     async execute(args, context) {
       try {
-        // 1. Get caller identity
-        let hiredBy: string | undefined
-        let hiredByEmployeeId: EmployeeId | undefined
-        // 2. First try to get from SessionRegistry (employee)
-        const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
-        if (employeeId) {
-          const employee = stateManager.getEmployee(employeeId)
-          if (employee) {
-            hiredBy = employee.name
-            hiredByEmployeeId = employee.employeeId
-          }
-        }
-        // 3. If not in SessionRegistry, try to get from context.agent (might be boss)
-        if (!hiredBy && context.agent) {
-          const agentName = context.agent
-          // Check if it's a boss
-          if (bossManager?.isBoss(agentName)) {
-            hiredBy = agentName
-            hiredByEmployeeId = formatBossId(agentName)
-          }
-        }
-        if (!hiredBy) {
+        const actor = resolveToolActor(
+          context,
+          stateManager,
+          bossManager,
+          roleManager
+        )
+        const hiredBy = actor?.actorName
+        const hiredByEmployeeId = actor?.actorEmployeeId as
+          | EmployeeId
+          | undefined
+
+        if (!hiredBy || !hiredByEmployeeId) {
           return `Error: Unable to identify caller (sessionID: ${context.sessionID}, agent: ${context.agent || "unknown"})`
         }
 

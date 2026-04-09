@@ -1,0 +1,136 @@
+import type { BossManager } from "./core/BossManager"
+import type { RoleManager } from "./core/RoleManager"
+import type { Role } from "./types"
+import { formatBossId } from "./types"
+import type { StateManager } from "./state/StateManager"
+import { sessionRegistry } from "./utils/SessionRegistry"
+
+export interface MeetingModePrimaryAgentDefinition {
+  prompt: string
+  mode: "primary"
+  description: string
+}
+
+export interface ResolvedToolActor {
+  actorName: string
+  actorEmployeeId: string
+  isBoss: boolean
+  projectedRoleName?: string
+}
+
+const MEETING_MODE_AUGMENTATION = `## Meeting Context
+
+The boss is personally talking with you.
+
+This is a direct working meeting with the boss.
+
+- discuss matters collaboratively and frankly
+- preserve your role specialization and perspective
+- you have full authority to organize work during this interaction
+- normal hiring restrictions are lifted for this interaction
+- if required staff are missing, hire them immediately and proceed`
+
+export function composeMeetingModePrompt(systemPrompt: string): string {
+  return `${systemPrompt.trim()}\n\n${MEETING_MODE_AUGMENTATION}`
+}
+
+export function buildMeetingModePrimaryAgents(
+  roleManager: RoleManager
+): Record<string, MeetingModePrimaryAgentDefinition> {
+  const agents: Record<string, MeetingModePrimaryAgentDefinition> = {}
+
+  for (const role of roleManager.getAllRoles()) {
+    agents[role.name] = {
+      prompt: composeMeetingModePrompt(role.systemPrompt),
+      mode: "primary",
+      description: getMeetingModeAgentDescription(role),
+    }
+  }
+
+  return agents
+}
+
+export function isMeetingModeProjectedAgent(
+  roleManager: RoleManager | undefined,
+  agentName: string | undefined,
+  bossManager?: BossManager
+): boolean {
+  if (!roleManager || !agentName) {
+    return false
+  }
+
+  if (bossManager?.isBoss(agentName)) {
+    return false
+  }
+
+  return roleManager.getRole(agentName) !== undefined
+}
+
+export function resolveToolActor(
+  context: { sessionID: string; agent?: string },
+  stateManager?: StateManager,
+  bossManager?: BossManager,
+  roleManager?: RoleManager
+): ResolvedToolActor | undefined {
+  const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
+  if (employeeId) {
+    if (!stateManager) {
+      return {
+        actorName: employeeId,
+        actorEmployeeId: employeeId,
+        isBoss: false,
+      }
+    }
+
+    const employee = stateManager.getEmployee(employeeId)
+    if (!employee) {
+      return undefined
+    }
+
+    return {
+      actorName: employee.name,
+      actorEmployeeId: employee.employeeId,
+      isBoss: bossManager?.isBoss(employee.name) || false,
+    }
+  }
+
+  if (context.agent && bossManager?.isBoss(context.agent)) {
+    return {
+      actorName: context.agent,
+      actorEmployeeId: formatBossId(context.agent),
+      isBoss: true,
+    }
+  }
+
+  if (
+    context.agent &&
+    isMeetingModeProjectedAgent(roleManager, context.agent, bossManager)
+  ) {
+    const meetingBoss = bossManager?.getBossBySession(context.sessionID)
+    if (!meetingBoss) {
+      return undefined
+    }
+
+    return {
+      actorName: meetingBoss,
+      actorEmployeeId: formatBossId(meetingBoss),
+      isBoss: true,
+      projectedRoleName: context.agent,
+    }
+  }
+
+  return undefined
+}
+
+function getMeetingModeAgentDescription(role: Role): string {
+  if (role.description.trim()) {
+    return role.description.trim()
+  }
+
+  const firstLine = role.systemPrompt
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0)
+
+  return firstLine || `Role: ${role.name}`
+}

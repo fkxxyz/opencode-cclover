@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
 import { StateManager } from "../../src/state/StateManager"
+import { RoleManager } from "../../src/core/RoleManager"
 import { createSendMessageTool } from "../../src/tools/SendMessageTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import * as fs from "node:fs/promises"
@@ -16,6 +17,7 @@ describe("SendMessageTool with Boss", () => {
   let bossManager: BossManager
   let messageService: MessageService
   let stateManager: StateManager
+  let roleManager: RoleManager
   let sendMessageTool: any
 
   beforeEach(async () => {
@@ -28,10 +30,12 @@ describe("SendMessageTool with Boss", () => {
       bosses: ["bayecao"],
       projects: [],
     }
-    bossManager = new BossManager(config)
+    bossManager = new BossManager(config, TEST_WORKSPACE)
 
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    roleManager = new RoleManager(TEST_WORKSPACE)
+    await roleManager.refresh()
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
@@ -39,7 +43,7 @@ describe("SendMessageTool with Boss", () => {
       hiredBy: null,
       role: "test",
       paused: false,
-      status: "inactive",
+      status: "idle",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       activeSessionId: null,
@@ -51,7 +55,7 @@ describe("SendMessageTool with Boss", () => {
       hiredBy: null,
       role: "test",
       paused: false,
-      status: "inactive",
+      status: "idle",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       activeSessionId: null,
@@ -69,7 +73,8 @@ describe("SendMessageTool with Boss", () => {
     sendMessageTool = createSendMessageTool(
       messageService,
       bossManager,
-      stateManager
+      stateManager,
+      roleManager
     )
   })
 
@@ -89,6 +94,7 @@ describe("SendMessageTool with Boss", () => {
       {
         to: "0-alice",
         content: "Hello from boss",
+        expect_reply: false,
       },
       context
     )
@@ -114,10 +120,95 @@ describe("SendMessageTool with Boss", () => {
         {
           to: "0-alice",
           content: "Hello",
+          expect_reply: false,
         },
         context
       )
     ).rejects.toThrow("Unable to identify caller")
+  })
+
+  test("should treat projected meeting agent as boss-compatible sender", async () => {
+    await bossManager.recordSession(
+      "bayecao",
+      "0-alice",
+      "test-session-meeting-agent"
+    )
+
+    const context = {
+      sessionID: "test-session-meeting-agent",
+      agent: "Calculator",
+    }
+
+    const result = await sendMessageTool.execute(
+      {
+        to: "0-alice",
+        content: "Hello from meeting mode",
+        expect_reply: false,
+      },
+      context
+    )
+
+    expect(result).toBe("Message sent to 0-alice")
+
+    const employeeClient = messageService.getClient("0-alice")
+    const message = await employeeClient.recv()
+    expect(message.from).toBe("0-bayecao")
+    expect(message.content).toBe("Hello from meeting mode")
+  })
+
+  test("should use the invoking boss session in multi-boss meeting mode", async () => {
+    const multiBossManager = new BossManager(
+      {
+        bosses: ["alpha", "beta"],
+        projects: [],
+      },
+      TEST_WORKSPACE
+    )
+
+    const multiBossMessageService = new MessageService(
+      TEST_WORKSPACE,
+      stateManager,
+      "test-project",
+      multiBossManager
+    )
+
+    const multiBossTool = createSendMessageTool(
+      multiBossMessageService,
+      multiBossManager,
+      stateManager,
+      roleManager
+    )
+
+    await multiBossManager.recordSession(
+      "beta",
+      "0-alice",
+      "test-session-meeting-agent-beta"
+    )
+
+    const result = await multiBossTool.execute(
+      {
+        to: "0-alice",
+        content: "Hello from beta meeting",
+        expect_reply: false,
+      },
+      {
+        sessionID: "test-session-meeting-agent-beta",
+        messageID: "msg-meeting-agent-beta",
+        agent: "Calculator",
+        directory: TEST_WORKSPACE,
+        worktree: TEST_WORKSPACE,
+        abort: new AbortController().signal,
+        metadata: () => {},
+        ask: async () => {},
+      }
+    )
+
+    expect(result).toBe("Message sent to 0-alice")
+
+    const employeeClient = multiBossMessageService.getClient("0-alice")
+    const message = await employeeClient.recv()
+    expect(message.from).toBe("0-beta")
+    expect(message.content).toBe("Hello from beta meeting")
   })
 
   test("should work with employee from SessionRegistry", async () => {
@@ -134,6 +225,7 @@ describe("SendMessageTool with Boss", () => {
       {
         to: "0-bob",
         content: "Hello from employee",
+        expect_reply: false,
       },
       context
     )
@@ -164,6 +256,7 @@ describe("SendMessageTool with Boss", () => {
       {
         to: "0-bob",
         content: "Hello",
+        expect_reply: false,
       },
       context
     )
@@ -190,6 +283,7 @@ describe("SendMessageTool with Boss", () => {
         {
           to: "0-alice",
           content: "Hello",
+          expect_reply: false,
         },
         context
       )
@@ -230,10 +324,17 @@ describe("SendMessageTool with Boss", () => {
         {
           to: "0-bob",
           content: "Hello",
+          expect_reply: false,
         },
         {
           sessionID: "test-session-boss-no-state-manager",
+          messageID: "msg-no-state-manager",
           agent: "bayecao",
+          directory: TEST_WORKSPACE,
+          worktree: TEST_WORKSPACE,
+          abort: new AbortController().signal,
+          metadata: () => {},
+          ask: async () => {},
         }
       )
     ).rejects.toThrow("stateManager is required")
@@ -256,6 +357,7 @@ describe("SendMessageTool with Boss", () => {
         {
           to: "0-bob",
           content: "Same task message",
+          expect_reply: false,
         },
         context
       )
@@ -281,7 +383,7 @@ describe("SendMessageTool with Boss", () => {
         hiredBy: "0-alice",
         role: "test",
         paused: false,
-        status: "inactive",
+        status: "idle",
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
         activeSessionId: null,
@@ -302,6 +404,7 @@ describe("SendMessageTool with Boss", () => {
         {
           to: "1-dave",
           content: "Cross-task message",
+          expect_reply: false,
         },
         context
       )
@@ -329,6 +432,7 @@ describe("SendMessageTool with Boss", () => {
         {
           to: "0-alice",
           content: "Boss routing message",
+          expect_reply: false,
         },
         context
       )
