@@ -106,6 +106,42 @@ function checkMissingArgs(
 }
 
 /**
+ * 注入角色上下文到 sections 数组
+ *
+ * @param sections 要注入的 sections 数组
+ * @param roleMetadata 角色元数据（可选）
+ */
+function injectRoleContexts(
+  sections: string[],
+  roleMetadata?: RoleMetadata
+): void {
+  if (
+    roleMetadata?.resolvedContexts &&
+    roleMetadata.resolvedContexts.length > 0
+  ) {
+    sections.push("# Role Context Materials")
+    sections.push("")
+
+    for (const context of roleMetadata.resolvedContexts) {
+      sections.push(`## Context: ${context.id}`)
+      sections.push("")
+
+      if (context.description) {
+        sections.push(context.description)
+        sections.push("")
+      }
+
+      for (const document of context.documents) {
+        sections.push(`### Document: ${document.path}`)
+        sections.push("")
+        sections.push(document.content)
+        sections.push("")
+      }
+    }
+  }
+}
+
+/**
  * 构建系统提示词
  *
  * @param rolePrompt 角色的系统提示词
@@ -165,30 +201,8 @@ export function buildSystemPrompt(
     }
   }
 
-  if (
-    roleMetadata?.resolvedContexts &&
-    roleMetadata.resolvedContexts.length > 0
-  ) {
-    sections.push("# Role Context Materials")
-    sections.push("")
-
-    for (const context of roleMetadata.resolvedContexts) {
-      sections.push(`## Context: ${context.id}`)
-      sections.push("")
-
-      if (context.description) {
-        sections.push(context.description)
-        sections.push("")
-      }
-
-      for (const document of context.documents) {
-        sections.push(`### Document: ${document.path}`)
-        sections.push("")
-        sections.push(document.content)
-        sections.push("")
-      }
-    }
-  }
+  // 2.2 角色上下文
+  injectRoleContexts(sections, roleMetadata)
 
   // 2.3 角色数据
   const roleData = memory.roleData || {}
@@ -351,6 +365,36 @@ export function buildSystemPrompt(
       sections.push("")
     }
   }
+
+  return sections.join("\n")
+}
+
+/**
+ * 构建会议模式系统提示词
+ *
+ * 会议模式是轻量级的，只注入角色上下文，不包含记忆、任务、工作区等员工基础设施
+ *
+ * @param rolePrompt 角色的系统提示词
+ * @param meetingModeAugmentation 会议模式增强文本
+ * @param roleMetadata 角色元数据（可选，用于注入上下文）
+ * @returns 完整的会议模式系统提示词
+ */
+export function buildMeetingModeSystemPrompt(
+  rolePrompt: string,
+  meetingModeAugmentation: string,
+  roleMetadata?: RoleMetadata
+): string {
+  const sections: string[] = []
+
+  // 1. 角色定义
+  sections.push(rolePrompt.trim())
+  sections.push("")
+
+  // 2. 角色上下文（如果有）
+  injectRoleContexts(sections, roleMetadata)
+
+  // 3. 会议模式增强
+  sections.push(meetingModeAugmentation)
 
   return sections.join("\n")
 }

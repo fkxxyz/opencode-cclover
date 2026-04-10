@@ -4,6 +4,7 @@ import type { Role } from "./types"
 import { formatBossId } from "./types"
 import type { StateManager } from "./state/StateManager"
 import { sessionRegistry } from "./utils/SessionRegistry"
+import { buildMeetingModeSystemPrompt } from "./utils/ContextBuilder"
 
 export interface MeetingModePrimaryAgentDefinition {
   prompt: string
@@ -43,7 +44,11 @@ export function buildMeetingModePrimaryAgents(
 
   for (const role of roleManager.getAllRoles()) {
     agents[role.name] = {
-      prompt: composeMeetingModePrompt(role.systemPrompt),
+      prompt: buildMeetingModeSystemPrompt(
+        role.systemPrompt,
+        MEETING_MODE_AUGMENTATION,
+        role
+      ),
       mode: "primary",
       description: getMeetingModeAgentDescription(role),
     }

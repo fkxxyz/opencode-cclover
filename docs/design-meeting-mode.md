@@ -88,9 +88,12 @@ Each projected role should register a primary agent with at least:
 
 Prompt composition should:
 1. Start from the original role content
-2. Add a meeting-context augmentation block
-3. Preserve the role's domain identity and responsibilities
-4. State the elevated authority model clearly
+2. Inject role contexts (if `contextIds` are present in role metadata)
+3. Add a meeting-context augmentation block
+4. Preserve the role's domain identity and responsibilities
+5. State the elevated authority model clearly
+
+**Context Injection**: When a role has `contextIds` in its metadata, meeting-mode prompts inject the resolved contexts using the same format as normal employee sessions (see `docs/design-roles.md` for context resolution details). This ensures meeting-mode roles have access to the same reference materials as their employee counterparts, while maintaining meeting mode's lightweight nature (no memory, tasks, or workspace infrastructure).
 
 The augmentation should communicate at least these ideas:
 - the boss is personally talking with you
