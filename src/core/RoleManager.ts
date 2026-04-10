@@ -33,10 +33,22 @@ export class RoleManager {
   private projectPath: string
   private contextDefinitions: Map<string, ContextDefinition> = new Map()
   private presetContextPath: string
+  private presetRolesDir: string
+  private presetRootDir: string
 
-  constructor(projectPath: string) {
+  constructor(
+    projectPath: string,
+    presetRolesDir?: string,
+    presetRootDir?: string
+  ) {
     this.projectPath = projectPath
-    this.presetContextPath = path.join(__dirname, "../roles/context.yml")
+    // 允许测试环境注入自定义的 preset roles 目录
+    this.presetRolesDir = presetRolesDir || path.join(__dirname, "../roles")
+    // preset 文档的根目录（用于解析相对路径）
+    // 默认为项目根目录（__dirname/../..），测试环境可以自定义
+    this.presetRootDir =
+      presetRootDir || path.resolve(this.presetRolesDir, "../..")
+    this.presetContextPath = path.join(this.presetRolesDir, "context.yml")
   }
 
   /**
@@ -86,8 +98,7 @@ export class RoleManager {
    * 加载预设角色
    */
   private async loadPresetRoles(): Promise<void> {
-    const presetDir = path.join(__dirname, "../roles")
-    await this.loadRolesFromDir(presetDir, "preset")
+    await this.loadRolesFromDir(this.presetRolesDir, "preset")
   }
 
   /**
@@ -234,7 +245,7 @@ export class RoleManager {
 
     await this.mergeContextDefinitions(
       definitions,
-      path.join(__dirname, "../roles/context.yml"),
+      this.presetContextPath,
       "preset"
     )
 
@@ -395,9 +406,7 @@ export class RoleManager {
           const isPreset =
             path.normalize(definition.sourceFile) ===
             path.normalize(this.presetContextPath)
-          const baseDir = isPreset
-            ? path.join(__dirname, "../..")
-            : this.projectPath
+          const baseDir = isPreset ? this.presetRootDir : this.projectPath
           resolvedPath = path.resolve(baseDir, documentPath)
         }
 
