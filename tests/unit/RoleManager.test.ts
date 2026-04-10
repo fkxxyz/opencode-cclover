@@ -211,6 +211,41 @@ You are a module maintainer.`
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
+  test("should parse responsibilities and boundaries from YAML frontmatter", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: reviewer
+description: Reviews code changes
+responsibilities:
+  - Review code quality
+  - Identify correctness risks
+boundaries:
+  - Do not modify production code directly
+  - Do not approve without evidence
+---
+
+You are a reviewer.`
+
+    await fs.writeFile(path.join(projectRolesDir, "reviewer.md"), roleContent)
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("reviewer")
+
+    expect(role).toBeDefined()
+    expect(role?.responsibilities).toEqual([
+      "Review code quality",
+      "Identify correctness risks",
+    ])
+    expect(role?.boundaries).toEqual([
+      "Do not modify production code directly",
+      "Do not approve without evidence",
+    ])
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
   test("should work without memorySchema (backward compatibility)", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })

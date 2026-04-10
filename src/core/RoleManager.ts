@@ -134,6 +134,8 @@ export class RoleManager {
               name: frontmatterData.name,
               description: frontmatterData.description || "",
               soul: frontmatterData.soul ?? true, // 默认为 true
+              responsibilities: frontmatterData.responsibilities,
+              boundaries: frontmatterData.boundaries,
               requiredArgs: frontmatterData.requiredArgs,
               canHire: frontmatterData.canHire,
               groups: frontmatterData.groups,
