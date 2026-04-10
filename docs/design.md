@@ -267,6 +267,27 @@ sequenceDiagram
     E->>E: Process result
 ```
 
+#### Role Context Injection Flow
+
+```mermaid
+sequenceDiagram
+    participant RM as RoleManager
+    participant CY as context.yml sources
+    participant CB as ContextBuilder
+    participant SM as SessionManager
+
+    RM->>CY: Load layered context definitions
+    CY-->>RM: project > global > preset ids
+    RM->>RM: Resolve role contextIds and read referenced documents
+    RM-->>SM: Role metadata with resolvedContexts
+    SM->>CB: buildSystemPrompt(role, memory, supervisor)
+    CB-->>SM: System prompt with role context materials
+```
+
+Role-declared context loading is an internal prompt-enrichment path. `RoleManager` resolves `contextIds` from layered `context.yml` sources using the same authority order as role files, with per-contextId override semantics. `SessionManager` must pass the resolved role metadata into `ContextBuilder` during session creation, recovery, and refresh so the feature affects active prompts instead of remaining metadata-only.
+
+Localized failures are non-fatal: missing optional `context.yml` files, invalid source units, missing document files, and empty or unknown context ids warn and skip only the affected context material.
+
 ### File Structure
 
 ````

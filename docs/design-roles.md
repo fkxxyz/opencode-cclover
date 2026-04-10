@@ -120,9 +120,45 @@ System prompt content (markdown)
 **Metadata Fields**:
 - `name` (required): Role name, must match filename
 - `description` (optional): Brief role description
+- `contextIds` (optional): String array of role-declared context ids to resolve from layered `context.yml` sources
 - `requiredArgs` (optional): Parameters required when hiring
 - `canHire` (optional): Roles this role can hire (exact names, globs, groups)
 - `groups` (optional): Groups this role belongs to
+
+### Layered Role Context Loading
+
+Roles may declare `contextIds?: string[]` in frontmatter when they need additional internal prompt material.
+
+```yaml
+contextIds:
+  - coding-standards
+  - product-brief
+```
+
+This mechanism is internal to role resolution and prompt assembly. It does not introduce a new tool-visible API, memory schema, or user-facing debugging surface.
+
+**Lookup authority** mirrors role authority:
+1. Project: `<project>/.cclover/context.yml`
+2. Global: `~/.config/opencode-cclover/context.yml`
+3. Preset: implementation-defined preset `context.yml` location inside the repository
+
+Resolution is **per-contextId override/merge across sources**, not whole-file shadowing. Higher-priority sources replace only the ids they define, while unrelated ids continue to resolve from lower-priority sources.
+
+**Context source format**:
+
+```yaml
+contexts:
+  coding-standards:
+    description: "Standards for code changes"
+    documents:
+      - docs/coding-standards.md
+```
+
+**Behavioral rules**:
+- `contextIds` must be a string array when present; invalid metadata causes that role file to be skipped.
+- Referenced documents resolve relative to the `context.yml` file that declared them unless the path is already absolute.
+- Missing optional `context.yml` files, invalid `context.yml` units, empty context ids, missing context entries, and missing referenced documents are warning-and-skip cases.
+- Successful resolution stores the context material as internal role metadata for later prompt assembly.
 
 **Example**:
 ```markdown
@@ -201,6 +237,7 @@ groups:
 - ContextBuilder automatically includes parameter remder if `requiredArgs` defined and args missing
 - Shows which parameters are required and their descriptions
 - Helps AI understand what information is needed
+- ContextBuilder also injects resolved role context material into the system prompt when `contextIds` resolve successfully
 
 ### Calculator Role (Phase 1)
 

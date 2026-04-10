@@ -165,6 +165,28 @@ export function buildSystemPrompt(
     }
   }
 
+  if (roleMetadata?.resolvedContexts && roleMetadata.resolvedContexts.length > 0) {
+    sections.push("# Role Context Materials")
+    sections.push("")
+
+    for (const context of roleMetadata.resolvedContexts) {
+      sections.push(`## Context: ${context.id}`)
+      sections.push("")
+
+      if (context.description) {
+        sections.push(context.description)
+        sections.push("")
+      }
+
+      for (const document of context.documents) {
+        sections.push(`### Document: ${document.path}`)
+        sections.push("")
+        sections.push(document.content)
+        sections.push("")
+      }
+    }
+  }
+
   // 2.3 角色数据
   const roleData = memory.roleData || {}
   if (Object.keys(roleData).length > 0) {

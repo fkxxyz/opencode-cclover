@@ -14,14 +14,24 @@ import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 import * as yaml from "yaml"
 import { logger } from "../lib/logger"
-import type { Role, RoleMetadata } from "../types"
+import type { Role, RoleMetadata, ResolvedRoleContext } from "../types"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+interface RawContextDefinition {
+  description?: string
+  documents?: string[]
+}
+
+interface ContextDefinition extends RawContextDefinition {
+  sourceFile: string
+}
+
 export class RoleManager {
   private roles: Map<string, Role> = new Map()
   private projectPath: string
+  private contextDefinitions: Map<string, ContextDefinition> = new Map()
 
   constructor(projectPath: string) {
     this.projectPath = projectPath
@@ -33,6 +43,7 @@ export class RoleManager {
    */
   async refresh(): Promise<void> {
     this.roles.clear()
+    this.contextDefinitions = await this.loadContextDefinitions()
 
     // 1. 加载预设角色（优先级最低）
     await this.loadPresetRoles()
@@ -129,6 +140,10 @@ export class RoleManager {
             const frontmatterData = yaml.parse(frontmatterMatch[1])
             const systemPrompt = frontmatterMatch[2].trim()
 
+            if (!this.isValidRoleFrontmatter(frontmatterData, filePath)) {
+              continue
+            }
+
             // 构建 metadata，确保 soul 字段默认为 true
             const metadata: RoleMetadata = {
               name: frontmatterData.name,
@@ -136,10 +151,14 @@ export class RoleManager {
               soul: frontmatterData.soul ?? true, // 默认为 true
               responsibilities: frontmatterData.responsibilities,
               boundaries: frontmatterData.boundaries,
+              contextIds: frontmatterData.contextIds,
               requiredArgs: frontmatterData.requiredArgs,
               canHire: frontmatterData.canHire,
               groups: frontmatterData.groups,
               memorySchema: frontmatterData.memorySchema,
+              resolvedContexts: await this.resolveRoleContexts(
+                frontmatterData.contextIds
+              ),
             }
 
             this.roles.set(metadata.name, {
@@ -172,6 +191,206 @@ export class RoleManager {
         )
       }
     }
+  }
+
+  private isValidRoleFrontmatter(
+    frontmatterData: any,
+    filePath: string
+  ): boolean {
+    if (typeof frontmatterData?.name !== "string" || frontmatterData.name.length === 0) {
+      logger.warn(
+        `[RoleManager] Role file ${filePath} is missing a valid string name, skipping`
+      )
+      return false
+    }
+
+    if (
+      frontmatterData.contextIds !== undefined &&
+      !(
+        Array.isArray(frontmatterData.contextIds) &&
+        frontmatterData.contextIds.every((value: unknown) => typeof value === "string")
+      )
+    ) {
+      logger.warn(
+        `[RoleManager] Role file ${filePath} has invalid contextIds, expected string array, skipping`
+      )
+      return false
+    }
+
+    return true
+  }
+
+  private async loadContextDefinitions(): Promise<Map<string, ContextDefinition>> {
+    const definitions = new Map<string, ContextDefinition>()
+
+    await this.mergeContextDefinitions(
+      definitions,
+      path.join(__dirname, "../roles/context.yml"),
+      "preset"
+    )
+
+    const homeDir = process.env.HOME || process.env.USERPROFILE
+    if (homeDir) {
+      await this.mergeContextDefinitions(
+        definitions,
+        path.join(homeDir, ".config/opencode-cclover/context.yml"),
+        "global"
+      )
+    }
+
+    await this.mergeContextDefinitions(
+      definitions,
+      path.join(this.projectPath, ".cclover/context.yml"),
+      "project"
+    )
+
+    return definitions
+  }
+
+  private async mergeContextDefinitions(
+    definitions: Map<string, ContextDefinition>,
+    filePath: string,
+    source: "preset" | "global" | "project"
+  ): Promise<void> {
+    let content: string
+
+    try {
+      content = await fs.readFile(filePath, "utf-8")
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        logger.debug(
+          `[RoleManager] Optional context source not found for ${source}: ${filePath}`
+        )
+        return
+      }
+
+      logger.warn(
+        `[RoleManager] Failed to read ${source} context source ${filePath}: ${error.message}`
+      )
+      return
+    }
+
+    let parsed: any
+    try {
+      parsed = yaml.parse(content)
+    } catch (error: any) {
+      logger.warn(
+        `[RoleManager] Invalid YAML in ${source} context source ${filePath}: ${error.message}`
+      )
+      return
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      logger.warn(
+        `[RoleManager] Invalid context source ${filePath}: expected object root`
+      )
+      return
+    }
+
+    const contexts = parsed.contexts
+    if (!contexts || typeof contexts !== "object" || Array.isArray(contexts)) {
+      logger.warn(
+        `[RoleManager] Invalid context source ${filePath}: expected contexts mapping`
+      )
+      return
+    }
+
+    for (const [contextId, value] of Object.entries(contexts)) {
+      if (typeof contextId !== "string" || contextId.trim().length === 0) {
+        logger.warn(
+          `[RoleManager] Invalid context id in ${filePath}: context ids must be non-empty strings`
+        )
+        continue
+      }
+
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        logger.warn(
+          `[RoleManager] Invalid context entry '${contextId}' in ${filePath}: expected object`
+        )
+        continue
+      }
+
+      const description = (value as RawContextDefinition).description
+      const documents = (value as RawContextDefinition).documents
+
+      if (description !== undefined && typeof description !== "string") {
+        logger.warn(
+          `[RoleManager] Invalid description for context '${contextId}' in ${filePath}: expected string`
+        )
+        continue
+      }
+
+      if (
+        documents !== undefined &&
+        !(Array.isArray(documents) && documents.every((doc) => typeof doc === "string"))
+      ) {
+        logger.warn(
+          `[RoleManager] Invalid documents for context '${contextId}' in ${filePath}: expected string array`
+        )
+        continue
+      }
+
+      definitions.set(contextId, {
+        description,
+        documents,
+        sourceFile: filePath,
+      })
+    }
+  }
+
+  private async resolveRoleContexts(
+    contextIds?: string[]
+  ): Promise<ResolvedRoleContext[] | undefined> {
+    if (!contextIds || contextIds.length === 0) {
+      return undefined
+    }
+
+    const resolved: ResolvedRoleContext[] = []
+
+    for (const contextId of contextIds) {
+      if (typeof contextId !== "string" || contextId.trim().length === 0) {
+        logger.warn(
+          `[RoleManager] Encountered empty context id while resolving role contexts, skipping`
+        )
+        continue
+      }
+
+      const definition = this.contextDefinitions.get(contextId)
+      if (!definition) {
+        logger.warn(
+          `[RoleManager] Context '${contextId}' not found in layered context sources, skipping`
+        )
+        continue
+      }
+
+      resolved.push({
+        id: contextId,
+        description: definition.description,
+        documents: [],
+      })
+
+      const context = resolved[resolved.length - 1]
+
+      for (const documentPath of definition.documents ?? []) {
+        const resolvedPath = path.isAbsolute(documentPath)
+          ? documentPath
+          : path.resolve(path.dirname(definition.sourceFile), documentPath)
+
+        try {
+          const content = await fs.readFile(resolvedPath, "utf-8")
+          context.documents.push({
+            path: resolvedPath,
+            content,
+          })
+        } catch (error: any) {
+          logger.warn(
+            `[RoleManager] Failed to read context document ${resolvedPath} for context '${contextId}': ${error.message}`
+          )
+        }
+      }
+    }
+
+    return resolved
   }
 
   /**

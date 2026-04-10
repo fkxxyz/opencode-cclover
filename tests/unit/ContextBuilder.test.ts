@@ -7,11 +7,9 @@ import {
   buildSystemPrompt,
   buildEventMessage,
   getExecutableTasks,
-  type Memory,
   type Event,
 } from "../../src/utils/ContextBuilder"
-import type { Task } from "../../src/utils/MermaidGenerator"
-import type { RoleMetadata } from "../../src/types"
+import type { Task, Memory, RoleMetadata } from "../../src/types"
 
 describe("ContextBuilder", () => {
   describe("buildSystemPrompt", () => {
@@ -193,6 +191,46 @@ describe("ContextBuilder", () => {
       const taskIndex = result.indexOf("# Task Management")
       expect(supervisorIndex).toBeGreaterThan(0)
       expect(taskIndex).toBeGreaterThan(supervisorIndex)
+    })
+
+    test("should include resolved role contexts in system prompt", () => {
+      const rolePrompt = "你是一个员工"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "developer",
+        description: "A developer role",
+        contextIds: ["coding-standards"],
+        resolvedContexts: [
+          {
+            id: "coding-standards",
+            description: "Follow coding standards strictly",
+            documents: [
+              {
+                path: "/tmp/context-doc.md",
+                content: "# Coding Standards\n\nUse double quotes.",
+              },
+            ],
+          },
+        ],
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace",
+        roleMetadata
+      )
+
+      expect(result).toContain("# Role Context Materials")
+      expect(result).toContain("coding-standards")
+      expect(result).toContain("Follow coding standards strictly")
+      expect(result).toContain("/tmp/context-doc.md")
+      expect(result).toContain("Use double quotes.")
     })
   })
 

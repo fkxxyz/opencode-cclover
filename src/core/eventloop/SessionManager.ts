@@ -127,7 +127,7 @@ export class SessionManager {
                 memory.sessionSnapshot,
                 this.employeeId,
                 ".cclover/workspace",
-                undefined, // TODO: Pass role metadata when RoleManager is updated
+                role,
                 supervisor
               )
             : buildSystemPrompt(
@@ -135,7 +135,7 @@ export class SessionManager {
                 memory,
                 this.employeeId,
                 ".cclover/workspace",
-                undefined, // TODO: Pass role metadata when RoleManager is updated
+                role,
                 supervisor
               ) // 降级：使用当前状态
 
@@ -217,7 +217,7 @@ export class SessionManager {
       },
       this.employeeId,
       ".cclover/workspace",
-      undefined, // TODO: Pass role metadata when RoleManager is updated
+      role,
       supervisor
     )
 
@@ -312,7 +312,7 @@ export class SessionManager {
           memory.sessionSnapshot,
           this.employeeId,
           ".cclover/workspace",
-          undefined, // TODO: Pass role metadata when RoleManager is updated
+          role,
           supervisor
         )
       : buildSystemPrompt(
@@ -320,7 +320,7 @@ export class SessionManager {
           memory,
           this.employeeId,
           ".cclover/workspace",
-          undefined, // TODO: Pass role metadata when RoleManager is updated
+          role,
           supervisor
         )
 

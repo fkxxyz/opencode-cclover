@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll } from "bun:test"
+import { describe, test, expect, beforeAll, afterEach } from "bun:test"
 import { RoleManager } from "../../src/core/RoleManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -8,10 +8,25 @@ describe("RoleManager", () => {
   let tempDir: string
   let roleManager: RoleManager
 
+  const presetContextPath = path.join(
+    process.cwd(),
+    "src/roles/context.yml"
+  )
+  let originalHome = process.env.HOME
+
   beforeAll(async () => {
     // 创建临时测试目录
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-test-"))
     roleManager = new RoleManager(tempDir)
+  })
+
+  afterEach(async () => {
+    process.env.HOME = originalHome
+    await fs.rm(path.join(tempDir, ".cclover"), {
+      recursive: true,
+      force: true,
+    })
+    await fs.rm(presetContextPath, { force: true })
   })
 
   test("should load preset roles", async () => {
@@ -269,6 +284,243 @@ You are a simple role.`
     expect(role?.memorySchema).toBeUndefined()
 
     await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should reject role metadata when contextIds is not a string array", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: invalid-context-role
+description: Invalid context metadata
+contextIds: invalid-context
+---
+
+This role should not load.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "invalid-context-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+
+    expect(roleManager.getRole("invalid-context-role")).toBeUndefined()
+  })
+
+  test("should resolve layered contexts with per-contextId override semantics", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    const projectContextDir = path.join(tempDir, ".cclover")
+    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-home-"))
+    const globalContextDir = path.join(tempHome, ".config/opencode-cclover")
+
+    process.env.HOME = tempHome
+
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.mkdir(projectContextDir, { recursive: true })
+    await fs.mkdir(path.dirname(presetContextPath), { recursive: true })
+    await fs.mkdir(globalContextDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "context-aware-role.md"),
+      `---
+name: context-aware-role
+description: Role with layered contexts
+contextIds:
+  - presetOnly
+  - shared
+  - projectOnly
+---
+
+Context aware prompt.`
+    )
+
+    await fs.writeFile(
+      presetContextPath,
+      `contexts:
+  presetOnly:
+    description: Preset context
+    documents:
+      - preset-only.md
+  shared:
+    description: Preset shared context
+    documents:
+      - shared-preset.md
+`
+    )
+    await fs.writeFile(
+      path.join(path.dirname(presetContextPath), "preset-only.md"),
+      "Preset only content"
+    )
+    await fs.writeFile(
+      path.join(path.dirname(presetContextPath), "shared-preset.md"),
+      "Preset shared content"
+    )
+
+    await fs.writeFile(
+      path.join(globalContextDir, "context.yml"),
+      `contexts:
+  shared:
+    description: Global shared context
+    documents:
+      - shared-global.md
+`
+    )
+    await fs.writeFile(
+      path.join(globalContextDir, "shared-global.md"),
+      "Global shared content"
+    )
+
+    await fs.writeFile(
+      path.join(projectContextDir, "context.yml"),
+      `contexts:
+  shared:
+    description: Project shared context
+    documents:
+      - shared-project.md
+  projectOnly:
+    description: Project only context
+    documents:
+      - project-only.md
+`
+    )
+    await fs.writeFile(
+      path.join(projectContextDir, "shared-project.md"),
+      "Project shared content"
+    )
+    await fs.writeFile(
+      path.join(projectContextDir, "project-only.md"),
+      "Project only content"
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("context-aware-role")
+
+    expect(role?.resolvedContexts).toHaveLength(3)
+    expect(role?.resolvedContexts?.map((context) => context.id)).toEqual([
+      "presetOnly",
+      "shared",
+      "projectOnly",
+    ])
+
+    expect(role?.resolvedContexts?.[0]).toMatchObject({
+      id: "presetOnly",
+      description: "Preset context",
+    })
+    expect(role?.resolvedContexts?.[0].documents[0].content).toContain(
+      "Preset only content"
+    )
+
+    expect(role?.resolvedContexts?.[1]).toMatchObject({
+      id: "shared",
+      description: "Project shared context",
+    })
+    expect(role?.resolvedContexts?.[1].documents[0].content).toContain(
+      "Project shared content"
+    )
+
+    expect(role?.resolvedContexts?.[2]).toMatchObject({
+      id: "projectOnly",
+      description: "Project only context",
+    })
+    expect(role?.resolvedContexts?.[2].documents[0].content).toContain(
+      "Project only content"
+    )
+  })
+
+  test("should skip invalid context sources and missing documents without aborting role load", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    const projectContextDir = path.join(tempDir, ".cclover")
+    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-home-"))
+    const globalContextDir = path.join(tempHome, ".config/opencode-cclover")
+
+    process.env.HOME = tempHome
+
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.mkdir(projectContextDir, { recursive: true })
+    await fs.mkdir(globalContextDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "resilient-role.md"),
+      `---
+name: resilient-role
+description: Role with warning-and-skip contexts
+contextIds:
+  - valid-context
+  - ""
+  - missing-context
+---
+
+Resilient prompt.`
+    )
+
+    await fs.writeFile(
+      path.join(globalContextDir, "context.yml"),
+      `contexts:
+  valid-context:
+    description: Valid global context
+    documents:
+      - missing-doc.md
+`
+    )
+
+    await fs.writeFile(
+      path.join(projectContextDir, "context.yml"),
+      `contexts: [broken`
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("resilient-role")
+
+    expect(role).toBeDefined()
+    expect(role?.resolvedContexts).toHaveLength(1)
+    expect(role?.resolvedContexts?.[0]).toMatchObject({
+      id: "valid-context",
+      description: "Valid global context",
+    })
+    expect(role?.resolvedContexts?.[0].documents).toEqual([])
+  })
+
+  test("should resolve context document paths relative to defining context source", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    const projectContextDir = path.join(tempDir, ".cclover/context")
+
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.mkdir(projectContextDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "relative-context-role.md"),
+      `---
+name: relative-context-role
+description: Role with relative context docs
+contextIds:
+  - nested-context
+---
+
+Relative context prompt.`
+    )
+
+    await fs.writeFile(
+      path.join(tempDir, ".cclover/context.yml"),
+      `contexts:
+  nested-context:
+    description: Nested context
+    documents:
+      - context/nested-doc.md
+`
+    )
+    await fs.writeFile(
+      path.join(projectContextDir, "nested-doc.md"),
+      "Nested document content"
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("relative-context-role")
+
+    expect(role?.resolvedContexts?.[0].documents[0]).toEqual({
+      path: path.join(projectContextDir, "nested-doc.md"),
+      content: "Nested document content",
+    })
   })
 
   test("should reject old format without frontmatter", async () => {

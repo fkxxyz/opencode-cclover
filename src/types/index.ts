@@ -195,6 +195,7 @@ export interface RoleMetadata {
   soul?: boolean // true = 持久记忆（自动总结），false = 临时记忆（无总结）
   responsibilities?: string[]
   boundaries?: string[]
+  contextIds?: string[]
   requiredArgs?: Record<
     string,
     {
@@ -214,6 +215,20 @@ export interface RoleMetadata {
       required?: boolean
     }
   >
+
+  // 已解析的角色上下文（内部使用）
+  resolvedContexts?: ResolvedRoleContext[]
+}
+
+export interface ResolvedRoleContextDocument {
+  path: string
+  content: string
+}
+
+export interface ResolvedRoleContext {
+  id: string
+  description?: string
+  documents: ResolvedRoleContextDocument[]
 }
 
 // 角色（包含元数据和系统提示词）
