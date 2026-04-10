@@ -3,6 +3,8 @@ import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
 import { StateManager } from "../../src/state/StateManager"
 import { RoleManager } from "../../src/core/RoleManager"
+import { MemoryManager } from "../../src/core/MemoryManager"
+import { ReplyTracker } from "../../src/core/eventloop/ReplyTracker"
 import { createSendMessageTool } from "../../src/tools/SendMessageTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import * as fs from "node:fs/promises"
@@ -338,6 +340,60 @@ describe("SendMessageTool with Boss", () => {
         }
       )
     ).rejects.toThrow("stateManager is required")
+  })
+
+  test("should stop reply reminders after reply attempt even if send_message fails", async () => {
+    const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
+    sessionRegistry.register("test-session-reply-attempt", "0-alice")
+
+    await messageService.send(
+      "0-bob",
+      "0-alice",
+      "Please reply to me",
+      undefined,
+      undefined,
+      true
+    )
+
+    const originalSend = messageService.send.bind(messageService)
+    messageService.send = async () => {
+      throw new Error("simulated send failure")
+    }
+
+    await expect(
+      sendMessageTool.execute(
+        {
+          to: "0-bob",
+          content: "I am trying to reply",
+          expect_reply: false,
+        },
+        {
+          sessionID: "test-session-reply-attempt",
+          agent: undefined,
+        }
+      )
+    ).rejects.toThrow("simulated send failure")
+
+    const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
+    const replyTracker = new ReplyTracker(
+      "0-alice",
+      messageService,
+      memoryManager,
+      stateManager
+    )
+
+    const events = stateManager.getEvents({ employeeName: "0-alice", limit: 20 })
+    const replyAttemptEvent = events.find(
+      (event) =>
+        event.type === "reply_attempted" && event.details.to === "0-bob"
+    )
+    expect(replyAttemptEvent).toBeDefined()
+
+    const unrepliedSenders = await replyTracker.getUnrepliedSenders()
+    expect(unrepliedSenders).toEqual([])
+
+    messageService.send = originalSend
+    sessionRegistry.unregister("test-session-reply-attempt")
   })
 
   describe("Message routing", () => {

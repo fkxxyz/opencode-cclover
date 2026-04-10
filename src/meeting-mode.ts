@@ -114,9 +114,13 @@ export function resolveToolActor(
     context.agent &&
     isMeetingModeProjectedAgent(roleManager, context.agent, bossManager)
   ) {
+    const sessionBoss = bossManager?.getBossBySession(context.sessionID)
+
     return {
       actorName: context.agent,
-      actorEmployeeId: formatBossId(context.agent),
+      actorEmployeeId: sessionBoss
+        ? formatBossId(sessionBoss)
+        : formatBossId(context.agent),
       actorType: "meeting-role",
       isBoss: false,
       hasBossAuthority: true,

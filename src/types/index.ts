@@ -123,6 +123,7 @@ export interface AgentExecution {
 // 事件类型
 export type EventType =
   | "message"
+  | "reply_attempted"
   | "task_completed"
   | "task_cancelled"
   | "task_waiting_for_message"

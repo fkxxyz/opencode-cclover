@@ -39,6 +39,34 @@ function resolveRecipientId(
   return matchedEmployee.employeeId
 }
 
+async function shouldRecordReplyAttempt(
+  messageService: MessageService,
+  from: string,
+  recipientId: string
+): Promise<boolean> {
+  const client = messageService.getClient(from)
+  const messages = await client.history(recipientId)
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (msg.from === recipientId && msg.expect_reply === true) {
+      let hasReply = false
+      for (let j = i + 1; j < messages.length; j++) {
+        if (messages[j].from === from && messages[j].to === recipientId) {
+          hasReply = true
+          break
+        }
+      }
+
+      if (!hasReply) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 /**
  * Create send_message tool
  *
@@ -127,7 +155,22 @@ export function createSendMessageTool(
         }
       }
 
-      // 4. Call message service (let exceptions propagate naturally)
+      // 4. 如果这是对 expect_reply 消息的回复尝试，先记录事件
+      if (await shouldRecordReplyAttempt(messageService, from, recipientId)) {
+        await stateManager.addEvent({
+          projectId: "",
+          type: "reply_attempted",
+          timestamp: new Date().toISOString(),
+          employeeId: from,
+          details: {
+            from,
+            to: recipientId,
+            content: args.content,
+          },
+        })
+      }
+
+      // 5. Call message service (let exceptions propagate naturally)
       await messageService.send(
         from,
         recipientId,

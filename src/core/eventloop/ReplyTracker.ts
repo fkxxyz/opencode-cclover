@@ -1,7 +1,7 @@
 import type { MessageService } from "../MessageService"
 import type { MemoryManager, Task } from "../MemoryManager"
 import type { StateManager } from "../../state/StateManager"
-import type { EmployeeId } from "../../types"
+import type { EmployeeId, Event } from "../../types"
 import { logger } from "../../lib/logger"
 
 /**
@@ -57,6 +57,7 @@ export class ReplyTracker {
     // 1. 获取与该对话对象的消息历史
     const client = this.messageService.getClient(this.employeeId)
     const messages = await client.history(peer)
+    const replyAttemptEvents = await this.getReplyAttemptEvents()
 
     // 2. 遍历消息，找到所有 expect_reply=true 的消息，检查是否有后续回复
     for (let i = 0; i < messages.length; i++) {
@@ -73,8 +74,15 @@ export class ReplyTracker {
           }
         }
 
+        const hasReplyAttempt = replyAttemptEvents.some(
+          (event) =>
+            event.details.to === peer &&
+            typeof event.timestamp === "string" &&
+            event.timestamp > msg.timestamp
+        )
+
         // 如果没有回复，说明有未回复的消息
-        if (!hasReply) {
+        if (!hasReply && !hasReplyAttempt) {
           return true
         }
       }
@@ -82,6 +90,18 @@ export class ReplyTracker {
 
     // 所有 expect_reply=true 的消息都已回复
     return false
+  }
+
+  private async getReplyAttemptEvents(): Promise<Event[]> {
+    if (!this.stateManager) {
+      return []
+    }
+
+    const events = await this.stateManager
+      .getEventLogger()
+      .getEvents(this.employeeId, 200)
+
+    return events.filter((event) => event.type === "reply_attempted")
   }
 
   /**
