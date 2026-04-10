@@ -188,54 +188,13 @@ export type ConnectionStatus =
   | "disconnected"
   | "error"
 
-// 角色元数据
-export interface RoleMetadata {
-  name: string
-  description: string
-  soul?: boolean // true = 持久记忆（自动总结），false = 临时记忆（无总结）
-  responsibilities?: string[]
-  boundaries?: string[]
-  contextIds?: string[]
-  requiredArgs?: Record<
-    string,
-    {
-      type: string
-      description: string
-    }
-  >
-  canHire?: string[]
-  groups?: string[]
-
-  // 角色记忆模式定义
-  memorySchema?: Record<
-    string,
-    {
-      type: string // "string" | "string[]" | "object" | "array" | "number" | "boolean"
-      description: string
-      required?: boolean
-    }
-  >
-
-  // 已解析的角色上下文（内部使用）
-  resolvedContexts?: ResolvedRoleContext[]
-}
-
-export interface ResolvedRoleContextDocument {
-  path: string
-  content: string
-}
-
-export interface ResolvedRoleContext {
-  id: string
-  description?: string
-  documents: ResolvedRoleContextDocument[]
-}
-
-// 角色（包含元数据和系统提示词）
-export interface Role extends RoleMetadata {
-  systemPrompt: string
-  source: "preset" | "global" | "project"
-}
+// 角色相关类型
+export type {
+  RoleMetadata,
+  Role,
+  ResolvedRoleContext,
+  ResolvedRoleContextDocument,
+} from "./role"
 
 // Timeline 项类型
 export type TimelineItemType = "message" | "event"
