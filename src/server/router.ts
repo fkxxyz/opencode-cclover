@@ -61,6 +61,7 @@ export class Router {
           stateManager: project.stateManager,
           memoryManager: project.memoryManager,
           messageService: project.messageService,
+          opcodeClient: (project.messageService as any).opcodeClient,
           agentRegistry: project.agentRegistry,
           bossManager: project.bossManager,
           roleManager: project.roleManager,

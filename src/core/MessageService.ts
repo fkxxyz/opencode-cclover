@@ -158,6 +158,7 @@ export class MessageService implements MessageRouter {
   private projectId: string
   private clients: Map<string, MessageClient> = new Map()
   private unreadQueues: Map<string, Message[]> = new Map()
+  private pendingUrgentInterruptions: Set<EmployeeId | BossId> = new Set()
   public eventEmitter: EventEmitter = new EventEmitter()
   constructor(
     private workspaceRoot: string,
@@ -336,6 +337,9 @@ export class MessageService implements MessageRouter {
 
     // 6. 处理紧急消息中断
     if (urgent) {
+      logger.debug(
+        `[MessageService] Urgent message detected, attempting to interrupt ${targetEmployeeId}`
+      )
       await this.handleUrgentInterruption(targetEmployeeId)
     }
 
@@ -561,9 +565,20 @@ export class MessageService implements MessageRouter {
   private async handleUrgentInterruption(
     to: EmployeeId | BossId
   ): Promise<void> {
+    await this.abortActiveSession(to)
+  }
+
+  /**
+   * 中断员工当前活跃 session
+   */
+  async abortActiveSession(to: EmployeeId | BossId): Promise<void> {
     // 获取接收方的活跃 session ID
     const employee = this.stateManager?.getEmployee(to)
+    logger.debug(
+      `[MessageService] Checking active session for ${to}: ${employee?.activeSessionId || "none"}`
+    )
     if (!employee?.activeSessionId) {
+      this.pendingUrgentInterruptions.add(to)
       logger.debug(
         `[MessageService] No active session for ${to}, skipping interruption`
       )
@@ -572,17 +587,29 @@ export class MessageService implements MessageRouter {
 
     // 调用 abort() 中断 session
     try {
+      logger.debug(
+        `[MessageService] Calling abort() for session ${employee.activeSessionId}`
+      )
       await this.opcodeClient?.session.abort({
         path: { id: employee.activeSessionId },
       })
+      this.pendingUrgentInterruptions.delete(to)
       logger.info(
-        `[MessageService] Aborted session ${employee.activeSessionId} for urgent message to ${to}`
+        `[MessageService] Successfully aborted session ${employee.activeSessionId} for urgent message to ${to}`
       )
     } catch (error: any) {
       logger.error(
         `[MessageService] Failed to abort session ${employee.activeSessionId}: ${error.message}`
       )
     }
+  }
+
+  hasPendingUrgentInterruption(employeeId: EmployeeId | BossId): boolean {
+    return this.pendingUrgentInterruptions.has(employeeId)
+  }
+
+  clearPendingUrgentInterruption(employeeId: EmployeeId | BossId): void {
+    this.pendingUrgentInterruptions.delete(employeeId)
   }
 
   /**

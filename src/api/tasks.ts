@@ -1,4 +1,7 @@
 import type { MemoryManager } from "../core/MemoryManager"
+import type { MessageService } from "../core/MessageService"
+import type { StateManager } from "../state/StateManager"
+import { haltRegistry } from "../utils/HaltRegistry"
 import type {
   TasksResponse,
   SuccessResponse,
@@ -46,5 +49,79 @@ export async function getTasks(
         message: `读取任务失败: ${error.message}`,
       },
     }
+  }
+}
+
+export async function haltTask(
+  taskId: number,
+  stateManager: StateManager,
+  reason?: string,
+  triggeredBy?: string,
+  messageService?: Pick<MessageService, "abortActiveSession">
+): Promise<
+  | SuccessResponse<{ taskId: number; employeeIds: string[]; count: number }>
+  | ErrorResponse
+> {
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    return {
+      success: false,
+      error: {
+        code: "INVALID_TASK_ID",
+        message: "taskId 必须是大于 0 的整数",
+      },
+    }
+  }
+
+  const employees = stateManager.listEmployeesByTaskId(taskId)
+  if (employees.length === 0) {
+    return {
+      success: false,
+      error: {
+        code: "TASK_NOT_FOUND",
+        message: `Task '${taskId}' not found`,
+      },
+    }
+  }
+
+  const employeeIds = employees.map((employee) => employee.employeeId)
+
+  await stateManager.addEvent({
+    projectId: stateManager.getProjectId(),
+    type: "task_halt_requested",
+    timestamp: new Date().toISOString(),
+    details: {
+      taskId,
+      employeeIds,
+      reason,
+      triggeredBy,
+    },
+  })
+
+  for (const employee of employees) {
+    await messageService?.abortActiveSession(employee.employeeId)
+
+    haltRegistry.addHaltEvent(employee.employeeId, {
+      type: "halt_requested",
+      employeeId: employee.employeeId,
+      taskId,
+      timestamp: new Date().toISOString(),
+      reason,
+      triggeredBy,
+    })
+
+    await stateManager.forcePauseEmployeeForHalt(employee.employeeId, {
+      taskId,
+      reason,
+      triggeredBy,
+    })
+  }
+
+  return {
+    success: true,
+    data: {
+      taskId,
+      employeeIds,
+      count: employeeIds.length,
+    },
   }
 }

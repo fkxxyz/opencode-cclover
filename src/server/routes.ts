@@ -779,6 +779,21 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       return tasks.getTasks(employeeName, deps.memoryManager)
     },
   ],
+  [
+    "POST:/tasks/:taskId/halt",
+    async (req, params, deps) => {
+      const body = ((await req.json().catch(() => ({}))) || {}) as {
+        reason?: string
+      }
+      return tasks.haltTask(
+        parseInt(params.taskId, 10),
+        deps.stateManager,
+        body.reason,
+        "http-api",
+        deps.messageService
+      )
+    },
+  ],
   /**
    * 获取员工的时间线（消息 + 事件混合）
    *

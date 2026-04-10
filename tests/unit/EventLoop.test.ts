@@ -8,6 +8,7 @@ import type { RoleManager } from "../../src/core/RoleManager"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import { agentRegistry } from "../../src/utils/AgentRegistry"
 import { vacationRegistry } from "../../src/utils/VacationRegistry"
+import { haltRegistry } from "../../src/utils/HaltRegistry"
 
 const testWorkspace = "./workspace_test_eventloop"
 
@@ -83,6 +84,7 @@ describe("EventLoop", () => {
     sessionRegistry.clear()
     agentRegistry.clear()
     vacationRegistry.clear()
+    haltRegistry.clear()
   })
 
   afterEach(async () => {
@@ -197,6 +199,46 @@ describe("EventLoop", () => {
       const event = await (eventLoop as any).waitForEvent()
 
       expect(event.type).toBe("vacation_requested")
+    })
+
+    test("should prioritize halt over vacation and prompt recovery", async () => {
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      ;(eventLoop as any).enqueuePromptRecovery({
+        type: "prompt_recovery",
+        timestamp: "2026-04-08T00:00:00.000Z",
+        sessionId: "session-123",
+        startedAt: "2026-04-08T00:00:00.000Z",
+        triggerEventType: "task_available",
+        version: 1,
+      })
+      vacationRegistry.addVacationEvent("test-employee", {
+        type: "vacation_requested",
+        employeeName: "test-employee",
+        timestamp: "2026-04-08T00:00:01.000Z",
+      })
+      haltRegistry.addHaltEvent("test-employee", {
+        type: "halt_requested",
+        employeeId: "test-employee",
+        taskId: 1,
+        timestamp: "2026-04-08T00:00:02.000Z",
+        reason: "runaway-agents",
+      })
+
+      const event = await (eventLoop as any).waitForEvent()
+
+      expect(event.type).toBe("halt_requested")
+      expect(event.details.taskId).toBe(1)
+      expect(event.details.reason).toBe("runaway-agents")
     })
 
     test("should persist prompt recovery before prompt and clear after success", async () => {
@@ -340,6 +382,122 @@ describe("EventLoop", () => {
         }
       )
     })
+
+    test("should defer non-urgent event when urgent message arrives before activeSessionId is set", async () => {
+      const { StateManager } = await import("../../src/state/StateManager")
+      const stateManager = new StateManager(
+        "test-project",
+        testWorkspace,
+        testWorkspace
+      )
+      await stateManager.registerEmployee({
+        employeeId: "1-test-employee",
+        name: "test-employee",
+        taskId: 1,
+        role: testRole.name,
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+      await stateManager.registerEmployee({
+        employeeId: "0-alice",
+        name: "alice",
+        taskId: 0,
+        role: "test-role",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const raceOpcodeClient = createMockOpencodeClient()
+      messageService = new MessageService(
+        testWorkspace,
+        stateManager,
+        "test-project",
+        undefined,
+        raceOpcodeClient
+      )
+      memoryManager = new MemoryManager(testWorkspace)
+      const messageClient = messageService.getClient("1-test-employee")
+
+      let promptCalled = false
+      raceOpcodeClient.session.prompt = mock(async () => {
+        promptCalled = true
+        return {
+          data: {
+            info: {
+              role: "assistant",
+              time: { completed: Date.now() },
+            },
+          },
+        }
+      })
+
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "1-test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        raceOpcodeClient,
+        stateManager
+      )
+
+      await memoryManager.write("1-test-employee", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      const originalUpdateActiveSessionId =
+        stateManager.updateActiveSessionId.bind(stateManager)
+      let injectedUrgent = false
+      ;(stateManager as any).updateActiveSessionId = mock(
+        async (employeeId: string, sessionId: string | null) => {
+          if (
+            !injectedUrgent &&
+            employeeId === "1-test-employee" &&
+            sessionId === "mock-session-id"
+          ) {
+            injectedUrgent = true
+            await messageService.send(
+              "0-alice",
+              "1-test-employee",
+              "urgent interrupt",
+              undefined,
+              true,
+              false
+            )
+          }
+
+          return originalUpdateActiveSessionId(employeeId, sessionId)
+        }
+      )
+
+      await (eventLoop as any).handleEvent({
+        projectId: "",
+        type: "message",
+        timestamp: "2026-04-08T00:00:00.000Z",
+        details: {
+          from: "0-alice",
+          to: "1-test-employee",
+          content: "please run a long task",
+        },
+      })
+
+      expect(promptCalled).toBe(false)
+
+      const nextEvent = await (eventLoop as any).waitForEvent()
+      expect(nextEvent.type).toBe("message")
+      expect(nextEvent.details.content).toBe("urgent interrupt")
+    })
   })
 
   describe("Memory Management", () => {})
@@ -396,7 +554,7 @@ describe("EventLoop", () => {
         systemPrompt: "You are a test role.",
         soul: false,
       } as any
-      mockRoleManager.getRole = mock(() => testRole)
+      ;(mockRoleManager as any).getRole = mock(() => testRole)
 
       const messageClient = messageService.getClient("test-employee")
       const eventLoop = new EventLoop(
@@ -436,7 +594,7 @@ describe("EventLoop", () => {
         systemPrompt: "You are a test role.",
         soul: false,
       } as any
-      mockRoleManager.getRole = mock(() => testRole)
+      ;(mockRoleManager as any).getRole = mock(() => testRole)
 
       opcodeClient.session.messages = mock(async () => ({
         data: [

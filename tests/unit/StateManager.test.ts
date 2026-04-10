@@ -377,6 +377,64 @@ describe("StateManager - EmployeeId System", () => {
     })
   })
 
+  describe("forcePauseEmployeeForHalt", () => {
+    it("should persist paused state and log halt event", async () => {
+      const persistentWorkspace = path.join(TEST_WORKSPACE, "halt-persistence")
+      await fs.mkdir(persistentWorkspace, { recursive: true })
+
+      const persistentStateManager = new StateManager(
+        "test-project",
+        persistentWorkspace,
+        persistentWorkspace
+      )
+
+      const employee: Employee = {
+        employeeId: formatEmployeeId(7, "worker-001"),
+        name: "worker-001",
+        taskId: 7,
+        role: "developer",
+        hiredBy: null,
+        status: "busy",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      }
+
+      await persistentStateManager.registerEmployee(employee)
+      await persistentStateManager.forcePauseEmployeeForHalt(
+        employee.employeeId,
+        {
+          taskId: 7,
+          reason: "nested-runaway",
+          triggeredBy: "http-api",
+        }
+      )
+
+      const updated = persistentStateManager.getEmployee(employee.employeeId)
+      expect(updated?.paused).toBe(true)
+      expect(updated?.status).toBe("offline")
+
+      const employeesYamlPath = path.join(
+        persistentWorkspace,
+        ".cclover",
+        "employees.yaml"
+      )
+      const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
+      const persisted = yaml.parse(persistedRaw)
+      expect(persisted.employees[0].paused).toBe(true)
+
+      const events = persistentStateManager.getEvents({
+        employeeName: employee.employeeId,
+      })
+      const haltEvent = events.find((event) => event.type === "employee_halted")
+      expect(haltEvent).toBeDefined()
+      expect(haltEvent?.details.taskId).toBe(7)
+      expect(haltEvent?.details.reason).toBe("nested-runaway")
+      expect(haltEvent?.details.triggeredBy).toBe("http-api")
+    })
+  })
+
   describe("getEmployees", () => {
     it("should return all registered employees", async () => {
       const employee1: Employee = {

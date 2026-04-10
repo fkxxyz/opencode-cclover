@@ -138,6 +138,7 @@ export type EventType =
   | "employee_status_changed"
   | "employee_paused"
   | "employee_resumed"
+  | "employee_halted"
   | "session_created"
   | "session_prompt_started"
   | "session_prompt_completed"
@@ -147,6 +148,7 @@ export type EventType =
   | "agent_created"
   | "task_created"
   | "task_modified"
+  | "task_halt_requested"
   | "vacation_requested"
 
 // 事件
@@ -190,6 +192,8 @@ export interface RoleMetadata {
   name: string
   description: string
   soul?: boolean // true = 持久记忆（自动总结），false = 临时记忆（无总结）
+  responsibilities?: string[]
+  boundaries?: string[]
   requiredArgs?: Record<
     string,
     {

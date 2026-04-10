@@ -31,6 +31,7 @@ export interface ServerDependencies {
   stateManager: any
   memoryManager: any
   messageService: any
+  opcodeClient?: any
   agentRegistry: any
   bossManager: any
   roleManager: any

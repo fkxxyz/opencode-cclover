@@ -24,7 +24,17 @@ export interface PromptRecoveryEvent {
   }
 }
 
-export type RuntimeEvent = Event | PromptRecoveryEvent
+export interface HaltRequestedEvent {
+  type: "halt_requested"
+  timestamp: string
+  details: {
+    taskId: number
+    reason?: string
+    triggeredBy?: string
+  }
+}
+
+export type RuntimeEvent = Event | PromptRecoveryEvent | HaltRequestedEvent
 
 interface MissingArg {
   name: string

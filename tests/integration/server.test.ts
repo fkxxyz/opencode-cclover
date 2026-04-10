@@ -6,6 +6,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
+import * as yaml from "yaml"
 import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"
@@ -22,14 +23,31 @@ const TEST_PORT = 4098
 describe("Console Server", () => {
   let projectRegistry: ProjectRegistry
   let server: ConsoleServer
+  let stateManager: StateManager
+  let abortMock: any
 
   beforeEach(async () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-    const messageService = new MessageService(TEST_WORKSPACE)
+    abortMock = async () => ({})
+    stateManager = new StateManager(
+      "test-project",
+      TEST_WORKSPACE,
+      TEST_WORKSPACE
+    )
+    const messageService = new MessageService(
+      TEST_WORKSPACE,
+      stateManager,
+      "test-project",
+      undefined,
+      {
+        session: {
+          abort: (...args: any[]) => abortMock(...args),
+        },
+      } as any
+    )
     const memoryManager = new MemoryManager(TEST_WORKSPACE)
-    const stateManager = new StateManager()
-    const bossManager = new BossManager(TEST_WORKSPACE)
+    const bossManager = new BossManager(undefined, TEST_WORKSPACE)
     const roleManager = new RoleManager(TEST_WORKSPACE)
     const testAgentRegistry = new AgentRegistry()
     const testEmployee: Employee = {
@@ -45,6 +63,30 @@ describe("Console Server", () => {
       lastActiveAt: new Date().toISOString(),
     }
     stateManager.registerEmployee(testEmployee)
+    await stateManager.registerEmployee({
+      employeeId: "1-worker-001",
+      name: "worker-001",
+      taskId: 1,
+      role: "Developer",
+      status: "busy",
+      paused: false,
+      hiredBy: "0-calculator",
+      activeSessionId: null,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
+    await stateManager.registerEmployee({
+      employeeId: "1-worker-002",
+      name: "worker-002",
+      taskId: 1,
+      role: "Reviewer",
+      status: "idle",
+      paused: false,
+      hiredBy: "1-worker-001",
+      activeSessionId: null,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
     projectRegistry = new ProjectRegistry()
     projectRegistry.register({
       projectId: "test-project",
@@ -188,6 +230,44 @@ describe("Console Server", () => {
       expect(json.data.todayMessages).toBeDefined()
     })
 
+    test("POST /api/projects/test-project/tasks/:taskId/halt - 急停任务下所有员工", async () => {
+      const response = await fetch(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/tasks/1/halt`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reason: "runaway nested employees",
+          }),
+        }
+      )
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(json.data.taskId).toBe(1)
+      expect(json.data.employeeIds).toContain("1-worker-001")
+      expect(json.data.employeeIds).toContain("1-worker-002")
+
+      const employeesYamlPath = path.join(
+        TEST_WORKSPACE,
+        ".cclover",
+        "employees.yaml"
+      )
+      const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
+      const persisted = yaml.parse(persistedRaw)
+      const haltedEmployees = persisted.employees.filter((employee: any) =>
+        json.data.employeeIds.includes(employee.employeeId)
+      )
+
+      expect(haltedEmployees).toHaveLength(2)
+      expect(
+        haltedEmployees.every((employee: any) => employee.paused === true)
+      ).toBe(true)
+    })
+
     test("GET /api/unknown - 400 错误 (无效路径)", async () => {
       const response = await fetch(`http://localhost:${TEST_PORT}/api/unknown`)
       const json = await response.json()
@@ -254,14 +334,15 @@ describe("Console Server", () => {
           // 连接建立后广播事件
           server.broadcastEvent({
             type: "message",
+            projectId: "test-project",
             timestamp: new Date().toISOString(),
-            employeeName: "calculator",
+            employeeId: "0-calculator",
             details: {
               from: "alice",
               to: "calculator",
               content: "test message",
             },
-          })
+          } as any)
         }
 
         ws.onmessage = (event) => {
@@ -280,7 +361,7 @@ describe("Console Server", () => {
       const message = await eventPromise
       expect(message.type).toBe("event")
       expect(message.data.type).toBe("message")
-      expect(message.data.employeeName).toBe("calculator")
+      expect(message.data.employeeId).toBe("0-calculator")
 
       ws.close()
     })

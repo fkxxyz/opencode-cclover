@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test"
 import * as fs from "fs/promises"
 import * as path from "path"
 import * as yaml from "yaml"
 import { MemoryManager } from "../../src/core/MemoryManager"
-import { getTasks } from "../../src/api/tasks"
-import type { Memory } from "../../src/types/index"
+import { getTasks, haltTask } from "../../src/api/tasks"
+import { StateManager } from "../../src/state/StateManager"
+import type { Employee, Memory } from "../../src/types/index"
 
 const testWorkspace = "./workspace_test_tasks_api"
 
@@ -75,6 +76,7 @@ describe("Tasks API", () => {
           created: "2026-03-01T10:02:00.000Z",
         },
       ],
+      args: {},
     }
 
     const memoryPath = path.join(employeeDir, "memory.yaml")
@@ -125,6 +127,7 @@ describe("Tasks API", () => {
           created: "2026-03-01T10:02:00.000Z",
         },
       ],
+      args: {},
     }
 
     const memoryPath = path.join(employeeDir, "memory.yaml")
@@ -137,5 +140,62 @@ describe("Tasks API", () => {
       expect(response.data.tasks).toHaveLength(3)
       expect(response.data.executableTasks).toHaveLength(0)
     }
+  })
+
+  it("should reuse message service interruption path when halting a task", async () => {
+    const stateManager = new StateManager(
+      "test-project",
+      testWorkspace,
+      testWorkspace
+    )
+    const messageService = {
+      abortActiveSession: mock(async () => {}),
+    } as any
+
+    const employee1: Employee = {
+      employeeId: "13-worker-001",
+      name: "worker-001",
+      taskId: 13,
+      role: "Developer",
+      status: "busy",
+      paused: false,
+      hiredBy: null,
+      activeSessionId: "session-1",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    }
+
+    const employee2: Employee = {
+      employeeId: "13-worker-002",
+      name: "worker-002",
+      taskId: 13,
+      role: "Reviewer",
+      status: "idle",
+      paused: false,
+      hiredBy: "13-worker-001",
+      activeSessionId: null,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    }
+
+    await stateManager.registerEmployee(employee1)
+    await stateManager.registerEmployee(employee2)
+
+    const response = await haltTask(
+      13,
+      stateManager,
+      "runaway nested employees",
+      "test",
+      messageService
+    )
+
+    expect(response.success).toBe(true)
+    expect(messageService.abortActiveSession).toHaveBeenCalledTimes(2)
+    expect(messageService.abortActiveSession).toHaveBeenCalledWith(
+      "13-worker-001"
+    )
+    expect(messageService.abortActiveSession).toHaveBeenCalledWith(
+      "13-worker-002"
+    )
   })
 })

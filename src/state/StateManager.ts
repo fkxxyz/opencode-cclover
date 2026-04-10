@@ -203,6 +203,42 @@ export class StateManager {
   }
 
   /**
+   * 因急停而强制暂停员工（持久化 paused，但记录 halt 事件）
+   */
+  async forcePauseEmployeeForHalt(
+    employeeId: EmployeeId,
+    details: {
+      taskId: number
+      reason?: string
+      triggeredBy?: string
+    }
+  ): Promise<void> {
+    const employee = this.employeeRegistry.get(employeeId)
+    if (!employee) {
+      throw new Error(`员工 '${employeeId}' 不存在`)
+    }
+
+    this.employeeRegistry.updatePaused(employeeId, true)
+
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+
+    this.employeeRegistry.updateStatus(employeeId, "offline")
+
+    const event = {
+      projectId: this.projectId,
+      type: "employee_halted" as const,
+      timestamp: new Date().toISOString(),
+      employeeId,
+      details,
+    }
+    this.eventHistory.add(event)
+    await this.eventLogger.logEvent(employeeId, event)
+    this.emit("event", event)
+  }
+
+  /**
    * 更新员工的活跃 session ID
    */
   async updateActiveSessionId(

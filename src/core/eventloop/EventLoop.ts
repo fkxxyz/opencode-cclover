@@ -12,6 +12,7 @@ import { ProgressTracker } from "./ProgressTracker"
 import { ReplyTracker } from "./ReplyTracker"
 import { buildEventMessage } from "../../utils/ContextBuilder"
 import { agentRegistry } from "../../utils/AgentRegistry"
+import { haltRegistry } from "../../utils/HaltRegistry"
 import { sessionRegistry } from "../../utils/SessionRegistry"
 import { vacationRegistry } from "../../utils/VacationRegistry"
 import { logger } from "../../lib/logger"
@@ -45,6 +46,17 @@ interface RuntimePromptRecoveryEvent {
     startedAt: string
     triggerEventType: string
     version?: number
+  }
+}
+
+interface RuntimeHaltEvent {
+  projectId: string
+  type: "halt_requested"
+  timestamp: string
+  details: {
+    taskId: number
+    reason?: string
+    triggeredBy?: string
   }
 }
 
@@ -207,6 +219,13 @@ export class EventLoop {
           return // 正常退出，不记录错误
         }
 
+        if ((error as any).message === "HALT_REQUESTED") {
+          logger.warn(
+            `[${this.employeeId}] EventLoop exiting due to halt request`
+          )
+          return
+        }
+
         // 处理错误（分类和恢复）
         const shouldStop = await this.errorRecovery.handleError(error, () => {
           this.running = false
@@ -235,6 +254,21 @@ export class EventLoop {
    * 按优先级顺序检查：假期通知 > 消息 > Agent完成 > 可执行任务 > in_progress任务
    */
   private async waitForEvent(): Promise<RuntimeEvent> {
+    const haltEvent = haltRegistry.getHaltEvent(this.employeeId)
+    if (haltEvent) {
+      const runtimeHaltEvent: RuntimeHaltEvent = {
+        projectId: "",
+        type: "halt_requested",
+        timestamp: haltEvent.timestamp,
+        details: {
+          taskId: haltEvent.taskId,
+          reason: haltEvent.reason,
+          triggeredBy: haltEvent.triggeredBy,
+        },
+      }
+      return runtimeHaltEvent
+    }
+
     // 0. HIGHEST PRIORITY: Check vacation notification
     const vacationEvent = vacationRegistry.getVacationEvent(this.employeeId)
     if (vacationEvent) {
@@ -278,6 +312,7 @@ export class EventLoop {
           from: msg.from,
           to: msg.to,
           content: msg.content,
+          ...(msg.urgent !== undefined && { urgent: msg.urgent }),
           ...(msg.fromRole && { fromRole: msg.fromRole }),
         },
       }
@@ -363,6 +398,10 @@ export class EventLoop {
    * 用于避免不必要的 idle 状态切换
    */
   private async hasImmediateEvent(): Promise<boolean> {
+    if (haltRegistry.hasHaltEvent(this.employeeId)) {
+      return true
+    }
+
     // 0. 检查假期通知
     if (vacationRegistry.hasVacationEvent(this.employeeId)) {
       return true
@@ -421,6 +460,7 @@ export class EventLoop {
         from: msg.from,
         to: msg.to,
         content: msg.content,
+        ...(msg.urgent !== undefined && { urgent: msg.urgent }),
         ...(msg.fromRole && { fromRole: msg.fromRole }),
       },
     }
@@ -528,7 +568,24 @@ export class EventLoop {
   private async handleEvent(event: RuntimeEvent): Promise<void> {
     logger.info(`[${this.employeeId}] Received event:`, event.type)
 
-    // 1. 处理假期请求事件
+    // 1. 处理急停请求事件
+    if (event.type === "halt_requested") {
+      await this.stateManager?.updateEmployeeStatus(this.employeeId, "offline")
+      await this.stateManager?.addEvent({
+        projectId: "",
+        type: "employee_halted",
+        timestamp: new Date().toISOString(),
+        employeeId: this.employeeId,
+        details: {
+          taskId: event.details.taskId,
+          reason: event.details.reason,
+          triggeredBy: event.details.triggeredBy,
+        },
+      })
+      throw new Error("HALT_REQUESTED")
+    }
+
+    // 2. 处理假期请求事件
     if (event.type === "vacation_requested") {
       // 更新状态为 offline
       await this.stateManager?.updateEmployeeStatus(this.employeeId, "offline")
@@ -576,6 +633,28 @@ export class EventLoop {
 
     // 4. 更新 activeSessionId
     await this.stateManager?.updateActiveSessionId(this.employeeId, session.id)
+    logger.debug(
+      `[${this.employeeId}] Set activeSessionId to ${session.id} before calling AI`
+    )
+
+    const messageService = (this.messageClient as any).service
+    const hasPendingUrgentInterruption =
+      typeof messageService?.hasPendingUrgentInterruption === "function" &&
+      messageService.hasPendingUrgentInterruption(this.employeeId)
+    const isUrgentMessageEvent =
+      event.type === "message" && event.details?.urgent === true
+
+    if (hasPendingUrgentInterruption && !isUrgentMessageEvent) {
+      logger.info(
+        `[${this.employeeId}] Deferring ${event.type} because an urgent message arrived before prompt start`
+      )
+      await this.stateManager?.updateActiveSessionId(this.employeeId, null)
+      return
+    }
+
+    if (isUrgentMessageEvent) {
+      messageService?.clearPendingUrgentInterruption?.(this.employeeId)
+    }
 
     // 5. 读取当前记忆
     const memory = await this.memoryManager.read(this.employeeId)
