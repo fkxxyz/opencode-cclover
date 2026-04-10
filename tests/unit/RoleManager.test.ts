@@ -325,6 +325,99 @@ This role should not load.`
     expect(roleManager.getRole("invalid-context-role")).toBeUndefined()
   })
 
+  test("should reject role metadata when requiredArgs uses unsupported type", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: invalid-required-args-role
+description: Invalid required args metadata
+requiredArgs:
+  arg1:
+    type: number
+    description: Invalid type
+---
+
+This role should not load.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "invalid-required-args-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+
+    expect(roleManager.getRole("invalid-required-args-role")).toBeUndefined()
+  })
+
+  test("should reject role metadata when memorySchema uses unsupported type", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: invalid-memory-schema-role
+description: Invalid memory schema metadata
+memorySchema:
+  score:
+    type: integer
+    description: Invalid memory field type
+---
+
+This role should not load.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "invalid-memory-schema-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+
+    expect(roleManager.getRole("invalid-memory-schema-role")).toBeUndefined()
+  })
+
+  test("should reject role metadata when frontmatter contains internal-only resolvedContexts", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: invalid-internal-field-role
+description: Invalid internal field metadata
+resolvedContexts: []
+---
+
+This role should not load.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "invalid-internal-field-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+
+    expect(roleManager.getRole("invalid-internal-field-role")).toBeUndefined()
+  })
+
+  test("should reject role when system prompt body is empty", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: empty-prompt-role
+description: Role with empty prompt
+---
+
+`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "empty-prompt-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+
+    expect(roleManager.getRole("empty-prompt-role")).toBeUndefined()
+  })
+
   test("should resolve layered contexts with per-contextId override semantics", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     const projectContextDir = path.join(tempDir, ".cclover")
@@ -480,7 +573,6 @@ name: resilient-role
 description: Role with warning-and-skip contexts
 contextIds:
   - valid-context
-  - ""
   - missing-context
 ---
 

@@ -15,6 +15,10 @@ import { fileURLToPath } from "node:url"
 import * as yaml from "yaml"
 import { logger } from "../lib/logger"
 import type { Role, RoleMetadata, ResolvedRoleContext } from "../types"
+import {
+  formatRoleValidationIssue,
+  validateRoleFrontmatter,
+} from "./RoleFrontmatterValidator"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -153,24 +157,36 @@ export class RoleManager {
             const frontmatterData = yaml.parse(frontmatterMatch[1])
             const systemPrompt = frontmatterMatch[2].trim()
 
-            if (!this.isValidRoleFrontmatter(frontmatterData, filePath)) {
+            const validation = validateRoleFrontmatter(frontmatterData, {
+              filePath,
+              expectedRoleName: path.basename(filePath, ".md"),
+            })
+
+            for (const issue of validation.issues) {
+              const logMessage = formatRoleValidationIssue(issue, filePath)
+              if (issue.level === "warning") {
+                logger.warn(logMessage)
+              } else {
+                logger.warn(logMessage)
+              }
+            }
+
+            if (!validation.valid || !validation.normalized) {
               continue
             }
 
-            // 构建 metadata，确保 soul 字段默认为 true
+            if (systemPrompt.length === 0) {
+              logger.warn(
+                `[RoleManager] Role file ${filePath} has empty system prompt body, skipping`
+              )
+              continue
+            }
+
+            // 构建 metadata，补充解析后的上下文字段
             const metadata: RoleMetadata = {
-              name: frontmatterData.name,
-              description: frontmatterData.description || "",
-              soul: frontmatterData.soul ?? true, // 默认为 true
-              responsibilities: frontmatterData.responsibilities,
-              boundaries: frontmatterData.boundaries,
-              contextIds: frontmatterData.contextIds,
-              requiredArgs: frontmatterData.requiredArgs,
-              canHire: frontmatterData.canHire,
-              groups: frontmatterData.groups,
-              memorySchema: frontmatterData.memorySchema,
+              ...validation.normalized,
               resolvedContexts: await this.resolveRoleContexts(
-                frontmatterData.contextIds
+                validation.normalized.contextIds
               ),
             }
 
@@ -204,38 +220,6 @@ export class RoleManager {
         )
       }
     }
-  }
-
-  private isValidRoleFrontmatter(
-    frontmatterData: any,
-    filePath: string
-  ): boolean {
-    if (
-      typeof frontmatterData?.name !== "string" ||
-      frontmatterData.name.length === 0
-    ) {
-      logger.warn(
-        `[RoleManager] Role file ${filePath} is missing a valid string name, skipping`
-      )
-      return false
-    }
-
-    if (
-      frontmatterData.contextIds !== undefined &&
-      !(
-        Array.isArray(frontmatterData.contextIds) &&
-        frontmatterData.contextIds.every(
-          (value: unknown) => typeof value === "string"
-        )
-      )
-    ) {
-      logger.warn(
-        `[RoleManager] Role file ${filePath} has invalid contextIds, expected string array, skipping`
-      )
-      return false
-    }
-
-    return true
   }
 
   private async loadContextDefinitions(): Promise<

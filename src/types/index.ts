@@ -190,6 +190,11 @@ export type ConnectionStatus =
 
 // 角色相关类型
 export type {
+  RoleArgType,
+  RoleMemoryFieldType,
+  RoleRequiredArgSpec,
+  RoleMemoryFieldSpec,
+  RoleSource,
   RoleMetadata,
   Role,
   ResolvedRoleContext,

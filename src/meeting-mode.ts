@@ -160,8 +160,10 @@ export function resolveToolActor(
 }
 
 function getMeetingModeAgentDescription(role: Role): string {
-  if (role.description.trim()) {
-    return role.description.trim()
+  const description = role.description?.trim()
+
+  if (description) {
+    return description
   }
 
   const firstLine = role.systemPrompt

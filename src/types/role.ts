@@ -1,9 +1,51 @@
 /**
  * Role metadata and related type definitions
  *
- * This file contains the core type definitions for the role system,
- * including role metadata, context resolution, and role definitions.
+ * This file defines the formal contract for role frontmatter,
+ * context resolution, and loaded role definitions.
  */
+
+export type RoleSource = "preset" | "global" | "project"
+
+/**
+ * Supported role argument types.
+ *
+ * Currently only string is supported by the role system.
+ */
+export type RoleArgType = "string"
+
+/**
+ * Supported roleData field types.
+ */
+export type RoleMemoryFieldType =
+  | "string"
+  | "string[]"
+  | "object"
+  | "array"
+  | "number"
+  | "boolean"
+
+/**
+ * Required argument specification for employee memory.args.
+ */
+export interface RoleRequiredArgSpec {
+  /** Currently supported argument type */
+  type: RoleArgType
+  /** Human-readable explanation of this parameter */
+  description: string
+}
+
+/**
+ * Role-specific memory field definition for memory.roleData.
+ */
+export interface RoleMemoryFieldSpec {
+  /** Supported field type */
+  type: RoleMemoryFieldType
+  /** Human-readable explanation of this field */
+  description: string
+  /** Whether this field must be present */
+  required?: boolean
+}
 
 /**
  * Resolved role context document
@@ -44,7 +86,7 @@ export interface RoleMetadata {
   name: string
 
   /** Brief description of the role's purpose */
-  description: string
+  description?: string
 
   /**
    * Memory persistence mode
@@ -75,15 +117,7 @@ export interface RoleMetadata {
    * Required arguments that must be provided when hiring this role
    * Each argument has a type and description
    */
-  requiredArgs?: Record<
-    string,
-    {
-      /** Argument type (e.g., "string", "number", "boolean") */
-      type: string
-      /** Description of what this argument is for */
-      description: string
-    }
-  >
+  requiredArgs?: Record<string, RoleRequiredArgSpec>
 
   /**
    * List of roles this role is allowed to hire
@@ -101,22 +135,12 @@ export interface RoleMetadata {
    * Memory schema definition for role-specific data
    * Defines the structure of data stored in memory.roleData
    */
-  memorySchema?: Record<
-    string,
-    {
-      /** Data type: "string" | "string[]" | "object" | "array" | "number" | "boolean" */
-      type: string
-      /** Description of what this field stores */
-      description: string
-      /** Whether this field is required */
-      required?: boolean
-    }
-  >
+  memorySchema?: Record<string, RoleMemoryFieldSpec>
 
   /**
    * Resolved role contexts (internal use only)
-   * This field is populated by RoleManager after loading the role
-   * and contains the fully resolved context documents
+   * This field is populated by RoleManager after loading the role.
+   * It is not part of user-authored YAML frontmatter.
    */
   resolvedContexts?: ResolvedRoleContext[]
 }
@@ -132,5 +156,5 @@ export interface Role extends RoleMetadata {
   systemPrompt: string
 
   /** Source location where this role was loaded from */
-  source: "preset" | "global" | "project"
+  source: RoleSource
 }

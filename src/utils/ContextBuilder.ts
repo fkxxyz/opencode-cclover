@@ -5,7 +5,7 @@
  */
 
 import type { Task, Memory } from "../core/MemoryManager"
-import type { RoleMetadata } from "../types"
+import type { RoleMetadata, RoleRequiredArgSpec } from "../types"
 import { generateMermaid } from "./MermaidGenerator"
 
 export interface Event {
@@ -83,7 +83,7 @@ function formatArgsAsMarkdown(
  * @returns 缺失的参数列表
  */
 function checkMissingArgs(
-  requiredArgs: Record<string, { type: string; description: string }>,
+  requiredArgs: Record<string, RoleRequiredArgSpec>,
   currentArgs: Record<string, any>
 ): MissingArg[] {
   const missing: MissingArg[] = []

@@ -53,12 +53,7 @@ export class SummaryService {
           .join("\n")
         const exampleFields = Object.entries(roleMetadata.requiredArgs)
           .map(([key, spec]: [string, any]) => {
-            const exampleValue =
-              spec.type === "string"
-                ? '"example"'
-                : spec.type === "number"
-                  ? "0"
-                  : "null"
+            const exampleValue = spec.type === "string" ? '"example"' : "null"
             return `"${key}": ${exampleValue}`
           })
           .join(", ")
