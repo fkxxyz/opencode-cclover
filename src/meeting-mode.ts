@@ -116,11 +116,34 @@ export function resolveToolActor(
   ) {
     const sessionBoss = bossManager?.getBossBySession(context.sessionID)
 
+    let bossId: string
+    if (sessionBoss) {
+      bossId = formatBossId(sessionBoss)
+    } else if (bossManager) {
+      // Fallback: 如果只有一个 Boss，使用这个 Boss
+      const bosses = bossManager.getBosses()
+      if (bosses.length === 1) {
+        bossId = formatBossId(bosses[0])
+      } else if (bosses.length === 0) {
+        throw new Error(
+          `Meeting mode role "${context.agent}" requires at least one Boss in configuration`
+        )
+      } else {
+        throw new Error(
+          `Meeting mode role "${context.agent}" cannot determine which Boss is using it. ` +
+            `Multiple Bosses configured: ${bosses.join(", ")}. ` +
+            `Please send a message as Boss first to establish session mapping.`
+        )
+      }
+    } else {
+      throw new Error(
+        `Meeting mode role "${context.agent}" requires BossManager to be configured`
+      )
+    }
+
     return {
       actorName: context.agent,
-      actorEmployeeId: sessionBoss
-        ? formatBossId(sessionBoss)
-        : formatBossId(context.agent),
+      actorEmployeeId: bossId,
       actorType: "meeting-role",
       isBoss: false,
       hasBossAuthority: true,

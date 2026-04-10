@@ -253,7 +253,8 @@ You are a project manager.`
       const employee = stateManager.getEmployee("0-meeting-hire")
       expect(employee).toBeDefined()
       expect(employee?.role).toBe("developer")
-      expect(employee?.hiredBy).toBe("0-manager")
+      // 会议模式角色代理的 hiredBy 应该是 Boss ID
+      expect(employee?.hiredBy).toBe("0-boss")
     })
 
     test("projected meeting agent does not depend on boss-session mapping", async () => {
@@ -263,6 +264,13 @@ You are a project manager.`
           projects: [],
         },
         TEST_WORKSPACE
+      )
+
+      // 建立 session 映射（模拟 Boss 先发送消息）
+      await multiBossManager.recordSession(
+        "boss-b",
+        "0-some-employee",
+        "test-session-meeting-agent-boss-b"
       )
 
       const multiBossTool = createHireEmployeeTool(
@@ -289,7 +297,8 @@ You are a project manager.`
 
       const employee = stateManager.getEmployee("0-meeting-hire-b")
       expect(employee).toBeDefined()
-      expect(employee?.hiredBy).toBe("0-manager")
+      // 应该是 boss-b 的 ID
+      expect(employee?.hiredBy).toBe("0-boss-b")
     })
 
     test("employee can hire permitted role", async () => {

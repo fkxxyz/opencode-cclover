@@ -92,9 +92,11 @@ Project override calculator prompt`
     )
 
     expect(actor).toEqual({
-      actorName: "boss-b",
+      actorName: "Calculator",
       actorEmployeeId: "0-boss-b",
-      isBoss: true,
+      actorType: "meeting-role",
+      isBoss: false,
+      hasBossAuthority: true,
       projectedRoleName: "Calculator",
     })
   })
