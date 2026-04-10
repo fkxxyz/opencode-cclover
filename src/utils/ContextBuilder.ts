@@ -165,7 +165,10 @@ export function buildSystemPrompt(
     }
   }
 
-  if (roleMetadata?.resolvedContexts && roleMetadata.resolvedContexts.length > 0) {
+  if (
+    roleMetadata?.resolvedContexts &&
+    roleMetadata.resolvedContexts.length > 0
+  ) {
     sections.push("# Role Context Materials")
     sections.push("")
 

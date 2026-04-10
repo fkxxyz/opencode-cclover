@@ -32,9 +32,11 @@ export class RoleManager {
   private roles: Map<string, Role> = new Map()
   private projectPath: string
   private contextDefinitions: Map<string, ContextDefinition> = new Map()
+  private presetContextPath: string
 
   constructor(projectPath: string) {
     this.projectPath = projectPath
+    this.presetContextPath = path.join(__dirname, "../roles/context.yml")
   }
 
   /**
@@ -197,7 +199,10 @@ export class RoleManager {
     frontmatterData: any,
     filePath: string
   ): boolean {
-    if (typeof frontmatterData?.name !== "string" || frontmatterData.name.length === 0) {
+    if (
+      typeof frontmatterData?.name !== "string" ||
+      frontmatterData.name.length === 0
+    ) {
       logger.warn(
         `[RoleManager] Role file ${filePath} is missing a valid string name, skipping`
       )
@@ -208,7 +213,9 @@ export class RoleManager {
       frontmatterData.contextIds !== undefined &&
       !(
         Array.isArray(frontmatterData.contextIds) &&
-        frontmatterData.contextIds.every((value: unknown) => typeof value === "string")
+        frontmatterData.contextIds.every(
+          (value: unknown) => typeof value === "string"
+        )
       )
     ) {
       logger.warn(
@@ -220,7 +227,9 @@ export class RoleManager {
     return true
   }
 
-  private async loadContextDefinitions(): Promise<Map<string, ContextDefinition>> {
+  private async loadContextDefinitions(): Promise<
+    Map<string, ContextDefinition>
+  > {
     const definitions = new Map<string, ContextDefinition>()
 
     await this.mergeContextDefinitions(
@@ -322,7 +331,10 @@ export class RoleManager {
 
       if (
         documents !== undefined &&
-        !(Array.isArray(documents) && documents.every((doc) => typeof doc === "string"))
+        !(
+          Array.isArray(documents) &&
+          documents.every((doc) => typeof doc === "string")
+        )
       ) {
         logger.warn(
           `[RoleManager] Invalid documents for context '${contextId}' in ${filePath}: expected string array`
@@ -372,9 +384,22 @@ export class RoleManager {
       const context = resolved[resolved.length - 1]
 
       for (const documentPath of definition.documents ?? []) {
-        const resolvedPath = path.isAbsolute(documentPath)
-          ? documentPath
-          : path.resolve(path.dirname(definition.sourceFile), documentPath)
+        let resolvedPath: string
+        if (path.isAbsolute(documentPath)) {
+          // 绝对路径直接使用
+          resolvedPath = documentPath
+        } else {
+          // 相对路径根据来源解析
+          // 预设 context.yml: 从仓库根目录解析
+          // 其他 context.yml: 从项目根目录解析
+          const isPreset =
+            path.normalize(definition.sourceFile) ===
+            path.normalize(this.presetContextPath)
+          const baseDir = isPreset
+            ? path.join(__dirname, "../..")
+            : this.projectPath
+          resolvedPath = path.resolve(baseDir, documentPath)
+        }
 
         try {
           const content = await fs.readFile(resolvedPath, "utf-8")

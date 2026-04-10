@@ -382,7 +382,10 @@ describe("SendMessageTool with Boss", () => {
       stateManager
     )
 
-    const events = stateManager.getEvents({ employeeName: "0-alice", limit: 20 })
+    const events = stateManager.getEvents({
+      employeeName: "0-alice",
+      limit: 20,
+    })
     const replyAttemptEvent = events.find(
       (event) =>
         event.type === "reply_attempted" && event.details.to === "0-bob"
@@ -431,7 +434,10 @@ describe("SendMessageTool with Boss", () => {
       stateManager
     )
 
-    const events = stateManager.getEvents({ employeeName: "0-alice", limit: 20 })
+    const events = stateManager.getEvents({
+      employeeName: "0-alice",
+      limit: 20,
+    })
     const replyAttemptEvent = events.find(
       (event) =>
         event.type === "reply_attempted" && event.details.to === "0-bob"

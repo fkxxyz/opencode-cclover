@@ -140,7 +140,7 @@ This mechanism is internal to role resolution and prompt assembly. It does not i
 **Lookup authority** mirrors role authority:
 1. Project: `<project>/.cclover/context.yml`
 2. Global: `~/.config/opencode-cclover/context.yml`
-3. Preset: implementation-defined preset `context.yml` location inside the repository
+3. Preset: `src/roles/context.yml` inside the repository
 
 Resolution is **per-contextId override/merge across sources**, not whole-file shadowing. Higher-priority sources replace only the ids they define, while unrelated ids continue to resolve from lower-priority sources.
 
@@ -156,7 +156,9 @@ contexts:
 
 **Behavioral rules**:
 - `contextIds` must be a string array when present; invalid metadata causes that role file to be skipped.
-- Referenced documents resolve relative to the `context.yml` file that declared them unless the path is already absolute.
+- **Relative document paths resolve from project root** for project and global context sources.
+- **Relative document paths resolve from repository root** for preset `src/roles/context.yml`.
+- Absolute document paths are used as-is.
 - Missing optional `context.yml` files, invalid `context.yml` units, empty context ids, missing context entries, and missing referenced documents are warning-and-skip cases.
 - Successful resolution stores the context material as internal role metadata for later prompt assembly.
 

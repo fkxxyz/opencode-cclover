@@ -16,7 +16,9 @@ describe("SessionManager", () => {
   let stateManager: StateManager
 
   beforeEach(async () => {
-    projectPath = await fs.mkdtemp(path.join(os.tmpdir(), "session-manager-test-"))
+    projectPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "session-manager-test-")
+    )
     workspaceRoot = path.join(projectPath, ".cclover/workspace")
     roleManager = new RoleManager(projectPath)
     memoryManager = new MemoryManager(workspaceRoot)
@@ -24,7 +26,9 @@ describe("SessionManager", () => {
   })
 
   test("should propagate resolved role contexts into active session prompts", async () => {
-    await fs.mkdir(path.join(projectPath, ".cclover/roles"), { recursive: true })
+    await fs.mkdir(path.join(projectPath, ".cclover/roles"), {
+      recursive: true,
+    })
     await fs.writeFile(
       path.join(projectPath, ".cclover/roles/context-role.md"),
       `---
@@ -45,8 +49,9 @@ You are a context aware employee.`
       - brief.md
 `
     )
+    // With new path resolution, relative paths resolve from project root
     await fs.writeFile(
-      path.join(projectPath, ".cclover/brief.md"),
+      path.join(projectPath, "brief.md"),
       "Deliver the context-aware feature."
     )
 

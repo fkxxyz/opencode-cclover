@@ -8,10 +8,7 @@ describe("RoleManager", () => {
   let tempDir: string
   let roleManager: RoleManager
 
-  const presetContextPath = path.join(
-    process.cwd(),
-    "src/roles/context.yml"
-  )
+  const presetContextPath = path.join(process.cwd(), "src/roles/context.yml")
   let originalHome = process.env.HOME
 
   beforeAll(async () => {
@@ -311,8 +308,11 @@ This role should not load.`
   test("should resolve layered contexts with per-contextId override semantics", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     const projectContextDir = path.join(tempDir, ".cclover")
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-home-"))
+    const tempHome = await fs.mkdtemp(
+      path.join(os.tmpdir(), "rolemanager-home-")
+    )
     const globalContextDir = path.join(tempHome, ".config/opencode-cclover")
+    const repoRoot = process.cwd()
 
     process.env.HOME = tempHome
 
@@ -335,61 +335,66 @@ contextIds:
 Context aware prompt.`
     )
 
+    // Preset context: paths resolve from repository root
     await fs.writeFile(
       presetContextPath,
       `contexts:
   presetOnly:
     description: Preset context
     documents:
-      - preset-only.md
+      - docs/preset-only.md
   shared:
     description: Preset shared context
     documents:
-      - shared-preset.md
+      - docs/shared-preset.md
 `
     )
+    await fs.mkdir(path.join(repoRoot, "docs"), { recursive: true })
     await fs.writeFile(
-      path.join(path.dirname(presetContextPath), "preset-only.md"),
+      path.join(repoRoot, "docs/preset-only.md"),
       "Preset only content"
     )
     await fs.writeFile(
-      path.join(path.dirname(presetContextPath), "shared-preset.md"),
+      path.join(repoRoot, "docs/shared-preset.md"),
       "Preset shared content"
     )
 
+    // Global context: paths resolve from project root (tempDir)
     await fs.writeFile(
       path.join(globalContextDir, "context.yml"),
       `contexts:
   shared:
     description: Global shared context
     documents:
-      - shared-global.md
+      - docs/shared-global.md
 `
     )
+    await fs.mkdir(path.join(tempDir, "docs"), { recursive: true })
     await fs.writeFile(
-      path.join(globalContextDir, "shared-global.md"),
+      path.join(tempDir, "docs/shared-global.md"),
       "Global shared content"
     )
 
+    // Project context: paths resolve from project root (tempDir)
     await fs.writeFile(
       path.join(projectContextDir, "context.yml"),
       `contexts:
   shared:
     description: Project shared context
     documents:
-      - shared-project.md
+      - docs/shared-project.md
   projectOnly:
     description: Project only context
     documents:
-      - project-only.md
+      - docs/project-only.md
 `
     )
     await fs.writeFile(
-      path.join(projectContextDir, "shared-project.md"),
+      path.join(tempDir, "docs/shared-project.md"),
       "Project shared content"
     )
     await fs.writeFile(
-      path.join(projectContextDir, "project-only.md"),
+      path.join(tempDir, "docs/project-only.md"),
       "Project only content"
     )
 
@@ -426,12 +431,18 @@ Context aware prompt.`
     expect(role?.resolvedContexts?.[2].documents[0].content).toContain(
       "Project only content"
     )
+
+    // Cleanup
+    await fs.rm(path.join(repoRoot, "docs/preset-only.md"), { force: true })
+    await fs.rm(path.join(repoRoot, "docs/shared-preset.md"), { force: true })
   })
 
   test("should skip invalid context sources and missing documents without aborting role load", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     const projectContextDir = path.join(tempDir, ".cclover")
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-home-"))
+    const tempHome = await fs.mkdtemp(
+      path.join(os.tmpdir(), "rolemanager-home-")
+    )
     const globalContextDir = path.join(tempHome, ".config/opencode-cclover")
 
     process.env.HOME = tempHome
@@ -481,12 +492,12 @@ Resilient prompt.`
     expect(role?.resolvedContexts?.[0].documents).toEqual([])
   })
 
-  test("should resolve context document paths relative to defining context source", async () => {
+  test("should resolve context document paths relative to project root", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
-    const projectContextDir = path.join(tempDir, ".cclover/context")
+    const projectDocsDir = path.join(tempDir, "docs")
 
     await fs.mkdir(projectRolesDir, { recursive: true })
-    await fs.mkdir(projectContextDir, { recursive: true })
+    await fs.mkdir(projectDocsDir, { recursive: true })
 
     await fs.writeFile(
       path.join(projectRolesDir, "relative-context-role.md"),
@@ -506,11 +517,11 @@ Relative context prompt.`
   nested-context:
     description: Nested context
     documents:
-      - context/nested-doc.md
+      - docs/nested-doc.md
 `
     )
     await fs.writeFile(
-      path.join(projectContextDir, "nested-doc.md"),
+      path.join(projectDocsDir, "nested-doc.md"),
       "Nested document content"
     )
 
@@ -518,9 +529,55 @@ Relative context prompt.`
     const role = roleManager.getRole("relative-context-role")
 
     expect(role?.resolvedContexts?.[0].documents[0]).toEqual({
-      path: path.join(projectContextDir, "nested-doc.md"),
+      path: path.join(projectDocsDir, "nested-doc.md"),
       content: "Nested document content",
     })
+  })
+
+  test("should resolve preset context document paths relative to repository root", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    const repoRoot = process.cwd()
+    const repoDocsDir = path.join(repoRoot, "docs")
+
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.mkdir(path.dirname(presetContextPath), { recursive: true })
+    await fs.mkdir(repoDocsDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "preset-context-role.md"),
+      `---
+name: preset-context-role
+description: Role with preset context docs
+contextIds:
+  - preset-repo-context
+---
+
+Preset context prompt.`
+    )
+
+    await fs.writeFile(
+      presetContextPath,
+      `contexts:
+  preset-repo-context:
+    description: Preset context from repo root
+    documents:
+      - docs/preset-doc.md
+`
+    )
+    await fs.writeFile(
+      path.join(repoDocsDir, "preset-doc.md"),
+      "Preset document content from repo root"
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("preset-context-role")
+
+    expect(role?.resolvedContexts?.[0].documents[0]).toEqual({
+      path: path.join(repoDocsDir, "preset-doc.md"),
+      content: "Preset document content from repo root",
+    })
+
+    await fs.rm(path.join(repoDocsDir, "preset-doc.md"), { force: true })
   })
 
   test("should reject old format without frontmatter", async () => {
