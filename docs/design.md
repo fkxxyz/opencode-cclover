@@ -437,7 +437,13 @@ For detailed design of each component, see:
    - Workspace management
    - .gitignore handling
 
-7. **[Event Tracing System Design](./design-events.md)**
+7. **[Meeting Mode Design](./design-meeting-mode.md)**
+   - Role projection into OpenCode primary agents
+   - Meeting-context prompt augmentation
+   - Boss-identity tool execution model
+   - Unrestricted hiring authority in direct meetings
+
+8. **[Event Tracing System Design](./design-events.md)**
    - Event types and storage format
    - JSONL file persistence
    - Session and agent lifecycle tracking

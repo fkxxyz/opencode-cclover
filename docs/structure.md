@@ -35,7 +35,8 @@ opencode-cclover/
 │   ├── design-event-loop.md                     - EventLoop design
 │   ├── design-tools.md                          - Tool system design
 │   ├── design-roles.md                          - Role definition design
-│   └── design-plugin-entry.md                   - Plugin entry design
+│   ├── design-plugin-entry.md                   - Plugin entry design
+│   └── design-meeting-mode.md                   - Meeting Mode role projection design
 ├── src/                                         - Source code
 │   ├── index.ts                                 - Plugin entry point
 │   ├── core/                                    - Core services
