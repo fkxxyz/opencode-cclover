@@ -396,6 +396,54 @@ describe("SendMessageTool with Boss", () => {
     sessionRegistry.unregister("test-session-reply-attempt")
   })
 
+  test("should stop reply reminders after reply attempt even if recipient does not exist", async () => {
+    const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
+    sessionRegistry.register("test-session-missing-recipient-reply", "0-alice")
+
+    await messageService.send(
+      "0-bob",
+      "0-alice",
+      "Please reply to me",
+      undefined,
+      undefined,
+      true
+    )
+
+    await expect(
+      sendMessageTool.execute(
+        {
+          to: "nonexistent",
+          content: "I am trying to reply but used a wrong recipient",
+          expect_reply: false,
+        },
+        {
+          sessionID: "test-session-missing-recipient-reply",
+          agent: undefined,
+        }
+      )
+    ).rejects.toThrow("Recipient does not exist")
+
+    const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
+    const replyTracker = new ReplyTracker(
+      "0-alice",
+      messageService,
+      memoryManager,
+      stateManager
+    )
+
+    const events = stateManager.getEvents({ employeeName: "0-alice", limit: 20 })
+    const replyAttemptEvent = events.find(
+      (event) =>
+        event.type === "reply_attempted" && event.details.to === "0-bob"
+    )
+    expect(replyAttemptEvent).toBeDefined()
+
+    const unrepliedSenders = await replyTracker.getUnrepliedSenders()
+    expect(unrepliedSenders).toEqual([])
+
+    sessionRegistry.unregister("test-session-missing-recipient-reply")
+  })
+
   describe("Message routing", () => {
     test("should route messages between employees in same task", async () => {
       // 注册 alice 到 SessionRegistry

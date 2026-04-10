@@ -39,32 +39,35 @@ function resolveRecipientId(
   return matchedEmployee.employeeId
 }
 
-async function shouldRecordReplyAttempt(
+async function findPendingReplyPeer(
   messageService: MessageService,
-  from: string,
-  recipientId: string
-): Promise<boolean> {
+  from: string
+): Promise<string | null> {
+  const peers = await messageService.getPeers(from)
   const client = messageService.getClient(from)
-  const messages = await client.history(recipientId)
 
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i]
-    if (msg.from === recipientId && msg.expect_reply === true) {
-      let hasReply = false
-      for (let j = i + 1; j < messages.length; j++) {
-        if (messages[j].from === from && messages[j].to === recipientId) {
-          hasReply = true
-          break
+  for (const peer of peers) {
+    const messages = await client.history(peer)
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg.from === peer && msg.expect_reply === true) {
+        let hasReply = false
+        for (let j = i + 1; j < messages.length; j++) {
+          if (messages[j].from === from && messages[j].to === peer) {
+            hasReply = true
+            break
+          }
         }
-      }
 
-      if (!hasReply) {
-        return true
+        if (!hasReply) {
+          return peer
+        }
       }
     }
   }
 
-  return false
+  return null
 }
 
 /**
@@ -122,6 +125,22 @@ export function createSendMessageTool(
 
       const from = actor.actorEmployeeId
 
+      const pendingReplyPeer = await findPendingReplyPeer(messageService, from)
+      if (pendingReplyPeer) {
+        await stateManager.addEvent({
+          projectId: "",
+          type: "reply_attempted",
+          timestamp: new Date().toISOString(),
+          employeeId: from,
+          details: {
+            from,
+            to: pendingReplyPeer,
+            content: args.content,
+            attemptedRecipient: args.to,
+          },
+        })
+      }
+
       const recipientId = resolveRecipientId(args.to, bossManager, stateManager)
 
       // 2. Check if recipient is offline (only for employees, not Boss)
@@ -155,22 +174,7 @@ export function createSendMessageTool(
         }
       }
 
-      // 4. 如果这是对 expect_reply 消息的回复尝试，先记录事件
-      if (await shouldRecordReplyAttempt(messageService, from, recipientId)) {
-        await stateManager.addEvent({
-          projectId: "",
-          type: "reply_attempted",
-          timestamp: new Date().toISOString(),
-          employeeId: from,
-          details: {
-            from,
-            to: recipientId,
-            content: args.content,
-          },
-        })
-      }
-
-      // 5. Call message service (let exceptions propagate naturally)
+      // 4. Call message service (let exceptions propagate naturally)
       await messageService.send(
         from,
         recipientId,
