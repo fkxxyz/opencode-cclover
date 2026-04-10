@@ -12,6 +12,9 @@ import { fileURLToPath } from "node:url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+// 存储 config 引用，用于 refresh_roles 工具更新 meeting-mode agents
+let pluginConfig: any = null
+
 /**
  * OpenCode Cclover Plugin
  *
@@ -82,6 +85,9 @@ export const CcloverPlugin: Plugin = async (ctx) => {
         }
       },
       config: async (config) => {
+        // 存储 config 引用
+        pluginConfig = config
+
         // 注册空 agent，用于员工 session（避免预设提示词污染）
         const agents = (config.agent ?? {}) as Record<string, any>
         agents["cclover-empty-agent"] = {
@@ -138,3 +144,11 @@ export const CcloverPlugin: Plugin = async (ctx) => {
 }
 // Default export
 export default CcloverPlugin
+
+/**
+ * 获取存储的 plugin config 引用
+ * 用于 refresh_roles 工具更新 meeting-mode agents
+ */
+export function getPluginConfig(): any {
+  return pluginConfig
+}
