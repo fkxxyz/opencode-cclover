@@ -310,7 +310,9 @@ describe("SendMessageTool with Boss", () => {
         },
         context
       )
-    ).rejects.toThrow("Recipient does not exist")
+    ).rejects.toThrow(
+      "Recipient 'nonexistent' (resolved to '0-nonexistent') does not exist"
+    )
 
     sessionRegistry.unregister("test-session-invalid-short-name")
   })
@@ -424,7 +426,9 @@ describe("SendMessageTool with Boss", () => {
           agent: undefined,
         }
       )
-    ).rejects.toThrow("Recipient does not exist")
+    ).rejects.toThrow(
+      "Recipient 'nonexistent' (resolved to '0-nonexistent') does not exist"
+    )
 
     const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
     const replyTracker = new ReplyTracker(
@@ -586,6 +590,193 @@ describe("SendMessageTool with Boss", () => {
 
       // 清理
       sessionRegistry.unregister("test-session-to-boss")
+    })
+  })
+
+  describe("Unified Recipient Resolution", () => {
+    test("should auto-prepend sender's taskId when recipient lacks taskId prefix", async () => {
+      // 创建 taskId=26 的员工
+      await stateManager.registerEmployee({
+        employeeId: "26-TL-001",
+        name: "TL-001",
+        taskId: 26,
+        role: "Technical Lead",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      await stateManager.registerEmployee({
+        employeeId: "26-AC-sendmsg-fix",
+        name: "AC-sendmsg-fix",
+        taskId: 26,
+        role: "Architecture Consultant",
+        hiredBy: "26-TL-001",
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-auto-prepend", "26-TL-001")
+
+      const result = await sendMessageTool.execute(
+        {
+          to: "AC-sendmsg-fix",
+          content: "Test auto-prepend",
+          expect_reply: false,
+        },
+        {
+          sessionID: "test-session-auto-prepend",
+          agent: undefined,
+        }
+      )
+
+      expect(result).toBe("Message sent to 26-AC-sendmsg-fix")
+
+      // 验证消息已发送到正确的recipient
+      const recipientClient = messageService.getClient("26-AC-sendmsg-fix")
+      const message = await recipientClient.recv()
+      expect(message.from).toBe("26-TL-001")
+      expect(message.content).toBe("Test auto-prepend")
+
+      sessionRegistry.unregister("test-session-auto-prepend")
+    })
+
+    test("should use explicit taskId prefix directly", async () => {
+      // 创建跨taskId的员工
+      await stateManager.registerEmployee({
+        employeeId: "26-TL-001",
+        name: "TL-001",
+        taskId: 26,
+        role: "Technical Lead",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      await stateManager.registerEmployee({
+        employeeId: "5-Architecture Consultant",
+        name: "Architecture Consultant",
+        taskId: 5,
+        role: "Architecture Consultant",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-explicit-taskid", "26-TL-001")
+
+      const result = await sendMessageTool.execute(
+        {
+          to: "5-Architecture Consultant",
+          content: "Cross-taskId message",
+          expect_reply: false,
+        },
+        {
+          sessionID: "test-session-explicit-taskid",
+          agent: undefined,
+        }
+      )
+
+      expect(result).toBe("Message sent to 5-Architecture Consultant")
+
+      // 验证消息已发送到正确的recipient
+      const recipientClient = messageService.getClient(
+        "5-Architecture Consultant"
+      )
+      const message = await recipientClient.recv()
+      expect(message.from).toBe("26-TL-001")
+      expect(message.content).toBe("Cross-taskId message")
+
+      sessionRegistry.unregister("test-session-explicit-taskid")
+    })
+
+    test("should reject self-messaging", async () => {
+      await stateManager.registerEmployee({
+        employeeId: "26-TL-001",
+        name: "TL-001",
+        taskId: 26,
+        role: "Technical Lead",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      sessionRegistry.register("test-session-self-message", "26-TL-001")
+
+      await expect(
+        sendMessageTool.execute(
+          {
+            to: "TL-001",
+            content: "Message to myself",
+            expect_reply: false,
+          },
+          {
+            sessionID: "test-session-self-message",
+            agent: undefined,
+          }
+        )
+      ).rejects.toThrow(
+        "Cannot send message to yourself. Use memory for notes."
+      )
+
+      sessionRegistry.unregister("test-session-self-message")
+    })
+
+    test("Boss follows unified rule: sends to '0-mason'", async () => {
+      // Boss (taskId=0) 发送给 "mason" 应该解析为 "0-mason"
+      await stateManager.registerEmployee({
+        employeeId: "0-mason",
+        name: "mason",
+        taskId: 0,
+        role: "Boss",
+        hiredBy: null,
+        status: "idle",
+        paused: false,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const result = await sendMessageTool.execute(
+        {
+          to: "mason",
+          content: "Boss to mason",
+          expect_reply: false,
+        },
+        {
+          sessionID: "test-session-boss-unified",
+          agent: "bayecao", // Boss通过agent参数识别
+        }
+      )
+
+      expect(result).toBe("Message sent to 0-mason")
+
+      // 验证消息已发送
+      const recipientClient = messageService.getClient("0-mason")
+      const message = await recipientClient.recv()
+      expect(message.from).toBe("0-bayecao")
+      expect(message.content).toBe("Boss to mason")
     })
   })
 })

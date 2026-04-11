@@ -10,33 +10,53 @@ import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
 import { resolveToolActor } from "../meeting-mode"
-import { formatBossId } from "../types"
+import { parseEmployeeId, formatEmployeeId } from "../types"
 
 function resolveRecipientId(
   recipient: string,
-  bossManager: BossManager | undefined,
-  stateManager: StateManager
+  senderEmployeeId: string,
+  stateManager: StateManager,
+  bossManager: BossManager | undefined
 ): string {
-  // 1. 优先识别 boss 名称或 BossId
-  const normalizedBossName = recipient.startsWith("0-")
-    ? recipient.substring(2)
-    : recipient
-  if (bossManager?.isBoss(normalizedBossName)) {
-    return formatBossId(normalizedBossName)
+  // 统一的recipient resolution规则（无例外）
+  let resolvedRecipientId: string
+  let wasAutoPrepended = false
+
+  // 检查recipient是否已经有taskId前缀（匹配 ^[0-9]+- 模式）
+  if (/^[0-9]+-/.test(recipient)) {
+    // 已有taskId前缀，直接使用
+    resolvedRecipientId = recipient
+  } else {
+    // 没有taskId前缀，提取sender的taskId并prepend
+    const { taskId: senderTaskId } = parseEmployeeId(senderEmployeeId)
+    resolvedRecipientId = formatEmployeeId(senderTaskId, recipient)
+    wasAutoPrepended = true
   }
 
-  // 2. 再查找员工（支持 name 或 employeeId）
-  const allEmployees = stateManager.getEmployees()
-  const matchedEmployee = allEmployees.find(
-    (employee) =>
-      employee.name === recipient || employee.employeeId === recipient
-  )
+  // 验证recipient是否存在
+  // Boss不在employee state系统中，需要单独检查
+  const recipientEmployee = stateManager.getEmployee(resolvedRecipientId)
+  const isBoss =
+    resolvedRecipientId.startsWith("0-") &&
+    bossManager?.isBoss(resolvedRecipientId.substring(2))
 
-  if (!matchedEmployee) {
-    throw new Error(`Recipient does not exist: ${recipient}`)
+  if (!recipientEmployee && !isBoss) {
+    // 透明的错误消息
+    if (wasAutoPrepended) {
+      throw new Error(
+        `Recipient '${recipient}' (resolved to '${resolvedRecipientId}') does not exist`
+      )
+    } else {
+      throw new Error(`Recipient does not exist: ${resolvedRecipientId}`)
+    }
   }
 
-  return matchedEmployee.employeeId
+  // 阻止self-messaging
+  if (resolvedRecipientId === senderEmployeeId) {
+    throw new Error("Cannot send message to yourself. Use memory for notes.")
+  }
+
+  return resolvedRecipientId
 }
 
 async function findPendingReplyPeer(
@@ -141,17 +161,17 @@ export function createSendMessageTool(
         })
       }
 
-      const recipientId = resolveRecipientId(args.to, bossManager, stateManager)
+      const recipientId = resolveRecipientId(
+        args.to,
+        from,
+        stateManager,
+        bossManager
+      )
 
-      // 2. Check if recipient is offline (only for employees, not Boss)
-      if (
-        !recipientId.startsWith("0-") ||
-        !bossManager?.isBoss(recipientId.substring(2))
-      ) {
-        const recipient = stateManager.getEmployee(recipientId)
-        if (recipient?.status === "offline") {
-          throw new Error(`Employee is on vacation!`)
-        }
+      // 2. Check if recipient is offline (simplified - Boss naturally skips check)
+      const recipient = stateManager.getEmployee(recipientId)
+      if (recipient?.status === "offline") {
+        throw new Error(`Employee is on vacation!`)
       }
 
       // 3. Record session if sender is Boss (BEFORE sending)
