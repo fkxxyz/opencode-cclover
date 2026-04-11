@@ -107,23 +107,16 @@ export function validateRoleFrontmatter(
   const normalizedName =
     typeof raw.name === "string" ? raw.name.trim() : undefined
 
-  if (
-    normalizedName &&
-    options?.expectedRoleName &&
-    normalizedName !== options.expectedRoleName
-  ) {
-    issues.push({
-      level: "warning",
-      field: "name",
-      message: `name '${normalizedName}' does not match filename '${options.expectedRoleName}'`,
-    })
-  }
+  // Note: We do NOT validate that name matches filename
+  // Filename uses kebab-case for filesystem compatibility (e.g., "project-manager.md")
+  // But name uses human-readable format for system usage (e.g., "Project Manager")
+  // The name field is what gets stored in employee.role and used for getRole() lookups
 
-  if (typeof raw.description === "string" && raw.description.length > 200) {
+  if (typeof raw.description === "string" && raw.description.length > 512) {
     issues.push({
       level: "warning",
       field: "description",
-      message: "description is longer than 200 characters",
+      message: "description is longer than 512 characters",
     })
   }
 

@@ -121,7 +121,7 @@ Higher priority roles override lower priority ones with the same `name` field (n
 ```markdown
 ---
 name: "Role Name"
-description: "Brief description (max 200 chars)"
+description: "Brief description (max 512 chars)"
 soul: false
 requiredArgs:
   param1:
@@ -152,7 +152,7 @@ groups:
 - **Type**: string
 - **Purpose**: Brief description for quick understanding during hiring
 - **Rules**: 
-  - Maximum 200 characters
+  - Maximum 512 characters
   - Must include: responsibilities, collaboration partners, brief workflow
 - **Example**: `"Coordinates workflow between boss and developers. Manages task delegation, code review process, and integration handoff."`
 
@@ -465,7 +465,7 @@ After collecting Phase 2 information, provide a detailed summary and ask: "Let m
 
 **Process**:
 1. **Generate name suggestions** - provide 5-6 options based on role purpose
-2. **Draft description** - write concise description (max 200 chars)
+2. **Draft description** - write concise description (max 512 chars)
 3. **Set soul** - default to `false` unless the user explicitly wants a soul role
 4. **Identify requiredArgs** - determine what parameters the role needs
 5. **Determine canHire** - decide which roles this role can hire
@@ -484,7 +484,7 @@ Based on our discussion, here's the role metadata I've generated:
 5. [option-5] - [rationale]
 
 **Description**:
-"[Generated description within 200 characters]"
+"[Generated description within 512 characters]"
 
 **Soul**:
 - false
@@ -601,7 +601,7 @@ For delete operations:
 
 **CRITICAL**: When generating metadata:
 - **name**: Provide multiple options with rationale
-- **description**: Must be concise (max 200 chars) but informative
+- **description**: Must be concise (max 512 chars) but informative
 - **soul**: Default to `false` and explicitly ask the user to confirm it with the rest of the metadata
 - **requiredArgs**: Only include truly necessary parameters
 - **canHire**: Be specific about hiring permissions (use `[]` if cannot hire)
