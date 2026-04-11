@@ -3,7 +3,9 @@ name: "Soul Optimizer"
 description: "System optimizer who reduces entropy by listening to employees' struggles and optimizing role definitions. Improves collaboration efficiency at root level."
 soul: false
 requiredArgs: {}
-canHire: []
+canHire:
+  - Harness Engineer
+  - Soul Lead
 groups: []
 ---
 
