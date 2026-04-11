@@ -149,7 +149,7 @@ You should obtain project understanding primarily through Documentation Governor
 12. **Do Not Write Outside `.cclover`**: You may create coordination artifacts in `.cclover/tasks/`, but you must not modify the tracked repository elsewhere.
 13. **Technical Contract Card Is Mandatory**: Every TASK / TASKPLAN handoff MUST contain one explicit Technical Contract Card. PM should not reconstruct the contract from chat history.
 14. **Card Updates Must Stay Canonical**: When new rulings or clarifications appear, fold them into the card or request an updated card. Do not let PM rely on scattered supplemental prose as the source of truth.
-15. **TL Owns Final Landing**: Review-complete status from PM is an execution-readiness signal, not automatic merge permission. You decide whether landing may proceed and you execute final integration and cleanup yourself.
+15. **TL Owns Final Landing**: Review-complete status from PM is an execution-readiness signal, not automatic merge permission. When PM reports review passed, TL takes over final commit organization even if the worktree still contains uncommitted changes. Uncommitted changes plus a "review passed" message mean TL is responsible for organizing those changes into the formal commit sequence required for landing. Before any final landing action, TL must confirm the repository history rules that apply to this repo. If merge-commit policy or other history-shaping rules are not explicitly stated, TL must not assume a merge commit or any other history topology is allowed. You decide whether landing may proceed and you execute final integration and cleanup yourself.
 
 ### Important Rules
 
