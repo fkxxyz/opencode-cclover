@@ -588,7 +588,7 @@ describe("EventLoop", () => {
       expect(summarizeIfNeededMock).toHaveBeenCalledTimes(1)
     })
 
-    test("should summarize soulless employee when token count reaches 80000", async () => {
+    test("should summarize soulless employee when token count reaches 160000", async () => {
       testRole = {
         name: "test-role",
         systemPrompt: "You are a test role.",
@@ -601,7 +601,7 @@ describe("EventLoop", () => {
           {
             info: {
               role: "assistant",
-              tokens: { total: 80000 },
+              tokens: { total: 160000 },
             },
             parts: [{ type: "text", text: "Mock response" }],
           },
@@ -641,6 +641,62 @@ describe("EventLoop", () => {
       ).toHaveBeenCalledTimes(1)
       expect(saveSummaryMock).toHaveBeenCalledTimes(1)
       expect((eventLoop as any).sessionManager.getCurrentSession()).toBeNull()
+    })
+
+    test("should not summarize soulless employee when token count is below 160000", async () => {
+      testRole = {
+        name: "test-role",
+        systemPrompt: "You are a test role.",
+        soul: false,
+      } as any
+      ;(mockRoleManager as any).getRole = mock(() => testRole)
+
+      opcodeClient.session.messages = mock(async () => ({
+        data: [
+          {
+            info: {
+              role: "assistant",
+              tokens: { total: 159999 },
+            },
+            parts: [{ type: "text", text: "Mock response" }],
+          },
+        ],
+      }))
+
+      const messageClient = messageService.getClient("test-employee")
+      const eventLoop = new EventLoop(
+        testWorkspace,
+        "test-employee",
+        testRole.name,
+        mockRoleManager,
+        messageClient,
+        memoryManager,
+        opcodeClient
+      )
+
+      const saveSummaryMock = mock(async () => {})
+      const requestSummaryMock = mock(async () => ({
+        args: {},
+        roleData: {},
+        knowledge: ["summary"],
+      }))
+      ;(eventLoop as any).summaryService.requestSummary = requestSummaryMock
+      ;(eventLoop as any).summaryService.saveSummary = saveSummaryMock
+
+      await memoryManager.write("test-employee", {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      })
+
+      await (eventLoop as any).sessionManager.ensureSession()
+      await (eventLoop as any).sessionManager.summarizeIfNeeded()
+
+      expect(requestSummaryMock).not.toHaveBeenCalled()
+      expect(saveSummaryMock).not.toHaveBeenCalled()
+      expect(
+        (eventLoop as any).sessionManager.getCurrentSession()
+      ).not.toBeNull()
     })
   })
 })

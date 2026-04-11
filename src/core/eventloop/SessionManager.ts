@@ -23,7 +23,7 @@ export interface SessionInfo {
  */
 export class SessionManager {
   private currentSession: SessionInfo | null = null
-  private readonly TOKEN_THRESHOLD = 100000 // 10万 token
+  private readonly TOKEN_THRESHOLD = 100000 // 10万 token（有灵魂角色默认阈值）
   private readonly MESSAGE_THRESHOLD = 10000 // 消息轮数限制（实际由 token 限制控制）
 
   constructor(
@@ -56,7 +56,7 @@ export class SessionManager {
 
   private getTokenThreshold(): number {
     const role = this.roleManager.getRole(this.roleName)
-    return role?.soul === false ? 80000 : 100000
+    return role?.soul === false ? 160000 : 100000
   }
 
   /**
