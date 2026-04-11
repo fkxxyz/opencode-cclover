@@ -75,6 +75,85 @@ export interface ResolvedRoleContext {
 }
 
 /**
+ * @experimental internal
+ *
+ * Specification definition within an action.
+ * Represents a structured specification or reasoning atom attached to an action.
+ * No runtime consumer exists in this stage; this is authoring metadata only.
+ */
+export interface SpecificationDefinition {
+  /** Unique identifier within sibling specifications of the same action */
+  id: string
+  /** Optional human-readable description (documentation only, no runtime semantics) */
+  description?: string
+}
+
+/**
+ * @experimental internal
+ *
+ * Action definition within a task.
+ * Represents a practical context bundle or discrete action step.
+ * No runtime consumer exists in this stage; this is authoring metadata only.
+ */
+export interface ActionDefinition {
+  /** Unique identifier within sibling actions of the same task */
+  id: string
+  /** Optional human-readable description (documentation only, no runtime semantics) */
+  description?: string
+  /** Optional specifications attached to this action; empty array is valid */
+  specifications?: SpecificationDefinition[]
+}
+
+/**
+ * @experimental internal
+ *
+ * Task definition within a phase.
+ * Represents a unit of work or responsibility within a phase.
+ * No runtime consumer exists in this stage; this is authoring metadata only.
+ */
+export interface TaskDefinition {
+  /** Unique identifier within sibling tasks of the same phase */
+  id: string
+  /** Optional human-readable description (documentation only, no runtime semantics) */
+  description?: string
+  /** Optional actions attached to this task; empty array is valid */
+  actions?: ActionDefinition[]
+}
+
+/**
+ * @experimental internal
+ *
+ * Phase definition within a workflow.
+ * Represents a distinct stage or phase in the workflow lifecycle.
+ * No runtime consumer exists in this stage; this is authoring metadata only.
+ */
+export interface PhaseDefinition {
+  /** Unique identifier within sibling phases of the same workflow */
+  id: string
+  /** Optional human-readable description (documentation only, no runtime semantics) */
+  description?: string
+  /** Optional tasks attached to this phase; empty array is valid */
+  tasks?: TaskDefinition[]
+}
+
+/**
+ * @experimental internal
+ *
+ * Workflow definition for a role.
+ * Describes the structured workflow metadata embedded in role frontmatter.
+ * No runtime consumer exists in this stage; this is authoring metadata only.
+ * The handwritten prompt body remains the sole source of behavioral truth.
+ */
+export interface WorkflowDefinition {
+  /** Optional workflow identifier */
+  id?: string
+  /** Optional human-readable description (documentation only, no runtime semantics) */
+  description?: string
+  /** Phases of the workflow; must be non-empty when workflow is present */
+  phases: PhaseDefinition[]
+}
+
+/**
  * Role metadata
  *
  * Defines the metadata structure for a role. This metadata is typically
@@ -143,6 +222,16 @@ export interface RoleMetadata {
    * It is not part of user-authored YAML frontmatter.
    */
   resolvedContexts?: ResolvedRoleContext[]
+
+  /**
+   * @experimental internal
+   *
+   * Workflow metadata for structured role definition.
+   * This is authoring scaffolding with no runtime consumer in this stage.
+   * The handwritten prompt body remains the sole source of behavioral truth.
+   * Optional: roles without workflow metadata load identically.
+   */
+  workflow?: WorkflowDefinition
 }
 
 /**

@@ -1196,4 +1196,147 @@ Dev 2`
 
     expect(issues.length).toBe(0)
   })
+
+  test("should load role with valid workflow metadata", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: workflow-role
+description: Role with workflow metadata
+workflow:
+  id: main-workflow
+  description: Main workflow
+  phases:
+    - id: planning
+      description: Planning phase
+      tasks:
+        - id: gather-requirements
+          description: Gather requirements
+          actions:
+            - id: interview
+              description: Interview stakeholders
+              specifications:
+                - id: stakeholder-list
+                  description: List of stakeholders
+    - id: execution
+      description: Execution phase
+      tasks: []
+---
+
+You are a workflow-enabled role.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "workflow-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("workflow-role")
+
+    expect(role).toBeDefined()
+    expect(role?.workflow).toBeDefined()
+    expect(role?.workflow?.id).toBe("main-workflow")
+    expect(role?.workflow?.description).toBe("Main workflow")
+    expect(role?.workflow?.phases).toHaveLength(2)
+
+    const planning = role?.workflow?.phases[0]
+    expect(planning?.id).toBe("planning")
+    expect(planning?.description).toBe("Planning phase")
+    expect(planning?.tasks).toHaveLength(1)
+    expect(planning?.tasks?.[0]?.id).toBe("gather-requirements")
+    expect(planning?.tasks?.[0]?.actions).toHaveLength(1)
+    expect(planning?.tasks?.[0]?.actions?.[0]?.specifications).toHaveLength(1)
+
+    const execution = role?.workflow?.phases[1]
+    expect(execution?.id).toBe("execution")
+    expect(execution?.tasks).toEqual([])
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should load role without workflow identically to before (backward compatibility)", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: no-workflow-role
+description: Role without workflow
+canHire:
+  - developer
+---
+
+You are a normal role.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "no-workflow-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("no-workflow-role")
+
+    expect(role).toBeDefined()
+    expect(role?.workflow).toBeUndefined()
+    expect(role?.name).toBe("no-workflow-role")
+    expect(role?.canHire).toEqual(["developer"])
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should reject role with invalid workflow metadata (empty phases)", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: bad-workflow-role
+description: Role with invalid workflow
+workflow:
+  phases: []
+---
+
+Bad workflow role.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "bad-workflow-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("bad-workflow-role")
+
+    // 验证失败时角色不应被加载
+    expect(role).toBeUndefined()
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should load role with minimal workflow (single phase, no tasks)", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    const roleContent = `---
+name: minimal-workflow-role
+description: Minimal workflow role
+workflow:
+  phases:
+    - id: init
+---
+
+Minimal workflow role prompt.`
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "minimal-workflow-role.md"),
+      roleContent
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("minimal-workflow-role")
+
+    expect(role).toBeDefined()
+    expect(role?.workflow?.phases).toHaveLength(1)
+    expect(role?.workflow?.phases[0]?.id).toBe("init")
+
+    await fs.rm(projectRolesDir, { recursive: true })
+  })
 })

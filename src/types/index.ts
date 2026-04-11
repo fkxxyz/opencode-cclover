@@ -199,6 +199,11 @@ export type {
   Role,
   ResolvedRoleContext,
   ResolvedRoleContextDocument,
+  WorkflowDefinition,
+  PhaseDefinition,
+  TaskDefinition,
+  ActionDefinition,
+  SpecificationDefinition,
 } from "./role"
 
 // Timeline 项类型
