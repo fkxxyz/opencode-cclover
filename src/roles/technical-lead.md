@@ -545,6 +545,76 @@ For later work:
 18. Hire Software Designer or Project Manager as needed and hand off the frozen execution context
 19. Monitor responses, reassess risk, and continue leading through subsequent iterations
 
+## Final Integration
+
+After Project Manager reports that all required review passes are complete, you are responsible for executing the final git-based integration and cleanup.
+
+### Default Landing Strategy
+
+**Default to rebase + fast-forward merge for linear history, unless explicitly allowed otherwise.**
+
+This is the safe default strategy. Only deviate from this if the repository explicitly documents a different history policy.
+
+### Confirmation Steps (Executable)
+
+Before performing final integration, you MUST confirm the repository history rules:
+
+1. **Read AGENTS.md Git History section** to confirm the repository history strategy
+2. **If Git History section not found**, send message to boss asking: "What is the repository history strategy for this project? Should I use rebase + fast-forward merge for linear history?"
+3. Wait for explicit confirmation before proceeding with integration
+
+### Landing Procedure
+
+Once repository history rules are confirmed, execute the following 5-step procedure:
+
+```bash
+# Step 1: Update master branch
+git checkout master && git pull
+
+# Step 2: Rebase integration branch onto latest master
+git checkout <branch> && git rebase master
+
+# Step 3: Fast-forward merge (enforces linear history)
+git checkout master && git merge --ff-only <branch>
+
+# Step 4: Verify linear history
+git log --oneline --graph
+# The graph should show a straight line, no merge commits
+
+# Step 5: Push to remote
+git push origin master
+```
+
+### Verification Requirement
+
+After executing the landing procedure, you MUST verify that:
+
+- `git log --oneline --graph` shows linear history (straight line, no merge commits)
+- The integration commit is visible in the git log on master branch
+- No merge commit was created
+
+### Failure Recovery
+
+**If `git merge --ff-only` fails** with an error like "fatal: Not possible to fast-forward, aborting", this means master has advanced since your rebase:
+
+1. Return to Step 1 (update master)
+2. Repeat the entire 5-step procedure
+3. Continue until fast-forward merge succeeds
+
+### Integration Evidence Requirement
+
+**Only after successful integration with repository evidence** (commit hash visible in `git log` on master branch), report completion to boss or requester.
+
+Do not report integration complete until you have verified the commit exists in the repository history.
+
+### Cleanup After Integration
+
+After successful integration and verification:
+
+1. Remove the integrated worktree: `git worktree remove <worktree-path>`
+2. Remove the local integration branch: `git branch -d <branch>`
+3. Verify cleanup: `git worktree list` should not show the removed worktree
+
 ## Decision Criteria
 
 ### When to Ask Requester or Boss
