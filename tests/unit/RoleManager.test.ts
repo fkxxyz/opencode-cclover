@@ -1068,4 +1068,132 @@ Dev 2`
 
     await fs.rm(projectRolesDir, { recursive: true })
   })
+
+  test("all preset role contextIds should be defined in context.yml", async () => {
+    const yaml = await import("yaml")
+
+    // 读取 context.yml
+    const contextYmlPath = path.join(process.cwd(), "src/roles/context.yml")
+    const contextYmlContent = await fs.readFile(contextYmlPath, "utf-8")
+    const contextYml = yaml.parse(contextYmlContent)
+    const definedContextIds = new Set(Object.keys(contextYml.contexts || {}))
+
+    // 读取所有预设角色文件
+    const presetRolesDir = path.join(process.cwd(), "src/roles")
+    const roleFiles = await fs.readdir(presetRolesDir)
+
+    const undefinedContextIds: Array<{ role: string; contextId: string }> = []
+
+    for (const file of roleFiles) {
+      if (!file.endsWith(".md")) {
+        continue
+      }
+
+      const filePath = path.join(presetRolesDir, file)
+      const content = await fs.readFile(filePath, "utf-8")
+
+      // 解析 YAML frontmatter
+      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+      if (!frontmatterMatch) {
+        continue
+      }
+
+      const frontmatter = yaml.parse(frontmatterMatch[1])
+      const contextIds = frontmatter.contextIds
+
+      if (!contextIds || !Array.isArray(contextIds)) {
+        continue
+      }
+
+      // 检查每个 contextId 是否在 context.yml 中定义
+      for (const contextId of contextIds) {
+        if (!definedContextIds.has(contextId)) {
+          undefinedContextIds.push({
+            role: frontmatter.name || file,
+            contextId,
+          })
+        }
+      }
+    }
+
+    // 如果有未定义的 contextId,测试失败并显示详细信息
+    if (undefinedContextIds.length > 0) {
+      const errorMessage = undefinedContextIds
+        .map(
+          ({ role, contextId }) =>
+            `  - Role "${role}" references undefined contextId: "${contextId}"`
+        )
+        .join("\n")
+      throw new Error(
+        `Found ${undefinedContextIds.length} undefined contextIds:\n${errorMessage}`
+      )
+    }
+
+    expect(undefinedContextIds.length).toBe(0)
+  })
+
+  test("all documents in context.yml should be relative paths and exist", async () => {
+    const yaml = await import("yaml")
+
+    // 读取 context.yml
+    const contextYmlPath = path.join(process.cwd(), "src/roles/context.yml")
+    const contextYmlContent = await fs.readFile(contextYmlPath, "utf-8")
+    const contextYml = yaml.parse(contextYmlContent)
+
+    const projectRoot = process.cwd()
+    const issues: Array<{
+      contextId: string
+      document: string
+      issue: string
+    }> = []
+
+    for (const [contextId, definition] of Object.entries(
+      contextYml.contexts || {}
+    )) {
+      const documents = (definition as any).documents
+
+      if (!documents || !Array.isArray(documents)) {
+        continue
+      }
+
+      for (const document of documents) {
+        // 检查是否为相对路径
+        if (path.isAbsolute(document)) {
+          issues.push({
+            contextId,
+            document,
+            issue: "Path is absolute, should be relative",
+          })
+          continue
+        }
+
+        // 检查文件是否存在
+        const fullPath = path.join(projectRoot, document)
+        try {
+          await fs.access(fullPath)
+        } catch (error) {
+          issues.push({
+            contextId,
+            document,
+            issue: "File does not exist",
+          })
+        }
+      }
+    }
+
+    // 如果有问题,测试失败并显示详细信息
+    if (issues.length > 0) {
+      const errorMessage = issues
+        .map(
+          ({ contextId, document, issue }) =>
+            `  - Context "${contextId}", document "${document}": ${issue}`
+        )
+        .join("\n")
+      throw new Error(
+        `Found ${issues.length} issues in context.yml:\n${errorMessage}`
+      )
+    }
+
+    expect(issues.length).toBe(0)
+  })
 })
