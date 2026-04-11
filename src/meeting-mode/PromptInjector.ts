@@ -52,9 +52,36 @@ export class MeetingModePromptInjector {
       return
     }
 
-    this.sessionAgents.set(sessionID, agentName)
+    const resolvedAgentName = this.resolveAgentName(agentName)
+    if (!resolvedAgentName) {
+      logger.debug(
+        `[MeetingMode] recordSession ignored: project=${this.projectName}, sessionID=${sessionID}, reason=unable to resolve agent name`
+      )
+      return
+    }
+
+    if (this.shouldIgnoreAgentPayload(agentName, resolvedAgentName)) {
+      logger.debug(
+        `[MeetingMode] recordSession ignored: project=${this.projectName}, sessionID=${sessionID}, agent=${resolvedAgentName}, reason=internal or hidden agent`
+      )
+      return
+    }
+
+    const currentAgentName = this.sessionAgents.get(sessionID)
+    if (
+      currentAgentName &&
+      currentAgentName !== resolvedAgentName &&
+      typeof agentName !== "string"
+    ) {
+      logger.debug(
+        `[MeetingMode] recordSession ignored: project=${this.projectName}, sessionID=${sessionID}, currentAgent=${currentAgentName}, nextAgent=${resolvedAgentName}, reason=object agent cannot overwrite active mapped role`
+      )
+      return
+    }
+
+    this.sessionAgents.set(sessionID, resolvedAgentName)
     logger.debug(
-      `[MeetingMode] recordSession: project=${this.projectName}, sessionID=${sessionID}, agent=${agentName}`
+      `[MeetingMode] recordSession: project=${this.projectName}, sessionID=${sessionID}, agent=${resolvedAgentName}`
     )
   }
 
@@ -191,5 +218,43 @@ export class MeetingModePromptInjector {
     ) {
       this.executionHistory.shift()
     }
+  }
+
+  private resolveAgentName(agent: unknown): string | undefined {
+    if (typeof agent === "string") {
+      return agent
+    }
+
+    if (!agent || typeof agent !== "object") {
+      return undefined
+    }
+
+    const name = (agent as { name?: unknown }).name
+    return typeof name === "string" ? name : undefined
+  }
+
+  private shouldIgnoreAgentPayload(
+    agent: unknown,
+    resolvedAgentName: string
+  ): boolean {
+    if (!agent || typeof agent !== "object") {
+      return false
+    }
+
+    const candidate = agent as {
+      hidden?: unknown
+      native?: unknown
+      name?: unknown
+    }
+
+    if (candidate.hidden === true) {
+      return true
+    }
+
+    if (candidate.native === true && resolvedAgentName === "title") {
+      return true
+    }
+
+    return false
   }
 }
