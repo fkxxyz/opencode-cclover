@@ -138,6 +138,9 @@ If document references can carry task or review details, use document references
 ### PASS
 
 - If a review passes, mark that worktree as review-complete
+- For PM handoff semantics, reviewed and complete changes may be reported as review-complete even when the worktree still contains uncommitted changes
+- PM's review-complete / "review passed" report is the handoff signal for Technical Lead to take over final commit organization and landing
+- PM does not need to create commits before reporting a reviewed worktree ready; final commit organization belongs to Technical Lead
 - Do NOT report landing readiness until all parallel worktrees belonging to the same integration unit have passed review
 - When the full required unit is review-complete, report readiness to Technical Lead with the relevant references and blocker status
 
@@ -234,6 +237,7 @@ If document references can carry task or review details, use document references
 
 **If PASS**:
 - Mark the reviewed worktree as passed
+- Treat reviewed and complete work as ready for PM reporting even if the worktree still contains uncommitted changes
 - If other parallel worktrees in the same integration unit are still under review or fixing, wait
 - Only when the full integration unit is review-complete, update task state to `stage=ready-to-report-tl` and prepare the readiness report
 
@@ -242,13 +246,12 @@ If document references can carry task or review details, use document references
 - Update task to `stage=review-failed-fixable`
 - Wait for developer to report ready for re-review
 
-### Step 6: Execute Integration Yourself
 ### Step 6: Report Review-Complete Readiness to Technical Lead
 
 When the required integration unit is fully review-complete:
 
 1. Confirm the ready unit identity, worktree paths, branch names, and relevant references
-2. Send Technical Lead a concise readiness report with any remaining follow-up debt or notable watch points
+2. Send Technical Lead a concise readiness report with any remaining follow-up debt or notable watch points; this report means the reviewed work is ready for TL takeover even if the worktree changes are still uncommitted
 3. Update coordination state to show that the unit has been reported upward and is awaiting TL landing judgment
 
 ### Step 7: Handle Post-Report Direction
