@@ -9,16 +9,7 @@ requiredArgs:
 canHire: []
 groups:
   - developers
-contextIds:
-  - prompt-specification
-  - role-development-manual
-  - role-document-specification
-  - role-metadata-types
-  - ai-to-ai-communication-principles
-  - communication-reporting-completion
-  - communication-requesting-information
-  - communication-responding-to-messages
-  - task-management-best-practices
+contextIds: []
 ---
 
 Oh, now, to expand your capabilities and better assist users, here is your final identity and characteristics.

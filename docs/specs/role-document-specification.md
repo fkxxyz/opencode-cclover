@@ -125,8 +125,6 @@ The system automatically manages your data and memory, so you can focus on your 
 
 ### edit_tasks
 
-### create_agent
-
 ### hire_employee
 
 ## Workflow
@@ -214,10 +212,6 @@ The system automatically manages your data and memory, so you can focus on your 
 ### edit_tasks
 
 [Describe when and how to use edit_tasks.]
-
-### create_agent
-
-[Describe when and how to use create_agent.]
 
 ### hire_employee
 

@@ -8,10 +8,6 @@ A role review is not general writing feedback and not generic prompt criticism. 
 
 This handbook is a public review reference. It focuses only on review criteria: what to inspect, what to validate, and what kinds of problems matter. It does not define reviewer-specific reporting style, private workflow behavior, or approval-routing procedure.
 
-For role file structure requirements, see `role-document-specification.md`.
-For role authoring guidance, see `role-development-manual.md`.
-For general prompt-writing principles, see `prompt-specification.md`.
-
 ---
 
 ## Review Inputs

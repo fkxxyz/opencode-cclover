@@ -4,53 +4,13 @@
 
 This manual guides employees who create or modify role definitions in the cclover multi-agent collaboration system.
 
-This manual assumes you already have clear requirements. It focuses on how to design role metadata and write role prompts effectively. It does not cover requirement collection methods, file format specifications, or post-creation verification procedures.
-
-For file format and structure requirements, see `role-document-specification.md`.
-For general prompt-writing principles, see `prompt-specification.md`.
-For metadata field definitions, see `src/types/index.ts` (RoleMetadata interface).
-
----
-
-## Prerequisites: Requirement Clarity Checklist
-
-Before starting role development, ensure you have clear answers to these questions. If any answer is unclear, stop and clarify requirements first.
-
-### Role Purpose
-- [ ] What problem does this role solve?
-- [ ] What value does this role provide to the system?
-- [ ] Why does this role need to exist as a separate entity?
-
-### Role Scope
-- [ ] What are the core responsibilities of this role?
-- [ ] What is explicitly outside this role's scope?
-- [ ] How does this role differ from existing roles?
-
-### Role Interactions
-- [ ] Which other roles will this role work with?
-- [ ] What is the reporting structure (if any)?
-- [ ] What collaboration patterns are expected?
-
-### Tool Usage Expectations
-- [ ] How should this role use send_message?
-- [ ] How should this role use edit_tasks?
-- [ ] How should this role use create_agent?
-- [ ] How should this role use hire_employee?
-
-### Success Criteria
-- [ ] What does successful execution look like for this role?
-- [ ] What are the key performance indicators?
-- [ ] What failure modes should be avoided?
-
-If you cannot answer these questions clearly, the requirements are not ready for development.
+This manual assumes you already have clear requirements. It focuses on how to design role metadata and write role prompts effectively.
 
 ---
 
 ## Metadata Design
 
 Role metadata appears in the YAML frontmatter of the role file. Metadata defines the role's external interface and system-level properties.
-
-The authoritative metadata definition is the `RoleMetadata` interface in `src/types/index.ts`.
 
 ### name
 
@@ -130,6 +90,14 @@ boundaries:
   - "Do not make architectural decisions (escalate to technical lead)"
   - "Do not directly modify production systems"
 ```
+
+### contextIds
+
+**What it is**: A list of role context specifications that should be loaded with the role.
+
+**How to design it**: When writing any role body, first consider whether reusable guidance should be extracted into role context instead of being written directly into the role body. Keep `contextIds` minimal: include only context the role genuinely needs, not context that is merely possibly relevant. If you are significantly unsure because only part of a context applies, strongly prefer splitting that context into more precise specifications.
+
+**Why it matters**: This keeps the role focused on the employee itself while shared working guidance remains reusable and composable.
 
 ### requiredArgs
 
@@ -226,9 +194,7 @@ memorySchema:
 
 ## Prompt Design
 
-The role prompt is the Markdown body of the role file. It defines how the role thinks, decides, and acts.
-
-The prompt follows a required structure defined in `role-document-specification.md`. This section explains how to write each section and why.
+The role prompt is the Markdown body of the role file. It defines how the role thinks, decides, and acts. Before adding reusable guidance to a role body, first consider whether it should be expressed as role context instead.
 
 ### Your Identity
 
@@ -244,9 +210,7 @@ The prompt follows a required structure defined in `role-document-specification.
 - Keep it concise (2-4 paragraphs)
 
 **Why write it this way**:
-The AI needs to understand "who I am" before it can make role-appropriate decisions. A clear identity provides the foundation for all subsequent behavior. When facing ambiguous situations, the AI can ask "what would someone in this role do?" and find guidance in this section.
-
-Identity is about being, not doing. It answers "what kind of agent am I?" rather than "what tasks do I perform?"
+Identity establishes the role's perspective and mindset, providing the foundation for role-appropriate decisions in ambiguous situations. It answers "what kind of agent am I?" rather than "what tasks do I perform?"
 
 ### Your Responsibilities
 
@@ -257,7 +221,7 @@ The exact content from the `responsibilities` field in metadata.
 Copy the responsibilities array from metadata directly into this section as a list.
 
 **Why write it this way**:
-Responsibilities are defined once in metadata and reused in the prompt body. This ensures consistency between the role's external interface (metadata) and internal guidance (prompt). The AI sees the same responsibilities that other roles see when deciding whether to hire this role.
+Responsibilities are defined once in metadata and reused in the prompt body, ensuring consistency between the role's external interface and internal guidance.
 
 ### Your Boundaries
 
@@ -268,7 +232,7 @@ The exact content from the `boundaries` field in metadata.
 Copy the boundaries array from metadata directly into this section as a list.
 
 **Why write it this way**:
-Like responsibilities, boundaries are defined in metadata and reused in the prompt. This maintains consistency and ensures the AI's understanding of its limits matches what other roles expect.
+Boundaries are defined in metadata and reused in the prompt, maintaining consistency between the role's limits and what other roles expect.
 
 ### Working Principles
 
@@ -297,9 +261,7 @@ Organize rules into three priority tiers:
 - Each guideline should explain when it applies
 
 **Why write it this way**:
-Not all rules are equally important. When rules conflict, the AI needs to know which takes priority. A three-tier system makes priorities explicit and helps the AI make correct tradeoffs.
-
-Explaining WHY each rule exists helps the AI generalize correctly to situations not explicitly covered. A rule with a reason can be applied intelligently; a rule without a reason becomes a brittle constraint.
+A three-tier priority system makes rule priorities explicit and helps the AI make correct tradeoffs when rules conflict. Explaining WHY each rule exists enables intelligent application to situations not explicitly covered.
 
 ### Tool Usage Guidelines
 
@@ -309,7 +271,7 @@ Explaining WHY each rule exists helps the AI generalize correctly to situations 
 - What should this role consider when using each tool?
 
 **How to write it**:
-For each of the four tools (send_message, edit_tasks, create_agent, hire_employee), provide:
+For each required tool section (send_message, edit_tasks, hire_employee), provide:
 
 **When to use**:
 - Specific scenarios that trigger tool usage
@@ -327,11 +289,7 @@ For each of the four tools (send_message, edit_tasks, create_agent, hire_employe
 - Role-specific usage patterns
 
 **Why write it this way**:
-Tools are the role's only way to interact with the system. Different roles use the same tools in very different ways. A project manager uses send_message constantly for coordination; a calculator role might never use it.
-
-Generic tool documentation explains what tools do. Role-specific tool guidelines explain when and how THIS role should use them. This customization is essential for appropriate behavior.
-
-The AI needs concrete guidance, not abstract principles. "Use send_message to communicate" is too vague. "Use send_message to report task completion to your manager after finishing each major milestone" is actionable.
+Different roles use the same tools in very different ways. Role-specific tool guidelines explain when and how THIS role should use them, not just what the tools do. Concrete guidance like "Use send_message to report task completion to your manager after finishing each major milestone" is more actionable than abstract principles like "Use send_message to communicate".
 
 ### Workflow
 
@@ -348,11 +306,7 @@ The AI needs concrete guidance, not abstract principles. "Use send_message to co
 - Use language like "typically", "usually", "a reliable approach is"
 
 **Why write it this way**:
-A workflow provides a proven path that works in most cases. It gives the AI a starting point and reduces decision paralysis. However, rigidly enforcing a workflow removes the AI's ability to adapt to unusual situations.
-
-The goal is to guide without constraining. The workflow should feel like advice from an experienced colleague, not commands from a rigid system. When the AI encounters a situation where the standard workflow doesn't fit, it should feel empowered to find a better path.
-
-This reflects the prompt-specification principle: describe the desired outcome and provide a recommended path, but don't force the path when a better one exists.
+A workflow provides a proven path that works in most cases, reducing decision paralysis. Frame it as a reliable default using language like "typically", "usually", "a reliable approach is" to allow deviation when the standard workflow doesn't fit the situation.
 
 ### Decision Criteria
 
@@ -372,11 +326,7 @@ This reflects the prompt-specification principle: describe the desired outcome a
 - Avoid vague guidance like "use good judgment"
 
 **Why write it this way**:
-AI agents constantly make decisions. Without clear criteria, decisions become arbitrary or inconsistent. Decision criteria transform "I don't know what to do" into "I can evaluate my options against these standards."
-
-Specific criteria are essential. "Choose the best approach" is useless. "Choose the approach that minimizes risk when safety is critical, or maximizes speed when deadlines are tight" is actionable.
-
-When criteria conflict, the AI needs to know which takes priority. Explicit priority ordering prevents paralysis and ensures consistent behavior.
+Specific, actionable criteria transform "I don't know what to do" into "I can evaluate my options against these standards". When criteria conflict, explicit priority ordering prevents paralysis and ensures consistent behavior.
 
 ### Collaboration Patterns
 
@@ -397,11 +347,7 @@ When criteria conflict, the AI needs to know which takes priority. Explicit prio
 - Explain conflict resolution if applicable
 
 **Why write it this way**:
-Cclover is a multi-agent system. Roles don't work in isolation. Clear collaboration patterns reduce coordination overhead and prevent misunderstandings.
-
-The AI needs to know "when should I reach out to someone else?" and "who should I reach out to?" Without this guidance, roles either over-communicate (spamming messages) or under-communicate (working in silos).
-
-Collaboration patterns also define the role's position in the organizational structure. Is this role a coordinator, an executor, a reviewer? The collaboration section makes this explicit.
+In cclover's multi-agent system, clear collaboration patterns reduce coordination overhead and prevent misunderstandings. They define when to reach out to others, who to reach out to, and the role's position in the organizational structure.
 
 ### Examples
 
@@ -426,11 +372,7 @@ Provide at least 2-3 pairs of good and bad examples:
 - Show what the correct response should have been
 
 **Why write it this way**:
-Concrete examples are more powerful than abstract rules. Examples show the rules in action and make them tangible. The AI can pattern-match against examples when facing similar situations.
-
-Good/bad pairs create contrast that reinforces correct behavior. Seeing both what to do and what not to do strengthens understanding. The bad example often highlights common mistakes or misconceptions.
-
-Examples should cover the role's core responsibilities. If a responsibility is important enough to list, it's important enough to demonstrate.
+Concrete examples make abstract rules tangible and enable pattern-matching in similar situations. Good/bad pairs create contrast that reinforces correct behavior and highlights common mistakes. Examples should cover the role's core responsibilities.
 
 ### Error Handling
 
@@ -451,11 +393,7 @@ Examples should cover the role's core responsibilities. If a responsibility is i
 - Explain the escalation path clearly
 
 **Why write it this way**:
-Errors are inevitable. Without error handling guidance, the AI either freezes (doesn't know what to do) or makes poor recovery attempts (makes things worse).
-
-Error handling is about resilience. A role that handles errors gracefully is far more valuable than one that only works in perfect conditions.
-
-The key distinction is escalate vs. self-recover. The AI needs to know "can I fix this myself, or do I need help?" Clear escalation paths prevent both under-escalation (struggling alone when help is available) and over-escalation (bothering others with trivial issues).
+Error handling guidance enables resilience. The key distinction is escalate vs. self-recover - clear escalation paths prevent both under-escalation (struggling alone when help is available) and over-escalation (bothering others with trivial issues).
 
 ---
 
@@ -480,8 +418,6 @@ Once you have designed the metadata and prompt content, create the role file:
    - All required metadata fields are present
    - All required sections are present and in order
    - Header and footer are exactly as specified
-
-See `role-document-specification.md` for the exact file format requirements.
 
 ---
 

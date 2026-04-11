@@ -1,0 +1,73 @@
+# Preset role context definitions
+# Keys are context IDs referenced by role metadata: contextIds: ["..."]
+
+contexts:
+  prompt-specification:
+    description: "Prompt writing principles and best practices"
+    documents:
+      - "docs/specs/prompt-specification.md"
+
+  role-development-manual:
+    description: "Guide for creating and modifying role definitions"
+    documents:
+      - "docs/specs/role-development-manual.md"
+
+  role-document-specification:
+    description: "Standard file format for role documents"
+    documents:
+      - "docs/specs/role-document-specification.md"
+
+  role-review-handbook:
+    description: "Review criteria for role definitions"
+    documents:
+      - "docs/specs/role-review-handbook.md"
+
+  role-metadata-types:
+    description: "TypeScript type definitions for role metadata"
+    documents:
+      - "src/types/role.ts"
+
+  ai-to-ai-communication-principles:
+    description: "Universal efficiency principles for AI-to-AI communication"
+    documents:
+      - "docs/specs/communication-patterns/ai-to-ai-communication-principles.md"
+
+  communication-reporting-completion:
+    description: "Communication pattern: Reporting completion to unblock others"
+    documents:
+      - "docs/specs/communication-patterns/reporting-completion.md"
+
+  communication-requesting-information:
+    description: "Communication pattern: Requesting information to get unblocked"
+    documents:
+      - "docs/specs/communication-patterns/requesting-information.md"
+
+  communication-delegating-work:
+    description: "Communication pattern: Delegating work with complete documentation"
+    documents:
+      - "docs/specs/communication-patterns/delegating-work.md"
+
+  communication-consulting-and-discussion:
+    description: "Communication pattern: Consulting and discussing options"
+    documents:
+      - "docs/specs/communication-patterns/consulting-and-discussion.md"
+
+  communication-escalating-issues:
+    description: "Communication pattern: Escalating issues outside your authority"
+    documents:
+      - "docs/specs/communication-patterns/escalating-issues.md"
+
+  communication-responding-to-messages:
+    description: "Communication pattern: Responding to messages effectively"
+    documents:
+      - "docs/specs/communication-patterns/responding-to-messages.md"
+
+  task-management-best-practices:
+    description: "Task management philosophy and best practices"
+    documents:
+      - "docs/specs/task-management-best-practices.md"
+
+  subordinate-management-philosophy:
+    description: "Philosophy and best practices for managing subordinates through hiring"
+    documents:
+      - "docs/specs/subordinate-management-philosophy.md"

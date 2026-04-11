@@ -26,7 +26,9 @@ Excessive procedural prescription can suppress useful reasoning, adaptation, and
 
 ### 1.4 Scope of This Specification
 
-This document defines a general prompt-writing specification applicable across prompt-bearing artifacts:
+**This is the official prompt-writing standard for this project.** All prompt-bearing artifacts in this codebase should follow these principles.
+
+This document defines a general prompt-writing specification applicable across:
 - agent prompts
 - skill prompts
 - role prompts
@@ -56,29 +58,13 @@ Isolated commands often leave the model to infer missing context. Missing contex
 
 This does not fully apply when tasks are extremely narrow and self-evident, or when repetitive structured pipelines already supply the surrounding context elsewhere.
 
-#### Good example
+#### Examples
 
-```
-You are analyzing customer feedback for a quarterly product review. The feedback comes from enterprise customers who have been using the product for at least six months. Your goal is to identify recurring pain points that affect user retention.
+**❌ Bad**: `Extract issues from feedback.` — Bare imperative with no context.
 
-Analyze the following feedback messages and extract the top three recurring issues.
-```
+**⚠️ Improvable**: `Analyze the following feedback messages and extract the top three recurring issues.` — Names the task but omits why it exists or what situation it belongs to.
 
-#### Improvable example
-
-```
-Analyze the following feedback messages and extract the top three recurring issues.
-```
-
-This prompt names the task but omits why the task exists or what situation it belongs to. The model has no context about the audience, the purpose, or what "recurring issues" should prioritize.
-
-#### Bad example
-
-```
-Extract issues from feedback.
-```
-
-A bare imperative with no meaningful context. The model must guess what "issues" means, what format is expected, and what the output will be used for.
+**✅ Good**: `You are analyzing customer feedback for a quarterly product review. The feedback comes from enterprise customers who have been using the product for at least six months. Your goal is to identify recurring pain points that affect user retention. Analyze the following feedback messages and extract the top three recurring issues.` — Provides context about audience, purpose, and priorities.
 
 ---
 
@@ -94,39 +80,13 @@ Strong models can often discover a better path than the prompt author's first pr
 
 This does not fully apply when tasks need procedural rigidity for safety, reproducibility, auditability, or compatibility, or when weaker models need more scaffolding for certain task types.
 
-#### Good example
+#### Examples
 
-```
-Your goal is to identify the root cause of the test failure and produce a fix that passes all tests.
+**❌ Bad**: `Follow these steps exactly: 1. Read test file 2. Read implementation file 3. Identify the failing assertion 4. Modify the implementation to pass the assertion 5. Run tests 6. If tests fail, repeat from step 3. Do not deviate from this procedure.` — Forces a detailed procedure without establishing why, removes the model's ability to adapt.
 
-The fix should be minimal, well-tested, and easy to verify. Focus on correctness over cleverness.
-```
+**⚠️ Improvable**: `Your goal is to identify the root cause of the test failure and produce a fix. First, read the test file. Then inspect the implementation. Then check for edge cases. Then write the fix.` — Gives a rough workflow but centers the procedure more than the outcome.
 
-#### Improvable example
-
-```
-Your goal is to identify the root cause of the test failure and produce a fix.
-
-First, read the test file. Then inspect the implementation. Then check for edge cases. Then write the fix.
-```
-
-This prompt gives a rough workflow but centers the procedure more than the outcome. The steps may not be optimal for all failure types.
-
-#### Bad example
-
-```
-Follow these steps exactly:
-1. Read test file
-2. Read implementation file
-3. Identify the failing assertion
-4. Modify the implementation to pass the assertion
-5. Run tests
-6. If tests fail, repeat from step 3
-
-Do not deviate from this procedure.
-```
-
-This prompt forces a detailed procedure without establishing why that exact procedure is necessary. It removes the model's ability to adapt to the actual failure mode.
+**✅ Good**: `Your goal is to identify the root cause of the test failure and produce a fix that passes all tests. The fix should be minimal, well-tested, and easy to verify. Focus on correctness over cleverness.` — Defines success criteria and quality standards without prescribing the exact path.
 
 ---
 
@@ -147,44 +107,13 @@ Boundaries align behavior while preserving flexibility inside the allowed space.
 
 This does not fully apply when some deterministic workflows genuinely require step-level control, or when tool protocols and strict schemas leave little room for discretionary execution.
 
-#### Good example
+#### Examples
 
-```
-Generate a summary of the research paper.
+**❌ Bad**: `Generate a summary of the research paper. Sentence 1 must describe the problem. Sentence 2 must describe the method. Sentence 3 must describe the results. Sentence 4 must describe the implications. Each sentence must be between 15 and 25 words. Do not use passive voice. Do not use the word "significant". Do not use abbreviations.` — Substitutes dozens of micro-rules for a few meaningful constraints.
 
-Requirements:
-- Length: 3-5 sentences
-- Audience: Non-expert readers
-- Avoid jargon unless you define it inline
-- Do not include citations or references
-```
+**⚠️ Improvable**: `Generate a summary of the research paper. First, read the abstract. Then read the introduction. Then read the conclusion. Then write exactly 4 sentences. Use simple words. Do not use any technical terms.` — Mixes boundaries with unnecessary local instructions.
 
-#### Improvable example
-
-```
-Generate a summary of the research paper.
-
-First, read the abstract. Then read the introduction. Then read the conclusion. Then write exactly 4 sentences. Use simple words. Do not use any technical terms.
-```
-
-This prompt mixes boundaries with unnecessary local instructions. The step-by-step reading order is not a meaningful constraint.
-
-#### Bad example
-
-```
-Generate a summary of the research paper.
-
-Sentence 1 must describe the problem.
-Sentence 2 must describe the method.
-Sentence 3 must describe the results.
-Sentence 4 must describe the implications.
-Each sentence must be between 15 and 25 words.
-Do not use passive voice.
-Do not use the word "significant".
-Do not use abbreviations.
-```
-
-This prompt substitutes dozens of micro-rules for a few meaningful constraints. It removes the model's ability to adapt the summary structure to the actual paper content.
+**✅ Good**: `Generate a summary of the research paper. Requirements: Length: 3-5 sentences; Audience: Non-expert readers; Avoid jargon unless you define it inline; Do not include citations or references.` — Defines the safe solution space without micromanaging every choice.
 
 ---
 
@@ -200,27 +129,13 @@ Reasons allow the model to generalize correctly in cases not spelled out literal
 
 Not every small instruction needs a full explanation. Extremely obvious or low-impact guidance may not justify added prompt length.
 
-#### Good example
+#### Examples
 
-```
-When generating code examples, prefer explicit variable names over abbreviations because the examples will be read by junior developers who are still learning the codebase conventions.
-```
+**❌ Bad**: `NEVER use abbreviations in variable names.` — Imposes a rigid restriction with no explanation of purpose.
 
-#### Improvable example
+**⚠️ Improvable**: `When generating code examples, prefer explicit variable names over abbreviations.` — Provides a useful recommendation but leaves the motivation implicit.
 
-```
-When generating code examples, prefer explicit variable names over abbreviations.
-```
-
-This prompt provides a useful recommendation but leaves the motivation implicit. The model does not know whether this is a style preference, a readability concern, or a compatibility requirement.
-
-#### Bad example
-
-```
-NEVER use abbreviations in variable names.
-```
-
-This prompt imposes a rigid restriction with no explanation of purpose. The model cannot judge when the restriction is truly important versus when it is incidental.
+**✅ Good**: `When generating code examples, prefer explicit variable names over abbreviations because the examples will be read by junior developers who are still learning the codebase conventions.` — Explains why the recommendation exists, allowing the model to generalize correctly.
 
 ---
 
@@ -236,42 +151,13 @@ Good prompts can guide without freezing judgment. A recommended default preserve
 
 Certain procedures must be mandatory due to safety, compliance, tool semantics, deterministic system requirements, or compatibility with existing workflows.
 
-#### Good example
+#### Examples
 
-```
-Your goal is to debug the failing test and produce a fix.
+**❌ Bad**: `Your goal is to debug the failing test and produce a fix. You MUST follow this procedure: 1. Read the test file 2. Read the implementation file 3. Identify the divergence point 4. Write the fix 5. Run the test. Do not use any other debugging approach.` — Turns a heuristic into an unexplained absolute command.
 
-A reliable approach is to first examine the test expectations, then trace through the implementation to identify where the actual behavior diverges from the expected behavior. This usually surfaces the root cause faster than editing code speculatively.
+**⚠️ Improvable**: `Your goal is to debug the failing test and produce a fix. First examine the test expectations, then trace through the implementation to identify where the actual behavior diverges.` — Recommends a method but does not clarify whether deviation is allowed.
 
-If you discover a more direct path to the root cause, you may follow it instead.
-```
-
-#### Improvable example
-
-```
-Your goal is to debug the failing test and produce a fix.
-
-First examine the test expectations, then trace through the implementation to identify where the actual behavior diverges.
-```
-
-This prompt recommends a method but does not clarify whether deviation is allowed. The model may treat it as mandatory even when a better path exists.
-
-#### Bad example
-
-```
-Your goal is to debug the failing test and produce a fix.
-
-You MUST follow this procedure:
-1. Read the test file
-2. Read the implementation file
-3. Identify the divergence point
-4. Write the fix
-5. Run the test
-
-Do not use any other debugging approach.
-```
-
-This prompt turns a heuristic into an unexplained absolute command. It removes the model's ability to adapt to the actual failure mode.
+**✅ Good**: `Your goal is to debug the failing test and produce a fix. A reliable approach is to first examine the test expectations, then trace through the implementation to identify where the actual behavior diverges from the expected behavior. This usually surfaces the root cause faster than editing code speculatively. If you discover a more direct path to the root cause, you may follow it instead.` — Frames the method as a strong default while allowing adaptation.
 
 ---
 
