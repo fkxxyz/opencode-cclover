@@ -12,9 +12,6 @@ import { fileURLToPath } from "node:url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// 存储 config 引用，用于 refresh_roles 工具更新 meeting-mode agents
-let pluginConfig: any = null
-
 /**
  * OpenCode Cclover Plugin
  *
@@ -93,9 +90,6 @@ export const CcloverPlugin: Plugin = async (ctx) => {
       },
       config: async (config) => {
         try {
-          // 存储 config 引用
-          pluginConfig = config
-
           // 注册空 agent，用于员工 session（避免预设提示词污染）
           const agents = (config.agent ?? {}) as Record<string, any>
           agents["cclover-empty-agent"] = {
@@ -136,15 +130,71 @@ export const CcloverPlugin: Plugin = async (ctx) => {
 
           // 基于 RoleManager 的最终解析结果注册 Meeting Mode primary agents
           for (const [agentName, definition] of Object.entries(
-            buildMeetingModePrimaryAgents(project.roleManager)
+            buildMeetingModePrimaryAgents(project.roleManager, {
+              useDynamicPromptInjection:
+                project.meetingModePromptInjector.isHookEnabled(),
+            })
           )) {
             agents[agentName] = definition
-            logger.debug(`[Cclover] Registered Meeting Mode agent: ${agentName}`)
+            logger.debug(
+              `[Cclover] Registered Meeting Mode agent: ${agentName}`
+            )
           }
 
           config.agent = agents
         } catch (error: any) {
           logger.error("[Cclover] Failed to process config:", error)
+        }
+      },
+      "chat.params": async (input) => {
+        try {
+          project.meetingModePromptInjector.recordSession(
+            input.sessionID,
+            input.agent
+          )
+        } catch (error: any) {
+          logger.error("[MeetingMode] chat.params failed:", error)
+        }
+      },
+      "chat.message": async (input) => {
+        try {
+          project.meetingModePromptInjector.recordSession(
+            input.sessionID,
+            input.agent
+          )
+        } catch (error: any) {
+          logger.error("[MeetingMode] chat.message failed:", error)
+        }
+      },
+      "experimental.chat.system.transform": async (input, output) => {
+        const sessionID = input.sessionID
+        let agentName: string | undefined
+
+        try {
+          const result = project.meetingModePromptInjector.buildInjectedPrompt(
+            sessionID,
+            project.roleManager
+          )
+          agentName = result.agentName
+
+          if (!result.injected || !result.prompt) {
+            logger.debug(
+              `[MeetingMode] system.transform: sessionID=${sessionID ?? "missing"}, agent=${agentName ?? "unknown"}, injected=false, reason=${result.reason ?? "unknown"}`
+            )
+            return
+          }
+
+          output.system.unshift(result.prompt)
+          project.meetingModePromptInjector.recordHookSuccess()
+          logger.debug(
+            `[MeetingMode] system.transform: sessionID=${sessionID ?? "missing"}, agent=${agentName}, injected=true`
+          )
+        } catch (error: any) {
+          project.meetingModePromptInjector.recordHookFailure(error)
+          logger.error(
+            `[MeetingMode] system.transform: sessionID=${sessionID ?? "missing"}, agent=${agentName ?? "unknown"}, injected=false, error=${error?.message ?? String(error)}`,
+            error
+          )
         }
       },
     }
@@ -155,14 +205,3 @@ export const CcloverPlugin: Plugin = async (ctx) => {
 }
 // Default export
 export default CcloverPlugin
-
-/**
- * 获取存储的 plugin config 引用
- * 用于 refresh_roles 工具更新 meeting-mode agents
- * 
- * 在插件入口不可以 export 任何函数，否则会被当成插件加载而导致整个 opencode 崩溃
- *     TODO 以下代码因为导致崩溃已被注释，需要其它方式来实现
- */
-// export function getPluginConfig(): any {
-//   return pluginConfig
-// }

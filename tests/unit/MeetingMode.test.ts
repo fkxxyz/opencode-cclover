@@ -20,7 +20,7 @@ describe("Meeting Mode helpers", () => {
     roleManager = new RoleManager(tempDir)
   })
 
-  test("buildMeetingModePrimaryAgents uses resolved role set from RoleManager", async () => {
+  test("buildMeetingModePrimaryAgents uses placeholder prompts when dynamic injection is enabled", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
@@ -36,13 +36,43 @@ Project override calculator prompt`
 
     await roleManager.refresh()
 
-    const agents = buildMeetingModePrimaryAgents(roleManager)
+    const agents = buildMeetingModePrimaryAgents(roleManager, {
+      useDynamicPromptInjection: true,
+    })
 
     expect(agents.Calculator).toBeDefined()
     expect(agents.Calculator.mode).toBe("primary")
     expect(agents.Calculator.description).toBe(
       "Project override calculator description"
     )
+    expect(agents.Calculator.prompt).toContain(
+      "Meeting mode prompt is injected dynamically"
+    )
+    expect(agents.Calculator.prompt).not.toContain(
+      "Project override calculator prompt"
+    )
+  })
+
+  test("buildMeetingModePrimaryAgents uses static prompts when dynamic injection is disabled", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "Calculator.md"),
+      `---
+name: Calculator
+description: Project override calculator description
+---
+
+Project override calculator prompt`
+    )
+
+    await roleManager.refresh()
+
+    const agents = buildMeetingModePrimaryAgents(roleManager, {
+      useDynamicPromptInjection: false,
+    })
+
     expect(agents.Calculator.prompt).toContain(
       "Project override calculator prompt"
     )

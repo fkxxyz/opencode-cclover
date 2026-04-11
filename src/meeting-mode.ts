@@ -12,6 +12,10 @@ export interface MeetingModePrimaryAgentDefinition {
   description: string
 }
 
+export interface MeetingModeAgentBuildOptions {
+  useDynamicPromptInjection?: boolean
+}
+
 export interface ResolvedToolActor {
   actorName: string
   actorEmployeeId: string
@@ -21,7 +25,7 @@ export interface ResolvedToolActor {
   projectedRoleName?: string
 }
 
-const MEETING_MODE_AUGMENTATION = `## Meeting Context
+export const MEETING_MODE_AUGMENTATION = `## Meeting Context
 
 The boss is personally talking with you.
 
@@ -38,23 +42,36 @@ export function composeMeetingModePrompt(systemPrompt: string): string {
 }
 
 export function buildMeetingModePrimaryAgents(
-  roleManager: RoleManager
+  roleManager: RoleManager,
+  options?: MeetingModeAgentBuildOptions
 ): Record<string, MeetingModePrimaryAgentDefinition> {
   const agents: Record<string, MeetingModePrimaryAgentDefinition> = {}
+  const useDynamicPromptInjection = options?.useDynamicPromptInjection ?? false
 
   for (const role of roleManager.getAllRoles()) {
     agents[role.name] = {
-      prompt: buildMeetingModeSystemPrompt(
-        role.systemPrompt,
-        MEETING_MODE_AUGMENTATION,
-        role
-      ),
+      prompt: useDynamicPromptInjection
+        ? buildMeetingModePlaceholderPrompt(role.name)
+        : buildMeetingModeSystemPrompt(
+            role.systemPrompt,
+            MEETING_MODE_AUGMENTATION,
+            role
+          ),
       mode: "primary",
       description: getMeetingModeAgentDescription(role),
     }
   }
 
   return agents
+}
+
+export function buildMeetingModePlaceholderPrompt(roleName: string): string {
+  return [
+    `# Meeting Mode Placeholder: ${roleName}`,
+    "",
+    "Meeting mode prompt is injected dynamically by experimental.chat.system.transform.",
+    "If dynamic injection is unavailable, the plugin will degrade to static prompt registration after reload.",
+  ].join("\n")
 }
 
 export function isMeetingModeProjectedAgent(

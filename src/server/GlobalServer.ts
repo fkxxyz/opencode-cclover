@@ -16,6 +16,7 @@ import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
 import { formatEmployeeId } from "../types/employee"
 import type { InternalPromptRecoveryEvent } from "../core/eventloop/EventLoop"
+import { MeetingModePromptInjector } from "../meeting-mode/PromptInjector"
 
 /**
  * 全局 Cclover 服务
@@ -169,6 +170,10 @@ export class GlobalCcloverService {
     )
     const agentRegistry = new AgentRegistry()
     const roleManager = new RoleManager(config.path)
+    const meetingModePromptInjector = new MeetingModePromptInjector(
+      projectId,
+      config.name
+    )
 
     // 初始化 roleManager（加载所有 role）
     await roleManager.refresh()
@@ -185,6 +190,7 @@ export class GlobalCcloverService {
       agentRegistry,
       bossManager: projectBossManager,
       roleManager,
+      meetingModePromptInjector,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
       eventLoops: new Map(), // 初始化 EventLoop Map
     }
