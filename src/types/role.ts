@@ -217,6 +217,13 @@ export interface RoleMetadata {
   memorySchema?: Record<string, RoleMemoryFieldSpec>
 
   /**
+   * Model type identifier for AI model selection
+   * References a key in the modelTypes configuration
+   * Defaults to "default" if not specified
+   */
+  model_type?: string
+
+  /**
    * Resolved role contexts (internal use only)
    * This field is populated by RoleManager after loading the role.
    * It is not part of user-authored YAML frontmatter.

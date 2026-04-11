@@ -6,6 +6,7 @@ import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { EventLoop } from "../core/eventloop"
 import type { MeetingModePromptInjector } from "../meeting-mode/PromptInjector"
+import type { ModelConfigManager } from "../config/ModelConfigManager"
 import { createHash } from "node:crypto"
 import EventEmitter from "eventemitter3"
 
@@ -23,6 +24,7 @@ export interface ProjectInstance {
   agentRegistry: AgentRegistry
   bossManager: BossManager
   roleManager: RoleManager
+  modelConfigManager: ModelConfigManager
   meetingModePromptInjector: MeetingModePromptInjector
   eventLoopStarted: boolean // EventLoop 是否已启动
   eventLoops: Map<string, EventLoop> // 员工名称 -> EventLoop 实例

@@ -122,7 +122,8 @@ export function createTools(deps: {
       deps.opcodeClient,
       deps.stateManager,
       deps.bossManager,
-      deps.project?.roleManager
+      deps.project?.roleManager,
+      deps.project?.modelConfigManager
     ),
     hire_employee: deps.project
       ? createHireEmployeeTool(

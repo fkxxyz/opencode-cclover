@@ -2,6 +2,10 @@ import * as fs from "node:fs/promises"
 import path from "node:path"
 import { ConfigManager } from "../config/ConfigManager"
 import type { ProjectConfig } from "../config/ConfigManager"
+import {
+  ModelConfigManager,
+  loadPresetConfig,
+} from "../config/ModelConfigManager"
 import { ProjectRegistry } from "./ProjectRegistry"
 import type { ProjectInstance } from "./ProjectRegistry"
 import { ConsoleServer } from "./index"
@@ -175,6 +179,22 @@ export class GlobalCcloverService {
       config.name
     )
 
+    // 创建 ModelConfigManager
+    const globalConfig = await ConfigManager.load()
+    const presetConfig = await loadPresetConfig()
+    const modelConfigManager = new ModelConfigManager(
+      globalConfig,
+      presetConfig
+    )
+
+    // 验证模型配置
+    try {
+      modelConfigManager.validate()
+    } catch (error) {
+      logger.error("Model config validation failed:", error)
+      throw error
+    }
+
     // 初始化 roleManager（加载所有 role）
     await roleManager.refresh()
 
@@ -190,6 +210,7 @@ export class GlobalCcloverService {
       agentRegistry,
       bossManager: projectBossManager,
       roleManager,
+      modelConfigManager,
       meetingModePromptInjector,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
       eventLoops: new Map(), // 初始化 EventLoop Map
@@ -330,6 +351,7 @@ export class GlobalCcloverService {
           messageClient,
           project.memoryManager,
           opcodeClient,
+          project.modelConfigManager,
           project.stateManager
         )
 
@@ -423,6 +445,7 @@ export class GlobalCcloverService {
       messageClient,
       project.memoryManager,
       opcodeClient,
+      project.modelConfigManager,
       project.stateManager
     )
 

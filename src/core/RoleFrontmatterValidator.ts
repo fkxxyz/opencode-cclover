@@ -95,6 +95,14 @@ export function validateRoleFrontmatter(
     })
   }
 
+  if (raw.model_type !== undefined && typeof raw.model_type !== "string") {
+    issues.push({
+      level: "error",
+      field: "model_type",
+      message: "model_type must be a string",
+    })
+  }
+
   validateStringArrayField(raw.responsibilities, "responsibilities", issues)
   validateStringArrayField(raw.boundaries, "boundaries", issues)
   validateStringArrayField(raw.contextIds, "contextIds", issues)
@@ -158,6 +166,8 @@ export function validateRoleFrontmatter(
       memorySchema: raw.memorySchema as
         | Record<string, RoleMemoryFieldSpec>
         | undefined,
+      model_type:
+        typeof raw.model_type === "string" ? raw.model_type : undefined,
       workflow: normalizedWorkflow,
     },
     issues,

@@ -4,6 +4,7 @@ import type { Event, Message, EmployeeId } from "../../types"
 import type { MemoryManager } from "../MemoryManager"
 import type { RoleManager } from "../RoleManager"
 import type { StateManager } from "../../state/StateManager"
+import type { ModelConfigManager } from "../../config/ModelConfigManager"
 import type { RuntimeEvent } from "../../utils/ContextBuilder"
 import { SessionManager } from "./SessionManager"
 import { SummaryService } from "./SummaryService"
@@ -81,6 +82,7 @@ export class EventLoop {
     private messageClient: MessageClient,
     private memoryManager: MemoryManager,
     private opcodeClient: OpencodeClient,
+    private modelConfigManager: ModelConfigManager,
     private stateManager?: StateManager
   ) {
     // 初始化子模块
@@ -686,7 +688,12 @@ export class EventLoop {
       triggerEventType: event.type,
     })
 
-    // 9. 发送给 AI
+    // 9. 查询模型配置
+    const role = this.roleManager.getRole(this.roleName)
+    const modelType = role?.model_type || "default"
+    const modelConfig = this.modelConfigManager.resolve(modelType)
+
+    // 10. 发送给 AI
     logger.debug(`[${this.employeeId}] Calling AI (session.prompt)`)
     const promptInput = {
       path: { id: session.id },
@@ -699,6 +706,7 @@ export class EventLoop {
           edit_tasks: true,
           create_agent: true,
         },
+        ...(modelConfig && { model: modelConfig }),
       },
       headers: {
         "x-opencode-directory": this.projectPath,
@@ -715,10 +723,10 @@ export class EventLoop {
     }
     logger.debug(`[${this.employeeId}] AI call completed, received result`)
 
-    // 10. 清除 activeSessionId
+    // 11. 清除 activeSessionId
     await this.stateManager?.updateActiveSessionId(this.employeeId, null)
 
-    // 11. 检查是否被紧急消息中断
+    // 12. 检查是否被紧急消息中断
     if (result.data?.info.error?.name === "MessageAbortedError") {
       logger.info(
         `[${this.employeeId}] Session aborted by urgent message, continuing to next event`

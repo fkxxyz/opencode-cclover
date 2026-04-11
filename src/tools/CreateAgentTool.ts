@@ -8,6 +8,7 @@ import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
+import type { ModelConfigManager } from "../config/ModelConfigManager"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { resolveToolActor } from "../meeting-mode"
 /**
@@ -15,12 +16,16 @@ import { resolveToolActor } from "../meeting-mode"
  *
  * @param opcodeClient OpenCode SDK client
  * @param stateManager State manager
+ * @param bossManager Boss manager
+ * @param roleManager Role manager
+ * @param modelConfigManager Model config manager
  */
 export function createCreateAgentTool(
   opcodeClient: OpencodeClient,
   stateManager?: StateManager,
   bossManager?: BossManager,
-  roleManager?: RoleManager
+  roleManager?: RoleManager,
+  modelConfigManager?: ModelConfigManager
 ) {
   return tool({
     description: "Create OpenCode agent to execute task",
@@ -66,21 +71,30 @@ export function createCreateAgentTool(
           return `Failed to create agent: Unable to get session ID`
         }
 
-        // 3. Send prompt
+        // 3. Query model config
+        let modelConfig = null
+        if (employee && roleManager && modelConfigManager) {
+          const role = roleManager.getRole(employee.role)
+          const modelType = role?.model_type || "default"
+          modelConfig = modelConfigManager.resolve(modelType)
+        }
+
+        // 4. Send prompt
         await opcodeClient.session.prompt({
           path: { id: agentId },
           body: {
             agent: "cclover-empty-agent", // Use empty agent to avoid preset prompt pollution
             parts: [{ type: "text", text: args.prompt }],
+            ...(modelConfig && { model: modelConfig }),
           },
         })
 
-        // 4. Record agent information (for subsequent event matching)
+        // 5. Record agent information (for subsequent event matching)
         agentRegistry.register(agentId, {
           employeeId: employeeId,
           taskName: args.task_name,
         })
-        // 4. Record agent creation event
+        // 6. Record agent creation event
         await stateManager?.addEvent({
           projectId: "",
           type: "agent_created",

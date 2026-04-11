@@ -164,6 +164,82 @@ projects:
 
 Restart OpenCode server to apply changes.
 
+### Model Configuration
+
+The system supports configuring AI models per role through a layered configuration system.
+
+**Configuration Layers** (higher priority overrides lower):
+1. **Global**: `~/.config/opencode-cclover/config.yaml` (highest priority)
+2. **Preset**: `src/config/preset.yaml` (default fallback)
+3. **OpenCode Default**: Used when no configuration found
+
+**Config Format**:
+```yaml
+modelTypes:
+  default:
+    model: "anthropic/claude-3-5-sonnet-20241022"
+  fast:
+    model: "anthropic/claude-3-haiku-20240307"
+  powerful:
+    model: "anthropic/claude-3-opus-20240229"
+  # Redirections (single-layer only)
+  quick: "fast"  # Redirects to "fast" in same layer
+```
+
+**Model String Format**:
+- Required format: `"providerID/modelID"`
+- Example: `"anthropic/claude-3-5-sonnet-20241022"`
+- Invalid: `"no-slash"`, `"too/many/slashes"`, `"/empty-provider"`
+
+**Redirection Rules**:
+- Redirections resolve within the same config layer only
+- Global `"fast"` → global `"default"` (not preset `"default"`)
+- If redirection target missing in same layer → fallback to next layer
+- Circular redirections detected at startup (system refuses to start)
+
+**Role Integration**:
+Add `model_type` field to role frontmatter:
+```markdown
+---
+name: "Fast Responder"
+description: "A role that uses fast model"
+model_type: "fast"
+---
+
+You are a fast responder.
+```
+
+If `model_type` is not specified, defaults to `"default"`.
+
+**Fallback Behavior**:
+1. Look for `model_type` key in global config
+2. If not found, look in preset config
+3. If not found, return null (use OpenCode default model)
+
+**Example Configuration**:
+```yaml
+# ~/.config/opencode-cclover/config.yaml
+bosses:
+  - your_name
+projects:
+  - name: my_project
+    path: /absolute/path/to/project
+    enabled: true
+modelTypes:
+  default:
+    model: "anthropic/claude-3-5-sonnet-20241022"
+  fast:
+    model: "anthropic/claude-3-haiku-20240307"
+  powerful:
+    model: "anthropic/claude-3-opus-20240229"
+```
+
+**Validation**:
+- System validates all model configurations at startup
+- Circular redirections → error, system refuses to start
+- Invalid model format → error, system refuses to start
+- Missing redirection target → warning, fallback to next layer
+
 ## HTTP API Routes
 All HTTP API Routes are defined in `src/server/routes.ts` with JSDoc documentation.
 
@@ -209,6 +285,9 @@ This defines the role's behavior, responsibilities, and limitations.
 **Frontmatter Fields**:
 - `name` (required): Role name, must match filename (without .md extension)
 - `description` (optional): Brief description of the role
+- `model_type` (optional): Model type identifier for AI model selection (defaults to "default")
+  - References a key in the `modelTypes` configuration
+  - Example: `"fast"`, `"powerful"`, `"default"`
 - `requiredArgs` (optional): Parameters required when hiring this role
   - Each arg has `type` and `description` fields
   - System will remind if args are missing in employee memory

@@ -21,6 +21,9 @@ export interface CcloverConfig {
   port?: number
   logLevel?: string
   projects: ProjectConfig[]
+  modelTypes?: {
+    [key: string]: string | { model: string }
+  }
 }
 
 /**

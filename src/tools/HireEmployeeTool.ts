@@ -281,6 +281,7 @@ async function startEmployee(
       messageClient,
       project.memoryManager,
       opcodeClient,
+      project.modelConfigManager,
       project.stateManager
     )
 
