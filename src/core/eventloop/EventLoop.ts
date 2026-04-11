@@ -208,7 +208,8 @@ export class EventLoop {
         this.errorRecovery.resetErrorTracking()
       } catch (error) {
         logger.debug(
-          `[${this.employeeId}] [ERROR] Caught error in event loop: ${(error as any).message}`
+          `[${this.employeeId}] [ERROR] Caught error in event loop: `,
+          error
         )
 
         // 检查是否是假期请求导致的退出
@@ -687,12 +688,12 @@ export class EventLoop {
 
     // 9. 发送给 AI
     logger.debug(`[${this.employeeId}] Calling AI (session.prompt)`)
-    const result = await this.opcodeClient.session.prompt({
+    const promptInput = {
       path: { id: session.id },
       body: {
         agent: "cclover-empty-agent", // 使用空 agent 避免预设提示词污染
         system: systemPrompt,
-        parts: [{ type: "text", text: eventMessage }],
+        parts: [{ type: "text" as const, text: eventMessage }],
         tools: {
           send_message: true,
           edit_tasks: true,
@@ -702,7 +703,16 @@ export class EventLoop {
       headers: {
         "x-opencode-directory": this.projectPath,
       },
-    })
+    }
+    let result
+    try {
+      result = await this.opcodeClient.session.prompt(promptInput)
+    } catch (error) {
+      logger.error(
+        `[${this.employeeId}] session.prompt failed with input: ${JSON.stringify(promptInput, null, 2)}`
+      )
+      throw error
+    }
     logger.debug(`[${this.employeeId}] AI call completed, received result`)
 
     // 10. 清除 activeSessionId

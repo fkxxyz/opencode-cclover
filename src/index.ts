@@ -78,63 +78,74 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     return {
       tool: tools,
       "tool.definition": async (input, output) => {
-        // 自动提取参数描述（修复 OpenCode SDK 不传递 Zod .describe() 的问题）
-        const paramDocs = formatToolParameterDescriptions(output.parameters)
-        if (paramDocs) {
-          output.description += paramDocs
-        }
-      },
-      config: async (config) => {
-        // 存储 config 引用
-        pluginConfig = config
-
-        // 注册空 agent，用于员工 session（避免预设提示词污染）
-        const agents = (config.agent ?? {}) as Record<string, any>
-        agents["cclover-empty-agent"] = {
-          prompt: "---\n", // 空提示词占位
-          mode: "subagent",
-          hidden: true, // 隐藏，不在 UI 中显示
-          description: "Internal agent for Cclover employee sessions",
-        }
-
-        // 自动扫描并注册 src/agents/ 目录下的所有 agent
         try {
-          const agentsDir = path.join(__dirname, "agents")
-          const agentFiles = await fs.readdir(agentsDir)
-          const mdFiles = agentFiles.filter((file) => file.endsWith(".md"))
-
-          for (const file of mdFiles) {
-            const agentName = path.basename(file, ".md")
-            const agentPromptPath = path.join(agentsDir, file)
-            try {
-              const agentPrompt = await fs.readFile(agentPromptPath, "utf-8")
-              agents[agentName] = {
-                prompt: agentPrompt,
-                mode: "primary",
-                description: `Agent: ${agentName}`,
-              }
-              logger.debug(`[Cclover] Registered agent: ${agentName}`)
-            } catch (error: any) {
-              logger.error(
-                `[Cclover] Failed to load ${agentName} agent prompt: ${error.message}`
-              )
-            }
+          // 自动提取参数描述（修复 OpenCode SDK 不传递 Zod .describe() 的问题）
+          const paramDocs = formatToolParameterDescriptions(output.parameters)
+          if (paramDocs) {
+            output.description += paramDocs
           }
         } catch (error: any) {
           logger.error(
-            `[Cclover] Failed to scan agents directory: ${error.message}`
+            `[Cclover] Failed to format tool parameter descriptions for ${output.description}:`,
+            error
           )
         }
+      },
+      config: async (config) => {
+        try {
+          // 存储 config 引用
+          pluginConfig = config
 
-        // 基于 RoleManager 的最终解析结果注册 Meeting Mode primary agents
-        for (const [agentName, definition] of Object.entries(
-          buildMeetingModePrimaryAgents(project.roleManager)
-        )) {
-          agents[agentName] = definition
-          logger.debug(`[Cclover] Registered Meeting Mode agent: ${agentName}`)
+          // 注册空 agent，用于员工 session（避免预设提示词污染）
+          const agents = (config.agent ?? {}) as Record<string, any>
+          agents["cclover-empty-agent"] = {
+            prompt: "---\n", // 空提示词占位
+            mode: "subagent",
+            hidden: true, // 隐藏，不在 UI 中显示
+            description: "Internal agent for Cclover employee sessions",
+          }
+
+          // 自动扫描并注册 src/agents/ 目录下的所有 agent
+          try {
+            const agentsDir = path.join(__dirname, "agents")
+            const agentFiles = await fs.readdir(agentsDir)
+            const mdFiles = agentFiles.filter((file) => file.endsWith(".md"))
+
+            for (const file of mdFiles) {
+              const agentName = path.basename(file, ".md")
+              const agentPromptPath = path.join(agentsDir, file)
+              try {
+                const agentPrompt = await fs.readFile(agentPromptPath, "utf-8")
+                agents[agentName] = {
+                  prompt: agentPrompt,
+                  mode: "primary",
+                  description: `Agent: ${agentName}`,
+                }
+                logger.debug(`[Cclover] Registered agent: ${agentName}`)
+              } catch (error: any) {
+                logger.error(
+                  `[Cclover] Failed to load ${agentName} agent prompt: ${error.message}`
+                )
+              }
+            }
+          } catch (error: any) {
+            logger.error(
+              `[Cclover] Failed to scan agents directory: ${error.message}`
+            )
+          }
+
+          // 基于 RoleManager 的最终解析结果注册 Meeting Mode primary agents
+          for (const [agentName, definition] of Object.entries(
+            buildMeetingModePrimaryAgents(project.roleManager)
+          )) {
+            agents[agentName] = definition
+            logger.debug(`[Cclover] Registered Meeting Mode agent: ${agentName}`)
+          }
+
+          config.agent = agents
+        } catch (error: any) {
+          logger.error("[Cclover] Failed to process config:", error)
         }
-
-        config.agent = agents
       },
     }
   } catch (error: any) {
@@ -148,7 +159,10 @@ export default CcloverPlugin
 /**
  * 获取存储的 plugin config 引用
  * 用于 refresh_roles 工具更新 meeting-mode agents
+ * 
+ * 在插件入口不可以 export 任何函数，否则会被当成插件加载而导致整个 opencode 崩溃
+ *     TODO 以下代码因为导致崩溃已被注释，需要其它方式来实现
  */
-export function getPluginConfig(): any {
-  return pluginConfig
-}
+// export function getPluginConfig(): any {
+//   return pluginConfig
+// }
