@@ -18,18 +18,22 @@ export function createRefreshRolesTool(project: ProjectInstance) {
       "Refresh role list, reload all role definitions from preset, global, and project directories",
     args: {},
     async execute() {
-      // 1. Call RoleManager's refresh method
-      await project.roleManager.refresh()
+      try {
+        // 1. Call RoleManager's refresh method
+        await project.roleManager.refresh()
 
-      // 2. Refresh system prompts for all running employees
-      const refreshPromises: Promise<void>[] = []
-      for (const [employeeName, eventLoop] of project.eventLoops.entries()) {
-        refreshPromises.push(eventLoop.refreshSystemPrompt())
+        // 2. Refresh system prompts for all running employees
+        const refreshPromises: Promise<void>[] = []
+        for (const [employeeName, eventLoop] of project.eventLoops.entries()) {
+          refreshPromises.push(eventLoop.refreshSystemPrompt())
+        }
+        await Promise.all(refreshPromises)
+
+        const roleNames = project.roleManager.getRoleNames()
+        return `Roles refreshed successfully. Available roles: ${roleNames.join(", ")}. Updated system prompts for ${project.eventLoops.size} running employee(s) and meeting-mode agent registrations.`
+      } catch (error: any) {
+        return `Failed to refresh roles:\n${error.message}`
       }
-      await Promise.all(refreshPromises)
-
-      const roleNames = project.roleManager.getRoleNames()
-      return `Roles refreshed successfully. Available roles: ${roleNames.join(", ")}. Updated system prompts for ${project.eventLoops.size} running employee(s) and meeting-mode agent registrations.`
     },
   })
 }

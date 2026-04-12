@@ -60,17 +60,37 @@ export class RoleManager {
    * 扫描三个位置并按优先级加载
    */
   async refresh(): Promise<void> {
-    this.roles.clear()
+    logger.info(
+      `[RoleManager] Starting role refresh at ${new Date().toISOString()}`
+    )
+
+    // 创建临时 Map 用于原子性更新
+    const tempRoles = new Map<string, Role>()
+    const errors: Array<{ file: string; error: string }> = []
+
     this.contextDefinitions = await this.loadContextDefinitions()
 
-    // 1. 加载预设角色（优先级最低）
-    await this.loadPresetRoles()
+    // 1. 加载预设角色(优先级最低)
+    await this.loadPresetRoles(tempRoles, errors)
 
-    // 2. 加载全局自定义角色（优先级中等）
-    await this.loadGlobalRoles()
+    // 2. 加载全局自定义角色(优先级中等)
+    await this.loadGlobalRoles(tempRoles, errors)
 
-    // 3. 加载项目自定义角色（优先级最高）
-    await this.loadProjectRoles()
+    // 3. 加载项目自定义角色(优先级最高)
+    await this.loadProjectRoles(tempRoles, errors)
+
+    // 如果有任何验证错误,抛出异常
+    if (errors.length > 0) {
+      const errorMessage =
+        "Role validation failed:\n" +
+        errors
+          .map((e) => `  - File: ${e.file}\n    Error: ${e.error}`)
+          .join("\n")
+      throw new Error(errorMessage)
+    }
+
+    // 原子性更新:只有所有角色都验证通过才更新
+    this.roles = tempRoles
 
     logger.info(
       `[RoleManager] Loaded ${this.roles.size} roles for project ${this.projectPath}`
@@ -101,14 +121,25 @@ export class RoleManager {
   /**
    * 加载预设角色
    */
-  private async loadPresetRoles(): Promise<void> {
-    await this.loadRolesFromDir(this.presetRolesDir, "preset")
+  private async loadPresetRoles(
+    targetMap: Map<string, Role>,
+    errors: Array<{ file: string; error: string }>
+  ): Promise<void> {
+    await this.loadRolesFromDir(
+      this.presetRolesDir,
+      "preset",
+      targetMap,
+      errors
+    )
   }
 
   /**
    * 加载全局自定义角色
    */
-  private async loadGlobalRoles(): Promise<void> {
+  private async loadGlobalRoles(
+    targetMap: Map<string, Role>,
+    errors: Array<{ file: string; error: string }>
+  ): Promise<void> {
     const homeDir = process.env.HOME || process.env.USERPROFILE
     if (!homeDir) {
       logger.warn("[RoleManager] Cannot determine home directory")
@@ -116,15 +147,18 @@ export class RoleManager {
     }
 
     const globalDir = path.join(homeDir, ".config/opencode-cclover/roles")
-    await this.loadRolesFromDir(globalDir, "global")
+    await this.loadRolesFromDir(globalDir, "global", targetMap, errors)
   }
 
   /**
    * 加载项目自定义角色
    */
-  private async loadProjectRoles(): Promise<void> {
+  private async loadProjectRoles(
+    targetMap: Map<string, Role>,
+    errors: Array<{ file: string; error: string }>
+  ): Promise<void> {
     const projectDir = path.join(this.projectPath, ".cclover/roles")
-    await this.loadRolesFromDir(projectDir, "project")
+    await this.loadRolesFromDir(projectDir, "project", targetMap, errors)
   }
 
   /**
@@ -132,7 +166,9 @@ export class RoleManager {
    */
   private async loadRolesFromDir(
     dir: string,
-    source: "preset" | "global" | "project"
+    source: "preset" | "global" | "project",
+    targetMap: Map<string, Role>,
+    errors: Array<{ file: string; error: string }>
   ): Promise<void> {
     try {
       const files = await fs.readdir(dir)
@@ -162,23 +198,29 @@ export class RoleManager {
               expectedRoleName: path.basename(filePath, ".md"),
             })
 
+            // 收集所有验证错误
             for (const issue of validation.issues) {
               const logMessage = formatRoleValidationIssue(issue, filePath)
-              if (issue.level === "warning") {
-                logger.warn(logMessage)
+              if (issue.level === "error") {
+                errors.push({ file: filePath, error: logMessage })
               } else {
                 logger.warn(logMessage)
               }
             }
 
             if (!validation.valid || !validation.normalized) {
+              errors.push({
+                file: filePath,
+                error: "Role validation failed",
+              })
               continue
             }
 
             if (systemPrompt.length === 0) {
-              logger.warn(
-                `[RoleManager] Role file ${filePath} has empty system prompt body, skipping`
-              )
+              errors.push({
+                file: filePath,
+                error: "Role file has empty system prompt body",
+              })
               continue
             }
 
@@ -190,7 +232,7 @@ export class RoleManager {
               ),
             }
 
-            this.roles.set(metadata.name, {
+            targetMap.set(metadata.name, {
               ...metadata,
               systemPrompt,
               source,
@@ -201,14 +243,16 @@ export class RoleManager {
             )
           } else {
             // 没有 YAML frontmatter，拒绝加载
-            logger.debug(
-              `[RoleManager] Role file ${filePath} does not have YAML frontmatter, skipping`
-            )
+            errors.push({
+              file: filePath,
+              error: "Role file does not have YAML frontmatter",
+            })
           }
         } catch (error: any) {
-          logger.error(
-            `[RoleManager] Failed to load role from ${filePath}: ${error.message}`
-          )
+          errors.push({
+            file: filePath,
+            error: `Failed to load role: ${error.message}`,
+          })
         }
       }
     } catch (error: any) {

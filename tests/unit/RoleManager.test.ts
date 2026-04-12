@@ -327,9 +327,10 @@ This role should not load.`
       roleContent
     )
 
-    await roleManager.refresh()
-
-    expect(roleManager.getRole("invalid-context-role")).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
   })
 
   test("should reject role metadata when requiredArgs uses unsupported type", async () => {
@@ -353,9 +354,10 @@ This role should not load.`
       roleContent
     )
 
-    await roleManager.refresh()
-
-    expect(roleManager.getRole("invalid-required-args-role")).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
   })
 
   test("should reject role metadata when memorySchema uses unsupported type", async () => {
@@ -379,9 +381,10 @@ This role should not load.`
       roleContent
     )
 
-    await roleManager.refresh()
-
-    expect(roleManager.getRole("invalid-memory-schema-role")).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
   })
 
   test("should reject role metadata when frontmatter contains internal-only resolvedContexts", async () => {
@@ -402,9 +405,10 @@ This role should not load.`
       roleContent
     )
 
-    await roleManager.refresh()
-
-    expect(roleManager.getRole("invalid-internal-field-role")).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
   })
 
   test("should reject role when system prompt body is empty", async () => {
@@ -424,9 +428,10 @@ description: Role with empty prompt
       roleContent
     )
 
-    await roleManager.refresh()
-
-    expect(roleManager.getRole("empty-prompt-role")).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
   })
 
   test("should resolve layered contexts with per-contextId override semantics", async () => {
@@ -719,11 +724,10 @@ Preset context prompt.`
       "This is an old format role without frontmatter."
     )
 
-    await roleManager.refresh()
-    const oldRole = roleManager.getRole("old-format")
-
-    // Should not load old format files
-    expect(oldRole).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
 
     await fs.rm(projectRolesDir, { recursive: true })
   })
@@ -772,11 +776,12 @@ Tester prompt`
     await roleManager.refresh()
 
     const devGroup = roleManager.resolveGroup("group:developers")
-    expect(devGroup).toHaveLength(4) // 2 from preset (General Developer, Soul Developer) + 2 from test
+    expect(devGroup).toHaveLength(5) // 3 from preset (General Developer, Soul Developer, Specification Engineer) + 2 from test
     expect(devGroup).toContain("dev1")
     expect(devGroup).toContain("dev2")
     expect(devGroup).toContain("General Developer")
     expect(devGroup).toContain("Soul Developer")
+    expect(devGroup).toContain("Specification Engineer")
 
     const qaGroup = roleManager.resolveGroup("group:qa")
     expect(qaGroup).toHaveLength(1)
@@ -881,11 +886,12 @@ Dev 2`
     await roleManager.refresh()
 
     const resolved = roleManager.resolveCanHire(["group:developers"])
-    expect(resolved).toHaveLength(4) // 2 from preset + 2 from test
+    expect(resolved).toHaveLength(5) // 3 from preset + 2 from test
     expect(resolved).toContain("dev1")
     expect(resolved).toContain("dev2")
     expect(resolved).toContain("General Developer")
     expect(resolved).toContain("Soul Developer")
+    expect(resolved).toContain("Specification Engineer")
 
     await fs.rm(projectRolesDir, { recursive: true })
   })
@@ -1081,7 +1087,15 @@ groups:
 Dev 2`
     )
 
-    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+id: tester
+description: Tester
+---
+Tester`
+    )
 
     await roleManager.refresh()
 
@@ -1096,8 +1110,24 @@ Dev 2`
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
-    await fs.writeFile(path.join(projectRolesDir, "developer.md"), "Developer")
-    await fs.writeFile(path.join(projectRolesDir, "tester.md"), "Tester")
+    await fs.writeFile(
+      path.join(projectRolesDir, "developer.md"),
+      `---
+name: developer
+id: developer
+description: Developer
+---
+Developer`
+    )
+    await fs.writeFile(
+      path.join(projectRolesDir, "tester.md"),
+      `---
+name: tester
+id: tester
+description: Tester
+---
+Tester`
+    )
 
     await roleManager.refresh()
 
@@ -1342,11 +1372,10 @@ Bad workflow role.`
       roleContent
     )
 
-    await roleManager.refresh()
-    const role = roleManager.getRole("bad-workflow-role")
-
-    // 验证失败时角色不应被加载
-    expect(role).toBeUndefined()
+    // With atomic refresh, refresh() should throw on validation error
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
 
     await fs.rm(projectRolesDir, { recursive: true })
   })
@@ -1379,5 +1408,23 @@ Minimal workflow role prompt.`
     expect(role?.workflow?.phases[0]?.id).toBe("init")
 
     await fs.rm(projectRolesDir, { recursive: true })
+  })
+
+  test("should load all preset roles without errors", async () => {
+    // 这个测试验证所有预设角色都能成功加载
+    await roleManager.refresh()
+
+    const roles = roleManager.getAllRoles()
+    const presetRoles = roles.filter((r) => r.source === "preset")
+
+    // 验证至少加载了一些预设角色
+    expect(presetRoles.length).toBeGreaterThan(0)
+
+    // 验证所有预设角色都有必需的字段
+    for (const role of presetRoles) {
+      expect(role.name).toBeDefined()
+      expect(role.systemPrompt).toBeDefined()
+      expect(role.systemPrompt.length).toBeGreaterThan(0)
+    }
   })
 })
