@@ -116,7 +116,11 @@ export class ModelConfigManager {
 
       const value = modelTypes[currentKey]
       if (!value) {
-        // 重定向目标不存在，这是允许的（会回退到下一层）
+        // 重定向目标不存在，打印警告（可能是配置错误）
+        logger.warn(
+          `[ModelConfigManager] Redirection target "${currentKey}" not found in ${layer} layer for model type "${startKey}". ` +
+            `This may be a configuration error. Will fallback to next layer.`
+        )
         break
       }
 
