@@ -26,7 +26,7 @@ export function useTasks(projectId: string | undefined, employeeId: string) {
   }, [projectId, employeeId])
   // 实时更新
   useEffect(() => {
-    const unsubscribe = subscribe("task_updated", (event) => {
+    const unsubscribe = subscribe("task_modified", (event) => {
       const taskData = event.details as Partial<Task> & { name: string }
       if (taskData && taskData.name) {
         setTasks((prev) => {

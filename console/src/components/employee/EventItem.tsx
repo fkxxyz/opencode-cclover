@@ -10,11 +10,15 @@ interface EventItemProps {
 // 事件图标映射
 const EVENT_ICONS: Partial<Record<EventType, string>> = {
   employee_status_changed: "🔄",
+  employee_paused: "⏸️",
+  employee_resumed: "▶️",
+  employee_halted: "⏹️",
   session_created: "⚡",
   session_prompt_started: "🤔",
   session_prompt_completed: "💡",
   session_summary_started: "📝",
   session_summary_completed: "📊",
+  summary_parse_failed: "⚠️",
   agent_created: "🤖",
   agent_completed: "✅",
   task_created: "📋",
@@ -24,14 +28,16 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   task_deleted: "🗑️",
   task_decomposed: "🔀",
   task_waiting_for_message: "🚧",
+  task_available: "🔔",
+  task_reminder: "⏰",
+  task_halt_requested: "🛑",
   message: "💬",
   agent_failed: "❌",
   timer: "⏰",
   employee_hired: "👤",
-  message_sent: "📤",
-  message_received: "📥",
-  task_updated: "📝",
-  agent_updated: "🔄",
+  reply_attempted: "⚠️",
+  reply_reminder: "🔔",
+  vacation_requested: "🏖️",
 }
 
 // 生成事件描述
@@ -130,19 +136,41 @@ function getEventDescription(
       // 向后兼容：优先使用 employeeId，回退到 employeeName
       return `雇佣员工: ${details.employeeId || details.employeeName} (${details.role})`
 
+    case "employee_paused":
+      return `员工暂停: ${details.employeeId || details.employeeName}`
+
+    case "employee_resumed":
+      return `员工恢复: ${details.employeeId || details.employeeName}`
+
+    case "employee_halted":
+      return `员工停止: ${details.employeeId || details.employeeName}${details.reason ? ` - ${details.reason}` : ""}`
+
     case "message":
-    case "message_sent":
-    case "message_received":
       return `消息: ${details.from} → ${details.to}`
 
     case "timer":
       return `定时器触发 (间隔: ${details.interval}ms)`
 
-    case "task_updated":
-      return `任务更新: ${details.taskName}`
+    case "reply_attempted":
+      return `回复错误: ${details.from} 应回复 ${details.to}，但尝试发送给 ${details.attemptedRecipient}`
 
-    case "agent_updated":
-      return `Agent 更新: ${details.agentId}`
+    case "reply_reminder":
+      return `回复提醒: ${details.employeeId || details.employeeName} 需要回复 ${details.peer}`
+
+    case "task_available":
+      return `任务可执行: ${details.taskName || (Array.isArray(details.tasks) ? details.tasks.join(", ") : "")}`
+
+    case "task_reminder":
+      return `任务提醒: ${details.taskName || (Array.isArray(details.tasks) ? details.tasks.join(", ") : "")}`
+
+    case "task_halt_requested":
+      return `任务停止请求: ${details.taskName}`
+
+    case "vacation_requested":
+      return `休假请求: ${details.employeeId || details.employeeName}`
+
+    case "summary_parse_failed":
+      return `会话总结解析失败 (会话: ${details.sessionId})`
 
     default:
       return JSON.stringify(details)

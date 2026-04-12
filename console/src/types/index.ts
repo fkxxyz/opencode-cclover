@@ -16,7 +16,9 @@ export interface CandidateProject {
 export type EmployeeStatus = "busy" | "idle" | "error" | "offline" | "abnormal"
 
 export interface Employee {
+  employeeId: string
   name: string
+  taskId: number
   role: string
   status: EmployeeStatus
   createdAt: string
@@ -109,29 +111,34 @@ export interface AgentExecution {
 // Event types
 export type EventType =
   | "message"
+  | "reply_attempted"
   | "task_completed"
   | "task_cancelled"
+  | "task_waiting_for_message"
   | "task_deleted"
   | "task_decomposed"
-  | "task_created"
-  | "task_modified"
-  | "task_waiting_for_message"
+  | "task_available"
+  | "task_reminder"
+  | "reply_reminder"
   | "agent_completed"
   | "agent_failed"
-  | "agent_created"
   | "timer"
   | "employee_hired"
   | "employee_status_changed"
+  | "employee_paused"
+  | "employee_resumed"
+  | "employee_halted"
   | "session_created"
   | "session_prompt_started"
   | "session_prompt_completed"
   | "session_summary_started"
   | "session_summary_completed"
   | "summary_parse_failed"
-  | "message_sent"
-  | "message_received"
-  | "task_updated"
-  | "agent_updated"
+  | "agent_created"
+  | "task_created"
+  | "task_modified"
+  | "task_halt_requested"
+  | "vacation_requested"
   | "*" // Wildcard for subscribing to all events
 
 export interface Event {

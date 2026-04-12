@@ -132,11 +132,7 @@ export function useTimeline(
 
       if (isRelevant) {
         // 如果是消息事件，只添加消息项
-        if (
-          event.type === "message" ||
-          event.type === "message_sent" ||
-          event.type === "message_received"
-        ) {
+        if (event.type === "message") {
           const details = event.details as any
           const messageItem: TimelineItem = {
             type: "message",

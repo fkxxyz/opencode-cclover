@@ -40,10 +40,10 @@ export function useStats(projectId: string | undefined) {
     const unsubscribeStatus = subscribe("employee_status_changed", () => {
       apiClient.getStats(projectId).then(setStats)
     })
-    const unsubscribeTask = subscribe("task_updated", () => {
+    const unsubscribeTask = subscribe("task_modified", () => {
       apiClient.getStats(projectId).then(setStats)
     })
-    const unsubscribeMessage = subscribe("message_sent", () => {
+    const unsubscribeMessage = subscribe("message", () => {
       apiClient.getStats(projectId).then(setStats)
     })
     return () => {

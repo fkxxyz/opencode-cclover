@@ -50,11 +50,7 @@ export function useEvents(
       // 如果指定了 employeeId，检查事件是否与该员工相关
       if (employeeIdRef.current) {
         // 对于消息事件，检查 from 或 to 是否是当前员工
-        if (
-          event.type === "message" ||
-          event.type === "message_sent" ||
-          event.type === "message_received"
-        ) {
+        if (event.type === "message") {
           const details = event.details as any
           const from = details?.from as string
           const to = details?.to as string
@@ -72,11 +68,7 @@ export function useEvents(
       }
 
       // 过滤掉消息相关的事件，这些由 useTimeline 处理
-      if (
-        event.type === "message" ||
-        event.type === "message_sent" ||
-        event.type === "message_received"
-      ) {
+      if (event.type === "message") {
         return
       }
 

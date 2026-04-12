@@ -30,10 +30,6 @@ const eventTypeColors: Partial<
   session_prompt_completed: { bg: "#ddd6fe", text: "#4338ca" },
   session_summary_started: { bg: "#fef3c7", text: "#92400e" },
   session_summary_completed: { bg: "#e0e7ff", text: "#3730a3" },
-  message_sent: { bg: "#dbeafe", text: "#1e40af" },
-  message_received: { bg: "#dbeafe", text: "#1e40af" },
-  task_updated: { bg: "#dcfce7", text: "#166534" },
-  agent_updated: { bg: "#f3e8ff", text: "#6b21a8" },
 }
 
 const eventTypeLabels: Partial<Record<EventType, string>> = {
@@ -56,10 +52,6 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   session_prompt_completed: "AI响应完成",
   session_summary_started: "总结开始",
   session_summary_completed: "总结完成",
-  message_sent: "发送消息",
-  message_received: "接收消息",
-  task_updated: "任务更新",
-  agent_updated: "Agent更新",
 }
 
 function formatTimestamp(timestamp: string): string {
@@ -90,8 +82,6 @@ function getEventDescription(
 ): React.ReactNode {
   switch (type) {
     case "message":
-    case "message_sent":
-    case "message_received":
       return `${details.from} → ${details.to}: ${details.content}`
     case "task_completed":
       return `任务 "${details.taskName}" 已完成`
@@ -164,10 +154,6 @@ function getEventDescription(
       return `${details.hiredBy} 雇佣了 ${details.employeeId || details.employeeName} (${details.role})`
     case "employee_status_changed":
       return `${employeeName} 状态: ${details.oldStatus} → ${details.newStatus}`
-    case "task_updated":
-      return `任务更新: ${details.taskName}`
-    case "agent_updated":
-      return `Agent ${details.agentId} 状态更新`
     case "timer":
       return `定时器触发 (间隔: ${details.interval}ms)`
     default:
