@@ -70,7 +70,17 @@ export function createHireEmployeeTool(
           return `Error: You do not have permission to hire role '${args.role}'. Use show_hireable_roles tool to see roles you can hire.`
         }
 
-        // 4. Determine taskId and employeeId based on hiring logic
+        // 4. Validate name parameter
+        if (args.name === undefined || typeof args.name !== "string") {
+          return "Error: Employee name is required"
+        }
+
+        const trimmedName = args.name.trim()
+        if (trimmedName === "") {
+          return "Error: Employee name cannot be empty or whitespace"
+        }
+
+        // 5. Determine taskId and employeeId based on hiring logic
         let taskId: number
         let newEmployeeId: EmployeeId
 
@@ -82,11 +92,11 @@ export function createHireEmployeeTool(
           if (isSoulRole) {
             // Soul employee hired by boss gets taskId=0
             taskId = 0
-            newEmployeeId = formatBossId(args.name)
+            newEmployeeId = formatBossId(trimmedName)
           } else {
             // Non-soul employee hired by boss gets generated taskId
             taskId = await generateNextTaskId(stateManager)
-            newEmployeeId = `${taskId}-${args.name}` as EmployeeId
+            newEmployeeId = `${taskId}-${trimmedName}` as EmployeeId
           }
         } else {
           // Non-boss hiring logic
@@ -101,11 +111,11 @@ export function createHireEmployeeTool(
               return `Error: Only boss (taskId=0) can hire soul employees. Your taskId is ${parentEmployee.taskId}.`
             }
             taskId = 0
-            newEmployeeId = formatBossId(args.name)
+            newEmployeeId = formatBossId(trimmedName)
           } else {
             // Non-soul employee inherits parent's taskId
             taskId = parentEmployee.taskId
-            newEmployeeId = `${taskId}-${args.name}` as EmployeeId
+            newEmployeeId = `${taskId}-${trimmedName}` as EmployeeId
           }
         }
 
@@ -118,7 +128,7 @@ export function createHireEmployeeTool(
         // 6. Register employee (automatically persisted)
         await stateManager.registerEmployee({
           employeeId: newEmployeeId,
-          name: args.name,
+          name: trimmedName,
           taskId,
           role: args.role,
           status: "offline",
@@ -135,7 +145,7 @@ export function createHireEmployeeTool(
           type: "employee_hired" as const,
           timestamp: new Date().toISOString(),
           employeeId: newEmployeeId,
-          employeeName: args.name,
+          employeeName: trimmedName,
           details: {
             hiredBy: hiredByEmployeeId!,
             role: args.role,
@@ -166,11 +176,11 @@ export function createHireEmployeeTool(
         }
 
         logger.info(
-          `[HireEmployeeTool] Employee '${args.name}' hired by '${hiredBy}' with role '${args.role}'`
+          `[HireEmployeeTool] Employee '${trimmedName}' hired by '${hiredBy}' with role '${args.role}'`
         )
 
         // 9. Build success message with parameter reminder
-        let successMessage = `Successfully hired employee '${newEmployeeId}' (name: ${args.name}), role: ${args.role}`
+        let successMessage = `Successfully hired employee '${newEmployeeId}' (name: ${trimmedName}), role: ${args.role}`
 
         // 9. Add required parameters reminder if role has requiredArgs
         if (roleDefinition.requiredArgs) {
@@ -180,7 +190,7 @@ export function createHireEmployeeTool(
             for (const [key, value] of requiredParams) {
               successMessage += `- ${key} (${value.type}): ${value.description}\n`
             }
-            successMessage += `\nPlease send a message to '${args.name}' with these parameters.`
+            successMessage += `\nPlease send a message to '${trimmedName}' with these parameters.`
           }
         }
 
@@ -193,7 +203,7 @@ export function createHireEmployeeTool(
             args.initial_message
           )
           logger.info(
-            `[HireEmployeeTool] Initial message sent to '${args.name}' from '${hiredBy}'`
+            `[HireEmployeeTool] Initial message sent to '${trimmedName}' from '${hiredBy}'`
           )
           successMessage += `\n\nInitial message sent.`
         } else {
@@ -220,7 +230,7 @@ export function createHireEmployeeTool(
             defaultMessage
           )
           logger.info(
-            `[HireEmployeeTool] Default message sent to '${args.name}' from '${hiredBy}'`
+            `[HireEmployeeTool] Default message sent to '${trimmedName}' from '${hiredBy}'`
           )
           successMessage += `\n\nDefault message sent.`
         }
