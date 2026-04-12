@@ -13,6 +13,7 @@ dist
 /tmp/cclover-test-workspace/
 tests/fixtures/
 fixtures/
+tests/.test-workspace-*/
 
 # Cclover runtime workspace
 .cclover
