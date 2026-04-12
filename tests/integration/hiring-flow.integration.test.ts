@@ -34,7 +34,11 @@ describe("Hiring Flow Integration", () => {
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     roleManager = new RoleManager(TEST_WORKSPACE)
     await roleManager.refresh()
-    bossManager = new BossManager({ bosses: ["test-boss"], projects: [] })
+    bossManager = new BossManager(
+      { bosses: ["test-boss"], projects: [] },
+      TEST_WORKSPACE,
+      roleManager
+    )
     messageService = new MessageService(TEST_WORKSPACE, stateManager)
     memoryManager = new MemoryManager(TEST_WORKSPACE)
 
@@ -65,7 +69,7 @@ describe("Hiring Flow Integration", () => {
 
     const result = await tool.execute(
       {
-        name: "calc-001",
+        name: "calc-001", id: "calc-001",
         role: "SimpleCalculator",
       },
       {
@@ -98,7 +102,7 @@ describe("Hiring Flow Integration", () => {
 
     const result = await tool.execute(
       {
-        name: "soul-dev",
+        name: "soul-dev", id: "soul-dev",
         role: "Soul Developer",
       },
       {
@@ -114,11 +118,12 @@ describe("Hiring Flow Integration", () => {
     )
 
     expect(result).toContain("Successfully hired employee")
-    expect(result).toContain("0-soul-dev")
+    // Soul Developer has soul: false, so gets generated taskId
+    expect(result).toContain("1-soul-dev")
 
-    const employee = stateManager.getEmployee("0-soul-dev" as EmployeeId)
+    const employee = stateManager.getEmployee("1-soul-dev" as EmployeeId)
     expect(employee).not.toBeNull()
-    expect(employee?.taskId).toBe(0)
+    expect(employee?.taskId).toBe(1)
   })
 
   test("employee hires soul employee inherits taskId 0", async () => {
@@ -131,7 +136,7 @@ describe("Hiring Flow Integration", () => {
 
     await tool.execute(
       {
-        name: "pm-001",
+        name: "pm-001", id: "pm-001",
         role: "Project Manager",
       },
       {
@@ -146,11 +151,12 @@ describe("Hiring Flow Integration", () => {
       }
     )
 
-    sessionRegistry.register("pm-session", "0-pm-001" as EmployeeId)
+    // Project Manager has soul: false, so gets taskId 1
+    sessionRegistry.register("pm-session", "1-pm-001" as EmployeeId)
 
     const result = await tool.execute(
       {
-        name: "dev-001",
+        name: "dev-001", id: "dev-001",
         role: "General Developer",
       },
       {
@@ -167,9 +173,10 @@ describe("Hiring Flow Integration", () => {
 
     expect(result).toContain("Successfully hired employee")
 
-    const dev = stateManager.getEmployee("0-dev-001" as EmployeeId)
+    // General Developer inherits PM's taskId (1)
+    const dev = stateManager.getEmployee("1-dev-001" as EmployeeId)
     expect(dev).not.toBeNull()
-    expect(dev?.taskId).toBe(0)
+    expect(dev?.taskId).toBe(1)
   })
 
   test("soul employee can hire another soul employee", async () => {
@@ -182,7 +189,7 @@ describe("Hiring Flow Integration", () => {
 
     await tool.execute(
       {
-        name: "pm-001",
+        name: "pm-001", id: "pm-001",
         role: "Project Manager",
       },
       {
@@ -197,11 +204,12 @@ describe("Hiring Flow Integration", () => {
       }
     )
 
-    sessionRegistry.register("pm-session", "0-pm-001" as EmployeeId)
+    // Project Manager has soul: false, so gets taskId 1
+    sessionRegistry.register("pm-session", "1-pm-001" as EmployeeId)
 
     const result = await tool.execute(
       {
-        name: "soul-dev",
+        name: "soul-dev", id: "soul-dev",
         role: "Soul Developer",
       },
       {
@@ -217,10 +225,11 @@ describe("Hiring Flow Integration", () => {
     )
 
     expect(result).toContain("Successfully hired employee")
-    expect(result).toContain("0-soul-dev")
+    // Soul Developer has soul: false, inherits PM's taskId (1)
+    expect(result).toContain("1-soul-dev")
 
-    const soulDev = stateManager.getEmployee("0-soul-dev" as EmployeeId)
+    const soulDev = stateManager.getEmployee("1-soul-dev" as EmployeeId)
     expect(soulDev).not.toBeNull()
-    expect(soulDev?.taskId).toBe(0)
+    expect(soulDev?.taskId).toBe(1)
   })
 })

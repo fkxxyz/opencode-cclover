@@ -7,6 +7,8 @@ import type { CcloverConfig } from "../config/ConfigManager"
 import { logger } from "../lib/logger"
 import type { BossId, EmployeeId } from "../types/index"
 import { formatBossId, isBossId } from "../types/index"
+import { isValidIdentityId } from "../utils/IdentityValidator"
+import type { RoleManager } from "./RoleManager"
 
 /**
  * Boss 管理器
@@ -17,23 +19,55 @@ export class BossManager {
   private sessionToBoss = new Map<string, string>()
   private workspaceRoot?: string
 
-  constructor(config?: CcloverConfig, workspaceRoot?: string) {
+  constructor(
+    config?: CcloverConfig,
+    workspaceRoot?: string,
+    roleManager?: RoleManager
+  ) {
     this.workspaceRoot = workspaceRoot
     if (config) {
-      this.loadFromConfig(config)
+      this.loadFromConfig(config, roleManager)
     }
   }
 
   /**
-   * 从配置加载 boss 列表
+   * 从配置加载 boss 列表，并添加所有角色 ID
    */
-  private loadFromConfig(config: CcloverConfig): void {
+  private loadFromConfig(
+    config: CcloverConfig,
+    roleManager?: RoleManager
+  ): void {
     this.bosses.clear()
+
+    // 1. 验证并加载 config.bosses
     if (config.bosses) {
       for (const boss of config.bosses) {
-        this.bosses.add(boss)
+        if (isValidIdentityId(boss)) {
+          this.bosses.add(boss)
+        } else {
+          logger.warn(
+            `[BossManager] Invalid boss identity ID in config: "${boss}" - skipping`
+          )
+        }
       }
-      logger.info(`Loaded ${this.bosses.size} bosses from config`)
+      logger.info(
+        `[BossManager] Loaded ${this.bosses.size} valid bosses from config`
+      )
+    }
+
+    // 2. 添加所有角色 ID 到 Boss 集合
+    if (roleManager) {
+      const roles = roleManager.getAllRoles()
+      let roleCount = 0
+      for (const role of roles) {
+        if (!this.bosses.has(role.id)) {
+          this.bosses.add(role.id)
+          roleCount++
+        }
+      }
+      logger.info(
+        `[BossManager] Added ${roleCount} role IDs to Boss set (total: ${this.bosses.size})`
+      )
     }
   }
 
@@ -67,9 +101,9 @@ export class BossManager {
   /**
    * 重新加载配置
    */
-  async reload(): Promise<void> {
+  async reload(roleManager?: RoleManager): Promise<void> {
     const config = await ConfigManager.load()
-    this.loadFromConfig(config)
+    this.loadFromConfig(config, roleManager)
   }
 
   /**
@@ -109,13 +143,6 @@ export class BossManager {
     logger.debug(
       `[BossManager] Recorded session for ${bossName} → ${employeeId}: ${sessionId}`
     )
-  }
-
-  /**
-   * 根据 sessionId 获取对应的 boss 名称
-   */
-  getBossBySession(sessionId: string): string | undefined {
-    return this.sessionToBoss.get(sessionId)
   }
 
   /**

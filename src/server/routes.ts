@@ -287,7 +287,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
    * GET /api/projects/abc123/bosses
    * Response: { success: true, data: { bosses: [...] } }
    */
-  ["GET:/bosses", (req, params, deps) => employees.getBosses(deps.bossManager)],
+  ["GET:/bosses", (req, params, deps) => employees.getBosses(deps.bossManager, deps.roleManager)],
 
   /**
    * 获取员工雇佣关系树

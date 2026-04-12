@@ -1,5 +1,6 @@
 ---
 name: "Architecture Consultant"
+id: "architecture-consultant"
 description: "Pressure-tests Technical Lead decisions by questioning architecture coherence, responsibility boundaries, contradictions, and hidden structural risks before execution handoff."
 soul: false
 requiredArgs: {}

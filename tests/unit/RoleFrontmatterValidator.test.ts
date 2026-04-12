@@ -26,7 +26,7 @@ describe("RoleFrontmatterValidator — basic validation", () => {
   })
 
   test("should accept minimal valid frontmatter", () => {
-    const result = validateRoleFrontmatter({ name: "test-role" })
+    const result = validateRoleFrontmatter({ name: "test-role", id: "test-role" })
     expect(result.valid).toBe(true)
     expect(result.normalized?.name).toBe("test-role")
   })
@@ -37,7 +37,7 @@ describe("RoleFrontmatterValidator — basic validation", () => {
   })
 
   test("should reject empty name", () => {
-    const result = validateRoleFrontmatter({ name: "  " })
+    const result = validateRoleFrontmatter({ name: "  ", id: "--" })
     expect(result.valid).toBe(false)
   })
 })
@@ -47,7 +47,7 @@ describe("RoleFrontmatterValidator — basic validation", () => {
 describe("RoleFrontmatterValidator — workflow metadata", () => {
   test("should accept role without workflow (backward compatibility)", () => {
     const result = validateRoleFrontmatter({
-      name: "simple-role",
+      name: "simple-role", id: "simple-role",
       description: "No workflow",
     })
 
@@ -58,7 +58,7 @@ describe("RoleFrontmatterValidator — workflow metadata", () => {
 
   test("should accept valid minimal workflow with one phase", () => {
     const result = validateRoleFrontmatter({
-      name: "workflow-role",
+      name: "workflow-role", id: "workflow-role",
       workflow: {
         phases: [{ id: "init" }],
       },
@@ -74,7 +74,7 @@ describe("RoleFrontmatterValidator — workflow metadata", () => {
 
   test("should accept workflow with id and description", () => {
     const result = validateRoleFrontmatter({
-      name: "workflow-role",
+      name: "workflow-role", id: "workflow-role",
       workflow: {
         id: "main-workflow",
         description: "Main workflow for the role",
@@ -94,7 +94,7 @@ describe("RoleFrontmatterValidator — workflow metadata", () => {
 
   test("should accept workflow with deeply nested structure", () => {
     const result = validateRoleFrontmatter({
-      name: "complex-workflow-role",
+      name: "complex-workflow-role", id: "complex-workflow-role",
       workflow: {
         id: "full-workflow",
         description: "Full nested workflow",
@@ -150,7 +150,7 @@ describe("RoleFrontmatterValidator — workflow metadata", () => {
 
   test("should accept empty tasks, actions, and specifications arrays", () => {
     const result = validateRoleFrontmatter({
-      name: "empty-children-role",
+      name: "empty-children-role", id: "empty-children-role",
       workflow: {
         phases: [
           {
@@ -196,7 +196,7 @@ describe("RoleFrontmatterValidator — workflow metadata", () => {
 describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
   test("should reject workflow that is not an object", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-workflow",
+      name: "bad-workflow", id: "bad-workflow",
       workflow: "not-an-object",
     })
 
@@ -208,7 +208,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject workflow that is an array", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-workflow",
+      name: "bad-workflow", id: "bad-workflow",
       workflow: [],
     })
 
@@ -217,7 +217,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject workflow without phases", () => {
     const result = validateRoleFrontmatter({
-      name: "no-phases",
+      name: "no-phases", id: "no-phases",
       workflow: {
         id: "no-phases-workflow",
       },
@@ -229,7 +229,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject workflow with empty phases array", () => {
     const result = validateRoleFrontmatter({
-      name: "empty-phases",
+      name: "empty-phases", id: "empty-phases",
       workflow: {
         phases: [],
       },
@@ -246,7 +246,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject workflow.phases when not an array", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-phases",
+      name: "bad-phases", id: "bad-phases",
       workflow: {
         phases: "not-array",
       },
@@ -258,7 +258,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject workflow.id when not a string", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-workflow-id",
+      name: "bad-workflow-id", id: "bad-workflow-id",
       workflow: {
         id: 123,
         phases: [{ id: "init" }],
@@ -271,7 +271,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject workflow.description when not a string", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-workflow-desc",
+      name: "bad-workflow-desc", id: "bad-workflow-desc",
       workflow: {
         description: 42,
         phases: [{ id: "init" }],
@@ -286,7 +286,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject phase that is not an object", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-phase",
+      name: "bad-phase", id: "bad-phase",
       workflow: {
         phases: ["not-an-object"],
       },
@@ -302,7 +302,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject phase without id", () => {
     const result = validateRoleFrontmatter({
-      name: "phase-no-id",
+      name: "phase-no-id", id: "phase-no-id",
       workflow: {
         phases: [{ description: "missing id" }],
       },
@@ -318,7 +318,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject phase with empty string id", () => {
     const result = validateRoleFrontmatter({
-      name: "phase-empty-id",
+      name: "phase-empty-id", id: "phase-empty-id",
       workflow: {
         phases: [{ id: "  " }],
       },
@@ -334,7 +334,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject phase with non-string description", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-phase-desc",
+      name: "bad-phase-desc", id: "bad-phase-desc",
       workflow: {
         phases: [{ id: "init", description: 123 }],
       },
@@ -351,7 +351,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject phase.tasks when not an array", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-tasks",
+      name: "bad-tasks", id: "bad-tasks",
       workflow: {
         phases: [{ id: "init", tasks: "not-array" }],
       },
@@ -367,7 +367,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject task that is not an object", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-task",
+      name: "bad-task", id: "bad-task",
       workflow: {
         phases: [{ id: "init", tasks: ["not-an-object"] }],
       },
@@ -383,7 +383,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject task without id", () => {
     const result = validateRoleFrontmatter({
-      name: "task-no-id",
+      name: "task-no-id", id: "task-no-id",
       workflow: {
         phases: [{ id: "init", tasks: [{ description: "no id" }] }],
       },
@@ -394,7 +394,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject action without id", () => {
     const result = validateRoleFrontmatter({
-      name: "action-no-id",
+      name: "action-no-id", id: "action-no-id",
       workflow: {
         phases: [
           {
@@ -410,7 +410,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject specification without id", () => {
     const result = validateRoleFrontmatter({
-      name: "spec-no-id",
+      name: "spec-no-id", id: "spec-no-id",
       workflow: {
         phases: [
           {
@@ -436,7 +436,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject task.actions when not an array", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-actions",
+      name: "bad-actions", id: "bad-actions",
       workflow: {
         phases: [
           { id: "init", tasks: [{ id: "task1", actions: "not-array" }] },
@@ -449,7 +449,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 
   test("should reject action.specifications when not an array", () => {
     const result = validateRoleFrontmatter({
-      name: "bad-specs",
+      name: "bad-specs", id: "bad-specs",
       workflow: {
         phases: [
           {
@@ -474,7 +474,7 @@ describe("RoleFrontmatterValidator — invalid workflow metadata", () => {
 describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
   test("should warn on duplicate phase ids within workflow", () => {
     const result = validateRoleFrontmatter({
-      name: "dup-phases",
+      name: "dup-phases", id: "dup-phases",
       workflow: {
         phases: [{ id: "init" }, { id: "init", description: "duplicate init" }],
       },
@@ -494,7 +494,7 @@ describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
 
   test("should warn on duplicate task ids within same phase", () => {
     const result = validateRoleFrontmatter({
-      name: "dup-tasks",
+      name: "dup-tasks", id: "dup-tasks",
       workflow: {
         phases: [
           {
@@ -518,7 +518,7 @@ describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
 
   test("should warn on duplicate action ids within same task", () => {
     const result = validateRoleFrontmatter({
-      name: "dup-actions",
+      name: "dup-actions", id: "dup-actions",
       workflow: {
         phases: [
           {
@@ -548,7 +548,7 @@ describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
 
   test("should warn on duplicate specification ids within same action", () => {
     const result = validateRoleFrontmatter({
-      name: "dup-specs",
+      name: "dup-specs", id: "dup-specs",
       workflow: {
         phases: [
           {
@@ -585,7 +585,7 @@ describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
   test("should not warn on same id across different sibling groups", () => {
     // Same task id in different phases is OK
     const result = validateRoleFrontmatter({
-      name: "cross-phase-same-id",
+      name: "cross-phase-same-id", id: "cross-phase-same-id",
       workflow: {
         phases: [
           { id: "phase-a", tasks: [{ id: "task1" }] },
@@ -601,7 +601,7 @@ describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
   test("should not warn on same id across different nesting levels", () => {
     // A phase id "init" and a task id "init" in a different phase are OK
     const result = validateRoleFrontmatter({
-      name: "cross-level-same-id",
+      name: "cross-level-same-id", id: "cross-level-same-id",
       workflow: {
         phases: [{ id: "init", tasks: [{ id: "init" }] }],
       },
@@ -617,7 +617,7 @@ describe("RoleFrontmatterValidator — duplicate sibling id detection", () => {
 describe("RoleFrontmatterValidator — workflow normalization", () => {
   test("should normalize workflow with all fields present", () => {
     const result = validateRoleFrontmatter({
-      name: "norm-role",
+      name: "norm-role", id: "norm-role",
       workflow: {
         id: "main",
         description: "Main workflow",
@@ -681,7 +681,7 @@ describe("RoleFrontmatterValidator — workflow normalization", () => {
 
   test("should normalize workflow omitting undefined optional fields", () => {
     const result = validateRoleFrontmatter({
-      name: "min-norm-role",
+      name: "min-norm-role", id: "min-norm-role",
       workflow: {
         phases: [{ id: "phase1" }],
       },
@@ -704,7 +704,7 @@ describe("RoleFrontmatterValidator — workflow normalization", () => {
 
   test("should normalize phases with tasks but no actions", () => {
     const result = validateRoleFrontmatter({
-      name: "tasks-no-actions",
+      name: "tasks-no-actions", id: "tasks-no-actions",
       workflow: {
         phases: [{ id: "phase1", tasks: [{ id: "task1" }] }],
       },
@@ -720,7 +720,7 @@ describe("RoleFrontmatterValidator — workflow normalization", () => {
 
   test("should normalize actions with no specifications", () => {
     const result = validateRoleFrontmatter({
-      name: "actions-no-specs",
+      name: "actions-no-specs", id: "actions-no-specs",
       workflow: {
         phases: [
           {
@@ -743,7 +743,7 @@ describe("RoleFrontmatterValidator — workflow normalization", () => {
 
   test("should normalize empty arrays as empty arrays (not undefined)", () => {
     const result = validateRoleFrontmatter({
-      name: "empty-arrays",
+      name: "empty-arrays", id: "empty-arrays",
       workflow: {
         phases: [
           {

@@ -1,5 +1,6 @@
 ---
 name: "Requirements Engineer"
+id: "requirements-engineer"
 description: "Clarifies vague goals from Boss into requirement packages under a hard closed-set information boundary before repository governance begins."
 soul: false
 requiredArgs: {}

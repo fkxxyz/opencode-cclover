@@ -1,5 +1,6 @@
 ---
 name: "Architecture Librarian"
+id: "architecture-librarian"
 description: "Turns approved architecture and design knowledge into durable docs or code artifacts in worktrees, coordinating with Documentation Governor, requesters, Software Designer, and TL."
 soul: false
 requiredArgs: {}

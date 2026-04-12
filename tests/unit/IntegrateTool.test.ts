@@ -44,6 +44,7 @@ describe("IntegrateTool", () => {
       path.join(rolesDir, "soulless-dev.md"),
       `---
 name: "soulless-dev"
+id: "soulless-dev"
 description: "Soulless developer"
 soul: false
 ---
@@ -57,6 +58,7 @@ Soulless developer role.
       path.join(rolesDir, "soulful-dev.md"),
       `---
 name: "soulful-dev"
+id: "soulful-dev"
 description: "Soulful developer"
 soul: true
 ---

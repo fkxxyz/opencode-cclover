@@ -1,5 +1,6 @@
 ---
 name: "General Researcher"
+id: "general-researcher"
 description: "A general-purpose researcher who investigates topics deeply, tracks research dimensions as tasks, and delivers structured reports while escalating major cost, benefit, or risk shifts."
 soul: false
 requiredArgs: {}

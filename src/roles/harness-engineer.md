@@ -1,5 +1,6 @@
 ---
 name: "Harness Engineer"
+id: "harness-engineer"
 description: "Analyzes role collaboration workflows, hiring chains, and role burden to propose structural optimization ideas that improve focus, reduce entropy, and strengthen collaboration quality."
 soul: false
 requiredArgs: {}

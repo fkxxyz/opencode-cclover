@@ -25,6 +25,14 @@ describe("GlobalCcloverService.startEmployeeEventLoop", () => {
   let testPort: number
 
   beforeEach(async () => {
+    // Reset GlobalCcloverService singleton
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.instance = null
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.initPromise = null
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.opcodeClient = null
+
     // 保存原始端口环境变量
     originalPort = process.env.CCLOVER_PORT
 
@@ -86,6 +94,7 @@ describe("GlobalCcloverService.startEmployeeEventLoop", () => {
       path.join(rolesDir, "test-role.md"),
       `---
 name: "test-role"
+id: "test-role"
 description: "Test role"
 ---
 
@@ -137,7 +146,17 @@ Test role system prompt`
     }
 
     // 清理测试目录
-    await fs.rm(testDir, { recursive: true, force: true })
+    if (testDir) {
+      await fs.rm(testDir, { recursive: true, force: true })
+    }
+
+    // Reset GlobalCcloverService singleton
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.instance = null
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.initPromise = null
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.opcodeClient = null
   })
 
   test("should start EventLoop for valid employee", async () => {

@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
+import { RoleManager } from "../../src/core/RoleManager"
 import { StateManager } from "../../src/state/StateManager"
 import { createResumeEmployeeTool } from "../../src/tools/ResumeEmployeeTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
@@ -16,6 +17,7 @@ const TEST_WORKSPACE = path.join(
 
 describe("ResumeEmployeeTool", () => {
   let bossManager: BossManager
+  let roleManager: RoleManager
   let messageService: MessageService
   let stateManager: StateManager
   let resumeEmployeeTool: any
@@ -34,7 +36,9 @@ describe("ResumeEmployeeTool", () => {
 
     // 初始化服务
     const projectId = "test-project"
-    bossManager = new BossManager(config, TEST_WORKSPACE)
+    roleManager = new RoleManager(TEST_WORKSPACE)
+    await roleManager.refresh()
+    bossManager = new BossManager(config, TEST_WORKSPACE, roleManager)
     stateManager = new StateManager(projectId, TEST_WORKSPACE, TEST_WORKSPACE)
     messageService = new MessageService(
       TEST_WORKSPACE,
@@ -55,7 +59,7 @@ describe("ResumeEmployeeTool", () => {
       memoryManager: null as any,
       agentRegistry: null as any,
       bossManager,
-      roleManager: null as any,
+      roleManager,
       eventLoopStarted: false,
       eventLoops: new Map(),
     }
@@ -64,7 +68,8 @@ describe("ResumeEmployeeTool", () => {
     resumeEmployeeTool = createResumeEmployeeTool(
       stateManager,
       bossManager,
-      project
+      projectId,
+      roleManager
     )
 
     // 注册测试员工
@@ -114,9 +119,7 @@ describe("ResumeEmployeeTool", () => {
   })
 
   test("should resume employee when called by Boss", async () => {
-    // 注册 session
-    sessionRegistry.register("session-boss", "boss1")
-
+    // Don't register session - let resolveToolActor use agent field
     const result = await resumeEmployeeTool.execute(
       { employeeId: "0-employee1" },
       { sessionID: "session-boss", agent: "boss1" }
@@ -178,8 +181,7 @@ describe("ResumeEmployeeTool", () => {
   })
 
   test("should reject when employee not found", async () => {
-    sessionRegistry.register("session-boss", "boss1")
-
+    // Don't register session - let resolveToolActor use agent field
     const result = await resumeEmployeeTool.execute(
       { employeeId: "nonexistent" },
       { sessionID: "session-boss", agent: "boss1" }
@@ -189,8 +191,7 @@ describe("ResumeEmployeeTool", () => {
   })
 
   test("should reject when employee is not offline", async () => {
-    sessionRegistry.register("session-boss", "boss1")
-
+    // Don't register session - let resolveToolActor use agent field
     const result = await resumeEmployeeTool.execute(
       { employeeId: "0-employee2" },
       { sessionID: "session-boss", agent: "boss1" }

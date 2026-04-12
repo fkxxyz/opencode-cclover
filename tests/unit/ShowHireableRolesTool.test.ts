@@ -33,6 +33,7 @@ describe("ShowHireableRolesTool", () => {
       path.join(rolesDir, "developer.md"),
       `---
 name: developer
+id: developer
 description: Software developer
 canHire:
   - tester
@@ -47,6 +48,7 @@ You are a software developer.`
       path.join(rolesDir, "tester.md"),
       `---
 name: tester
+id: tester
 description: Software tester
 canHire: []
 requiredArgs: {}
@@ -60,6 +62,7 @@ You are a software tester.`
       path.join(rolesDir, "manager.md"),
       `---
 name: manager
+id: manager
 description: Project manager
 canHire:
   - "*"
@@ -74,6 +77,7 @@ You are a project manager.`
       path.join(rolesDir, "designer.md"),
       `---
 name: designer
+id: designer
 description: UI/UX designer
 canHire: []
 requiredArgs:
@@ -102,6 +106,7 @@ You are a UI/UX designer.`
       employeeId: "0-alice",
       taskId: 0,
       name: "alice",
+      id: "alice",
       role: "developer",
       status: "inactive",
       paused: false,
@@ -114,6 +119,7 @@ You are a UI/UX designer.`
       employeeId: "0-bob",
       taskId: 0,
       name: "bob",
+      id: "bob",
       role: "tester",
       status: "inactive",
       paused: false,
@@ -126,6 +132,7 @@ You are a UI/UX designer.`
       employeeId: "0-charlie",
       taskId: 0,
       name: "charlie",
+      id: "charlie",
       role: "manager",
       status: "inactive",
       paused: false,
@@ -250,6 +257,7 @@ You are a UI/UX designer.`
       path.join(rolesDir, "no-desc.md"),
       `---
 name: no-desc
+id: no-desc
 description: ""
 canHire: []
 requiredArgs: {}
@@ -286,6 +294,7 @@ You are a role without description.`
       employeeId: "0-dave",
       taskId: 0,
       name: "dave",
+      id: "dave",
       role: "non-existent-role",
       status: "inactive",
       paused: false,

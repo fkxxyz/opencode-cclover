@@ -33,6 +33,7 @@ describe("SessionManager", () => {
       path.join(projectPath, ".cclover/roles/context-role.md"),
       `---
 name: context-role
+id: context-role
 description: Role with context ids
 contextIds:
   - delivery-brief
@@ -60,6 +61,7 @@ You are a context aware employee.`
     const employee: Employee = {
       employeeId: "1-dev",
       name: "dev",
+      id: "dev",
       taskId: 1,
       role: "context-role",
       hiredBy: null,

@@ -39,6 +39,7 @@ describe("Roles API", () => {
     // 创建一个测试 role（新格式：YAML frontmatter + markdown）
     const testRoleContent = `---
 name: test-role
+id: test-role
 description: A test role for integration testing
 requiredArgs:
   apiKey:
@@ -73,6 +74,7 @@ You are a test role. This is your system prompt.
     const testEmployee: Employee = {
       employeeId: "0-test-employee",
       name: "test-employee",
+      id: "test-employee",
       taskId: 0,
       role: "test-role",
       status: "idle",

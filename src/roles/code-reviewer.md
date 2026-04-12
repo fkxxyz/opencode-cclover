@@ -1,5 +1,6 @@
 ---
 name: "Code Reviewer"
+id: "code-reviewer"
 description: "Reviews assigned task-package file diffs against task and design references. Reports only to the leader, and writes timestamped REVIEWER reports beside TASK files when review fails."
 soul: false
 requiredArgs: {}

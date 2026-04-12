@@ -1,5 +1,6 @@
 ---
 name: "General Developer"
+id: "general-developer"
 description: "Implements assigned code changes in a PM-provided worktree from explicit task and design references, escalates ambiguity early, and avoids git/integration ownership."
 soul: false
 requiredArgs:

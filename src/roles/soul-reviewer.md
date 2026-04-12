@@ -1,5 +1,6 @@
 ---
 name: "Soul Reviewer"
+id: "soul-reviewer"
 description: "Reviews assigned role-definition diffs for workflow-governance correctness. Reports only to the leader, and writes timestamped REVIEWER reports beside TASK files when review fails."
 soul: false
 requiredArgs: {}

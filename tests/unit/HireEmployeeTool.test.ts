@@ -39,6 +39,7 @@ describe("HireEmployeeTool", () => {
       path.join(rolesDir, "developer.md"),
       `---
 name: developer
+id: developer
 description: Software developer
 requiredArgs:
   projectPath:
@@ -63,6 +64,7 @@ You are a software developer.`
       path.join(rolesDir, "tester.md"),
       `---
 name: tester
+id: tester
 description: Software tester
 canHire: []
 groups:
@@ -77,6 +79,7 @@ You are a software tester.`
       path.join(rolesDir, "worker.md"),
       `---
 name: worker
+id: worker
 description: General worker
 soul: false
 canHire: []
@@ -92,6 +95,7 @@ You are a general worker.`
       path.join(rolesDir, "designer.md"),
       `---
 name: designer
+id: designer
 description: UI/UX designer
 canHire: []
 groups:
@@ -106,6 +110,7 @@ You are a UI/UX designer.`
       path.join(rolesDir, "manager.md"),
       `---
 name: manager
+id: manager
 description: Project manager
 canHire:
   - group:engineering
@@ -130,6 +135,7 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-boss",
       name: "boss",
+      id: "boss",
       taskId: 0,
       hiredBy: null,
       role: "manager",
@@ -144,6 +150,7 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
+      id: "alice",
       taskId: 0,
       hiredBy: null,
       role: "developer",
@@ -157,6 +164,7 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
+      id: "bob",
       taskId: 0,
       hiredBy: null,
       role: "manager",
@@ -215,7 +223,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "charlie",
+          name: "charlie", id: "charlie",
           role: "developer",
         },
         context
@@ -240,7 +248,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "meeting-hire",
+          name: "meeting-hire", id: "meeting-hire",
           role: "developer",
         },
         context
@@ -253,8 +261,8 @@ You are a project manager.`
       const employee = stateManager.getEmployee("0-meeting-hire")
       expect(employee).toBeDefined()
       expect(employee?.role).toBe("developer")
-      // 会议模式角色代理的 hiredBy 应该是 Boss ID
-      expect(employee?.hiredBy).toBe("0-boss")
+      // Meeting-mode agent uses role.id as identity
+      expect(employee?.hiredBy).toBe("0-manager")
     })
 
     test("projected meeting agent does not depend on boss-session mapping", async () => {
@@ -263,7 +271,8 @@ You are a project manager.`
           bosses: ["boss-a", "boss-b"],
           projects: [],
         },
-        TEST_WORKSPACE
+        TEST_WORKSPACE,
+        roleManager
       )
 
       // 建立 session 映射（模拟 Boss 先发送消息）
@@ -282,7 +291,7 @@ You are a project manager.`
 
       const result = await multiBossTool.execute(
         {
-          name: "meeting-hire-b",
+          name: "meeting-hire-b", id: "meeting-hire-b",
           role: "developer",
         },
         {
@@ -297,8 +306,8 @@ You are a project manager.`
 
       const employee = stateManager.getEmployee("0-meeting-hire-b")
       expect(employee).toBeDefined()
-      // 应该是 boss-b 的 ID
-      expect(employee?.hiredBy).toBe("0-boss-b")
+      // Meeting-mode agent uses role.id, not Boss from session
+      expect(employee?.hiredBy).toBe("0-manager")
     })
 
     test("employee can hire permitted role", async () => {
@@ -314,7 +323,7 @@ You are a project manager.`
       // alice (developer) 可以雇佣 tester
       const result = await hireEmployeeTool.execute(
         {
-          name: "dave",
+          name: "dave", id: "dave",
           role: "tester",
         },
         context
@@ -346,7 +355,7 @@ You are a project manager.`
       // alice (developer) 不能雇佣 manager
       const result = await hireEmployeeTool.execute(
         {
-          name: "eve",
+          name: "eve", id: "eve",
           role: "manager",
         },
         context
@@ -375,7 +384,7 @@ You are a project manager.`
       // bob (manager) 可以雇佣 engineering 组的角色（developer, tester）
       const result = await hireEmployeeTool.execute(
         {
-          name: "frank",
+          name: "frank", id: "frank",
           role: "developer",
         },
         context
@@ -399,7 +408,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "george",
+          name: "george", id: "george",
           role: "developer",
         },
         context
@@ -430,7 +439,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "helen",
+          name: "helen", id: "helen",
           role: "tester",
         },
         context
@@ -450,7 +459,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "ivan",
+          name: "ivan", id: "ivan",
           role: "developer",
           initial_message: "Welcome to the team!",
         },
@@ -474,7 +483,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "judy",
+          name: "judy", id: "judy",
           role: "nonexistent",
         },
         context
@@ -496,7 +505,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "kate",
+          name: "kate", id: "kate",
           role: "manager",
         },
         context
@@ -516,7 +525,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "alice", // 已存在
+          name: "alice", id: "alice", // 已存在
           role: "developer",
         },
         context
@@ -533,7 +542,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "leo",
+          name: "leo", id: "leo",
           role: "developer",
         },
         context
@@ -553,7 +562,7 @@ You are a project manager.`
       // 使用角色的 name 字段（developer），而不是文件名
       const result = await hireEmployeeTool.execute(
         {
-          name: "mike",
+          name: "mike", id: "mike",
           role: "developer", // 这是 name 字段，不是文件名
         },
         context
@@ -579,7 +588,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "nancy",
+          name: "nancy", id: "nancy",
           role: "developer",
         },
         context
@@ -604,7 +613,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "oliver",
+          name: "oliver", id: "oliver",
           role: "tester",
           initial_message: "Welcome aboard!",
         },
@@ -632,7 +641,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "peter",
+          name: "peter", id: "peter",
           role: "tester",
         },
         context
@@ -666,7 +675,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "quinn",
+          name: "quinn", id: "quinn",
           role: "developer",
         },
         context
@@ -698,7 +707,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "rachel",
+          name: "rachel", id: "rachel",
           role: "tester",
         },
         context
@@ -726,7 +735,7 @@ You are a project manager.`
 
       const result = await hireEmployeeTool.execute(
         {
-          name: "sam",
+          name: "sam", id: "sam",
           role: "designer",
           initial_message: "Welcome to the design team!",
         },
@@ -758,7 +767,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "tom",
+          name: "tom", id: "tom",
           role: "tester", // soul role
         },
         context
@@ -777,7 +786,8 @@ You are a project manager.`
       await stateManager.registerEmployee({
         employeeId: "1-alice",
         name: "alice",
-        taskId: 1,
+        id: "alice",
+      taskId: 1,
         hiredBy: "0-boss",
         role: "developer",
         paused: false,
@@ -799,7 +809,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "jerry",
+          name: "jerry", id: "jerry",
           role: "worker", // non-soul role
         },
         context
@@ -821,7 +831,8 @@ You are a project manager.`
       await stateManager.registerEmployee({
         employeeId: "2-bob",
         name: "bob",
-        taskId: 2,
+        id: "bob",
+      taskId: 2,
         hiredBy: "0-boss",
         role: "manager",
         paused: false,
@@ -843,7 +854,7 @@ You are a project manager.`
 
       await hireEmployeeTool.execute(
         {
-          name: "kate",
+          name: "kate", id: "kate",
           role: "worker", // non-soul role
         },
         context

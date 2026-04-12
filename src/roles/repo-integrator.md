@@ -1,5 +1,6 @@
 ---
 name: "Repo Integrator"
+id: "repo-integrator"
 description: "Coordinates branch integration into main using rebase workflow. Manages FIFO queue, executes git reset, handles conflicts efficiently for linear history."
 requiredArgs: {}
 canHire: []

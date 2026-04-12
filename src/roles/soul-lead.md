@@ -1,5 +1,6 @@
 ---
 name: "Soul Lead"
+id: "soul-lead"
 description: "Owns non-technical organizational risk decisions for role development, writes worktree-based task handoffs, drives Soul Developer and Soul Reviewer flow, and performs final integration."
 soul: false
 requiredArgs: {}

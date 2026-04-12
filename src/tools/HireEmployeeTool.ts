@@ -147,11 +147,29 @@ export function createHireEmployeeTool(
         // 7. Start employee's EventLoop
         await startEmployee(project, newEmployeeId, roleDefinition)
 
+        // 8. Record session mapping if hirer is Boss
+        const hirerBossId = hiredByEmployeeId!.startsWith("0-")
+          ? hiredByEmployeeId!.substring(2)
+          : null
+        const isHirerBoss =
+          hirerBossId !== null && bossManager?.isBoss(hirerBossId)
+
+        if (isHirerBoss && bossManager && context.sessionID) {
+          await bossManager.recordSession(
+            hirerBossId!,
+            newEmployeeId,
+            context.sessionID
+          )
+          logger.debug(
+            `[HireEmployeeTool] Recorded session mapping for Boss ${hirerBossId} → ${newEmployeeId}`
+          )
+        }
+
         logger.info(
           `[HireEmployeeTool] Employee '${args.name}' hired by '${hiredBy}' with role '${args.role}'`
         )
 
-        // 8. Build success message with parameter reminder
+        // 9. Build success message with parameter reminder
         let successMessage = `Successfully hired employee '${newEmployeeId}' (name: ${args.name}), role: ${args.role}`
 
         // 9. Add required parameters reminder if role has requiredArgs

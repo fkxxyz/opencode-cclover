@@ -23,6 +23,7 @@ describe("EventLoop Startup Failure Scenarios", () => {
     // 创建一个有效的角色文件
     const validRole = `---
 name: "Valid Role"
+id: "valid-role"
 description: "A valid test role"
 ---
 
@@ -60,6 +61,7 @@ You are a valid test role.`
     const validEmployee: Employee = {
       employeeId: "0-valid-employee",
       name: "valid-employee",
+      id: "valid-employee",
       taskId: null,
       role: "Valid Role",
       status: "idle",
@@ -76,6 +78,7 @@ You are a valid test role.`
     const invalidEmployee: Employee = {
       employeeId: "0-invalid-employee",
       name: "invalid-employee",
+      id: "invalid-employee",
       taskId: null,
       role: "Non Existent Role",
       status: "idle",
@@ -123,7 +126,8 @@ You are a valid test role.`
       {
         employeeId: "0-invalid-1",
         name: "invalid-1",
-        taskId: null,
+        id: "invalid-1",
+      taskId: null,
         role: "Non Existent Role 1",
         status: "idle",
         hiredBy: null,
@@ -135,7 +139,8 @@ You are a valid test role.`
       {
         employeeId: "0-invalid-2",
         name: "invalid-2",
-        taskId: null,
+        id: "invalid-2",
+      taskId: null,
         role: "Non Existent Role 2",
         status: "idle",
         hiredBy: null,
@@ -180,7 +185,8 @@ You are a valid test role.`
       {
         employeeId: "0-valid-1",
         name: "valid-1",
-        taskId: null,
+        id: "valid-1",
+      taskId: null,
         role: "Valid Role",
         hiredBy: null,
         paused: false,
@@ -192,7 +198,8 @@ You are a valid test role.`
       {
         employeeId: "0-invalid-1",
         name: "invalid-1",
-        taskId: null,
+        id: "invalid-1",
+      taskId: null,
         role: "Invalid Role",
         hiredBy: null,
         paused: false,
@@ -204,7 +211,8 @@ You are a valid test role.`
       {
         employeeId: "0-valid-2",
         name: "valid-2",
-        taskId: null,
+        id: "valid-2",
+      taskId: null,
         role: "Valid Role",
         hiredBy: null,
         paused: false,

@@ -4,6 +4,7 @@ import * as os from "node:os"
 import * as path from "node:path"
 import { RoleManager } from "../../src/core/RoleManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
+import { GlobalCcloverService } from "../../src/server/GlobalServer"
 
 describe("CcloverPlugin Meeting Mode config hook", () => {
   let tempDir: string
@@ -20,6 +21,7 @@ describe("CcloverPlugin Meeting Mode config hook", () => {
       path.join(projectRolesDir, "Calculator.md"),
       `---
 name: Calculator
+id: calculator
 description: Project calculator role
 ---
 
@@ -35,7 +37,23 @@ Project calculator role prompt`
     }
 
     await fs.rm(tempDir, { recursive: true, force: true })
+    
+    // Restore all mocks
     mock.restore()
+    
+    // Force reload the actual module by clearing require cache
+    // This ensures subsequent tests get the real GlobalCcloverService
+    delete require.cache[require.resolve("../../src/server/GlobalServer")]
+    delete require.cache[require.resolve("../../src/index")]
+    delete require.cache[require.resolve("../../src/config/CandidateProjectsManager")]
+    
+    // Reset GlobalCcloverService singleton
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.instance = null
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.initPromise = null
+    // @ts-ignore - accessing private static for testing
+    GlobalCcloverService.opcodeClient = null
   })
 
   test("config hook registers resolved roles as placeholder primary agents with original names", async () => {
@@ -170,6 +188,7 @@ Project calculator role prompt`
       path.join(projectRolesDir, "ContextRole.md"),
       `---
 name: ContextRole
+id: contextrole
 description: Role with context
 contextIds:
   - test-context

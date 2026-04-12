@@ -41,6 +41,7 @@ describe("SendMessageTool with Boss", () => {
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
+      id: "alice",
       taskId: 0,
       hiredBy: null,
       role: "test",
@@ -53,6 +54,7 @@ describe("SendMessageTool with Boss", () => {
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
+      id: "bob",
       taskId: 0,
       hiredBy: null,
       role: "test",
@@ -154,7 +156,8 @@ describe("SendMessageTool with Boss", () => {
 
     const employeeClient = messageService.getClient("0-alice")
     const message = await employeeClient.recv()
-    expect(message.from).toBe("0-bayecao")
+    // Meeting-mode agent uses role.id as sender, not Boss from session
+    expect(message.from).toBe("0-calculator")
     expect(message.content).toBe("Hello from meeting mode")
   })
 
@@ -164,7 +167,8 @@ describe("SendMessageTool with Boss", () => {
         bosses: ["alpha", "beta"],
         projects: [],
       },
-      TEST_WORKSPACE
+      TEST_WORKSPACE,
+      roleManager
     )
 
     const multiBossMessageService = new MessageService(
@@ -209,7 +213,8 @@ describe("SendMessageTool with Boss", () => {
 
     const employeeClient = multiBossMessageService.getClient("0-alice")
     const message = await employeeClient.recv()
-    expect(message.from).toBe("0-beta")
+    // Meeting-mode agent uses role.id as sender, not Boss from session
+    expect(message.from).toBe("0-calculator")
     expect(message.content).toBe("Hello from beta meeting")
   })
 
@@ -493,7 +498,8 @@ describe("SendMessageTool with Boss", () => {
       await stateManager.registerEmployee({
         employeeId: "1-dave",
         name: "dave",
-        taskId: 1,
+        id: "dave",
+      taskId: 1,
         hiredBy: "0-alice",
         role: "test",
         paused: false,

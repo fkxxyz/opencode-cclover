@@ -1,5 +1,6 @@
 ---
 name: "Software Designer"
+id: "software-designer"
 description: "Owns software design norms and mid-level design artifacts. Defines executable design contracts, resolves implementation-facing design gaps, and reports finished outputs back to TL."
 soul: false
 requiredArgs:

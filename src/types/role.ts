@@ -164,6 +164,13 @@ export interface RoleMetadata {
   /** Role name (must match the filename without .md extension) */
   name: string
 
+  /**
+   * Stable identity ID for this role
+   * Used to construct BossId (0-{id}) for meeting-mode role agents
+   * Must match pattern: /^[a-z][a-z0-9-]{0,63}$/
+   */
+  id: string
+
   /** Brief description of the role's purpose */
   description?: string
 

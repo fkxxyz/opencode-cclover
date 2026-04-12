@@ -28,6 +28,7 @@ describe("Meeting Mode helpers", () => {
       path.join(projectRolesDir, "Calculator.md"),
       `---
 name: Calculator
+id: calculator
 description: Project override calculator description
 ---
 
@@ -61,6 +62,7 @@ Project override calculator prompt`
       path.join(projectRolesDir, "Calculator.md"),
       `---
 name: Calculator
+id: calculator
 description: Project override calculator description
 ---
 
@@ -105,7 +107,8 @@ Project override calculator prompt`
         bosses: ["boss-a", "boss-b"],
         projects: [],
       },
-      tempDir
+      tempDir,
+      roleManager
     )
 
     await roleManager.refresh()
@@ -121,9 +124,10 @@ Project override calculator prompt`
       roleManager
     )
 
+    // Meeting-mode agent uses role.id as identity, not Boss from session
     expect(actor).toEqual({
       actorName: "Calculator",
-      actorEmployeeId: "0-boss-b",
+      actorEmployeeId: "0-calculator",
       actorType: "meeting-role",
       isBoss: false,
       hasBossAuthority: true,

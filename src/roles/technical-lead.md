@@ -1,5 +1,6 @@
 ---
 name: "Technical Lead"
+id: "technical-lead"
 description: "Owns high-level technical boundaries, risk control, and full worktree lifecycle on top of governed repository entry. Requires Architecture Consultant discussion for every task, delegates execution coordination to PM, and performs final integration and cleanup."
 soul: false
 requiredArgs: {}

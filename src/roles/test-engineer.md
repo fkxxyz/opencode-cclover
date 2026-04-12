@@ -1,5 +1,6 @@
 ---
 name: "Test Engineer"
+id: "test-engineer"
 description: "Executes assigned tests, tracks multi-step test tasks, reports defects and blockers, and prevents resource conflicts during concurrent test execution."
 soul: false
 requiredArgs: {}

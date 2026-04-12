@@ -10,53 +10,38 @@ import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
 import { resolveToolActor } from "../meeting-mode"
-import { parseEmployeeId, formatEmployeeId } from "../types"
+import { formatBossId } from "../types"
 
 function resolveRecipientId(
   recipient: string,
-  senderEmployeeId: string,
-  stateManager: StateManager,
-  bossManager: BossManager | undefined
+  bossManager: BossManager | undefined,
+  stateManager: StateManager
 ): string {
-  // 统一的recipient resolution规则（无例外）
-  let resolvedRecipientId: string
-  let wasAutoPrepended = false
-
-  // 检查recipient是否已经有taskId前缀（匹配 ^[0-9]+- 模式）
-  if (/^[0-9]+-/.test(recipient)) {
-    // 已有taskId前缀，直接使用
-    resolvedRecipientId = recipient
-  } else {
-    // 没有taskId前缀，提取sender的taskId并prepend
-    const { taskId: senderTaskId } = parseEmployeeId(senderEmployeeId)
-    resolvedRecipientId = formatEmployeeId(senderTaskId, recipient)
-    wasAutoPrepended = true
+  // 1. Check if recipient is a Boss identity ID
+  if (bossManager?.isBoss(recipient)) {
+    return formatBossId(recipient)
   }
 
-  // 验证recipient是否存在
-  // Boss不在employee state系统中，需要单独检查
-  const recipientEmployee = stateManager.getEmployee(resolvedRecipientId)
-  const isBoss =
-    resolvedRecipientId.startsWith("0-") &&
-    bossManager?.isBoss(resolvedRecipientId.substring(2))
-
-  if (!recipientEmployee && !isBoss) {
-    // 透明的错误消息
-    if (wasAutoPrepended) {
-      throw new Error(
-        `Recipient '${recipient}' (resolved to '${resolvedRecipientId}') does not exist`
-      )
-    } else {
-      throw new Error(`Recipient does not exist: ${resolvedRecipientId}`)
+  // 2. Check if recipient is a BossId format (0-{id})
+  if (recipient.startsWith("0-")) {
+    const bossId = recipient.substring(2)
+    if (bossManager?.isBoss(bossId)) {
+      return formatBossId(bossId)
     }
   }
 
-  // 阻止self-messaging
-  if (resolvedRecipientId === senderEmployeeId) {
-    throw new Error("Cannot send message to yourself. Use memory for notes.")
+  // 3. Find employee (supports name or employeeId)
+  const allEmployees = stateManager.getEmployees()
+  const matchedEmployee = allEmployees.find(
+    (employee) =>
+      employee.name === recipient || employee.employeeId === recipient
+  )
+
+  if (!matchedEmployee) {
+    throw new Error(`Recipient does not exist: ${recipient}`)
   }
 
-  return resolvedRecipientId
+  return matchedEmployee.employeeId
 }
 
 async function findPendingReplyPeer(
@@ -161,37 +146,34 @@ export function createSendMessageTool(
         })
       }
 
-      const recipientId = resolveRecipientId(
-        args.to,
-        from,
-        stateManager,
-        bossManager
-      )
+      const recipientId = resolveRecipientId(args.to, bossManager, stateManager)
 
-      // 2. Check if recipient is offline (simplified - Boss naturally skips check)
-      const recipient = stateManager.getEmployee(recipientId)
-      if (recipient?.status === "offline") {
-        throw new Error(`Employee is on vacation!`)
+      // 2. Check if recipient is offline (only for employees, not Boss)
+      const recipientBossId = recipientId.startsWith("0-")
+        ? recipientId.substring(2)
+        : null
+      const isRecipientBoss =
+        recipientBossId !== null && bossManager?.isBoss(recipientBossId)
+
+      if (!isRecipientBoss) {
+        const recipient = stateManager.getEmployee(recipientId)
+        if (recipient?.status === "offline") {
+          throw new Error(`Employee is on vacation!`)
+        }
       }
 
       // 3. Record session if sender is Boss (BEFORE sending)
       // recordSession tracks which session a Boss is using to communicate with employees
-      if (
-        bossManager &&
-        stateManager &&
-        context.sessionID &&
-        from.startsWith("0-")
-      ) {
-        // Sender is Boss - extract boss name from BossId
-        const bossName = from.substring(2) // Remove "0-" prefix
+      const senderBossId = from.startsWith("0-") ? from.substring(2) : null
+      const isSenderBoss =
+        senderBossId !== null && bossManager?.isBoss(senderBossId)
 
-        if (recipientId) {
-          await bossManager.recordSession(
-            bossName,
-            recipientId,
-            context.sessionID
-          )
-        }
+      if (isSenderBoss && bossManager && context.sessionID && recipientId) {
+        await bossManager.recordSession(
+          senderBossId!,
+          recipientId,
+          context.sessionID
+        )
       }
 
       // 4. Call message service (let exceptions propagate naturally)

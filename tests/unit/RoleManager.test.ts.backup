@@ -89,7 +89,6 @@ describe("RoleManager", () => {
     const roleContent = [
       "---",
       "name: Calculator",
-      "id: calculator",
       "description: Project-specific calculator",
       "---",
       "Project-specific calculator role",
@@ -115,7 +114,6 @@ describe("RoleManager", () => {
     const roleContent = [
       "---",
       "name: custom-role",
-      "id: custom-role",
       "description: Custom role",
       "---",
       "Custom role prompt",
@@ -163,7 +161,6 @@ describe("RoleManager", () => {
     // 创建带 YAML frontmatter 的角色文件
     const roleContent = `---
 name: test-role
-id: test-role
 description: A test role with metadata
 requiredArgs:
   arg1:
@@ -207,7 +204,6 @@ This is the system prompt for the test role.`
 
     const roleContent = `---
 name: module-maintainer
-id: module-maintainer
 description: Maintains a module
 memorySchema:
   ownedUnits:
@@ -253,7 +249,6 @@ You are a module maintainer.`
 
     const roleContent = `---
 name: reviewer
-id: reviewer
 description: Reviews code changes
 responsibilities:
   - Review code quality
@@ -289,7 +284,6 @@ You are a reviewer.`
 
     const roleContent = `---
 name: simple-role
-id: simple-role
 description: A simple role without memorySchema
 ---
 
@@ -315,7 +309,6 @@ You are a simple role.`
 
     const roleContent = `---
 name: invalid-context-role
-id: invalid-context-role
 description: Invalid context metadata
 contextIds: invalid-context
 ---
@@ -338,7 +331,6 @@ This role should not load.`
 
     const roleContent = `---
 name: invalid-required-args-role
-id: invalid-required-args-role
 description: Invalid required args metadata
 requiredArgs:
   arg1:
@@ -364,7 +356,6 @@ This role should not load.`
 
     const roleContent = `---
 name: invalid-memory-schema-role
-id: invalid-memory-schema-role
 description: Invalid memory schema metadata
 memorySchema:
   score:
@@ -390,7 +381,6 @@ This role should not load.`
 
     const roleContent = `---
 name: invalid-internal-field-role
-id: invalid-internal-field-role
 description: Invalid internal field metadata
 resolvedContexts: []
 ---
@@ -413,7 +403,6 @@ This role should not load.`
 
     const roleContent = `---
 name: empty-prompt-role
-id: empty-prompt-role
 description: Role with empty prompt
 ---
 
@@ -449,7 +438,6 @@ description: Role with empty prompt
       path.join(projectRolesDir, "context-aware-role.md"),
       `---
 name: context-aware-role
-id: context-aware-role
 description: Role with layered contexts
 contextIds:
   - presetOnly
@@ -582,7 +570,6 @@ Context aware prompt.`
       path.join(projectRolesDir, "resilient-role.md"),
       `---
 name: resilient-role
-id: resilient-role
 description: Role with warning-and-skip contexts
 contextIds:
   - valid-context
@@ -630,7 +617,6 @@ Resilient prompt.`
       path.join(projectRolesDir, "relative-context-role.md"),
       `---
 name: relative-context-role
-id: relative-context-role
 description: Role with relative context docs
 contextIds:
   - nested-context
@@ -675,7 +661,6 @@ Relative context prompt.`
       path.join(projectRolesDir, "preset-context-role.md"),
       `---
 name: preset-context-role
-id: preset-context-role
 description: Role with preset context docs
 contextIds:
   - preset-repo-context
@@ -737,7 +722,6 @@ Preset context prompt.`
       path.join(projectRolesDir, "dev1.md"),
       `---
 name: dev1
-id: dev1
 description: Developer 1
 groups:
   - developers
@@ -749,7 +733,6 @@ Dev 1 prompt`
       path.join(projectRolesDir, "dev2.md"),
       `---
 name: dev2
-id: dev2
 description: Developer 2
 groups:
   - developers
@@ -761,7 +744,6 @@ Dev 2 prompt`
       path.join(projectRolesDir, "tester.md"),
       `---
 name: tester
-id: tester
 description: Tester
 groups:
   - qa
@@ -803,7 +785,6 @@ Tester prompt`
       path.join(projectRolesDir, "dev-frontend.md"),
       `---
 name: dev-frontend
-id: dev-frontend
 description: Frontend developer
 ---
 Frontend dev`
@@ -812,7 +793,6 @@ Frontend dev`
       path.join(projectRolesDir, "dev-backend.md"),
       `---
 name: dev-backend
-id: dev-backend
 description: Backend developer
 ---
 Backend dev`
@@ -821,7 +801,6 @@ Backend dev`
       path.join(projectRolesDir, "tester.md"),
       `---
 name: tester
-id: tester
 description: Tester
 ---
 Tester`
@@ -860,7 +839,6 @@ Tester`
       path.join(projectRolesDir, "dev1.md"),
       `---
 name: dev1
-id: dev1
 groups:
   - developers
 ---
@@ -871,7 +849,6 @@ Dev 1`
       path.join(projectRolesDir, "dev2.md"),
       `---
 name: dev2
-id: dev2
 groups:
   - developers
 ---
@@ -898,7 +875,6 @@ Dev 2`
       path.join(projectRolesDir, "dev1.md"),
       `---
 name: dev1
-id: dev1
 groups:
   - developers
 ---
@@ -909,7 +885,6 @@ Dev 1`
       path.join(projectRolesDir, "tester.md"),
       `---
 name: tester
-id: tester
 description: Tester
 ---
 Tester`
@@ -918,7 +893,6 @@ Tester`
       path.join(projectRolesDir, "reviewer.md"),
       `---
 name: reviewer
-id: reviewer
 description: Reviewer
 ---
 Reviewer`
@@ -946,7 +920,6 @@ Reviewer`
       path.join(projectRolesDir, "manager.md"),
       `---
 name: manager
-id: manager
 canHire:
   - developer
   - tester
@@ -958,7 +931,6 @@ Manager`
       path.join(projectRolesDir, "developer.md"),
       `---
 name: developer
-id: developer
 description: Developer
 ---
 Developer`
@@ -967,7 +939,6 @@ Developer`
       path.join(projectRolesDir, "tester.md"),
       `---
 name: tester
-id: tester
 description: Tester
 ---
 Tester`
@@ -976,7 +947,6 @@ Tester`
       path.join(projectRolesDir, "designer.md"),
       `---
 name: designer
-id: designer
 description: Designer
 ---
 Designer`
@@ -1000,7 +970,6 @@ Designer`
       path.join(projectRolesDir, "manager.md"),
       `---
 name: manager
-id: manager
 canHire:
   - dev-*
 ---
@@ -1011,7 +980,6 @@ Manager`
       path.join(projectRolesDir, "dev-frontend.md"),
       `---
 name: dev-frontend
-id: dev-frontend
 description: Frontend developer
 ---
 Frontend`
@@ -1020,7 +988,6 @@ Frontend`
       path.join(projectRolesDir, "dev-backend.md"),
       `---
 name: dev-backend
-id: dev-backend
 description: Backend developer
 ---
 Backend`
@@ -1029,7 +996,6 @@ Backend`
       path.join(projectRolesDir, "tester.md"),
       `---
 name: tester
-id: tester
 description: Tester
 ---
 Tester`
@@ -1052,7 +1018,6 @@ Tester`
       path.join(projectRolesDir, "manager.md"),
       `---
 name: manager
-id: manager
 canHire:
   - group:developers
 ---
@@ -1063,7 +1028,6 @@ Manager`
       path.join(projectRolesDir, "dev1.md"),
       `---
 name: dev1
-id: dev1
 groups:
   - developers
 ---
@@ -1074,7 +1038,6 @@ Dev 1`
       path.join(projectRolesDir, "dev2.md"),
       `---
 name: dev2
-id: dev2
 groups:
   - developers
 ---
@@ -1240,7 +1203,6 @@ Dev 2`
 
     const roleContent = `---
 name: workflow-role
-id: workflow-role
 description: Role with workflow metadata
 workflow:
   id: main-workflow
@@ -1299,7 +1261,6 @@ You are a workflow-enabled role.`
 
     const roleContent = `---
 name: no-workflow-role
-id: no-workflow-role
 description: Role without workflow
 canHire:
   - developer
@@ -1329,7 +1290,6 @@ You are a normal role.`
 
     const roleContent = `---
 name: bad-workflow-role
-id: bad-workflow-role
 description: Role with invalid workflow
 workflow:
   phases: []
@@ -1357,7 +1317,6 @@ Bad workflow role.`
 
     const roleContent = `---
 name: minimal-workflow-role
-id: minimal-workflow-role
 description: Minimal workflow role
 workflow:
   phases:

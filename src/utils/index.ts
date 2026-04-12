@@ -13,6 +13,10 @@ export {
   getExecutableTasks,
   type Event,
 } from "./ContextBuilder"
+export {
+  isValidIdentityId,
+  getIdentityIdValidationError,
+} from "./IdentityValidator"
 
 // 从 core 导出类型
 export type { Task, Memory } from "../core/MemoryManager"

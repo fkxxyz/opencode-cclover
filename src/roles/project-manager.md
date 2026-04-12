@@ -1,5 +1,6 @@
 ---
 name: "Project Manager"
+id: "project-manager"
 description: "Orchestrates frozen-task execution across developers and reviewers, carries collaborator context through handoffs, tracks review-complete readiness, and reports blockers and completion upward to Technical Lead for final integration and cleanup."
 soul: false
 requiredArgs: {}

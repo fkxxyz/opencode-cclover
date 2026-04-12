@@ -96,6 +96,7 @@ export function resolveToolActor(
   bossManager?: BossManager,
   roleManager?: RoleManager
 ): ResolvedToolActor | undefined {
+  // 1. Check if sessionID maps to an employee
   const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
   if (employeeId) {
     if (!stateManager) {
@@ -122,6 +123,7 @@ export function resolveToolActor(
     }
   }
 
+  // 2. Check if context.agent exactly matches a configured Boss ID
   if (context.agent && bossManager?.isBoss(context.agent)) {
     return {
       actorName: context.agent,
@@ -132,47 +134,23 @@ export function resolveToolActor(
     }
   }
 
-  if (
-    context.agent &&
-    isMeetingModeProjectedAgent(roleManager, context.agent, bossManager)
-  ) {
-    const sessionBoss = bossManager?.getBossBySession(context.sessionID)
-
-    let bossId: string
-    if (sessionBoss) {
-      bossId = formatBossId(sessionBoss)
-    } else if (bossManager) {
-      // Fallback: 如果只有一个 Boss，使用这个 Boss
-      const bosses = bossManager.getBosses()
-      if (bosses.length === 1) {
-        bossId = formatBossId(bosses[0])
-      } else if (bosses.length === 0) {
-        throw new Error(
-          `Meeting mode role "${context.agent}" requires at least one Boss in configuration`
-        )
-      } else {
-        throw new Error(
-          `Meeting mode role "${context.agent}" cannot determine which Boss is using it. ` +
-            `Multiple Bosses configured: ${bosses.join(", ")}. ` +
-            `Please send a message as Boss first to establish session mapping.`
-        )
+  // 3. Check if context.agent exactly matches a role display name (meeting-mode)
+  if (context.agent && roleManager) {
+    const role = roleManager.getRole(context.agent)
+    if (role) {
+      const bossId = formatBossId(role.id)
+      return {
+        actorName: context.agent,
+        actorEmployeeId: bossId,
+        actorType: "meeting-role",
+        isBoss: false,
+        hasBossAuthority: true,
+        projectedRoleName: context.agent,
       }
-    } else {
-      throw new Error(
-        `Meeting mode role "${context.agent}" requires BossManager to be configured`
-      )
-    }
-
-    return {
-      actorName: context.agent,
-      actorEmployeeId: bossId,
-      actorType: "meeting-role",
-      isBoss: false,
-      hasBossAuthority: true,
-      projectedRoleName: context.agent,
     }
   }
 
+  // 4. No valid actor found
   return undefined
 }
 

@@ -1,5 +1,6 @@
 ---
 name: "SimpleCalculator"
+id: "simple-calculator"
 description: "Simple calculator without persistent memory"
 soul: false
 requiredArgs: {}

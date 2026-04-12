@@ -1,5 +1,6 @@
 ---
 name: "Investigator"
+id: "investigator"
 description: "Explores unexpected phenomena, analyzes code behavior, uncovers root causes without modifications. Provides deep insights and investigation reports."
 soul: false
 requiredArgs: {}

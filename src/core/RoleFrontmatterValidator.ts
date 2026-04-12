@@ -11,6 +11,10 @@ import type {
   ActionDefinition,
   SpecificationDefinition,
 } from "../types"
+import {
+  isValidIdentityId,
+  getIdentityIdValidationError,
+} from "../utils/IdentityValidator"
 
 const VALID_ROLE_ARG_TYPES: RoleArgType[] = ["string"]
 
@@ -79,6 +83,20 @@ export function validateRoleFrontmatter(
     })
   }
 
+  if (typeof raw.id !== "string" || raw.id.trim().length === 0) {
+    issues.push({
+      level: "error",
+      field: "id",
+      message: "id must be a non-empty string",
+    })
+  } else if (!isValidIdentityId(raw.id)) {
+    issues.push({
+      level: "error",
+      field: "id",
+      message: getIdentityIdValidationError(raw.id),
+    })
+  }
+
   if (raw.description !== undefined && typeof raw.description !== "string") {
     issues.push({
       level: "error",
@@ -125,6 +143,7 @@ export function validateRoleFrontmatter(
 
   const normalizedName =
     typeof raw.name === "string" ? raw.name.trim() : undefined
+  const normalizedId = typeof raw.id === "string" ? raw.id.trim() : undefined
 
   // Note: We do NOT validate that name matches filename
   // Filename uses kebab-case for filesystem compatibility (e.g., "project-manager.md")
@@ -141,7 +160,7 @@ export function validateRoleFrontmatter(
 
   const hasError = issues.some((issue) => issue.level === "error")
 
-  if (hasError || !normalizedName) {
+  if (hasError || !normalizedName || !normalizedId) {
     return {
       valid: false,
       issues,
@@ -152,6 +171,7 @@ export function validateRoleFrontmatter(
     valid: true,
     normalized: {
       name: normalizedName,
+      id: normalizedId,
       description:
         typeof raw.description === "string" ? raw.description : undefined,
       soul: typeof raw.soul === "boolean" ? raw.soul : true,

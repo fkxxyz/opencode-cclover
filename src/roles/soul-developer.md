@@ -1,5 +1,6 @@
 ---
 name: "Soul Developer"
+id: "soul-developer"
 description: "Implements preset role and workflow-governance changes in a PM-provided worktree from explicit references, without silently redefining workflow semantics or owning git flow."
 soul: false
 requiredArgs:

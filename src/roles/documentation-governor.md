@@ -1,5 +1,6 @@
 ---
 name: "Documentation Governor"
+id: "documentation-governor"
 description: "Owns repository knowledge-entry governance. Maintains root and recursive indexes, controls document placement, and hands off requirement-specific reading paths to downstream roles."
 soul: false
 requiredArgs: {}

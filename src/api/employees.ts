@@ -12,6 +12,19 @@ import type {
 } from "../types/index"
 import { formatBossId } from "../types/employee"
 import type { BossManager } from "../core/BossManager"
+import type { RoleManager } from "../core/RoleManager"
+
+/**
+ * Boss information for HTTP API
+ */
+export interface BossInfo {
+  /** Display name (for configured bosses, same as id; for meeting-mode, role.name) */
+  name: string
+  /** Stable identity ID */
+  id: string
+  /** Boss type */
+  type: "configured" | "meeting-mode"
+}
 
 /**
  * 获取所有员工列表
@@ -32,23 +45,37 @@ export function getEmployees(
  * 获取所有 boss 列表
  */
 export function getBosses(
-  bossManager: BossManager
-): SuccessResponse<{ bosses: Employee[] }> {
-  const bossNames = bossManager.getBosses()
+  bossManager: BossManager,
+  roleManager?: RoleManager
+): SuccessResponse<{ bosses: BossInfo[] }> {
+  const bossIds = bossManager.getBosses()
+  const bosses: BossInfo[] = []
 
-  // 为每个 boss 构造 Employee 对象
-  const bosses: Employee[] = bossNames.map((name) => ({
-    employeeId: formatBossId(name),
-    name,
-    taskId: 0,
-    role: "Boss",
-    hiredBy: null,
-    status: "busy" as const,
-    paused: false,
-    createdAt: new Date().toISOString(),
-    lastActiveAt: new Date().toISOString(),
-    activeSessionId: null,
-  }))
+  // Build a map of role.id -> role.name for meeting-mode roles
+  const roleIdToName = new Map<string, string>()
+  if (roleManager) {
+    for (const role of roleManager.getAllRoles()) {
+      roleIdToName.set(role.id, role.name)
+    }
+  }
+
+  for (const id of bossIds) {
+    if (roleIdToName.has(id)) {
+      // Meeting-mode Boss (role)
+      bosses.push({
+        name: roleIdToName.get(id)!,
+        id,
+        type: "meeting-mode",
+      })
+    } else {
+      // Configured Boss
+      bosses.push({
+        name: id,
+        id,
+        type: "configured",
+      })
+    }
+  }
 
   return {
     success: true,
