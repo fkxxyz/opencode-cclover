@@ -375,7 +375,8 @@ You are a project manager responsible for coordinating development work.
 
 ```bash
 # 1. Type check (must have zero errors)
-bun run build
+# This checks BOTH src/ and tests/ directories
+bun run type-check
 
 # 2. Format all TypeScript files
 bunx prettier --write "src/**/*.ts" "tests/**/*.ts"
@@ -384,15 +385,23 @@ bunx prettier --write "src/**/*.ts" "tests/**/*.ts"
 bun test
 ```
 
+**Available Scripts**:
+- `bun run type-check` - Type check src/ and tests/ (for commit)
+- `bun run build` - Build src/ for publishing (generates dist/)
+- `bun run test` - Run all tests
+- `bun run format` - Format all TypeScript files
+
 **Workflow**:
 ```bash
 # After making changes
-bun run build          # Check TypeScript errors
+bun run type-check     # Check TypeScript errors in src/ AND tests/
 bunx prettier --write "src/**/*.ts" "tests/**/*.ts"
 bun test               # Verify all tests pass
 git add .
 git commit -m "feat: your feature description"
 ```
+
+**Note**: Bun runs TypeScript directly, so we only need type checking during development. Build is only needed for publishing the package.
 
 ### Commit Message Format
 **REQUIRED**: All commit messages MUST be in English and follow [Conventional Commits](https://www.conventionalcommits.org/) format.
