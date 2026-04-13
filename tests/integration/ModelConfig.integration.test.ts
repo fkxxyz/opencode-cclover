@@ -15,6 +15,7 @@ import { BossManager } from "../../src/core/BossManager"
 import { createCreateAgentTool } from "../../src/tools/CreateAgentTool"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import type { Employee } from "../../src/types/index"
+import { createMockToolContext } from "../helpers/mockContext"
 
 describe("Model Configuration Integration", () => {
   const testDir = path.join(
@@ -248,10 +249,10 @@ You create agents.`
           task_name: "test-task",
           prompt: "test prompt",
         },
-        {
+        createMockToolContext({
           sessionID: "test-session",
           agent: "agent-creator",
-        }
+        })
       )
 
       expect(mockOpcodeClient.session.prompt).toHaveBeenCalled()
@@ -334,10 +335,10 @@ You create agents.`
           task_name: "test-task",
           prompt: "test prompt",
         },
-        {
+        createMockToolContext({
           sessionID: "test-session-2",
           agent: "default-creator",
-        }
+        })
       )
 
       expect(mockOpcodeClient.session.prompt).toHaveBeenCalled()
