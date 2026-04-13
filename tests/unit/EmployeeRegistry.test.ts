@@ -286,7 +286,7 @@ describe("EmployeeRegistry", () => {
         name: "alice",
         taskId: 0,
         role: "TestRole",
-        status: "idle",
+        status: "busy",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
         hiredBy: null,
@@ -312,7 +312,7 @@ describe("EmployeeRegistry", () => {
         name: "charlie",
         taskId: 0,
         role: "Tester",
-        status: "idle",
+        status: "busy",
         createdAt: "2026-03-01T10:02:00.000Z",
         lastActiveAt: "2026-03-01T10:02:00.000Z",
         hiredBy: null,
@@ -324,9 +324,9 @@ describe("EmployeeRegistry", () => {
       registry.register(emp2)
       registry.register(emp3)
 
-      const active = registry.getByStatus("active")
-      expect(active.length).toBe(2)
-      expect(active.every((e) => e.status === "active")).toBe(true)
+      const busy = registry.getByStatus("busy")
+      expect(busy.length).toBe(2)
+      expect(busy.every((e) => e.status === "busy")).toBe(true)
 
       const idle = registry.getByStatus("idle")
       expect(idle.length).toBe(1)
@@ -334,8 +334,8 @@ describe("EmployeeRegistry", () => {
     })
 
     it("should return empty array when no employees with status", () => {
-      const active = registry.getByStatus("active")
-      expect(active.length).toBe(0)
+      const error = registry.getByStatus("error")
+      expect(error.length).toBe(0)
     })
   })
 
