@@ -473,12 +473,12 @@ describe("EventLoop Vacation Mechanism", () => {
       await memoryManager.write("0-Alice", {
         knowledge: [],
         tasks: [
-          {
+          createTestTask({
             name: "task1",
             description: "Test task",
             status: "pending",
             dependencies: [],
-          },
+          }),
         ],
         args: {},
       })
