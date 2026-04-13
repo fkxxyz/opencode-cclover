@@ -202,6 +202,7 @@ describe("ContextBuilder", () => {
       }
       const roleMetadata: RoleMetadata = {
         name: "developer",
+        id: "developer",
         description: "A developer role",
         contextIds: ["coding-standards"],
         resolvedContexts: [
