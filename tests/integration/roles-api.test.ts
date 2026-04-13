@@ -116,7 +116,7 @@ You are a test role. This is your system prompt.
       const response = await fetch(
         `http://localhost:${TEST_PORT}/api/projects/test-project/roles`
       )
-      const json = await response.json()
+      const json = await response.json() as any
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
