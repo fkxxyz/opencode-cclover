@@ -58,7 +58,12 @@ export function createCompleteMajorTaskTool(
         details: { completedAt: new Date().toISOString() },
       })
 
-      // 3. 发送调查问卷给所有员工
+      // 3. 过滤出与调用者相同 taskId 的员工
+      const taskEmployees = employees.filter(
+        (e) => e.taskId === employee.taskId
+      )
+
+      // 4. 发送调查问卷给同一 taskId 的员工
       const SURVEY_PROMPT = `[Work Experience Survey]
 
 Hello! I'm the Boss, the developer of this system.
@@ -120,7 +125,7 @@ Any degree of discomfort is worth mentioning — even just a momentary "Huh?", i
 
       const surveyTimestamp = new Date().toISOString()
 
-      for (const emp of employees) {
+      for (const emp of taskEmployees) {
         await messageService.send(
           "0-cclover",
           emp.employeeId,
@@ -140,7 +145,7 @@ Any degree of discomfort is worth mentioning — even just a momentary "Huh?", i
         })
       }
 
-      return `Major task marked complete. Feedback survey sent to ${employees.length} employees.`
+      return `Major task marked complete. Feedback survey sent to ${taskEmployees.length} employees in taskId ${employee.taskId}.`
     },
   })
 }
