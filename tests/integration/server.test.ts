@@ -15,6 +15,8 @@ import { RoleManager } from "../../src/core/RoleManager"
 import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
 import { AgentRegistry, agentRegistry } from "../../src/utils/AgentRegistry"
+import { ModelConfigManager } from "../../src/config/ModelConfigManager"
+import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 import type { Employee } from "../../src/types/index"
 
 const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-server")
@@ -50,6 +52,14 @@ describe("Console Server", () => {
     const bossManager = new BossManager(undefined, TEST_WORKSPACE)
     const roleManager = new RoleManager(TEST_WORKSPACE)
     const testAgentRegistry = new AgentRegistry()
+    const modelConfigManager = new ModelConfigManager(
+      { bosses: [], projects: [] },
+      {}
+    )
+    const meetingModePromptInjector = new MeetingModePromptInjector(
+      "test-project",
+      "Test Project"
+    )
     const testEmployee: Employee = {
       employeeId: "0-test-role",
       name: "test-role",
@@ -99,6 +109,8 @@ describe("Console Server", () => {
       agentRegistry: testAgentRegistry,
       bossManager,
       roleManager,
+      modelConfigManager,
+      meetingModePromptInjector,
       eventLoopStarted: false,
       eventLoops: new Map(),
     })
