@@ -3,6 +3,7 @@ import { RoleManager } from "../../src/core/RoleManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as os from "node:os"
+import * as yaml from "yaml"
 
 describe("RoleManager", () => {
   let tempDir: string
@@ -11,19 +12,15 @@ describe("RoleManager", () => {
 
   let originalHome = process.env.HOME
 
-  beforeAll(async () => {
-    // 创建临时测试目录
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-test-"))
+  async function setupPresetFixture(): Promise<void> {
+    const realPresetDir = path.join(process.cwd(), "src/roles")
+    const testPresetRoot = path.dirname(testPresetDir)
 
-    // 创建独立的测试 preset 目录
-    testPresetDir = path.join(tempDir, "test-preset-roles")
     await fs.mkdir(testPresetDir, { recursive: true })
 
-    // 复制真实的 preset roles 到测试目录
-    const realPresetDir = path.join(process.cwd(), "src/roles")
     const files = await fs.readdir(realPresetDir)
     for (const file of files) {
-      if (file.endsWith(".md")) {
+      if (file.endsWith(".md") || file === "context.yml") {
         const content = await fs.readFile(
           path.join(realPresetDir, file),
           "utf-8"
@@ -31,6 +28,43 @@ describe("RoleManager", () => {
         await fs.writeFile(path.join(testPresetDir, file), content)
       }
     }
+
+    const contextContent = await fs.readFile(
+      path.join(realPresetDir, "context.yml"),
+      "utf-8"
+    )
+    const parsedContext = yaml.parse(contextContent) as {
+      contexts?: Record<string, { documents?: string[] }>
+    }
+
+    for (const definition of Object.values(parsedContext.contexts || {})) {
+      for (const documentPath of definition.documents || []) {
+        const sourcePath = path.join(process.cwd(), documentPath)
+        const targetPath = path.join(testPresetRoot, documentPath)
+
+        await fs.mkdir(path.dirname(targetPath), { recursive: true })
+
+        try {
+          await fs.lstat(targetPath)
+          continue
+        } catch (error: any) {
+          if (error.code !== "ENOENT") {
+            throw error
+          }
+        }
+
+        await fs.symlink(sourcePath, targetPath)
+      }
+    }
+  }
+
+  beforeAll(async () => {
+    // 创建临时测试目录
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "rolemanager-test-"))
+
+    // 创建独立的测试 preset 目录
+    testPresetDir = path.join(tempDir, "test-preset-roles")
+    await setupPresetFixture()
 
     // 使用测试 preset 目录创建 RoleManager
     // presetRootDir 设置为 tempDir 的父目录，这样测试可以在 tempDir 下创建 docs 等目录
@@ -44,6 +78,7 @@ describe("RoleManager", () => {
       recursive: true,
       force: true,
     })
+    await setupPresetFixture()
   })
 
   test("should load preset roles", async () => {
@@ -430,20 +465,40 @@ description: Role with empty prompt
   })
 
   test("should resolve layered contexts with per-contextId override semantics", async () => {
-    const projectRolesDir = path.join(tempDir, ".cclover/roles")
-    const projectContextDir = path.join(tempDir, ".cclover")
+    const isolatedProjectDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "rolemanager-layered-project-")
+    )
+    const isolatedPresetDir = path.join(isolatedProjectDir, "preset-roles")
+    const isolatedPresetRoot = path.dirname(isolatedPresetDir)
+    const projectRolesDir = path.join(isolatedProjectDir, ".cclover/roles")
+    const projectContextDir = path.join(isolatedProjectDir, ".cclover")
     const tempHome = await fs.mkdtemp(
       path.join(os.tmpdir(), "rolemanager-home-")
     )
     const globalContextDir = path.join(tempHome, ".config/opencode-cclover")
-    const testPresetContextPath = path.join(testPresetDir, "context.yml")
-    const testPresetRoot = path.dirname(testPresetDir)
+    const isolatedRoleManager = new RoleManager(
+      isolatedProjectDir,
+      isolatedPresetDir,
+      isolatedPresetRoot
+    )
 
     process.env.HOME = tempHome
 
+    await fs.mkdir(isolatedPresetDir, { recursive: true })
     await fs.mkdir(projectRolesDir, { recursive: true })
     await fs.mkdir(projectContextDir, { recursive: true })
     await fs.mkdir(globalContextDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(isolatedPresetDir, "minimal-preset-role.md"),
+      `---
+name: minimal-preset-role
+id: minimal-preset-role
+description: Minimal preset role
+---
+
+Minimal preset prompt.`
+    )
 
     await fs.writeFile(
       path.join(projectRolesDir, "context-aware-role.md"),
@@ -460,9 +515,8 @@ contextIds:
 Context aware prompt.`
     )
 
-    // Preset context: paths resolve from test preset root
     await fs.writeFile(
-      testPresetContextPath,
+      path.join(isolatedPresetDir, "context.yml"),
       `contexts:
   presetOnly:
     description: Preset context
@@ -474,17 +528,16 @@ Context aware prompt.`
       - docs/shared-preset.md
 `
     )
-    await fs.mkdir(path.join(testPresetRoot, "docs"), { recursive: true })
+    await fs.mkdir(path.join(isolatedPresetRoot, "docs"), { recursive: true })
     await fs.writeFile(
-      path.join(testPresetRoot, "docs/preset-only.md"),
+      path.join(isolatedPresetRoot, "docs/preset-only.md"),
       "Preset only content"
     )
     await fs.writeFile(
-      path.join(testPresetRoot, "docs/shared-preset.md"),
+      path.join(isolatedPresetRoot, "docs/shared-preset.md"),
       "Preset shared content"
     )
 
-    // Global context: paths resolve from project root (tempDir)
     await fs.writeFile(
       path.join(globalContextDir, "context.yml"),
       `contexts:
@@ -494,13 +547,12 @@ Context aware prompt.`
       - docs/shared-global.md
 `
     )
-    await fs.mkdir(path.join(tempDir, "docs"), { recursive: true })
+    await fs.mkdir(path.join(isolatedProjectDir, "docs"), { recursive: true })
     await fs.writeFile(
-      path.join(tempDir, "docs/shared-global.md"),
+      path.join(isolatedProjectDir, "docs/shared-global.md"),
       "Global shared content"
     )
 
-    // Project context: paths resolve from project root (tempDir)
     await fs.writeFile(
       path.join(projectContextDir, "context.yml"),
       `contexts:
@@ -515,16 +567,16 @@ Context aware prompt.`
 `
     )
     await fs.writeFile(
-      path.join(tempDir, "docs/shared-project.md"),
+      path.join(isolatedProjectDir, "docs/shared-project.md"),
       "Project shared content"
     )
     await fs.writeFile(
-      path.join(tempDir, "docs/project-only.md"),
+      path.join(isolatedProjectDir, "docs/project-only.md"),
       "Project only content"
     )
 
-    await roleManager.refresh()
-    const role = roleManager.getRole("context-aware-role")
+    await isolatedRoleManager.refresh()
+    const role = isolatedRoleManager.getRole("context-aware-role")
 
     expect(role?.resolvedContexts).toHaveLength(3)
     expect(role?.resolvedContexts?.map((context) => context.id)).toEqual([
@@ -556,12 +608,6 @@ Context aware prompt.`
     expect(role?.resolvedContexts?.[2].documents[0].content).toContain(
       "Project only content"
     )
-
-    // Cleanup
-    await fs.rm(path.join(testPresetRoot, "docs"), {
-      recursive: true,
-      force: true,
-    })
   })
 
   test("should skip invalid context sources and missing documents without aborting role load", async () => {
@@ -663,13 +709,33 @@ Relative context prompt.`
   })
 
   test("should resolve preset context document paths relative to repository root", async () => {
-    const projectRolesDir = path.join(tempDir, ".cclover/roles")
-    const testPresetContextPath = path.join(testPresetDir, "context.yml")
-    const testPresetRoot = path.dirname(testPresetDir)
-    const testPresetDocsDir = path.join(testPresetRoot, "docs")
+    const isolatedProjectDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "rolemanager-preset-path-project-")
+    )
+    const isolatedPresetDir = path.join(isolatedProjectDir, "preset-roles")
+    const isolatedPresetRoot = path.dirname(isolatedPresetDir)
+    const projectRolesDir = path.join(isolatedProjectDir, ".cclover/roles")
+    const isolatedRoleManager = new RoleManager(
+      isolatedProjectDir,
+      isolatedPresetDir,
+      isolatedPresetRoot
+    )
+    const presetDocsDir = path.join(isolatedPresetRoot, "docs")
 
+    await fs.mkdir(isolatedPresetDir, { recursive: true })
     await fs.mkdir(projectRolesDir, { recursive: true })
-    await fs.mkdir(testPresetDocsDir, { recursive: true })
+    await fs.mkdir(presetDocsDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(isolatedPresetDir, "minimal-preset-role.md"),
+      `---
+name: minimal-preset-role
+id: minimal-preset-role
+description: Minimal preset role
+---
+
+Minimal preset prompt.`
+    )
 
     await fs.writeFile(
       path.join(projectRolesDir, "preset-context-role.md"),
@@ -685,7 +751,7 @@ Preset context prompt.`
     )
 
     await fs.writeFile(
-      testPresetContextPath,
+      path.join(isolatedPresetDir, "context.yml"),
       `contexts:
   preset-repo-context:
     description: Preset context from repo root
@@ -694,19 +760,17 @@ Preset context prompt.`
 `
     )
     await fs.writeFile(
-      path.join(testPresetDocsDir, "preset-doc.md"),
+      path.join(presetDocsDir, "preset-doc.md"),
       "Preset document content from repo root"
     )
 
-    await roleManager.refresh()
-    const role = roleManager.getRole("preset-context-role")
+    await isolatedRoleManager.refresh()
+    const role = isolatedRoleManager.getRole("preset-context-role")
 
     expect(role?.resolvedContexts?.[0].documents[0]).toEqual({
-      path: path.join(testPresetDocsDir, "preset-doc.md"),
+      path: path.join(presetDocsDir, "preset-doc.md"),
       content: "Preset document content from repo root",
     })
-
-    await fs.rm(testPresetDocsDir, { recursive: true, force: true })
   })
 
   test("should reject old format without frontmatter", async () => {
