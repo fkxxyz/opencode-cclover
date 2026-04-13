@@ -5,7 +5,6 @@ import { RoleManager } from "../../src/core/RoleManager"
 import { StateManager } from "../../src/state/StateManager"
 import { createResumeEmployeeTool } from "../../src/tools/ResumeEmployeeTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
-import type { ProjectInstance } from "../../src/server/ProjectRegistry"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -21,7 +20,6 @@ describe("ResumeEmployeeTool", () => {
   let messageService: MessageService
   let stateManager: StateManager
   let resumeEmployeeTool: any
-  let project: ProjectInstance
 
   beforeEach(async () => {
     // 清理测试工作空间
@@ -47,22 +45,6 @@ describe("ResumeEmployeeTool", () => {
       bossManager,
       null as any
     )
-
-    // 创建 project 实例
-    project = {
-      projectId,
-      projectName: "test-project",
-      directory: TEST_WORKSPACE,
-      workspaceRoot: TEST_WORKSPACE,
-      stateManager,
-      messageService,
-      memoryManager: null as any,
-      agentRegistry: null as any,
-      bossManager,
-      roleManager,
-      eventLoopStarted: false,
-      eventLoops: new Map(),
-    }
 
     // 创建工具
     resumeEmployeeTool = createResumeEmployeeTool(
