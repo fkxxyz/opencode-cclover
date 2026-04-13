@@ -22,10 +22,10 @@ describe("MessageService Integration", () => {
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     await stateManager.registerEmployee({
-      employeeId: "0-testRole?",
-      name: "testRole?",
+      employeeId: "0-test-role",
+      name: "test-role",
       taskId: null,
-      role: "testRole?",
+      role: "test-role",
       status: "inactive",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -90,21 +90,21 @@ describe("MessageService Integration", () => {
   })
 
   test("should create correct directory structure", async () => {
-    const testRole = service.getClient("0-testRole?")
+    const testRole = service.getClient("0-test-role")
     const bayecao = service.getClient("0-bayecao")
 
     // 发送消息
-    await bayecao.send("0-testRole?", "计算 1+1")
+    await bayecao.send("0-test-role", "计算 1+1")
     await testRole?.send("0-bayecao", "结果是 2")
 
     // 验证目录结构
     const testRoleDir = path.join(
       TEST_WORKSPACE,
-      "employees/0-testRole?/messages/0-bayecao"
+      "employees/0-test-role/messages/0-bayecao"
     )
     const bayecaoDir = path.join(
       TEST_WORKSPACE,
-      "employees/0-bayecao/messages/0-testRole?"
+      "employees/0-bayecao/messages/0-test-role"
     )
 
     const testRoleDirExists = await fs
@@ -121,23 +121,23 @@ describe("MessageService Integration", () => {
   })
 
   test("should maintain synchronized message files", async () => {
-    const testRole = service.getClient("0-testRole?")
+    const testRole = service.getClient("0-test-role")
     const bayecao = service.getClient("0-bayecao")
 
     // 双向对话
-    await bayecao.send("0-testRole?", "计算 1+1")
+    await bayecao.send("0-test-role", "计算 1+1")
     await testRole?.recv()
     await testRole?.send("0-bayecao", "结果是 2")
     await bayecao.recv()
 
     // 读取双方的消息文件
     const testRoleFilePath = service.getMessageFilePath(
-      "0-testRole?",
+      "0-test-role",
       "0-bayecao"
     )
     const bayecaoFilePath = service.getMessageFilePath(
       "0-bayecao",
-      "0-testRole?"
+      "0-test-role"
     )
 
     const testRoleContent = await fs.readFile(testRoleFilePath, "utf-8")
@@ -150,7 +150,7 @@ describe("MessageService Integration", () => {
     expect(testRoleMessages.length).toBe(2)
     expect(bayecaoMessages.length).toBe(2)
 
-    // 验证 testRole? 的视角
+    // 验证 test-role 的视角
     expect(testRoleMessages[0].direction).toBe("receive")
     expect(testRoleMessages[0].content).toBe("计算 1+1")
     expect(testRoleMessages[1].direction).toBe("send")

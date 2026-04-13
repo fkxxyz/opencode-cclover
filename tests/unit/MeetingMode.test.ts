@@ -25,14 +25,14 @@ describe("Meeting Mode helpers", () => {
     await fs.mkdir(projectRolesDir, { recursive: true })
 
     await fs.writeFile(
-      path.join(projectRolesDir, "TestRole.md"),
+      path.join(projectRolesDir, "test-role.md"),
       `---
 name: TestRole
-id: testRole?
-description: Project override testRole? description
+id: test-role
+description: Project override test-role description
 ---
 
-Project override testRole? prompt`
+Project override test-role prompt`
     )
 
     await roleManager.refresh()
@@ -44,13 +44,13 @@ Project override testRole? prompt`
     expect(agents.TestRole).toBeDefined()
     expect(agents.TestRole.mode).toBe("primary")
     expect(agents.TestRole.description).toBe(
-      "Project override testRole? description"
+      "Project override test-role description"
     )
     expect(agents.TestRole.prompt).toContain(
       "Meeting mode prompt is injected dynamically"
     )
     expect(agents.TestRole.prompt).not.toContain(
-      "Project override testRole? prompt"
+      "Project override test-role prompt"
     )
   })
 
@@ -59,14 +59,14 @@ Project override testRole? prompt`
     await fs.mkdir(projectRolesDir, { recursive: true })
 
     await fs.writeFile(
-      path.join(projectRolesDir, "TestRole.md"),
+      path.join(projectRolesDir, "test-role.md"),
       `---
 name: TestRole
-id: testRole?
-description: Project override testRole? description
+id: test-role
+description: Project override test-role description
 ---
 
-Project override testRole? prompt`
+Project override test-role prompt`
     )
 
     await roleManager.refresh()
@@ -76,7 +76,7 @@ Project override testRole? prompt`
     })
 
     expect(agents.TestRole.prompt).toContain(
-      "Project override testRole? prompt"
+      "Project override test-role prompt"
     )
     expect(agents.TestRole.prompt).toContain(
       "The boss is personally talking with you"
@@ -127,7 +127,7 @@ Project override testRole? prompt`
     // Meeting-mode agent uses role.id as identity, not Boss from session
     expect(actor).toEqual({
       actorName: "TestRole",
-      actorEmployeeId: "0-testRole?",
+      actorEmployeeId: "0-test-role",
       actorType: "meeting-role",
       isBoss: false,
       hasBossAuthority: true,

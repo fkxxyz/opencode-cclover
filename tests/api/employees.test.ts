@@ -34,8 +34,8 @@ describe("Employees API", () => {
     const stateManager = new StateManager()
 
     const employee1: Employee = {
-      employeeId: "0-testRole?",
-      name: "testRole?",
+      employeeId: "0-test-role",
+      name: "test-role",
       taskId: 0,
       role: "TestRole",
       status: "idle",
@@ -53,7 +53,7 @@ describe("Employees API", () => {
       role: "Coder",
       status: "active",
       paused: false,
-      hiredBy: "0-testRole?",
+      hiredBy: "0-test-role",
       activeSessionId: null,
       createdAt: "2026-03-01T10:02:00.000Z",
       lastActiveAt: "2026-03-01T10:06:00.000Z",
@@ -66,7 +66,7 @@ describe("Employees API", () => {
 
     expect(response.success).toBe(true)
     expect(response.data.employees).toHaveLength(2)
-    expect(response.data.employees[0].name).toBe("testRole?")
+    expect(response.data.employees[0].name).toBe("test-role")
     expect(response.data.employees[1].name).toBe("coder")
   })
 
@@ -75,8 +75,8 @@ describe("Employees API", () => {
     const memoryManager = new MemoryManager(testWorkspace)
 
     const employee: Employee = {
-      employeeId: "0-testRole?",
-      name: "testRole?",
+      employeeId: "0-test-role",
+      name: "test-role",
       taskId: 0,
       role: "TestRole",
       status: "idle",
@@ -90,7 +90,7 @@ describe("Employees API", () => {
     stateManager.registerEmployee(employee)
 
     // 创建员工目录和记忆文件（使用 employeeId）
-    const employeeDir = path.join(testWorkspace, "employees", "0-testRole?")
+    const employeeDir = path.join(testWorkspace, "employees", "0-test-role")
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -112,7 +112,7 @@ describe("Employees API", () => {
     await fs.writeFile(memoryPath, yaml.stringify(memory), "utf-8")
 
     const response = await getEmployeeDetail(
-      "testRole?",
+      "test-role",
       stateManager,
       memoryManager,
       agentRegistry,
@@ -121,7 +121,7 @@ describe("Employees API", () => {
 
     expect(response.success).toBe(true)
     if (response.success) {
-      expect(response.data.name).toBe("testRole?")
+      expect(response.data.name).toBe("test-role")
       expect(response.data.memory.knowledge).toHaveLength(1)
       expect(response.data.tasks).toHaveLength(1)
       expect(response.data.tasks[0].name).toBe("计算1+1")
@@ -151,8 +151,8 @@ describe("Employees API", () => {
     const bossManager = new BossManager(testWorkspace)
 
     const employee: Employee = {
-      employeeId: "0-testRole?",
-      name: "testRole?",
+      employeeId: "0-test-role",
+      name: "test-role",
       taskId: 0,
       role: "TestRole",
       status: "idle",
@@ -171,7 +171,7 @@ describe("Employees API", () => {
     expect(response.data.hierarchy).toHaveLength(1)
     expect(response.data.hierarchy[0].name).toBe("boss1")
     expect(response.data.hierarchy[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].name).toBe("testRole?")
+    expect(response.data.hierarchy[0].children[0].name).toBe("test-role")
   })
 
   it("should return hierarchy with multiple levels", () => {
@@ -179,8 +179,8 @@ describe("Employees API", () => {
     const bossManager = new BossManager(testWorkspace)
 
     const root: Employee = {
-      employeeId: "0-testRole?",
-      name: "testRole?",
+      employeeId: "0-test-role",
+      name: "test-role",
       taskId: 0,
       role: "TestRole",
       status: "idle",
@@ -198,7 +198,7 @@ describe("Employees API", () => {
       role: "Coder",
       status: "active",
       paused: false,
-      hiredBy: "0-testRole?",
+      hiredBy: "0-test-role",
       activeSessionId: null,
       createdAt: "2026-03-01T10:02:00.000Z",
       lastActiveAt: "2026-03-01T10:06:00.000Z",
@@ -227,7 +227,7 @@ describe("Employees API", () => {
     expect(response.data.hierarchy).toHaveLength(1)
     expect(response.data.hierarchy[0].name).toBe("boss1")
     expect(response.data.hierarchy[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].name).toBe("testRole?")
+    expect(response.data.hierarchy[0].children[0].name).toBe("test-role")
     expect(response.data.hierarchy[0].children[0].children).toHaveLength(1)
     expect(response.data.hierarchy[0].children[0].children[0].name).toBe(
       "coder"

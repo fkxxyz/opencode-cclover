@@ -33,7 +33,7 @@ describe("Tasks API", () => {
   it("should return empty tasks for new employee", async () => {
     const memoryManager = new MemoryManager(testWorkspace)
 
-    const response = await getTasks("testRole?", memoryManager)
+    const response = await getTasks("test-role", memoryManager)
 
     expect(response.success).toBe(true)
     if (response.success) {
@@ -46,7 +46,7 @@ describe("Tasks API", () => {
     const memoryManager = new MemoryManager(testWorkspace)
 
     // 创建员工目录和记忆文件
-    const employeeDir = path.join(testWorkspace, "employees", "testRole?")
+    const employeeDir = path.join(testWorkspace, "employees", "test-role")
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -82,7 +82,7 @@ describe("Tasks API", () => {
     const memoryPath = path.join(employeeDir, "memory.yaml")
     await fs.writeFile(memoryPath, yaml.stringify(memory), "utf-8")
 
-    const response = await getTasks("testRole?", memoryManager)
+    const response = await getTasks("test-role", memoryManager)
 
     expect(response.success).toBe(true)
     if (response.success) {
@@ -97,7 +97,7 @@ describe("Tasks API", () => {
     const memoryManager = new MemoryManager(testWorkspace)
 
     // 创建员工目录和记忆文件
-    const employeeDir = path.join(testWorkspace, "employees", "testRole?")
+    const employeeDir = path.join(testWorkspace, "employees", "test-role")
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -133,7 +133,7 @@ describe("Tasks API", () => {
     const memoryPath = path.join(employeeDir, "memory.yaml")
     await fs.writeFile(memoryPath, yaml.stringify(memory), "utf-8")
 
-    const response = await getTasks("testRole?", memoryManager)
+    const response = await getTasks("test-role", memoryManager)
 
     expect(response.success).toBe(true)
     if (response.success) {

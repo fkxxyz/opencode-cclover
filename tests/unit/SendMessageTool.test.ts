@@ -157,7 +157,7 @@ describe("SendMessageTool with Boss", () => {
     const employeeClient = messageService.getClient("0-alice")
     const message = await employeeClient.recv()
     // Meeting-mode agent uses role.id as sender, not Boss from session
-    expect(message.from).toBe("0-testRole?")
+    expect(message.from).toBe("0-test-role")
     expect(message.content).toBe("Hello from meeting mode")
   })
 
@@ -214,7 +214,7 @@ describe("SendMessageTool with Boss", () => {
     const employeeClient = multiBossMessageService.getClient("0-alice")
     const message = await employeeClient.recv()
     // Meeting-mode agent uses role.id as sender, not Boss from session
-    expect(message.from).toBe("0-testRole?")
+    expect(message.from).toBe("0-test-role")
     expect(message.content).toBe("Hello from beta meeting")
   })
 

@@ -91,10 +91,10 @@ describe("GlobalCcloverService.startEmployeeEventLoop", () => {
     const rolesDir = path.join(projectPath, ".cclover/roles")
     await fs.mkdir(rolesDir, { recursive: true })
     await fs.writeFile(
-      path.join(rolesDir, "testRole?.md"),
+      path.join(rolesDir, "test-role.md"),
       `---
-name: "testRole?"
-id: "testRole?"
+name: "test-role"
+id: "test-role"
 description: "Test role"
 ---
 
@@ -107,7 +107,7 @@ Test role system prompt`
       employeeId: "0-test-employee",
       name: "test-employee",
       taskId: 0,
-      role: "testRole?",
+      role: "test-role",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -252,7 +252,7 @@ Test role system prompt`
       employeeId: "0-test-employee-2",
       name: "test-employee-2",
       taskId: 0,
-      role: "testRole?",
+      role: "test-role",
       status: "idle",
       paused: false,
       hiredBy: "boss1",

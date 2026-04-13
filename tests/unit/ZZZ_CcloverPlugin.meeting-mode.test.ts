@@ -18,14 +18,14 @@ describe("CcloverPlugin Meeting Mode config hook", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
     await fs.writeFile(
-      path.join(projectRolesDir, "TestRole.md"),
+      path.join(projectRolesDir, "test-role.md"),
       `---
 name: TestRole
-id: testRole?
-description: Project testRole? role
+id: test-role
+description: Project test-role role
 ---
 
-Project testRole? role prompt`
+Project test-role role prompt`
     )
   })
 
@@ -105,7 +105,7 @@ Project testRole? role prompt`
 
     expect(config.agent.TestRole).toBeDefined()
     expect(config.agent.TestRole.mode).toBe("primary")
-    expect(config.agent.TestRole.description).toBe("Project testRole? role")
+    expect(config.agent.TestRole.description).toBe("Project test-role role")
     expect(config.agent.TestRole.prompt).toContain(
       "Meeting mode prompt is injected dynamically"
     )
@@ -176,7 +176,7 @@ Project testRole? role prompt`
       output
     )
 
-    expect(output.system[0]).toContain("Project testRole? role prompt")
+    expect(output.system[0]).toContain("Project test-role role prompt")
     expect(output.system[0]).toContain(
       "This is a direct working meeting with the boss"
     )

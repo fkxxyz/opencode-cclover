@@ -13,7 +13,7 @@ describe("AgentRegistry", () => {
 
   test("should register and retrieve agent info", () => {
     const info: AgentInfo = {
-      employeeId: "0-testRole?",
+      employeeId: "0-test-role",
       taskName: "复杂计算",
     }
 
@@ -30,7 +30,7 @@ describe("AgentRegistry", () => {
 
   test("should check if agent is registered", () => {
     const info: AgentInfo = {
-      employeeId: "0-testRole?",
+      employeeId: "0-test-role",
       taskName: "复杂计算",
     }
 
@@ -42,7 +42,7 @@ describe("AgentRegistry", () => {
 
   test("should unregister agent", () => {
     const info: AgentInfo = {
-      employeeId: "0-testRole?",
+      employeeId: "0-test-role",
       taskName: "复杂计算",
     }
 
@@ -55,11 +55,11 @@ describe("AgentRegistry", () => {
 
   test("should get agents by employee", () => {
     agentRegistry.register("agent_001", {
-      employeeId: "0-testRole?",
+      employeeId: "0-test-role",
       taskName: "任务1",
     })
     agentRegistry.register("agent_002", {
-      employeeId: "0-testRole?",
+      employeeId: "0-test-role",
       taskName: "任务2",
     })
     agentRegistry.register("agent_003", {
@@ -67,7 +67,7 @@ describe("AgentRegistry", () => {
       taskName: "任务3",
     })
 
-    const testRoleAgents = agentRegistry.getAgentsByEmployee("0-testRole?")
+    const testRoleAgents = agentRegistry.getAgentsByEmployee("0-test-role")
     expect(testRoleAgents).toHaveLength(2)
     expect(testRoleAgents).toContain("agent_001")
     expect(testRoleAgents).toContain("agent_002")
@@ -79,7 +79,7 @@ describe("AgentRegistry", () => {
 
   test("should clear all registrations", () => {
     agentRegistry.register("agent_001", {
-      employeeId: "0-testRole?",
+      employeeId: "0-test-role",
       taskName: "任务1",
     })
     agentRegistry.register("agent_002", {

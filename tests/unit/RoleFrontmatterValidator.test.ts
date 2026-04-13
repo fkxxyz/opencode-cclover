@@ -27,11 +27,11 @@ describe("RoleFrontmatterValidator — basic validation", () => {
 
   test("should accept minimal valid frontmatter", () => {
     const result = validateRoleFrontmatter({
-      name: "testRole?",
-      id: "testRole?",
+      name: "test-role",
+      id: "test-role",
     })
     expect(result.valid).toBe(true)
-    expect(result.normalized?.name).toBe("testRole?")
+    expect(result.normalized?.name).toBe("test-role")
   })
 
   test("should reject missing name", () => {
@@ -818,8 +818,8 @@ describe("formatRoleValidationIssue", () => {
       field: "workflow.phases[0].id",
       message: "phase id must be a non-empty string",
     }
-    const formatted = formatRoleValidationIssue(issue, "testRole?.md")
-    expect(formatted).toContain("testRole?.md")
+    const formatted = formatRoleValidationIssue(issue, "test-role.md")
+    expect(formatted).toContain("test-role.md")
     expect(formatted).toContain("workflow.phases[0].id")
     expect(formatted).toContain("phase id must be a non-empty string")
   })

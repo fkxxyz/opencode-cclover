@@ -34,9 +34,10 @@ describe("MeetingModePromptInjector", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
     await fs.writeFile(
-      path.join(projectRolesDir, "Soul Developer.md"),
+      path.join(projectRolesDir, "soul-developer.md"),
       `---
 name: Soul Developer
+id: soul-developer
 ---
 
 Soul Developer prompt`
@@ -68,9 +69,10 @@ Soul Developer prompt`
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
     await fs.writeFile(
-      path.join(projectRolesDir, "Soul Developer.md"),
+      path.join(projectRolesDir, "soul-developer.md"),
       `---
 name: Soul Developer
+id: soul-developer
 ---
 
 Soul Developer prompt`
@@ -106,9 +108,10 @@ Soul Developer prompt`
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
     await fs.writeFile(
-      path.join(projectRolesDir, "Soul Developer.md"),
+      path.join(projectRolesDir, "soul-developer.md"),
       `---
 name: Soul Developer
+id: soul-developer
 ---
 
 Soul Developer prompt`

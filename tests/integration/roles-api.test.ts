@@ -38,15 +38,15 @@ describe("Roles API", () => {
 
     // 创建一个测试 role（新格式：YAML frontmatter + markdown）
     const testRoleContent = `---
-name: testRole?
-id: testRole?
+name: TestRole
+id: test-role
 description: A test role for integration testing
 requiredArgs:
   apiKey:
     type: string
     description: API key for authentication
 canHire:
-  - testRole?
+  - test-role
   - coder
 groups:
   - test-group
@@ -54,7 +54,7 @@ groups:
 
 You are a test role. This is your system prompt.
 `
-    await fs.writeFile(path.join(rolesDir, "testRole?.md"), testRoleContent)
+    await fs.writeFile(path.join(rolesDir, "test-role.md"), testRoleContent)
 
     // 初始化服务
     const messageService = new MessageService(TEST_WORKSPACE)
@@ -72,7 +72,7 @@ You are a test role. This is your system prompt.
       name: "test-employee",
       id: "test-employee",
       taskId: 0,
-      role: "testRole?",
+      role: "test-role",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -125,9 +125,10 @@ You are a test role. This is your system prompt.
       expect(json.data.roles.length).toBeGreaterThanOrEqual(1)
 
       // 检查新格式 role（带元数据）
-      const testRole = json.data.roles.find((r: any) => r.name === "testRole?")
+      const testRole = json.data.roles.find((r: any) => r.name === "TestRole")
       expect(testRole).toBeDefined()
-      expect(testRole.name).toBe("testRole?")
+      expect(testRole.name).toBe("TestRole")
+      expect(testRole.id).toBe("test-role")
       expect(testRole.description).toBe("A test role for integration testing")
       expect(testRole.systemPrompt).toContain("You are a test role")
       expect(testRole.source).toBe("project")
@@ -137,7 +138,7 @@ You are a test role. This is your system prompt.
           description: "API key for authentication",
         },
       })
-      expect(testRole.canHire).toEqual(["testRole?", "coder"])
+      expect(testRole.canHire).toEqual(["test-role", "coder"])
       expect(testRole.groups).toEqual(["test-group"])
     })
 
@@ -156,14 +157,15 @@ You are a test role. This is your system prompt.
   describe("GET /api/projects/:projectId/roles/:name", () => {
     test("should return specific role with metadata", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/roles/testRole?`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/roles/TestRole`
       )
       const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
       expect(json.data).toBeDefined()
-      expect(json.data.name).toBe("testRole?")
+      expect(json.data.name).toBe("TestRole")
+      expect(json.data.id).toBe("test-role")
       expect(json.data.description).toBe("A test role for integration testing")
       expect(json.data.systemPrompt).toContain("You are a test role")
       expect(json.data.source).toBe("project")
@@ -173,7 +175,7 @@ You are a test role. This is your system prompt.
           description: "API key for authentication",
         },
       })
-      expect(json.data.canHire).toEqual(["testRole?", "coder"])
+      expect(json.data.canHire).toEqual(["test-role", "coder"])
       expect(json.data.groups).toEqual(["test-group"])
     })
 
@@ -190,7 +192,7 @@ You are a test role. This is your system prompt.
 
     test("should return 404 for non-existent project", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/projects/non-existent/roles/testRole?`
+        `http://localhost:${TEST_PORT}/api/projects/non-existent/roles/test-role`
       )
       const json = await response.json()
 
@@ -210,7 +212,8 @@ You are a test role. This is your system prompt.
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
       expect(json.data).toBeDefined()
-      expect(json.data.name).toBe("testRole?")
+      expect(json.data.name).toBe("TestRole")
+      expect(json.data.id).toBe("test-role")
       expect(json.data.description).toBe("A test role for integration testing")
       expect(json.data.systemPrompt).toContain("You are a test role")
       expect(json.data.source).toBe("project")
@@ -220,7 +223,7 @@ You are a test role. This is your system prompt.
           description: "API key for authentication",
         },
       })
-      expect(json.data.canHire).toEqual(["testRole?", "coder"])
+      expect(json.data.canHire).toEqual(["test-role", "coder"])
       expect(json.data.groups).toEqual(["test-group"])
     })
 

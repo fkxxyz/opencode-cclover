@@ -69,7 +69,7 @@ describe("EventLoop", () => {
 
     // 定义测试角色
     testRole = {
-      name: "testRole?",
+      name: "test-role",
       systemPrompt: "You are a test role.",
     }
 
@@ -406,7 +406,7 @@ describe("EventLoop", () => {
         employeeId: "0-alice",
         name: "alice",
         taskId: 0,
-        role: "testRole?",
+        role: "test-role",
         hiredBy: null,
         status: "idle",
         paused: false,
@@ -550,7 +550,7 @@ describe("EventLoop", () => {
   describe("Threshold Checking", () => {
     test("should check summary for soulless employee during run loop", async () => {
       testRole = {
-        name: "testRole?",
+        name: "test-role",
         systemPrompt: "You are a test role.",
         soul: false,
       } as any
@@ -590,7 +590,7 @@ describe("EventLoop", () => {
 
     test("should summarize soulless employee when token count reaches 160000", async () => {
       testRole = {
-        name: "testRole?",
+        name: "test-role",
         systemPrompt: "You are a test role.",
         soul: false,
       } as any
@@ -645,7 +645,7 @@ describe("EventLoop", () => {
 
     test("should not summarize soulless employee when token count is below 160000", async () => {
       testRole = {
-        name: "testRole?",
+        name: "test-role",
         systemPrompt: "You are a test role.",
         soul: false,
       } as any

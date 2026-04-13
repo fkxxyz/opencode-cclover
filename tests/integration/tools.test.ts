@@ -58,8 +58,8 @@ describe("Tools Integration", () => {
       activeSessionId: null,
     })
     await stateManager.registerEmployee({
-      employeeId: "0-testRole?",
-      name: "testRole?",
+      employeeId: "0-test-role",
+      name: "test-role",
       taskId: null,
       role: "TestRole",
       status: "inactive",
@@ -190,7 +190,7 @@ describe("Tools Integration", () => {
     test("should add task successfully", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-2"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -229,7 +229,7 @@ describe("Tools Integration", () => {
     test("should update task successfully", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-3"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -278,7 +278,7 @@ describe("Tools Integration", () => {
     test("should delete task successfully", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-4"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -323,7 +323,7 @@ describe("Tools Integration", () => {
     test("should handle multiple operations", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-5"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -377,7 +377,7 @@ describe("Tools Integration", () => {
     test("should return error for invalid operations", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-6"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -419,7 +419,7 @@ describe("Tools Integration", () => {
     test("should create agent successfully", async () => {
       const tool = createCreateAgentTool(mockOpcodeClient, stateManager)
       const sessionId = "test-session-7"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -446,7 +446,7 @@ describe("Tools Integration", () => {
       // 验证 agent 已注册
       const agentInfo = agentRegistry.getInfo("mock-session-id")
       expect(agentInfo).not.toBeUndefined()
-      expect(agentInfo?.employeeId).toBe("0-testRole?")
+      expect(agentInfo?.employeeId).toBe("0-test-role")
       expect(agentInfo?.taskName).toBe("复杂计算")
     })
 
@@ -485,7 +485,7 @@ describe("Tools Integration", () => {
 
       const tool = createCreateAgentTool(failingClient, stateManager)
       const sessionId = "test-session-8"
-      const employeeName = "0-testRole?"
+      const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 

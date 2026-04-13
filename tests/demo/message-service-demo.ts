@@ -15,11 +15,11 @@ async function demo() {
   const service = new MessageService(DEMO_WORKSPACE)
 
   // 创建客户端
-  const testRole = service.getClient("testRole?")
+  const testRole = service.getClient("test-role")
   const bayecao = service.getClient("bayecao")
 
   console.log("1. Bayecao 发送消息给 TestRole")
-  await bayecao.send("testRole?", "计算 1+1")
+  await bayecao.send("test-role", "计算 1+1")
 
   console.log("2. TestRole 接收消息")
   const msg1 = await testRole?.recv()
@@ -40,8 +40,8 @@ async function demo() {
   })
 
   console.log("\n6. 文件结构:")
-  const testRoleFile = service.getMessageFilePath("testRole?", "bayecao")
-  const bayecaoFile = service.getMessageFilePath("bayecao", "testRole?")
+  const testRoleFile = service.getMessageFilePath("test-role", "bayecao")
+  const bayecaoFile = service.getMessageFilePath("bayecao", "test-role")
 
   console.log(
     `   TestRole 的消息文件: ${path.relative(DEMO_WORKSPACE, testRoleFile)}`

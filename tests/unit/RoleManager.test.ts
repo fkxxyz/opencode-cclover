@@ -49,12 +49,12 @@ describe("RoleManager", () => {
   test("should load preset roles", async () => {
     await roleManager.refresh()
 
-    // 应该加载 testRole?.md
+    // 应该加载 test-role.md
     const testRole = roleManager.getRole("TestRole")
     expect(testRole).toBeDefined()
     expect(testRole?.name).toBe("TestRole")
     expect(testRole?.source).toBe("preset")
-    expect(testRole?.systemPrompt).toContain("计算器员工")
+    expect(testRole?.systemPrompt).toContain("测试角色")
   })
 
   test("should return all role names", async () => {
@@ -85,22 +85,22 @@ describe("RoleManager", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
-    // 创建一个覆盖 testRole? 的项目 role (with frontmatter)
+    // 创建一个覆盖 test-role 的项目 role (with frontmatter)
     const roleContent = [
       "---",
       "name: TestRole",
-      "id: testRole?",
-      "description: Project-specific testRole?",
+      "id: test-role",
+      "description: Project-specific test-role",
       "---",
-      "Project-specific testRole? role",
+      "Project-specific test-role role",
     ].join("\n")
-    await fs.writeFile(path.join(projectRolesDir, "testRole?.md"), roleContent)
+    await fs.writeFile(path.join(projectRolesDir, "test-role.md"), roleContent)
 
     // 刷新并检查
     await roleManager.refresh()
     const testRole = roleManager.getRole("TestRole")
     expect(testRole?.source).toBe("project")
-    expect(testRole?.systemPrompt).toBe("Project-specific testRole? role")
+    expect(testRole?.systemPrompt).toBe("Project-specific test-role role")
 
     // 清理
     await fs.rm(projectRolesDir, { recursive: true })
@@ -137,7 +137,7 @@ describe("RoleManager", () => {
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
-  test("testRole? role should have correct content", async () => {
+  test("test-role role should have correct content", async () => {
     await roleManager.refresh()
 
     const testRole = roleManager.getRole("TestRole")
@@ -146,14 +146,8 @@ describe("RoleManager", () => {
     const prompt = testRole!.systemPrompt
 
     // 检查关键内容
-    expect(prompt).toContain("计算器员工")
-    expect(prompt).toContain("数学计算")
-    expect(prompt).toContain("send_message")
-    expect(prompt).toContain("edit_tasks")
-    expect(prompt).toContain("create_agent")
-    expect(prompt).toContain("简单计算")
-    expect(prompt).toContain("复杂计算")
-    expect(prompt).toContain("示例工作流程")
+    expect(prompt).toContain("测试角色")
+    expect(prompt).toContain("单元测试")
   })
 
   test("should parse YAML frontmatter correctly", async () => {
@@ -162,8 +156,8 @@ describe("RoleManager", () => {
 
     // 创建带 YAML frontmatter 的角色文件
     const roleContent = `---
-name: testRole?
-id: testRole?
+name: TestRole
+id: test-role
 description: A test role with metadata
 requiredArgs:
   arg1:
@@ -178,13 +172,13 @@ groups:
 
 This is the system prompt for the test role.`
 
-    await fs.writeFile(path.join(projectRolesDir, "testRole?.md"), roleContent)
+    await fs.writeFile(path.join(projectRolesDir, "test-role.md"), roleContent)
 
     await roleManager.refresh()
-    const testRole = roleManager.getRole("testRole?")
+    const testRole = roleManager.getRole("test-role")
 
     expect(testRole).toBeDefined()
-    expect(testRole?.name).toBe("testRole?")
+    expect(testRole?.name).toBe("test-role")
     expect(testRole?.description).toBe("A test role with metadata")
     expect(testRole?.systemPrompt).toBe(
       "This is the system prompt for the test role."

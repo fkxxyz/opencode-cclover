@@ -38,7 +38,7 @@ describe("Messages API", () => {
     const messageService = new MessageService(testWorkspace)
 
     const response = await getMessages(
-      "testRole?",
+      "test-role",
       undefined,
       300,
       messageService
@@ -54,7 +54,7 @@ describe("Messages API", () => {
     const messageService = new MessageService(testWorkspace)
 
     // 创建消息文件
-    const employeeDir = path.join(testWorkspace, "employees", "testRole?")
+    const employeeDir = path.join(testWorkspace, "employees", "test-role")
     await fs.mkdir(employeeDir, { recursive: true })
 
     const messagesDir = path.join(employeeDir, "messages", "alice")
@@ -75,20 +75,20 @@ describe("Messages API", () => {
 
     await fs.writeFile(chatFile, yaml.stringify(messages), "utf-8")
 
-    const response = await getMessages("testRole?", "alice", 10, messageService)
+    const response = await getMessages("test-role", "alice", 10, messageService)
 
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.messages).toHaveLength(2)
       expect(response.data.messages[0].from).toBe("alice")
       expect(response.data.messages[0].content).toBe("计算 1+1")
-      expect(response.data.messages[1].from).toBe("testRole?")
+      expect(response.data.messages[1].from).toBe("test-role")
       expect(response.data.messages[1].content).toBe("结果是 2")
     }
   })
 
   it("should return error when message service is not provided", async () => {
-    const response = await getMessages("testRole?", undefined, undefined)
+    const response = await getMessages("test-role", undefined, undefined)
 
     expect(response.success).toBe(false)
     if (!response.success) {
@@ -103,7 +103,7 @@ describe("Messages API", () => {
     const aliceDir = path.join(
       testWorkspace,
       "employees",
-      "testRole?",
+      "test-role",
       "messages",
       "alice"
     )
@@ -130,7 +130,7 @@ describe("Messages API", () => {
     const bobDir = path.join(
       testWorkspace,
       "employees",
-      "testRole?",
+      "test-role",
       "messages",
       "bob"
     )
@@ -154,7 +154,7 @@ describe("Messages API", () => {
     )
 
     const response = await getMessages(
-      "testRole?",
+      "test-role",
       undefined,
       undefined,
       messageService
@@ -179,7 +179,7 @@ describe("Messages API", () => {
     const aliceDir = path.join(
       testWorkspace,
       "employees",
-      "testRole?",
+      "test-role",
       "messages",
       "alice"
     )
@@ -208,7 +208,7 @@ describe("Messages API", () => {
     )
 
     const response = await getMessages(
-      "testRole?",
+      "test-role",
       undefined,
       2,
       messageService
@@ -238,7 +238,7 @@ describe("getPeers API", () => {
   it("should return empty array when employee has no peers", async () => {
     const messageService = new MessageService(testWorkspace)
     const { getPeers } = await import("../../src/api/messages")
-    const response = await getPeers("testRole?", messageService)
+    const response = await getPeers("test-role", messageService)
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.peers).toEqual([])
@@ -252,12 +252,12 @@ describe("getPeers API", () => {
     const employeeDir = path.join(
       testWorkspace,
       "employees",
-      "testRole?",
+      "test-role",
       "messages"
     )
     await fs.mkdir(path.join(employeeDir, "alice"), { recursive: true })
     await fs.mkdir(path.join(employeeDir, "bob"), { recursive: true })
-    const response = await getPeers("testRole?", messageService)
+    const response = await getPeers("test-role", messageService)
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.peers).toHaveLength(2)
@@ -268,7 +268,7 @@ describe("getPeers API", () => {
 
   it("should return error when message service is not provided", async () => {
     const { getPeers } = await import("../../src/api/messages")
-    const response = await getPeers("testRole?", undefined)
+    const response = await getPeers("test-role", undefined)
     expect(response.success).toBe(false)
     if (!response.success) {
       expect(response.error.code).toBe("INTERNAL_ERROR")

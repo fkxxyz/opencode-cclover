@@ -38,6 +38,7 @@ describe("Model Configuration Integration", () => {
     test("should inject model config from role's model_type", async () => {
       const roleContent = `---
 name: "Fast Responder"
+id: "fast-responder"
 description: "A role that uses fast model"
 model_type: "fast"
 ---
@@ -45,7 +46,7 @@ model_type: "fast"
 You are a fast responder.`
 
       await fs.writeFile(
-        path.join(rolesDir, "Fast Responder.md"),
+        path.join(rolesDir, "fast-responder.md"),
         roleContent,
         "utf-8"
       )
@@ -81,13 +82,14 @@ You are a fast responder.`
     test("should use default model when role has no model_type", async () => {
       const roleContent = `---
 name: "Default Responder"
+id: "default-responder"
 description: "A role without model_type"
 ---
 
 You are a default responder.`
 
       await fs.writeFile(
-        path.join(rolesDir, "Default Responder.md"),
+        path.join(rolesDir, "default-responder.md"),
         roleContent,
         "utf-8"
       )
@@ -166,6 +168,7 @@ Test role.`
     test("should inject model config when creating agent", async () => {
       const roleContent = `---
 name: "Agent Creator"
+id: "agent-creator"
 description: "Role that creates agents"
 model_type: "fast"
 ---
@@ -173,7 +176,7 @@ model_type: "fast"
 You create agents.`
 
       await fs.writeFile(
-        path.join(rolesDir, "Agent Creator.md"),
+        path.join(rolesDir, "agent-creator.md"),
         roleContent,
         "utf-8"
       )
@@ -257,13 +260,14 @@ You create agents.`
     test("should not inject model when config returns null", async () => {
       const roleContent = `---
 name: "Default Agent Creator"
+id: "default-agent-creator"
 description: "Role that creates agents with default model"
 ---
 
 You create agents.`
 
       await fs.writeFile(
-        path.join(rolesDir, "Default Agent Creator.md"),
+        path.join(rolesDir, "default-agent-creator.md"),
         roleContent,
         "utf-8"
       )

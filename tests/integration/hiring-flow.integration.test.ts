@@ -71,7 +71,7 @@ describe("Hiring Flow Integration", () => {
       {
         name: "calc-001",
         id: "calc-001",
-        role: "SimpleTestRole",
+        role: "TestRole",
       },
       {
         sessionID: "boss-session",
