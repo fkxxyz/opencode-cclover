@@ -149,7 +149,7 @@ describe("Employees API", () => {
 
   it("should return hierarchy with single root employee", () => {
     const stateManager = new StateManager()
-    const bossManager = new BossManager(testWorkspace)
+    const bossManager = new BossManager()
 
     const employee: Employee = {
       employeeId: "0-test-role",
@@ -177,7 +177,7 @@ describe("Employees API", () => {
 
   it("should return hierarchy with multiple levels", () => {
     const stateManager = new StateManager()
-    const bossManager = new BossManager(testWorkspace)
+    const bossManager = new BossManager()
 
     const root: Employee = {
       employeeId: "0-test-role",
