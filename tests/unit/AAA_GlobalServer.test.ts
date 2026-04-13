@@ -51,7 +51,9 @@ describe("GlobalCcloverService.startEmployeeEventLoop", () => {
     // 创建 mock OpencodeClient
     mockOpcodeClient = {
       session: {
-        create: mock(() => Promise.resolve({ id: "test-session" })),
+        create: mock(() => Promise.resolve({ data: { id: "test-session" } })),
+        get: mock(() => Promise.resolve({ data: { id: "test-session" } })),
+        messages: mock(() => Promise.resolve({ data: [] })),
         status: mock(() => Promise.resolve({})),
       },
       event: {
@@ -153,6 +155,14 @@ Test role system prompt`
   })
 
   afterEach(async () => {
+    // 清理后台 EventLoop，避免跨测试残留异步日志
+    if (projectInstance) {
+      for (const eventLoop of projectInstance.eventLoops.values()) {
+        await eventLoop.stop()
+      }
+      projectInstance.eventLoops.clear()
+    }
+
     // 恢复原始端口环境变量
     if (originalPort === undefined) {
       delete process.env.CCLOVER_PORT
@@ -209,11 +219,11 @@ Test role system prompt`
 
     // 第一次启动
     await service.startEmployeeEventLoop(projectId, "0-test-employee")
-    const firstEventLoop = projectInstance.eventLoops.get("test-employee")
+    const firstEventLoop = projectInstance.eventLoops.get("0-test-employee")
 
     // 第二次启动（应该返回而不是创建新的）
     await service.startEmployeeEventLoop(projectId, "0-test-employee")
-    const secondEventLoop = projectInstance.eventLoops.get("test-employee")
+    const secondEventLoop = projectInstance.eventLoops.get("0-test-employee")
 
     // 验证是同一个 EventLoop 实例
     expect(secondEventLoop).toBe(firstEventLoop)

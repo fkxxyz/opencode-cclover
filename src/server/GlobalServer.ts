@@ -426,7 +426,7 @@ export class GlobalCcloverService {
     }
 
     // 3. 检查 EventLoop 是否已运行
-    if (project.eventLoops.has(employee.name)) {
+    if (project.eventLoops.has(employeeId)) {
       logger.warn(
         `[${projectId}] EventLoop already running for employee: ${employee.name}`
       )
