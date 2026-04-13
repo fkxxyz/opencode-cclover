@@ -429,6 +429,7 @@ describe("ContextBuilder", () => {
       }
       const roleMetadata: RoleMetadata = {
         name: "developer",
+        id: "developer",
         description: "A developer role",
         requiredArgs: {
           project_name: {
