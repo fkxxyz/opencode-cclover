@@ -227,7 +227,7 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "message",
       timestamp: "2026-03-01T10:01:00.000Z",
-      employeeName: "0-alice",
+      employeeId: "0-alice",
       details: { from: "bob", to: "alice", content: "Hello" },
     })
 
@@ -235,7 +235,7 @@ describe("StateManager.loadHistoricalEvents", () => {
       projectId,
       type: "task_completed",
       timestamp: "2026-03-01T10:02:00.000Z",
-      employeeName: "0-alice",
+      employeeId: "0-alice",
       details: { taskName: "Task1", result: "Done" },
     })
 

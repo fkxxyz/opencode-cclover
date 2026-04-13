@@ -10,6 +10,8 @@ import { BossManager } from "../../src/core/BossManager"
 import { AgentRegistry } from "../../src/utils/AgentRegistry"
 import { EventLoop } from "../../src/core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
+import { ModelConfigManager } from "../../src/config/ModelConfigManager"
+import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as os from "node:os"
@@ -102,6 +104,16 @@ Test role system prompt`
     )
     await roleManager.refresh()
 
+    // 创建 ModelConfigManager 和 MeetingModePromptInjector
+    const modelConfigManager = new ModelConfigManager(
+      { bosses: [], projects: [] },
+      {}
+    )
+    const meetingModePromptInjector = new MeetingModePromptInjector(
+      projectId,
+      "test-project"
+    )
+
     // 注册测试员工
     await stateManager.registerEmployee({
       employeeId: "0-test-employee",
@@ -127,6 +139,8 @@ Test role system prompt`
       agentRegistry,
       bossManager,
       roleManager,
+      modelConfigManager,
+      meetingModePromptInjector,
       eventLoopStarted: false,
       eventLoops: new Map(),
     }
