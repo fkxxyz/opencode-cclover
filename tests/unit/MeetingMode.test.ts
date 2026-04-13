@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import * as fs from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
 import { RoleManager } from "../../src/core/RoleManager"
 import { BossManager } from "../../src/core/BossManager"
+import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 import {
   buildMeetingModePrimaryAgents,
   composeMeetingModePrompt,
@@ -19,6 +20,10 @@ describe("Meeting Mode helpers", () => {
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "meeting-mode-test-"))
     roleManager = new RoleManager(tempDir)
+  })
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true })
   })
 
   test("buildMeetingModePrimaryAgents uses placeholder prompts when dynamic injection is enabled", async () => {
@@ -135,5 +140,150 @@ Project override test-role prompt`
       hasBossAuthority: true,
       projectedRoleName: "TestRole",
     })
+  })
+})
+
+describe("MeetingModePromptInjector", () => {
+  let tempDir: string
+  let roleManager: RoleManager
+  let promptInjector: MeetingModePromptInjector
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "prompt-injector-test-"))
+
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.writeFile(
+      path.join(projectRolesDir, "test-role.md"),
+      `---
+name: TestRole
+id: test-role
+description: Project test-role role
+---
+
+Project test-role role prompt`
+    )
+
+    roleManager = new RoleManager(tempDir)
+    await roleManager.refresh()
+
+    promptInjector = new MeetingModePromptInjector(
+      "test-project",
+      "test-project"
+    )
+  })
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true })
+  })
+
+  test("builds injected prompt for mapped session", async () => {
+    // 模拟 chat.params 记录 session
+    promptInjector.recordSession("meeting-session-1", "TestRole")
+
+    // 测试 buildInjectedPrompt
+    const result = await promptInjector.buildInjectedPrompt(
+      "meeting-session-1",
+      roleManager
+    )
+
+    expect(result.injected).toBe(true)
+    expect(result.agentName).toBe("TestRole")
+    expect(result.prompt).toContain("Project test-role role prompt")
+    expect(result.prompt).toContain(
+      "Meeting mode is a direct working session between the boss"
+    )
+  })
+
+  test("does not inject for unmapped session", async () => {
+    const result = await promptInjector.buildInjectedPrompt(
+      "unknown-session",
+      roleManager
+    )
+
+    expect(result.injected).toBe(false)
+    expect(result.reason).toBe("session mapping not found")
+  })
+
+  test("injects contexts for roles with contextIds", async () => {
+    // 创建带有 contextIds 的角色
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.writeFile(
+      path.join(projectRolesDir, "ContextRole.md"),
+      `---
+name: ContextRole
+id: contextrole
+description: Role with context
+contextIds:
+  - test-context
+---
+
+Role with context prompt`
+    )
+
+    // 创建 context.yml 文件
+    await fs.writeFile(
+      path.join(tempDir, ".cclover/context.yml"),
+      `contexts:
+  test-context:
+    description: Test context description
+    documents:
+      - .cclover/test-doc.md`
+    )
+
+    // 创建 context 文档
+    await fs.writeFile(
+      path.join(tempDir, ".cclover/test-doc.md"),
+      "Test context document content"
+    )
+
+    // 重新加载角色
+    await roleManager.refresh()
+
+    // 记录 session
+    promptInjector.recordSession("meeting-session-context", "ContextRole")
+
+    // 构建注入的 prompt
+    const result = await promptInjector.buildInjectedPrompt(
+      "meeting-session-context",
+      roleManager
+    )
+
+    expect(result.injected).toBe(true)
+    expect(result.prompt).toContain("Role with context prompt")
+
+    // 验证 prompt 包含上下文内容
+    expect(result.prompt).toContain("# Role Context Materials")
+    expect(result.prompt).toContain("## Context: test-context")
+    expect(result.prompt).toContain("Test context description")
+    expect(result.prompt).toContain("Test context document content")
+
+    // 验证 prompt 包含会议模式增强
+    expect(result.prompt).toContain(
+      "Meeting mode is a direct working session between the boss"
+    )
+
+    // 验证 prompt 不包含员工基础设施（记忆、任务、工作区）
+    expect(result.prompt).not.toContain("# Current Memory")
+    expect(result.prompt).not.toContain("# Task Management")
+    expect(result.prompt).not.toContain("# Workspace Files")
+  })
+
+  test("records hook success and failure", () => {
+    expect(promptInjector.isHookEnabled()).toBe(true)
+
+    // 记录成功
+    promptInjector.recordHookSuccess()
+    expect(promptInjector.isHookEnabled()).toBe(true)
+
+    // 记录失败（不足以禁用）
+    promptInjector.recordHookFailure(new Error("test error"))
+    expect(promptInjector.isHookEnabled()).toBe(true)
+
+    // 连续失败 3 次应该禁用
+    promptInjector.recordHookFailure(new Error("error 1"))
+    promptInjector.recordHookFailure(new Error("error 2"))
+    promptInjector.recordHookFailure(new Error("error 3"))
+    expect(promptInjector.isHookEnabled()).toBe(false)
   })
 })
