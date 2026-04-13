@@ -105,6 +105,20 @@ describe("EventLoop Vacation Mechanism", () => {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
+
+    // 注册 Bob 员工（用于发送消息测试）
+    await stateManager.registerEmployee({
+      employeeId: "0-Bob",
+      name: "Bob",
+      role: "test-role",
+      taskId: 0,
+      hiredBy: "Boss",
+      paused: false,
+      activeSessionId: null,
+      status: "idle",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    })
   })
 
   afterEach(async () => {
@@ -123,7 +137,7 @@ describe("EventLoop Vacation Mechanism", () => {
 
       // 添加消息（应该被忽略）
       const messageClient = messageService.getClient("0-Alice")
-      await messageService.send("0-Bob", "0-Alice", "Hello", "test-role")
+      await messageService.send("0-Bob", "0-Alice", "Hello")
 
       // 创建 EventLoop
       const eventLoop = new EventLoop(
