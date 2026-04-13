@@ -10,6 +10,7 @@ import {
   type Event,
 } from "../../src/utils/ContextBuilder"
 import type { Task, Memory, RoleMetadata } from "../../src/types"
+import { createTestRoleMetadata } from "../helpers/roleMetadata"
 
 describe("ContextBuilder", () => {
   describe("buildSystemPrompt", () => {
@@ -517,10 +518,10 @@ describe("ContextBuilder", () => {
         tasks: [],
         args: {},
       }
-      const roleMetadata: RoleMetadata = {
+      const roleMetadata = createTestRoleMetadata({
         name: "developer",
         description: "A developer role",
-      }
+      })
 
       const result = buildSystemPrompt(
         rolePrompt,
@@ -544,7 +545,7 @@ describe("ContextBuilder", () => {
           field3: "",
         },
       }
-      const roleMetadata: RoleMetadata = {
+      const roleMetadata = createTestRoleMetadata({
         name: "developer",
         description: "A developer role",
         requiredArgs: {
@@ -552,7 +553,7 @@ describe("ContextBuilder", () => {
           field2: { type: "string", description: "Field 2" },
           field3: { type: "string", description: "Field 3" },
         },
-      }
+      })
 
       const result = buildSystemPrompt(
         rolePrompt,
