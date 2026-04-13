@@ -22,9 +22,9 @@ describe("MeetingModePromptInjector", () => {
   })
 
   test("records session to agent mappings per project", () => {
-    injector.recordSession("session-1", "Calculator")
+    injector.recordSession("session-1", "TestRole")
 
-    expect(injector.getAgentName("session-1")).toBe("Calculator")
+    expect(injector.getAgentName("session-1")).toBe("TestRole")
   })
 
   test("records meeting role name when recordSession receives an agent object", async () => {

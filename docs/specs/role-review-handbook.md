@@ -196,19 +196,157 @@ A role file is also a governed document format. Review whether it follows the re
 
 ### 3.1 Frontmatter
 
-Check:
-- Frontmatter exists
-- Frontmatter is valid YAML
-- `name` is present
-- `description` is present when expected
-- Metadata fields are coherent with the body
-- The role name matches file naming expectations where required
+Check that frontmatter exists, is valid YAML, and contains all required fields with correct structure.
+
+#### 3.1.1 Required Fields
+
+**`name`** (required):
+- Must be present
+- Must match filename (without .md extension)
+- Must use clear, descriptive naming
+- Must be unique within role scope (project/global/preset)
+
+**`id`** (required):
+- Must be present
+- Must match pattern: `/^[a-z][a-z0-9-]{0,63}$/`
+- Must be stable (used for BossId construction in meeting mode)
+- Must be unique across all roles
 
 Potential issues:
-- Invalid YAML
-- Missing required field
-- Metadata says one thing while the body says another
-- Permissions or memory schema that do not match the role behavior
+- Missing `name` or `id`
+- `name` does not match filename
+- `id` uses invalid characters or format
+- `id` conflicts with existing roles
+
+#### 3.1.2 Optional Core Fields
+
+*description`**:
+- Should be present for clarity
+- Should be under 200 characters
+- Should include: core responsibilities, collaboration partners, brief workflow
+- Should be specific enough to distinguish from similar roles
+
+**`soul`**:
+- Should default to `false` for most roles
+- Should only be `true` if role needs long-term memory across sessions
+- Should be justified by role's actual memory needs
+
+**`model_type`**:
+- Should reference a valid key in modelTypes configuration
+- Should default to "default" if not specified
+- Should be appropriate for role's complexity and response time needs
+
+Potential issues:
+- Description too vague or too long
+- `soul: true` without justification for persistent memory
+- `model_type` references non-existent configuration key
+
+#### 3.1.3 Responsibilities and Boundaries
+
+**`responsibilities`** (array):
+- Should list 3-7 core responsibilities
+- Each responsibility should be:
+  - Specific and actionable
+  - Verifiable (can tell if it's done)
+  - Focused on outcomes, not procedures
+- Should be ordered by importance
+- Should not overlap with other roles' core responsibilities
+- Must match responsibilities stated in body
+
+**`boundaries`** (array):
+- Should list 3-5 clear boundaries
+- Should focus on common misunderstandings or scope creep risks
+- Should be explicit about what role should NOT do
+- Should include delegation boundaries (what to escalate vs handle)
+- Must match boundaries stated in body
+
+Potential issues:
+- Responsibilities too broad or too vague
+- Responsibilities overlap with other roles
+- Boundaries too weak to prevent scope creep
+- Metadata responsibilities/boundaries contradict body content
+
+#### 3.1.4 Context System
+
+**`contextIds`** (array):
+- Should include only context the role genuinely needs
+- Should not include context merely because it seems related
+- Should be minimal (avoid context bloat)
+- Each context should serve a clear purpose for this role
+- If significantly unsure whether to include a context (only part relevant), should split that context instead
+
+Questions to ask:
+- Does this role actually need each listed context?
+- Is any context too broad for this role's needs?
+- Is any essential context missing?
+- Would splitting a broad context improve precision?
+
+Potential issues:
+- Context bloat (too many contextIds)
+- Irrelevant context included
+- Essential context missing (e.g., review role without review standards)
+- Broad context included when only part is relevant (should be split)
+- Context references non-existent context definitions
+
+#### 3.1.5 Hiring and Permissions
+
+**`requiredArgs`** (map):
+- Should only include truly required parameters
+- Should be minimal (3-5 parameters maximum)
+- Each arg should specify:
+  - `type`: Currently only "string" supported
+  - `description`: Clear explanation of purpose
+- Should be role-specific, not generic
+
+**`canHire`** (array):
+- Should use exact names for specific roles
+- Should use glob patterns for role families (`"*Developer"`, `"Dev-*"`)
+- Should use group references for role groups (`"group:engineers"`)
+- Should be `[]` or omitted if role should not hire anyone
+- Should align with role's coordination responsibilities
+
+**`groups`** (array):
+- Should assign role to logical groups based on function
+- Should use lowercase, hyphenated names
+- Should enable bulk permission management
+
+Potential issues:
+- `requiredArgs` includes non-essential parameters
+- `requiredArgs` type is not "string"
+- `canHire` grants permissions inconsistent with role's authority
+- `groups` assignment does not match role's function
+
+#### 3.1.6 Memory Schema
+
+**`memorySchema`** (map):
+- Should only define custom fields beyond standard memory structure
+- Each field should specify:
+  - `type`: "string", "string[]", "object", "array", "number", "boolean"
+  - `description`: What this field stores
+  - `required`: Whether field must be present (optional)
+- Should be simple and focused
+- Should support role's actual state tracking needs
+
+Potential issues:
+- Memory schema fields never used by prompt
+- Memory schema too complex for role's needs
+- Prompt expects state tracking but schema provides no structure
+- Field types invalid or inconsistent with usage
+
+#### 3.1.7 Metadata-Body Coherence
+
+Check that metadata and body describe the same role:
+- Responsibilities in metadata match body
+- Boundaries in metadata match body
+- Tool permissions match described behavior
+- Memory expectations match schema
+- Context needs match contextIds
+
+Potential issues:
+- Metadata says coordinate, body says implement
+- Metadata boundaries contradict body decision criteria
+- Prompt depends on tools not reflected in metadata
+- Prompt expects state not supported by memorySchema
 
 ### 3.2 Required Header and Footer
 
@@ -259,66 +397,11 @@ Potential issues:
 
 ---
 
-## Review Dimension 4: Metadata and Body Coherence
-
-The metadata and body should describe the same role.
-
-### 4.1 Responsibilities Consistency
-
-Check:
-- Responsibilities in metadata and body match
-- Responsibilities are specific enough to be actionable
-- Responsibilities describe outcomes rather than accidental procedures
-- Responsibilities do not conflict with boundaries
-
-Potential issues:
-- Metadata says the role coordinates, but the body tells it to implement
-- Responsibilities are so generic that almost any role could claim them
-- A listed responsibility is not supported anywhere else in the prompt
-
-### 4.2 Boundaries Consistency
-
-Check:
-- Boundaries in metadata and body match
-- Boundaries clearly exclude common scope-creep risks
-- Boundaries align with workflow ownership expectations
-
-Potential issues:
-- Boundary says "do not make architectural decisions" but decision criteria implicitly allow it
-- Boundary is too weak to stop authority drift
-- Boundary is so broad that the role cannot complete its legitimate work
-
-### 4.3 Tool Permissions vs Prompt Behavior
-
-Check:
-- The prompt's described behavior matches the tools the role is expected to use
-- The role does not rely on tools it does not meaningfully have
-- Tool guidance is role-specific, not generic filler
-
-Potential issues:
-- Prompt depends on delegation but never explains how or when to delegate
-- Prompt describes heavy hiring behavior for a role that should not be staffing others
-- Tool sections repeat generic tool descriptions without role-specific decision guidance
-
-### 4.4 Memory and State Expectations
-
-Check:
-- Memory-related metadata matches actual role needs
-- Custom memory schema, if present, supports rather than confuses the role
-- Long-term memory assumptions are justified
-
-Potential issues:
-- Persistent memory enabled without a real cross-session need
-- Memory schema fields that are never used by the prompt
-- Prompt expects state tracking but metadata provides no structure for it
-
----
-
-## Review Dimension 5: Prompt Usability and Internal Consistency
+## Review Dimension 4: Prompt Usability and Internal Consistency
 
 A role can be structurally valid but still be unusable. Review whether the prompt can actually guide behavior.
 
-### 5.1 Identity Clarity
+### 4.1 Identity Clarity
 
 Check:
 - The role identity explains what kind of role this is
@@ -330,7 +413,7 @@ Potential issues:
 - Identity contains style/personality language but no operational role definition
 - Identity conflicts with stated responsibilities
 
-### 5.2 Responsibilities and Boundaries Are Actionable
+### 4.2 Responsibilities and Boundaries Are Actionable
 
 Check:
 - A reader could tell what the role should do
@@ -341,7 +424,7 @@ Potential issues:
 - Boundaries are missing the main risks of scope creep
 - Escalation conditions are not stated
 
-### 5.3 Working Principles Have Real Priority
+### 4.3 Working Principles Have Real Priority
 
 Check:
 - Critical vs important vs suggested guidance is meaningfully separated
@@ -353,7 +436,7 @@ Potential issues:
 - Priority tiers exist but make no practical difference
 - Important workflow constraints are buried as optional guidance
 
-### 5.4 Workflow Is a Useful Default
+### 4.4 Workflow Is a Useful Default
 
 Check:
 - The workflow describes a reliable normal path
@@ -365,7 +448,7 @@ Potential issues:
 - The workflow is only a list of abstract ideals
 - The workflow contradicts decision criteria or collaboration rules
 
-### 5.5 Decision Criteria Are Concrete
+### 4.5 Decision Criteria Are Concrete
 
 Check:
 - Common choices are identified
@@ -377,7 +460,7 @@ Potential issues:
 - Important tradeoffs are unnamed
 - The role cannot distinguish when to act vs escalate
 
-### 5.6 Collaboration Guidance Is Specific
+### 4.6 Collaboration Guidance Is Specific
 
 Check:
 - Named collaborators are identified
@@ -389,7 +472,7 @@ Potential issues:
 - The role does not say when another role should be involved
 - Cross-role conflict handling is absent
 
-### 5.7 Examples Reinforce the Contract
+### 4.7 Examples Reinforce the Contract
 
 Check:
 - Examples demonstrate core responsibilities and boundaries
@@ -401,7 +484,7 @@ Potential issues:
 - Bad examples are too trivial to be useful
 - Examples contradict the role's formal rules
 
-### 5.8 Error Handling Is Practical
+### 4.8 Error Handling Is Practical
 
 Check:
 - The role can recognize common failure states
@@ -415,11 +498,11 @@ Potential issues:
 
 ---
 
-## Review Dimension 6: Length, Redundancy, and Logical Consistency
+## Review Dimension 5: Length, Redundancy, and Logical Consistency
 
 These checks are secondary to workflow correctness, but they still matter because they directly affect whether the role can be read, trusted, and executed correctly.
 
-### 6.1 Length and Information Density
+### 5.1 Length and Information Density
 
 Check whether the role is proportionate in length and dense enough in useful guidance.
 
@@ -443,7 +526,7 @@ Typical problems:
 Important note:
 Length is not a problem by itself. A long role may be justified if the role is genuinely complex and the added text improves clarity, scope control, or execution reliability. The real issue is length that reduces usability, hides priorities, or lowers information density.
 
-### 6.2 Redundancy and Repetition
+### 5.2 Redundancy and Repetition
 
 Check whether repeated content is useful reinforcement or harmful duplication.
 
@@ -468,7 +551,7 @@ Typical problems:
 Important note:
 Some repetition is legitimate. Repeating a critical boundary in both metadata and body may be useful if the meaning stays consistent. Repetition becomes a review problem when it adds no new value, shifts meaning, creates inconsistency, or makes the real contract harder to locate.
 
-### 6.3 Logical Consistency
+### 5.3 Logical Consistency
 
 Check whether the role remains logically consistent across all of its sections.
 

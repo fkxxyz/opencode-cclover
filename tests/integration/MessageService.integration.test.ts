@@ -22,10 +22,10 @@ describe("MessageService Integration", () => {
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     await stateManager.registerEmployee({
-      employeeId: "0-calculator",
-      name: "calculator",
+      employeeId: "0-testRole?",
+      name: "testRole?",
       taskId: null,
-      role: "calculator",
+      role: "testRole?",
       status: "inactive",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -90,25 +90,25 @@ describe("MessageService Integration", () => {
   })
 
   test("should create correct directory structure", async () => {
-    const calculator = service.getClient("0-calculator")
+    const testRole = service.getClient("0-testRole?")
     const bayecao = service.getClient("0-bayecao")
 
     // 发送消息
-    await bayecao.send("0-calculator", "计算 1+1")
-    await calculator.send("0-bayecao", "结果是 2")
+    await bayecao.send("0-testRole?", "计算 1+1")
+    await testRole?.send("0-bayecao", "结果是 2")
 
     // 验证目录结构
-    const calculatorDir = path.join(
+    const testRoleDir = path.join(
       TEST_WORKSPACE,
-      "employees/0-calculator/messages/0-bayecao"
+      "employees/0-testRole?/messages/0-bayecao"
     )
     const bayecaoDir = path.join(
       TEST_WORKSPACE,
-      "employees/0-bayecao/messages/0-calculator"
+      "employees/0-bayecao/messages/0-testRole?"
     )
 
-    const calculatorDirExists = await fs
-      .access(calculatorDir)
+    const testRoleDirExists = await fs
+      .access(testRoleDir)
       .then(() => true)
       .catch(() => false)
     const bayecaoDirExists = await fs
@@ -116,45 +116,45 @@ describe("MessageService Integration", () => {
       .then(() => true)
       .catch(() => false)
 
-    expect(calculatorDirExists).toBe(true)
+    expect(testRoleDirExists).toBe(true)
     expect(bayecaoDirExists).toBe(true)
   })
 
   test("should maintain synchronized message files", async () => {
-    const calculator = service.getClient("0-calculator")
+    const testRole = service.getClient("0-testRole?")
     const bayecao = service.getClient("0-bayecao")
 
     // 双向对话
-    await bayecao.send("0-calculator", "计算 1+1")
-    await calculator.recv()
-    await calculator.send("0-bayecao", "结果是 2")
+    await bayecao.send("0-testRole?", "计算 1+1")
+    await testRole?.recv()
+    await testRole?.send("0-bayecao", "结果是 2")
     await bayecao.recv()
 
     // 读取双方的消息文件
-    const calculatorFilePath = service.getMessageFilePath(
-      "0-calculator",
+    const testRoleFilePath = service.getMessageFilePath(
+      "0-testRole?",
       "0-bayecao"
     )
     const bayecaoFilePath = service.getMessageFilePath(
       "0-bayecao",
-      "0-calculator"
+      "0-testRole?"
     )
 
-    const calculatorContent = await fs.readFile(calculatorFilePath, "utf-8")
+    const testRoleContent = await fs.readFile(testRoleFilePath, "utf-8")
     const bayecaoContent = await fs.readFile(bayecaoFilePath, "utf-8")
 
-    const calculatorMessages = yaml.parse(calculatorContent)
+    const testRoleMessages = yaml.parse(testRoleContent)
     const bayecaoMessages = yaml.parse(bayecaoContent)
 
     // 验证消息数量
-    expect(calculatorMessages.length).toBe(2)
+    expect(testRoleMessages.length).toBe(2)
     expect(bayecaoMessages.length).toBe(2)
 
-    // 验证 calculator 的视角
-    expect(calculatorMessages[0].direction).toBe("receive")
-    expect(calculatorMessages[0].content).toBe("计算 1+1")
-    expect(calculatorMessages[1].direction).toBe("send")
-    expect(calculatorMessages[1].content).toBe("结果是 2")
+    // 验证 testRole? 的视角
+    expect(testRoleMessages[0].direction).toBe("receive")
+    expect(testRoleMessages[0].content).toBe("计算 1+1")
+    expect(testRoleMessages[1].direction).toBe("send")
+    expect(testRoleMessages[1].content).toBe("结果是 2")
 
     // 验证 bayecao 的视角
     expect(bayecaoMessages[0].direction).toBe("send")

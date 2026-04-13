@@ -3,7 +3,7 @@ import { logger } from "../lib/logger"
 import { buildMeetingModeSystemPrompt } from "../utils/ContextBuilder"
 import {
   isMeetingModeProjectedAgent,
-  MEETING_MODE_AUGMENTATION,
+  getMeetingModeAugmentation,
 } from "../meeting-mode"
 
 const FAILURE_WINDOW_MS = 5 * 60 * 1000
@@ -153,15 +153,15 @@ export class MeetingModePromptInjector {
     }
   }
 
-  buildInjectedPrompt(
+  async buildInjectedPrompt(
     sessionID: string | undefined,
     roleManager: RoleManager
-  ): {
+  ): Promise<{
     agentName?: string
     prompt?: string
     injected: boolean
     reason?: string
-  } {
+  }> {
     const agentName = this.getAgentName(sessionID)
     if (!sessionID || !agentName) {
       return {
@@ -196,11 +196,13 @@ export class MeetingModePromptInjector {
       }
     }
 
+    const augmentation = await getMeetingModeAugmentation()
+
     return {
       agentName,
       prompt: buildMeetingModeSystemPrompt(
         role.systemPrompt,
-        MEETING_MODE_AUGMENTATION,
+        augmentation,
         role
       ),
       injected: true,

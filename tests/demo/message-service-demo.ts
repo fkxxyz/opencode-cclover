@@ -15,44 +15,44 @@ async function demo() {
   const service = new MessageService(DEMO_WORKSPACE)
 
   // 创建客户端
-  const calculator = service.getClient("calculator")
+  const testRole = service.getClient("testRole?")
   const bayecao = service.getClient("bayecao")
 
-  console.log("1. Bayecao 发送消息给 Calculator")
-  await bayecao.send("calculator", "计算 1+1")
+  console.log("1. Bayecao 发送消息给 TestRole")
+  await bayecao.send("testRole?", "计算 1+1")
 
-  console.log("2. Calculator 接收消息")
-  const msg1 = await calculator.recv()
+  console.log("2. TestRole 接收消息")
+  const msg1 = await testRole?.recv()
   console.log(`   收到: "${msg1.content}" (from: ${msg1.from})`)
 
-  console.log("3. Calculator 回复")
-  await calculator.send("bayecao", "结果是 2")
+  console.log("3. TestRole 回复")
+  await testRole?.send("bayecao", "结果是 2")
 
   console.log("4. Bayecao 接收回复")
   const msg2 = await bayecao.recv()
   console.log(`   收到: "${msg2.content}" (from: ${msg2.from})`)
 
   console.log("\n5. 查看历史记录")
-  const history = await calculator.history("bayecao")
+  const history = await testRole?.history("bayecao")
   console.log(`   共 ${history.length} 条消息:`)
   history.forEach((msg, i) => {
     console.log(`   [${i + 1}] ${msg.from}: ${msg.content}`)
   })
 
   console.log("\n6. 文件结构:")
-  const calculatorFile = service.getMessageFilePath("calculator", "bayecao")
-  const bayecaoFile = service.getMessageFilePath("bayecao", "calculator")
+  const testRoleFile = service.getMessageFilePath("testRole?", "bayecao")
+  const bayecaoFile = service.getMessageFilePath("bayecao", "testRole?")
 
   console.log(
-    `   Calculator 的消息文件: ${path.relative(DEMO_WORKSPACE, calculatorFile)}`
+    `   TestRole 的消息文件: ${path.relative(DEMO_WORKSPACE, testRoleFile)}`
   )
   console.log(
     `   Bayecao 的消息文件: ${path.relative(DEMO_WORKSPACE, bayecaoFile)}`
   )
 
-  console.log("\n7. Calculator 的消息文件内容:")
-  const calculatorContent = await fs.readFile(calculatorFile, "utf-8")
-  console.log(calculatorContent)
+  console.log("\n7. TestRole 的消息文件内容:")
+  const testRoleContent = await fs.readFile(testRoleFile, "utf-8")
+  console.log(testRoleContent)
 
   console.log("8. Bayecao 的消息文件内容:")
   const bayecaoContent = await fs.readFile(bayecaoFile, "utf-8")

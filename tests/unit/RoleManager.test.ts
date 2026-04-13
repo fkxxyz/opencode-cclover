@@ -49,19 +49,19 @@ describe("RoleManager", () => {
   test("should load preset roles", async () => {
     await roleManager.refresh()
 
-    // 应该加载 calculator.md
-    const calculator = roleManager.getRole("Calculator")
-    expect(calculator).toBeDefined()
-    expect(calculator?.name).toBe("Calculator")
-    expect(calculator?.source).toBe("preset")
-    expect(calculator?.systemPrompt).toContain("计算器员工")
+    // 应该加载 testRole?.md
+    const testRole = roleManager.getRole("TestRole")
+    expect(testRole).toBeDefined()
+    expect(testRole?.name).toBe("TestRole")
+    expect(testRole?.source).toBe("preset")
+    expect(testRole?.systemPrompt).toContain("计算器员工")
   })
 
   test("should return all role names", async () => {
     await roleManager.refresh()
 
     const names = roleManager.getRoleNames()
-    expect(names).toContain("Calculator")
+    expect(names).toContain("TestRole")
     expect(names.length).toBeGreaterThan(0)
   })
 
@@ -70,7 +70,7 @@ describe("RoleManager", () => {
 
     const roles = roleManager.getAllRoles()
     expect(roles.length).toBeGreaterThan(0)
-    expect(roles.some((r) => r.name === "Calculator")).toBe(true)
+    expect(roles.some((r) => r.name === "TestRole")).toBe(true)
   })
 
   test("should return undefined for unknown role", async () => {
@@ -85,22 +85,22 @@ describe("RoleManager", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
 
-    // 创建一个覆盖 calculator 的项目 role (with frontmatter)
+    // 创建一个覆盖 testRole? 的项目 role (with frontmatter)
     const roleContent = [
       "---",
-      "name: Calculator",
-      "id: calculator",
-      "description: Project-specific calculator",
+      "name: TestRole",
+      "id: testRole?",
+      "description: Project-specific testRole?",
       "---",
-      "Project-specific calculator role",
+      "Project-specific testRole? role",
     ].join("\n")
-    await fs.writeFile(path.join(projectRolesDir, "calculator.md"), roleContent)
+    await fs.writeFile(path.join(projectRolesDir, "testRole?.md"), roleContent)
 
     // 刷新并检查
     await roleManager.refresh()
-    const calculator = roleManager.getRole("Calculator")
-    expect(calculator?.source).toBe("project")
-    expect(calculator?.systemPrompt).toBe("Project-specific calculator role")
+    const testRole = roleManager.getRole("TestRole")
+    expect(testRole?.source).toBe("project")
+    expect(testRole?.systemPrompt).toBe("Project-specific testRole? role")
 
     // 清理
     await fs.rm(projectRolesDir, { recursive: true })
@@ -137,13 +137,13 @@ describe("RoleManager", () => {
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
-  test("calculator role should have correct content", async () => {
+  test("testRole? role should have correct content", async () => {
     await roleManager.refresh()
 
-    const calculator = roleManager.getRole("Calculator")
-    expect(calculator).toBeDefined()
+    const testRole = roleManager.getRole("TestRole")
+    expect(testRole).toBeDefined()
 
-    const prompt = calculator!.systemPrompt
+    const prompt = testRole!.systemPrompt
 
     // 检查关键内容
     expect(prompt).toContain("计算器员工")
@@ -162,8 +162,8 @@ describe("RoleManager", () => {
 
     // 创建带 YAML frontmatter 的角色文件
     const roleContent = `---
-name: test-role
-id: test-role
+name: testRole?
+id: testRole?
 description: A test role with metadata
 requiredArgs:
   arg1:
@@ -178,13 +178,13 @@ groups:
 
 This is the system prompt for the test role.`
 
-    await fs.writeFile(path.join(projectRolesDir, "test-role.md"), roleContent)
+    await fs.writeFile(path.join(projectRolesDir, "testRole?.md"), roleContent)
 
     await roleManager.refresh()
-    const testRole = roleManager.getRole("test-role")
+    const testRole = roleManager.getRole("testRole?")
 
     expect(testRole).toBeDefined()
-    expect(testRole?.name).toBe("test-role")
+    expect(testRole?.name).toBe("testRole?")
     expect(testRole?.description).toBe("A test role with metadata")
     expect(testRole?.systemPrompt).toBe(
       "This is the system prompt for the test role."
@@ -796,8 +796,8 @@ Tester prompt`
   test("resolveCanHire should resolve exact names", async () => {
     await roleManager.refresh()
 
-    const resolved = roleManager.resolveCanHire(["Calculator"])
-    expect(resolved).toContain("Calculator")
+    const resolved = roleManager.resolveCanHire(["TestRole"])
+    expect(resolved).toContain("TestRole")
   })
 
   test("resolveCanHire should resolve glob patterns", async () => {

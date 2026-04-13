@@ -25,14 +25,14 @@ describe("Meeting Mode helpers", () => {
     await fs.mkdir(projectRolesDir, { recursive: true })
 
     await fs.writeFile(
-      path.join(projectRolesDir, "Calculator.md"),
+      path.join(projectRolesDir, "TestRole.md"),
       `---
-name: Calculator
-id: calculator
-description: Project override calculator description
+name: TestRole
+id: testRole?
+description: Project override testRole? description
 ---
 
-Project override calculator prompt`
+Project override testRole? prompt`
     )
 
     await roleManager.refresh()
@@ -41,16 +41,16 @@ Project override calculator prompt`
       useDynamicPromptInjection: true,
     })
 
-    expect(agents.Calculator).toBeDefined()
-    expect(agents.Calculator.mode).toBe("primary")
-    expect(agents.Calculator.description).toBe(
-      "Project override calculator description"
+    expect(agents.TestRole).toBeDefined()
+    expect(agents.TestRole.mode).toBe("primary")
+    expect(agents.TestRole.description).toBe(
+      "Project override testRole? description"
     )
-    expect(agents.Calculator.prompt).toContain(
+    expect(agents.TestRole.prompt).toContain(
       "Meeting mode prompt is injected dynamically"
     )
-    expect(agents.Calculator.prompt).not.toContain(
-      "Project override calculator prompt"
+    expect(agents.TestRole.prompt).not.toContain(
+      "Project override testRole? prompt"
     )
   })
 
@@ -59,14 +59,14 @@ Project override calculator prompt`
     await fs.mkdir(projectRolesDir, { recursive: true })
 
     await fs.writeFile(
-      path.join(projectRolesDir, "Calculator.md"),
+      path.join(projectRolesDir, "TestRole.md"),
       `---
-name: Calculator
-id: calculator
-description: Project override calculator description
+name: TestRole
+id: testRole?
+description: Project override testRole? description
 ---
 
-Project override calculator prompt`
+Project override testRole? prompt`
     )
 
     await roleManager.refresh()
@@ -75,10 +75,10 @@ Project override calculator prompt`
       useDynamicPromptInjection: false,
     })
 
-    expect(agents.Calculator.prompt).toContain(
-      "Project override calculator prompt"
+    expect(agents.TestRole.prompt).toContain(
+      "Project override testRole? prompt"
     )
-    expect(agents.Calculator.prompt).toContain(
+    expect(agents.TestRole.prompt).toContain(
       "The boss is personally talking with you"
     )
   })
@@ -95,7 +95,7 @@ Project override calculator prompt`
   test("isMeetingModeProjectedAgent matches resolved role names only", async () => {
     await roleManager.refresh()
 
-    expect(isMeetingModeProjectedAgent(roleManager, "Calculator")).toBe(true)
+    expect(isMeetingModeProjectedAgent(roleManager, "TestRole")).toBe(true)
     expect(isMeetingModeProjectedAgent(roleManager, "non-existent-role")).toBe(
       false
     )
@@ -117,7 +117,7 @@ Project override calculator prompt`
     const actor = resolveToolActor(
       {
         sessionID: "meeting-session-b",
-        agent: "Calculator",
+        agent: "TestRole",
       },
       undefined,
       bossManager,
@@ -126,12 +126,12 @@ Project override calculator prompt`
 
     // Meeting-mode agent uses role.id as identity, not Boss from session
     expect(actor).toEqual({
-      actorName: "Calculator",
-      actorEmployeeId: "0-calculator",
+      actorName: "TestRole",
+      actorEmployeeId: "0-testRole?",
       actorType: "meeting-role",
       isBoss: false,
       hasBossAuthority: true,
-      projectedRoleName: "Calculator",
+      projectedRoleName: "TestRole",
     })
   })
 })

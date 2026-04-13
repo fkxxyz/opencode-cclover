@@ -18,14 +18,14 @@ describe("CcloverPlugin Meeting Mode config hook", () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })
     await fs.writeFile(
-      path.join(projectRolesDir, "Calculator.md"),
+      path.join(projectRolesDir, "TestRole.md"),
       `---
-name: Calculator
-id: calculator
-description: Project calculator role
+name: TestRole
+id: testRole?
+description: Project testRole? role
 ---
 
-Project calculator role prompt`
+Project testRole? role prompt`
     )
   })
 
@@ -37,16 +37,18 @@ Project calculator role prompt`
     }
 
     await fs.rm(tempDir, { recursive: true, force: true })
-    
+
     // Restore all mocks
     mock.restore()
-    
+
     // Force reload the actual module by clearing require cache
     // This ensures subsequent tests get the real GlobalCcloverService
     delete require.cache[require.resolve("../../src/server/GlobalServer")]
     delete require.cache[require.resolve("../../src/index")]
-    delete require.cache[require.resolve("../../src/config/CandidateProjectsManager")]
-    
+    delete require.cache[
+      require.resolve("../../src/config/CandidateProjectsManager")
+    ]
+
     // Reset GlobalCcloverService singleton
     // @ts-ignore - accessing private static for testing
     GlobalCcloverService.instance = null
@@ -101,10 +103,10 @@ Project calculator role prompt`
     expect(plugin.config).toBeDefined()
     await plugin.config!(config)
 
-    expect(config.agent.Calculator).toBeDefined()
-    expect(config.agent.Calculator.mode).toBe("primary")
-    expect(config.agent.Calculator.description).toBe("Project calculator role")
-    expect(config.agent.Calculator.prompt).toContain(
+    expect(config.agent.TestRole).toBeDefined()
+    expect(config.agent.TestRole.mode).toBe("primary")
+    expect(config.agent.TestRole.description).toBe("Project testRole? role")
+    expect(config.agent.TestRole.prompt).toContain(
       "Meeting mode prompt is injected dynamically"
     )
   })
@@ -157,7 +159,7 @@ Project calculator role prompt`
     await plugin["chat.params"]!(
       {
         sessionID: "meeting-session-1",
-        agent: "Calculator",
+        agent: "TestRole",
         model: { id: "test", name: "test" } as any,
         provider: { source: "env", info: {} as any, options: {} },
         message: { role: "user", content: "hello" } as any,
@@ -174,7 +176,7 @@ Project calculator role prompt`
       output
     )
 
-    expect(output.system[0]).toContain("Project calculator role prompt")
+    expect(output.system[0]).toContain("Project testRole? role prompt")
     expect(output.system[0]).toContain(
       "This is a direct working meeting with the boss"
     )

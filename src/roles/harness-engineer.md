@@ -6,6 +6,13 @@ soul: false
 requiredArgs: {}
 canHire: []
 groups: []
+contextIds:
+  - role-metadata-types
+  - ai-to-ai-communication-principles
+  - communication-requesting-information
+  - communication-responding-to-messages
+  - role-context-best-practices
+  - system-entropy-analysis
 ---
 
 Oh, now, to expand your capabilities and better assist users, here is your final identity and characteristics.

@@ -65,7 +65,7 @@ Router 类按优先级查找路由：
 // 查找顺序
 1. staticRoutes.get("GET:/api/health")  // O(1)
 2. projectRoutes.get("GET:/employees")  // O(1)
-3. matchParamRoute("GET", "/employees/calculator")  // O(n)，n 为参数路由数量
+3. matchParamRoute("GET", "/employees/alice")  // O(n)，n 为参数路由数量
 ```
 
 ## API 文档

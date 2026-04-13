@@ -70,7 +70,7 @@ describe("EventLoop Vacation Mechanism", () => {
 
     // 定义测试角色
     testRole = {
-      name: "test-role",
+      name: "testRole?",
       systemPrompt: "You are a test role.",
     }
 
@@ -90,7 +90,7 @@ describe("EventLoop Vacation Mechanism", () => {
     await stateManager.registerEmployee({
       employeeId: "0-Alice",
       name: "Alice",
-      role: "test-role",
+      role: "testRole?",
       taskId: null,
       hiredBy: null,
       paused: false,
@@ -116,7 +116,7 @@ describe("EventLoop Vacation Mechanism", () => {
 
       // 添加消息（应该被忽略）
       const messageClient = messageService.getClient("0-Alice")
-      await messageService.send("0-Bob", "0-Alice", "Hello", "test-role")
+      await messageService.send("0-Bob", "0-Alice", "Hello", "testRole?")
 
       // 创建 EventLoop
       const eventLoop = new EventLoop(
@@ -365,7 +365,7 @@ describe("EventLoop Vacation Mechanism", () => {
         timestamp: new Date().toISOString(),
       })
 
-      await messageService.send("0-Bob", "0-Alice", "Hello", "test-role")
+      await messageService.send("0-Bob", "0-Alice", "Hello", "testRole?")
 
       // 创建 EventLoop
       const messageClient = messageService.getClient("0-Alice")

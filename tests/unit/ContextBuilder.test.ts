@@ -24,7 +24,7 @@ describe("ContextBuilder", () => {
       const result = buildSystemPrompt(
         rolePrompt,
         memory,
-        "calculator",
+        "testRole?",
         ".cclover/workspace"
       )
       expect(result).toContain("你是一个计算器员工")

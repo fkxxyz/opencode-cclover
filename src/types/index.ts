@@ -206,6 +206,14 @@ export type {
   SpecificationDefinition,
 } from "./role"
 
+// Context registry 相关类型
+export type {
+  ContextSource,
+  RawContextDefinition,
+  ContextDefinition,
+  ContextRegistry,
+} from "./context"
+
 // Timeline 项类型
 export type TimelineItemType = "message" | "event"
 

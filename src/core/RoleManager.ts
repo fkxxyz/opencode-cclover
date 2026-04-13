@@ -14,7 +14,13 @@ import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 import * as yaml from "yaml"
 import { logger } from "../lib/logger"
-import type { Role, RoleMetadata, ResolvedRoleContext } from "../types"
+import type {
+  Role,
+  RoleMetadata,
+  ResolvedRoleContext,
+  RawContextDefinition,
+  ContextDefinition,
+} from "../types"
 import {
   formatRoleValidationIssue,
   validateRoleFrontmatter,
@@ -22,15 +28,6 @@ import {
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-
-interface RawContextDefinition {
-  description?: string
-  documents?: string[]
-}
-
-interface ContextDefinition extends RawContextDefinition {
-  sourceFile: string
-}
 
 export class RoleManager {
   private roles: Map<string, Role> = new Map()

@@ -51,10 +51,10 @@ describe("Console Server", () => {
     const roleManager = new RoleManager(TEST_WORKSPACE)
     const testAgentRegistry = new AgentRegistry()
     const testEmployee: Employee = {
-      employeeId: "0-calculator",
-      name: "calculator",
+      employeeId: "0-testRole?",
+      name: "testRole?",
       taskId: 0,
-      role: "Calculator",
+      role: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -70,7 +70,7 @@ describe("Console Server", () => {
       role: "Developer",
       status: "busy",
       paused: false,
-      hiredBy: "0-calculator",
+      hiredBy: "0-testRole?",
       activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -141,19 +141,19 @@ describe("Console Server", () => {
       expect(json.success).toBe(true)
       expect(Array.isArray(json.data.employees)).toBe(true)
       expect(json.data.employees.length).toBeGreaterThan(0)
-      expect(json.data.employees[0].name).toBe("calculator")
+      expect(json.data.employees[0].name).toBe("testRole?")
     })
 
     test("GET /api/projects/test-project/employees/:name - 获取员工详情", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/testRole?`
       )
       const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.name).toBe("calculator")
-      expect(json.data.role).toBe("Calculator")
+      expect(json.data.name).toBe("testRole?")
+      expect(json.data.role).toBe("TestRole")
       expect(json.data.memory).toBeDefined()
       expect(json.data.tasks).toBeDefined()
       expect(json.data.agents).toBeDefined()
@@ -172,7 +172,7 @@ describe("Console Server", () => {
 
     test("GET /api/projects/test-project/employees/:name/messages - 获取消息历史", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator/messages`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/testRole?/messages`
       )
       const json = await response.json()
 
@@ -183,7 +183,7 @@ describe("Console Server", () => {
 
     test("GET /api/projects/test-project/employees/:name/tasks - 获取任务列表", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator/tasks`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/testRole?/tasks`
       )
       const json = await response.json()
 
@@ -336,10 +336,10 @@ describe("Console Server", () => {
             type: "message",
             projectId: "test-project",
             timestamp: new Date().toISOString(),
-            employeeId: "0-calculator",
+            employeeId: "0-testRole?",
             details: {
               from: "alice",
-              to: "calculator",
+              to: "testRole?",
               content: "test message",
             },
           } as any)
@@ -361,7 +361,7 @@ describe("Console Server", () => {
       const message = await eventPromise
       expect(message.type).toBe("event")
       expect(message.data.type).toBe("message")
-      expect(message.data.employeeId).toBe("0-calculator")
+      expect(message.data.employeeId).toBe("0-testRole?")
 
       ws.close()
     })
@@ -394,7 +394,7 @@ describe("Console Server", () => {
 
     test("GET /api/projects/test-project/employees/:name/messages?limit=5 - 限制消息数量", async () => {
       const response = await fetch(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/calculator/messages?limit=5`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/testRole?/messages?limit=5`
       )
       const json = await response.json()
 

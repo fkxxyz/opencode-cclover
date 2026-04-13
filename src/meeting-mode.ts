@@ -1,3 +1,5 @@
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
 import type { BossManager } from "./core/BossManager"
 import type { RoleManager } from "./core/RoleManager"
 import type { Role } from "./types"
@@ -25,7 +27,20 @@ export interface ResolvedToolActor {
   projectedRoleName?: string
 }
 
-export const MEETING_MODE_AUGMENTATION = `## Meeting Context
+let cachedMeetingModeAugmentation: string | null = null
+
+async function loadMeetingModeAugmentation(): Promise<string> {
+  if (cachedMeetingModeAugmentation !== null) {
+    return cachedMeetingModeAugmentation
+  }
+
+  const specPath = path.join(__dirname, "meeting-mode", "specification.md")
+  try {
+    cachedMeetingModeAugmentation = await fs.readFile(specPath, "utf-8")
+    return cachedMeetingModeAugmentation
+  } catch (error: any) {
+    // Fallback to legacy inline prompt if specification file is missing
+    cachedMeetingModeAugmentation = `## Meeting Context
 
 The boss is personally talking with you.
 
@@ -36,27 +51,34 @@ This is a direct working meeting with the boss.
 - you have full authority to organize work during this interaction
 - normal hiring restrictions are lifted for this interaction
 - if required staff are missing, hire them immediately and proceed`
-
-export function composeMeetingModePrompt(systemPrompt: string): string {
-  return `${systemPrompt.trim()}\n\n${MEETING_MODE_AUGMENTATION}`
+    return cachedMeetingModeAugmentation
+  }
 }
 
-export function buildMeetingModePrimaryAgents(
+export async function getMeetingModeAugmentation(): Promise<string> {
+  return loadMeetingModeAugmentation()
+}
+
+export function composeMeetingModePrompt(
+  systemPrompt: string,
+  augmentation: string
+): string {
+  return `${systemPrompt.trim()}\n\n${augmentation}`
+}
+
+export async function buildMeetingModePrimaryAgents(
   roleManager: RoleManager,
   options?: MeetingModeAgentBuildOptions
-): Record<string, MeetingModePrimaryAgentDefinition> {
+): Promise<Record<string, MeetingModePrimaryAgentDefinition>> {
   const agents: Record<string, MeetingModePrimaryAgentDefinition> = {}
   const useDynamicPromptInjection = options?.useDynamicPromptInjection ?? false
+  const augmentation = await getMeetingModeAugmentation()
 
   for (const role of roleManager.getAllRoles()) {
     agents[role.name] = {
       prompt: useDynamicPromptInjection
         ? buildMeetingModePlaceholderPrompt(role.name)
-        : buildMeetingModeSystemPrompt(
-            role.systemPrompt,
-            MEETING_MODE_AUGMENTATION,
-            role
-          ),
+        : buildMeetingModeSystemPrompt(role.systemPrompt, augmentation, role),
       mode: "primary",
       description: getMeetingModeAgentDescription(role),
     }

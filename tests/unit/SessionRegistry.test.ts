@@ -12,10 +12,10 @@ describe("SessionRegistry", () => {
   })
 
   test("should register and retrieve session", () => {
-    sessionRegistry.register("session_001", "calculator")
+    sessionRegistry.register("session_001", "testRole?")
 
     const employeeName = sessionRegistry.getEmployeeId("session_001")
-    expect(employeeName).toBe("calculator")
+    expect(employeeName).toBe("testRole?")
   })
 
   test("should return undefined for unregistered session", () => {
@@ -24,14 +24,14 @@ describe("SessionRegistry", () => {
   })
 
   test("should check if session exists", () => {
-    sessionRegistry.register("session_001", "calculator")
+    sessionRegistry.register("session_001", "testRole?")
 
     expect(sessionRegistry.has("session_001")).toBe(true)
     expect(sessionRegistry.has("unknown_session")).toBe(false)
   })
 
   test("should unregister session", () => {
-    sessionRegistry.register("session_001", "calculator")
+    sessionRegistry.register("session_001", "testRole?")
     sessionRegistry.unregister("session_001")
 
     expect(sessionRegistry.has("session_001")).toBe(false)
@@ -39,7 +39,7 @@ describe("SessionRegistry", () => {
   })
 
   test("should get all registered sessions", () => {
-    sessionRegistry.register("session_001", "calculator")
+    sessionRegistry.register("session_001", "testRole?")
     sessionRegistry.register("session_002", "coder")
 
     const sessions = sessionRegistry.getAllSessions()
@@ -49,7 +49,7 @@ describe("SessionRegistry", () => {
   })
 
   test("should clear all registrations", () => {
-    sessionRegistry.register("session_001", "calculator")
+    sessionRegistry.register("session_001", "testRole?")
     sessionRegistry.register("session_002", "coder")
 
     sessionRegistry.clear()

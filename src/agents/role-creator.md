@@ -744,7 +744,7 @@ This ensures the RoleManager reloads all role definitions.
 
 ### Example 3: Querying Role Information
 
-**User Request**: "What does the calculator role do?"
+**User Request**: "What does the test-role do?"
 
 **Your Process** (NO brainstorming needed):
 1. Read role file (including metadata)

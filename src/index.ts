@@ -129,11 +129,15 @@ export const CcloverPlugin: Plugin = async (ctx) => {
           }
 
           // 基于 RoleManager 的最终解析结果注册 Meeting Mode primary agents
-          for (const [agentName, definition] of Object.entries(
-            buildMeetingModePrimaryAgents(project.roleManager, {
+          const meetingModeAgents = await buildMeetingModePrimaryAgents(
+            project.roleManager,
+            {
               useDynamicPromptInjection:
                 project.meetingModePromptInjector.isHookEnabled(),
-            })
+            }
+          )
+          for (const [agentName, definition] of Object.entries(
+            meetingModeAgents
           )) {
             agents[agentName] = definition
             logger.debug(
@@ -171,10 +175,11 @@ export const CcloverPlugin: Plugin = async (ctx) => {
         let agentName: string | undefined
 
         try {
-          const result = project.meetingModePromptInjector.buildInjectedPrompt(
-            sessionID,
-            project.roleManager
-          )
+          const result =
+            await project.meetingModePromptInjector.buildInjectedPrompt(
+              sessionID,
+              project.roleManager
+            )
           agentName = result.agentName
 
           if (!result.injected || !result.prompt) {

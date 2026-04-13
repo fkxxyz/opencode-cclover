@@ -140,7 +140,7 @@ describe("SendMessageTool with Boss", () => {
 
     const context = {
       sessionID: "test-session-meeting-agent",
-      agent: "Calculator",
+      agent: "TestRole",
     }
 
     const result = await sendMessageTool.execute(
@@ -157,7 +157,7 @@ describe("SendMessageTool with Boss", () => {
     const employeeClient = messageService.getClient("0-alice")
     const message = await employeeClient.recv()
     // Meeting-mode agent uses role.id as sender, not Boss from session
-    expect(message.from).toBe("0-calculator")
+    expect(message.from).toBe("0-testRole?")
     expect(message.content).toBe("Hello from meeting mode")
   })
 
@@ -200,7 +200,7 @@ describe("SendMessageTool with Boss", () => {
       {
         sessionID: "test-session-meeting-agent-beta",
         messageID: "msg-meeting-agent-beta",
-        agent: "Calculator",
+        agent: "TestRole",
         directory: TEST_WORKSPACE,
         worktree: TEST_WORKSPACE,
         abort: new AbortController().signal,
@@ -214,7 +214,7 @@ describe("SendMessageTool with Boss", () => {
     const employeeClient = multiBossMessageService.getClient("0-alice")
     const message = await employeeClient.recv()
     // Meeting-mode agent uses role.id as sender, not Boss from session
-    expect(message.from).toBe("0-calculator")
+    expect(message.from).toBe("0-testRole?")
     expect(message.content).toBe("Hello from beta meeting")
   })
 
@@ -499,7 +499,7 @@ describe("SendMessageTool with Boss", () => {
         employeeId: "1-dave",
         name: "dave",
         id: "dave",
-      taskId: 1,
+        taskId: 1,
         hiredBy: "0-alice",
         role: "test",
         paused: false,

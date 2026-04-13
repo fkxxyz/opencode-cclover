@@ -13,6 +13,8 @@ interface RoleMetadata {
   name: string
   description?: string
   soul?: boolean
+  responsibilities?: string[]
+  boundaries?: string[]
   requiredArgs?: Record<string, { type: string; description: string }>
   canHire?: string[]
   groups?: string[]
@@ -471,6 +473,20 @@ function formatRoleInfo(roleInfo: RoleInfo): string {
 
   if (metadata.description) {
     lines.push(`Description: ${metadata.description}`)
+  }
+
+  if (metadata.responsibilities && metadata.responsibilities.length > 0) {
+    lines.push(`Responsibilities:`)
+    for (const responsibility of metadata.responsibilities) {
+      lines.push(`  - ${responsibility}`)
+    }
+  }
+
+  if (metadata.boundaries && metadata.boundaries.length > 0) {
+    lines.push(`Boundaries:`)
+    for (const boundary of metadata.boundaries) {
+      lines.push(`  - ${boundary}`)
+    }
   }
 
   if (metadata.groups && metadata.groups.length > 0) {

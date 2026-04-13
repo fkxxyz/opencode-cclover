@@ -21,10 +21,10 @@ describe("EmployeePersistence", () => {
 
     const employees: Employee[] = [
       {
-        employeeId: "0-calculator",
+        employeeId: "0-testRole?",
         taskId: 0,
-        name: "calculator",
-        role: "calculator",
+        name: "testRole?",
+        role: "testRole?",
         status: "active",
         paused: false,
         activeSessionId: null,
@@ -42,7 +42,7 @@ describe("EmployeePersistence", () => {
         activeSessionId: null,
         createdAt: "2024-01-02T00:00:00Z",
         lastActiveAt: "2024-01-02T00:00:00Z",
-        hiredBy: "0-calculator",
+        hiredBy: "0-testRole?",
       },
     ]
 
@@ -63,10 +63,10 @@ describe("EmployeePersistence", () => {
 
     const employees1: Employee[] = [
       {
-        employeeId: "0-calculator",
+        employeeId: "0-testRole?",
         taskId: 0,
-        name: "calculator",
-        role: "calculator",
+        name: "testRole?",
+        role: "testRole?",
         status: "active",
         paused: false,
         activeSessionId: null,
