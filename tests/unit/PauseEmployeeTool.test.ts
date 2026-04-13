@@ -447,8 +447,6 @@ describe("PauseEmployeeTool", () => {
       lastActiveAt: new Date().toISOString(),
       hiredBy: "0-boss1",
       activeSessionId: null,
-      paused: false,
-      activeSessionId: null,
     })
 
     // 初始化员工记忆（只有已完成任务）
