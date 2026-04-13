@@ -7,6 +7,7 @@ import { BossManager } from "../../src/core/BossManager"
 import {
   buildMeetingModePrimaryAgents,
   composeMeetingModePrompt,
+  getMeetingModeAugmentation,
   isMeetingModeProjectedAgent,
   resolveToolActor,
 } from "../../src/meeting-mode"
@@ -37,7 +38,7 @@ Project override test-role prompt`
 
     await roleManager.refresh()
 
-    const agents = buildMeetingModePrimaryAgents(roleManager, {
+    const agents = await buildMeetingModePrimaryAgents(roleManager, {
       useDynamicPromptInjection: true,
     })
 
@@ -71,7 +72,7 @@ Project override test-role prompt`
 
     await roleManager.refresh()
 
-    const agents = buildMeetingModePrimaryAgents(roleManager, {
+    const agents = await buildMeetingModePrimaryAgents(roleManager, {
       useDynamicPromptInjection: false,
     })
 
@@ -79,17 +80,18 @@ Project override test-role prompt`
       "Project override test-role prompt"
     )
     expect(agents.TestRole.prompt).toContain(
-      "The boss is personally talking with you"
+      "Meeting mode is a direct working session between the boss"
     )
   })
 
-  test("composeMeetingModePrompt appends stable meeting augmentation after role prompt", () => {
-    const prompt = composeMeetingModePrompt("Original role prompt")
+  test("composeMeetingModePrompt appends stable meeting augmentation after role prompt", async () => {
+    const augmentation = await getMeetingModeAugmentation()
+    const prompt = composeMeetingModePrompt("Original role prompt", augmentation)
 
     expect(prompt.startsWith("Original role prompt")).toBe(true)
-    expect(prompt).toContain("This is a direct working meeting with the boss")
-    expect(prompt).toContain("normal hiring restrictions are lifted")
-    expect(prompt).toContain("hire them immediately and proceed")
+    expect(prompt).toContain("Meeting mode is a direct working session between the boss")
+    expect(prompt).toContain("Hiring Restrictions Lifted")
+    expect(prompt).toContain("hire them immediately")
   })
 
   test("isMeetingModeProjectedAgent matches resolved role names only", async () => {

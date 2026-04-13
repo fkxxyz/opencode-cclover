@@ -178,7 +178,7 @@ Project test-role role prompt`
 
     expect(output.system[0]).toContain("Project test-role role prompt")
     expect(output.system[0]).toContain(
-      "This is a direct working meeting with the boss"
+      "Meeting mode is a direct working session between the boss"
     )
     expect(output.system[1]).toBe("existing system prompt")
   })
@@ -296,7 +296,7 @@ Role with context prompt`
 
     // 验证 prompt 包含会议模式增强
     expect(output.system[0]).toContain(
-      "This is a direct working meeting with the boss"
+      "Meeting mode is a direct working session between the boss"
     )
 
     // 验证 prompt 不包含员工基础设施（记忆、任务、工作区）

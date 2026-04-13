@@ -56,6 +56,7 @@ describe("EventLoop Vacation Mechanism", () => {
   let opcodeClient: any
   let testRole: Role
   let mockRoleManager: RoleManager
+  let mockModelConfigManager: any
 
   beforeEach(async () => {
     // 清理测试工作空间
@@ -80,6 +81,11 @@ describe("EventLoop Vacation Mechanism", () => {
       refresh: mock(async () => {}),
       getRoles: mock(() => [testRole]),
     } as any
+
+    // 创建 mock ModelConfigManager
+    mockModelConfigManager = {
+      resolve: mock(() => null),
+    }
 
     // 清空注册表
     sessionRegistry.clear()
@@ -127,6 +133,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -169,6 +176,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -216,6 +224,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -251,6 +260,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -280,6 +290,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -317,6 +328,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -342,6 +354,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -377,6 +390,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -418,6 +432,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -464,6 +479,7 @@ describe("EventLoop Vacation Mechanism", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 

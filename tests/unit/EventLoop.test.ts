@@ -56,6 +56,7 @@ describe("EventLoop", () => {
   let opcodeClient: any
   let testRole: Role
   let mockRoleManager: RoleManager
+  let mockModelConfigManager: any
 
   beforeEach(async () => {
     // 清理测试工作空间
@@ -80,6 +81,11 @@ describe("EventLoop", () => {
       getRoles: mock(() => [testRole]),
     } as any
 
+    // 创建 mock ModelConfigManager
+    mockModelConfigManager = {
+      resolve: mock(() => null),
+    }
+
     // 清空注册表
     sessionRegistry.clear()
     agentRegistry.clear()
@@ -102,7 +108,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       expect(eventLoop).toBeDefined()
@@ -119,7 +126,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       // 触发一个事件处理（通过私有方法测试不太好，这里只验证 mock 被调用）
@@ -137,7 +145,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       ;(eventLoop as any).enqueuePromptRecovery({
@@ -179,7 +188,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       ;(eventLoop as any).enqueuePromptRecovery({
@@ -210,7 +220,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       ;(eventLoop as any).enqueuePromptRecovery({
@@ -287,6 +298,7 @@ describe("EventLoop", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -355,6 +367,7 @@ describe("EventLoop", () => {
         messageClient,
         memoryManager,
         opcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -447,6 +460,7 @@ describe("EventLoop", () => {
         messageClient,
         memoryManager,
         raceOpcodeClient,
+        mockModelConfigManager,
         stateManager
       )
 
@@ -512,7 +526,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       // 注册一个 agent
@@ -535,7 +550,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       // 调用 getAgentResult
@@ -564,7 +580,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       ;(eventLoop as any).sessionManager.ensureSession = mock(async () => ({
@@ -616,7 +633,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       const saveSummaryMock = mock(async () => {})
@@ -671,7 +689,8 @@ describe("EventLoop", () => {
         mockRoleManager,
         messageClient,
         memoryManager,
-        opcodeClient
+        opcodeClient,
+        mockModelConfigManager
       )
 
       const saveSummaryMock = mock(async () => {})
