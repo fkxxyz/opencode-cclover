@@ -4,6 +4,7 @@ import { BossManager } from "../../src/core/BossManager"
 import { StateManager } from "../../src/state/StateManager"
 import { createShowHireableRolesTool } from "../../src/tools/ShowHireableRolesTool"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
+import { createMockToolContext } from "../helpers/mockContext"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 
@@ -327,10 +328,10 @@ You are a role without description.`
       bossManager
     )
 
-    const context = {
+    const context = createMockToolContext({
       sessionID: "unknown-session",
       agent: "boss-alice",
-    }
+    })
 
     const result = await emptyTool.execute({}, context)
 
