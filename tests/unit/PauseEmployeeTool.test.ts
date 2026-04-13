@@ -303,9 +303,10 @@ describe("PauseEmployeeTool", () => {
           description: "Test task",
           status: "pending",
           dependencies: [],
+          created: new Date().toISOString(),
         },
       ],
-      custom: {},
+      args: {},
     })
 
     // 创建工具
