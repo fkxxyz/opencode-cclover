@@ -169,10 +169,12 @@ describe("Employees API", () => {
     const response = getHierarchy(stateManager, bossManager)
 
     expect(response.success).toBe(true)
-    expect(response.data.hierarchy).toHaveLength(1)
-    expect(response.data.hierarchy[0].name).toBe("boss1")
-    expect(response.data.hierarchy[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].name).toBe("test-role")
+    expect(response.data.hierarchy.some((node) => node.name === "cclover")).toBe(true)
+
+    const boss1Node = response.data.hierarchy.find((node) => node.name === "boss1")
+    expect(boss1Node).toBeDefined()
+    expect(boss1Node?.children).toHaveLength(1)
+    expect(boss1Node?.children[0].name).toBe("test-role")
   })
 
   it("should return hierarchy with multiple levels", () => {
@@ -225,19 +227,15 @@ describe("Employees API", () => {
     const response = getHierarchy(stateManager, bossManager)
 
     expect(response.success).toBe(true)
-    expect(response.data.hierarchy).toHaveLength(1)
-    expect(response.data.hierarchy[0].name).toBe("boss1")
-    expect(response.data.hierarchy[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].name).toBe("test-role")
-    expect(response.data.hierarchy[0].children[0].children).toHaveLength(1)
-    expect(response.data.hierarchy[0].children[0].children[0].name).toBe(
-      "coder"
-    )
-    expect(
-      response.data.hierarchy[0].children[0].children[0].children
-    ).toHaveLength(1)
-    expect(
-      response.data.hierarchy[0].children[0].children[0].children[0].name
-    ).toBe("tester")
+    expect(response.data.hierarchy.some((node) => node.name === "cclover")).toBe(true)
+
+    const boss1Node = response.data.hierarchy.find((node) => node.name === "boss1")
+    expect(boss1Node).toBeDefined()
+    expect(boss1Node?.children).toHaveLength(1)
+    expect(boss1Node?.children[0].name).toBe("test-role")
+    expect(boss1Node?.children[0].children).toHaveLength(1)
+    expect(boss1Node?.children[0].children[0].name).toBe("coder")
+    expect(boss1Node?.children[0].children[0].children).toHaveLength(1)
+    expect(boss1Node?.children[0].children[0].children[0].name).toBe("tester")
   })
 })
