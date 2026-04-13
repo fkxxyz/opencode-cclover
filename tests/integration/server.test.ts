@@ -123,6 +123,7 @@ describe("Console Server", () => {
       roleManager,
       modelConfigManager,
       meetingModePromptInjector,
+      feedbackManager: {} as any,
       eventLoopStarted: false,
       eventLoops: new Map(),
     })

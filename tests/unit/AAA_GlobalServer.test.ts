@@ -141,6 +141,7 @@ Test role system prompt`
       roleManager,
       modelConfigManager,
       meetingModePromptInjector,
+      feedbackManager: {} as any,
       eventLoopStarted: false,
       eventLoops: new Map(),
     }
