@@ -239,7 +239,6 @@ describe("Tools Integration", () => {
         status: "pending",
         description: "计算任务",
         dependencies: [],
-        created: new Date().toISOString(),
       })
 
       // 更新任务
@@ -288,7 +287,6 @@ describe("Tools Integration", () => {
         status: "pending",
         description: "计算任务",
         dependencies: [],
-        created: new Date().toISOString(),
       })
 
       // 删除任务
