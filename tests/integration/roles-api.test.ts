@@ -70,7 +70,6 @@ You are a test role. This is your system prompt.
     const testEmployee: Employee = {
       employeeId: "0-test-employee",
       name: "test-employee",
-      id: "test-employee",
       taskId: 0,
       role: "TestRole",
       status: "idle",

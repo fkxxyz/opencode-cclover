@@ -135,7 +135,6 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-boss",
       name: "boss",
-      id: "boss",
       taskId: 0,
       hiredBy: null,
       role: "manager",
@@ -150,7 +149,6 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
-      id: "alice",
       taskId: 0,
       hiredBy: null,
       role: "developer",
@@ -164,7 +162,6 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
-      id: "bob",
       taskId: 0,
       hiredBy: null,
       role: "manager",
@@ -294,7 +291,6 @@ You are a project manager.`
       const result = await multiBossTool.execute(
         {
           name: "meeting-hire-b",
-          id: "meeting-hire-b",
           role: "developer",
         },
         {
@@ -942,7 +938,6 @@ You are a project manager.`
       await stateManager.registerEmployee({
         employeeId: "1-alice",
         name: "alice",
-        id: "alice",
         taskId: 1,
         hiredBy: "0-boss",
         role: "developer",
@@ -988,7 +983,6 @@ You are a project manager.`
       await stateManager.registerEmployee({
         employeeId: "2-bob",
         name: "bob",
-        id: "bob",
         taskId: 2,
         hiredBy: "0-boss",
         role: "manager",

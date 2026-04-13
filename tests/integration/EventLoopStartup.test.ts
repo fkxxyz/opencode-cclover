@@ -61,7 +61,6 @@ You are a valid test role.`
     const validEmployee: Employee = {
       employeeId: "0-valid-employee",
       name: "valid-employee",
-      id: "valid-employee",
       taskId: 0,
       role: "Valid Role",
       status: "idle",
@@ -78,7 +77,6 @@ You are a valid test role.`
     const invalidEmployee: Employee = {
       employeeId: "0-invalid-employee",
       name: "invalid-employee",
-      id: "invalid-employee",
       taskId: 0,
       role: "Non Existent Role",
       status: "idle",
@@ -126,7 +124,6 @@ You are a valid test role.`
       {
         employeeId: "0-invalid-1",
         name: "invalid-1",
-        id: "invalid-1",
         taskId: 0,
         role: "Non Existent Role 1",
         status: "idle",
@@ -139,7 +136,6 @@ You are a valid test role.`
       {
         employeeId: "0-invalid-2",
         name: "invalid-2",
-        id: "invalid-2",
         taskId: 0,
         role: "Non Existent Role 2",
         status: "idle",
@@ -185,7 +181,6 @@ You are a valid test role.`
       {
         employeeId: "0-valid-1",
         name: "valid-1",
-        id: "valid-1",
         taskId: 0,
         role: "Valid Role",
         hiredBy: null,
@@ -198,7 +193,6 @@ You are a valid test role.`
       {
         employeeId: "0-invalid-1",
         name: "invalid-1",
-        id: "invalid-1",
         taskId: 0,
         role: "Invalid Role",
         hiredBy: null,
@@ -211,7 +205,6 @@ You are a valid test role.`
       {
         employeeId: "0-valid-2",
         name: "valid-2",
-        id: "valid-2",
         taskId: 0,
         role: "Valid Role",
         hiredBy: null,

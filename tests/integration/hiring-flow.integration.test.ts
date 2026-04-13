@@ -70,7 +70,6 @@ describe("Hiring Flow Integration", () => {
     const result = await tool.execute(
       {
         name: "calc-001",
-        id: "calc-001",
         role: "TestRole",
       },
       {
@@ -104,7 +103,6 @@ describe("Hiring Flow Integration", () => {
     const result = await tool.execute(
       {
         name: "soul-dev",
-        id: "soul-dev",
         role: "Soul Developer",
       },
       {
@@ -139,7 +137,6 @@ describe("Hiring Flow Integration", () => {
     await tool.execute(
       {
         name: "pm-001",
-        id: "pm-001",
         role: "Project Manager",
       },
       {
@@ -160,7 +157,6 @@ describe("Hiring Flow Integration", () => {
     const result = await tool.execute(
       {
         name: "dev-001",
-        id: "dev-001",
         role: "General Developer",
       },
       {
@@ -194,7 +190,6 @@ describe("Hiring Flow Integration", () => {
     await tool.execute(
       {
         name: "pm-001",
-        id: "pm-001",
         role: "Project Manager",
       },
       {
@@ -215,7 +210,6 @@ describe("Hiring Flow Integration", () => {
     const result = await tool.execute(
       {
         name: "soul-dev",
-        id: "soul-dev",
         role: "Soul Developer",
       },
       {

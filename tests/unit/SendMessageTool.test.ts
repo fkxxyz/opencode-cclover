@@ -41,7 +41,6 @@ describe("SendMessageTool with Boss", () => {
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
-      id: "alice",
       taskId: 0,
       hiredBy: null,
       role: "test",
@@ -54,7 +53,6 @@ describe("SendMessageTool with Boss", () => {
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
-      id: "bob",
       taskId: 0,
       hiredBy: null,
       role: "test",
@@ -494,7 +492,6 @@ describe("SendMessageTool with Boss", () => {
       await stateManager.registerEmployee({
         employeeId: "1-dave",
         name: "dave",
-        id: "dave",
         taskId: 1,
         hiredBy: "0-alice",
         role: "test",
