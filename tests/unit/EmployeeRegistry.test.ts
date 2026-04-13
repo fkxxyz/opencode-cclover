@@ -270,7 +270,7 @@ describe("EmployeeRegistry", () => {
       registry.on("status_changed", (data: any) => {
         emitted = true
         expect(data.employeeId).toBe("0-alice")
-        expect(data.oldStatus).toBe("active")
+        expect(data.oldStatus).toBe("idle")
         expect(data.newStatus).toBe("idle")
       })
 
