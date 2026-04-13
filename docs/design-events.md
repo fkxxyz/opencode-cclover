@@ -256,6 +256,65 @@ Records task decomposition into subtasks.
 
 **Trigger**: When `MemoryManager.decomposeTask()` breaks down task
 
+### 13. Major Task Completed
+
+Records completion of major tasks that trigger feedback collection.
+
+```typescript
+{
+  type: "major_task_completed",
+  timestamp: "2026-03-03T10:30:00.000Z",
+  employeeName: "developer",
+  details: {
+    taskName: "ImplementFeatureX",
+    result: "Feature X implemented successfully"
+  }
+}
+```
+
+**Trigger**: When a major task is completed and feedback collection should be initiated
+
+### 14. Survey Sent
+
+Records when a feedback survey is sent to an employee.
+
+```typescript
+{
+  type: "survey_sent",
+  timestamp: "2026-03-03T10:35:00.000Z",
+  employeeName: "developer",
+  details: {
+    surveyId: "survey_123",
+    taskName: "ImplementFeatureX",
+    questions: ["How satisfied are you with the task?", "Any suggestions?"]
+  }
+}
+```
+
+**Trigger**: When feedback system sends a survey to an employee after major task completion
+
+### 15. Feedback Received
+
+Records when feedback is received from an employee.
+
+```typescript
+{
+  type: "feedback_received",
+  timestamp: "2026-03-03T10:40:00.000Z",
+  employeeName: "developer",
+  details: {
+    surveyId: "survey_123",
+    taskName: "ImplementFeatureX",
+    responses: {
+      "satisfaction": 4,
+      "suggestions": "Task was clear and well-defined"
+    }
+  }
+}
+```
+
+**Trigger**: When an employee submits feedback responses
+
 ## Storage Design
 
 ### File Format
@@ -599,6 +658,9 @@ Concise descriptions for each event type:
 | task_waiting_for_message| `Task waiting for message: {taskName} - {reason}`                   |
 | task_deleted            | `Task deleted: {taskName}`                                          |
 | task_decomposed         | `Task decomposed: {originalTask} → {subtaskCount} subtasks`         |
+| major_task_completed    | `Major task completed: {taskName}`                                  |
+| survey_sent             | `Survey sent: {taskName}`                                           |
+| feedback_received       | `Feedback received: {taskName}`                                     |
 
 ### API Endpoint
 

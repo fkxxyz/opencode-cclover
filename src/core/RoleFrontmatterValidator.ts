@@ -121,6 +121,14 @@ export function validateRoleFrontmatter(
     })
   }
 
+  if (raw.isCoreLead !== undefined && typeof raw.isCoreLead !== "boolean") {
+    issues.push({
+      level: "error",
+      field: "isCoreLead",
+      message: "isCoreLead must be a boolean",
+    })
+  }
+
   validateStringArrayField(raw.responsibilities, "responsibilities", issues)
   validateStringArrayField(raw.boundaries, "boundaries", issues)
   validateStringArrayField(raw.contextIds, "contextIds", issues)
@@ -188,6 +196,7 @@ export function validateRoleFrontmatter(
         | undefined,
       model_type:
         typeof raw.model_type === "string" ? raw.model_type : undefined,
+      isCoreLead: typeof raw.isCoreLead === "boolean" ? raw.isCoreLead : false,
       workflow: normalizedWorkflow,
     },
     issues,

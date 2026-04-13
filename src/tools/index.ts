@@ -19,6 +19,7 @@ import { createShowHireableRolesTool } from "./ShowHireableRolesTool"
 import { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 import { createPauseEmployeeTool } from "./PauseEmployeeTool"
 import { createIntegrateTool } from "./IntegrateTool"
+import { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
 
 /**
  * 工具定义类型
@@ -57,6 +58,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   resume_employee: true,
   pause_employee: true,
   integrate: true,
+  complete_major_task: true,
 }
 
 /**
@@ -90,6 +92,7 @@ export { createShowHireableRolesTool } from "./ShowHireableRolesTool"
 export { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 export { createPauseEmployeeTool } from "./PauseEmployeeTool"
 export { createIntegrateTool } from "./IntegrateTool"
+export { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
 
 /**
  * 创建所有工具
@@ -171,6 +174,13 @@ export function createTools(deps: {
           deps.stateManager!,
           deps.project.roleManager,
           deps.memoryManager
+        )
+      : (null as any), // fallback
+    complete_major_task: deps.project
+      ? createCompleteMajorTaskTool(
+          deps.messageService,
+          deps.stateManager!,
+          deps.project.roleManager
         )
       : (null as any), // fallback
   }

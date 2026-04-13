@@ -151,6 +151,9 @@ export type EventType =
   | "task_modified"
   | "task_halt_requested"
   | "vacation_requested"
+  | "major_task_completed"
+  | "survey_sent"
+  | "feedback_received"
 
 // 事件
 export interface Event {

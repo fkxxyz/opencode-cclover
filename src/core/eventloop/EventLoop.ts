@@ -390,9 +390,15 @@ export class EventLoop {
           },
         }
       }
+
+      // 8. 检查未回复的调查问卷
+      const surveyReminder = await this.checkSurveyReminders()
+      if (surveyReminder) {
+        return surveyReminder
+      }
     }
 
-    // 8. 以上都没有，阻塞等待
+    // 9. 以上都没有，阻塞等待
     return Promise.race([this.waitForMessage(), this.waitForAgentCompletion()])
   }
 
@@ -448,6 +454,90 @@ export class EventLoop {
     }
 
     return false
+  }
+
+  /**
+   * 检查调查问卷提醒
+   * 读取 events.jsonl，查找未回复的调查问卷，发送提醒或标记为异常
+   */
+  private async checkSurveyReminders(): Promise<RuntimeEvent | null> {
+    if (!this.stateManager) {
+      return null
+    }
+
+    try {
+      // 读取最近的事件（足够找到 survey_sent 和相关 reminders）
+      const eventLogger = (this.stateManager as any).eventLogger
+      const events = await eventLogger.getEvents(this.employeeId, 200)
+
+      // 查找最近的 survey_sent 事件
+      const surveySent = events.find((e: Event) => e.type === "survey_sent")
+      if (!surveySent) {
+        return null // 没有调查问卷
+      }
+
+      // 检查是否已经回复
+      const feedbackReceived = events.find(
+        (e: Event) => e.type === "feedback_received"
+      )
+      if (feedbackReceived) {
+        return null // 已经回复
+      }
+
+      // 获取调查发送时间
+      const sentAt = new Date(surveySent.details.sentAt)
+      const hoursSince = (Date.now() - sentAt.getTime()) / 3600000
+
+      // 统计调查相关的提醒次数（通过 surveyId 过滤）
+      const surveyId = surveySent.details.sentAt
+      const reminderCount = events.filter(
+        (e: Event) =>
+          e.type === "reply_reminder" &&
+          e.details.surveyId === surveyId &&
+          e.details.reason === "survey_pending"
+      ).length
+
+      // 检查是否需要发送提醒（每 24 小时一次，最多 3 次）
+      if (hoursSince > (reminderCount + 1) * 24 && reminderCount < 3) {
+        // 记录 reply_reminder 事件
+        await this.stateManager.addEvent({
+          projectId: this.stateManager.getProjectId(),
+          type: "reply_reminder",
+          timestamp: new Date().toISOString(),
+          employeeId: this.employeeId,
+          details: {
+            reminderCount: reminderCount + 1,
+            surveyId,
+            reason: "survey_pending",
+          },
+        })
+
+        return {
+          projectId: "",
+          type: "reply_reminder",
+          timestamp: new Date().toISOString(),
+          details: {
+            reminderCount: reminderCount + 1,
+            surveyId,
+            reason: "survey_pending",
+          },
+        }
+      } else if (reminderCount >= 3) {
+        // 3 次提醒后标记为异常
+        await this.stateManager.updateEmployeeStatus(
+          this.employeeId,
+          "abnormal"
+        )
+        return null
+      }
+
+      return null
+    } catch (error: any) {
+      logger.error(
+        `[EventLoop] Failed to check survey reminders for ${this.employeeId}: ${error.message}`
+      )
+      return null
+    }
   }
 
   /**

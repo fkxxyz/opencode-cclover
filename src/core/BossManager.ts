@@ -16,6 +16,9 @@ import type { IBossManager } from "../types/boss-manager"
  * 负责管理全局 boss 列表和 Boss 身份识别
  */
 export class BossManager implements IBossManager {
+  // 系统生成的 boss（不可配置）
+  private static readonly SYSTEM_BOSSES = ["0-cclover"]
+
   private bosses: Set<string> = new Set()
   private sessionToBoss = new Map<string, string>()
   private workspaceRoot?: string
@@ -76,6 +79,11 @@ export class BossManager implements IBossManager {
    * 检查是否是 boss
    */
   isBoss(name: string): boolean {
+    // 先检查系统 boss
+    if (BossManager.SYSTEM_BOSSES.includes(name)) {
+      return true
+    }
+    // 再检查配置的 boss
     return this.bosses.has(name)
   }
 
@@ -96,7 +104,7 @@ export class BossManager implements IBossManager {
    * 获取所有 boss 名称
    */
   getBosses(): string[] {
-    return Array.from(this.bosses)
+    return [...BossManager.SYSTEM_BOSSES, ...Array.from(this.bosses)]
   }
 
   /**

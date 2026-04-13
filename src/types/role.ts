@@ -231,6 +231,13 @@ export interface RoleMetadata {
   model_type?: string
 
   /**
+   * Whether this role is a core lead role
+   * Core lead roles can trigger feedback surveys via complete_major_task tool
+   * Defaults to false if not specified
+   */
+  isCoreLead?: boolean
+
+  /**
    * Resolved role contexts (internal use only)
    * This field is populated by RoleManager after loading the role.
    * It is not part of user-authored YAML frontmatter.

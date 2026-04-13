@@ -7,6 +7,7 @@ import type { RoleManager } from "../core/RoleManager"
 import type { EventLoop } from "../core/eventloop"
 import type { MeetingModePromptInjector } from "../meeting-mode/PromptInjector"
 import type { ModelConfigManager } from "../config/ModelConfigManager"
+import type { FeedbackManager } from "../core/FeedbackManager"
 import { createHash } from "node:crypto"
 import EventEmitter from "eventemitter3"
 
@@ -26,6 +27,7 @@ export interface ProjectInstance {
   roleManager: RoleManager
   modelConfigManager: ModelConfigManager
   meetingModePromptInjector: MeetingModePromptInjector
+  feedbackManager: FeedbackManager
   eventLoopStarted: boolean // EventLoop 是否已启动
   eventLoops: Map<string, EventLoop> // 员工名称 -> EventLoop 实例
 }

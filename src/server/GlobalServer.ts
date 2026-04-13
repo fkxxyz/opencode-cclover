@@ -14,6 +14,7 @@ import { MessageService } from "../core/MessageService"
 import { MemoryManager } from "../core/MemoryManager"
 import { BossManager } from "../core/BossManager"
 import { RoleManager } from "../core/RoleManager"
+import { FeedbackManager } from "../core/FeedbackManager"
 import { AgentRegistry } from "../utils/AgentRegistry"
 import { EventLoop } from "../core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
@@ -198,6 +199,13 @@ export class GlobalCcloverService {
     // 初始化 roleManager（加载所有 role）
     await roleManager.refresh()
 
+    // 创建 FeedbackManager
+    const feedbackManager = new FeedbackManager(
+      workspaceRoot,
+      messageService,
+      stateManager
+    )
+
     // 注册到 registry
     const projectInstance: ProjectInstance = {
       projectId: ProjectRegistry.hashPath(config.path),
@@ -212,6 +220,7 @@ export class GlobalCcloverService {
       roleManager,
       modelConfigManager,
       meetingModePromptInjector,
+      feedbackManager,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
       eventLoops: new Map(), // 初始化 EventLoop Map
     }
