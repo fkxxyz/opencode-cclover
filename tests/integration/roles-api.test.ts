@@ -72,7 +72,7 @@ You are a test role. This is your system prompt.
       name: "test-employee",
       id: "test-employee",
       taskId: 0,
-      role: "test-role",
+      role: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
