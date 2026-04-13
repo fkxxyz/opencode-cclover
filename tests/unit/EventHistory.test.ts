@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test"
 import { EventHistory } from "../../src/state/EventHistory"
 import type { Event } from "../../src/types/index"
 
+const TEST_PROJECT_ID = "test-project"
+
 describe("EventHistory", () => {
   let history: EventHistory
 
@@ -12,6 +14,7 @@ describe("EventHistory", () => {
   describe("add", () => {
     it("should add event to history", () => {
       const event: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
         employeeId: "0-alice",
@@ -28,6 +31,7 @@ describe("EventHistory", () => {
 
     it("should add events in reverse order (newest first)", () => {
       const event1: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
         employeeId: "0-alice",
@@ -35,6 +39,7 @@ describe("EventHistory", () => {
       }
 
       const event2: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:01.000Z",
         employeeId: "0-bob",
@@ -52,6 +57,7 @@ describe("EventHistory", () => {
     it("should maintain max 1000 events", () => {
       for (let i = 0; i < 1100; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -68,6 +74,7 @@ describe("EventHistory", () => {
     it("should return recent events", () => {
       for (let i = 0; i < 10; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -83,6 +90,7 @@ describe("EventHistory", () => {
     it("should return all events if limit exceeds count", () => {
       for (let i = 0; i < 3; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -104,6 +112,7 @@ describe("EventHistory", () => {
   describe("getByEmployee", () => {
     it("should filter events by employee name", () => {
       const event1: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
         employeeId: "0-alice",
@@ -111,6 +120,7 @@ describe("EventHistory", () => {
       }
 
       const event2: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:01.000Z",
         employeeId: "0-bob",
@@ -118,6 +128,7 @@ describe("EventHistory", () => {
       }
 
       const event3: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:02.000Z",
         employeeId: "0-alice",
@@ -136,6 +147,7 @@ describe("EventHistory", () => {
     it("should respect limit parameter", () => {
       for (let i = 0; i < 10; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -157,6 +169,7 @@ describe("EventHistory", () => {
   describe("getByType", () => {
     it("should filter events by type", () => {
       const event1: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:00.000Z",
         employeeId: "0-alice",
@@ -164,6 +177,7 @@ describe("EventHistory", () => {
       }
 
       const event2: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "task_completed",
         timestamp: "2026-03-01T10:00:01.000Z",
         employeeId: "0-alice",
@@ -171,6 +185,7 @@ describe("EventHistory", () => {
       }
 
       const event3: Event = {
+        projectId: TEST_PROJECT_ID,
         type: "message",
         timestamp: "2026-03-01T10:00:02.000Z",
         employeeId: "0-bob",
@@ -193,6 +208,7 @@ describe("EventHistory", () => {
     it("should respect limit parameter", () => {
       for (let i = 0; i < 10; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -215,6 +231,7 @@ describe("EventHistory", () => {
     it("should return all events", () => {
       for (let i = 0; i < 5; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -237,6 +254,7 @@ describe("EventHistory", () => {
     it("should clear all events", () => {
       for (let i = 0; i < 5; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
@@ -257,6 +275,7 @@ describe("EventHistory", () => {
 
       for (let i = 0; i < 5; i++) {
         const event: Event = {
+          projectId: TEST_PROJECT_ID,
           type: "message",
           timestamp: new Date(Date.now() - i * 1000).toISOString(),
           employeeId: "0-alice",
