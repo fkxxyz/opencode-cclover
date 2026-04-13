@@ -98,11 +98,12 @@ describe("EventLoop Vacation Mechanism", () => {
       name: "Alice",
       role: "test-role",
       taskId: 0,
-      hiredBy: null,
+      hiredBy: "Boss",
       paused: false,
       activeSessionId: null,
       status: "idle",
-      hiredBy: "Boss",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
     })
   })
 
