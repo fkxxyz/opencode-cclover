@@ -3,7 +3,8 @@
  */
 
 import { describe, test, expect } from "bun:test"
-import { generateMermaid, type Task } from "../../src/utils/MermaidGenerator"
+import { generateMermaid } from "../../src/utils/MermaidGenerator"
+import type { Task } from "../../src/core/MemoryManager"
 
 describe("MermaidGenerator", () => {
   test("should generate empty graph for empty task list", () => {
