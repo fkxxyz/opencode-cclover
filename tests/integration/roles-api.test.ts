@@ -13,6 +13,7 @@ import { BossManager } from "../../src/core/BossManager"
 import { RoleManager } from "../../src/core/RoleManager"
 import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
+import type { ApiErrorResponse } from "../types/api-responses"
 import { AgentRegistry } from "../../src/utils/AgentRegistry"
 import type { Employee } from "../../src/types/index"
 import { createTestProjectInstance } from "../helpers/createTestProjectInstance"
@@ -145,7 +146,7 @@ You are a test role. This is your system prompt.
       const response = await fetch(
         `http://localhost:${TEST_PORT}/api/projects/non-existent/roles`
       )
-      const json = await response.json()
+      const json = (await response.json()) as ApiErrorResponse
 
       expect(response.status).toBe(404)
       expect(json.success).toBe(false)
