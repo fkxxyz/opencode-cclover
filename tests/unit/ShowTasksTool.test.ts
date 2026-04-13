@@ -32,7 +32,7 @@ describe("ShowTasksTool", () => {
       taskId: 0,
       name: "alice",
       role: "test",
-      status: "inactive",
+      status: "offline",
       paused: false,
       activeSessionId: null,
       createdAt: new Date().toISOString(),

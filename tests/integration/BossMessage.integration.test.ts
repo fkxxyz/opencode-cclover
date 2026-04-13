@@ -33,9 +33,9 @@ describe("Boss Message Integration", () => {
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
-      taskId: null,
+      taskId: 0,
       role: "test",
-      status: "inactive",
+      status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       hiredBy: null,
@@ -45,9 +45,9 @@ describe("Boss Message Integration", () => {
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
-      taskId: null,
+      taskId: 0,
       role: "test",
-      status: "inactive",
+      status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       hiredBy: null,

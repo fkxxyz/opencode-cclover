@@ -23,9 +23,9 @@ describe("MessageService - Duplicate Message Fix", () => {
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
-      taskId: null,
+      taskId: 0,
       role: "test",
-      status: "inactive",
+      status: "offline",
       hiredBy: null,
       paused: false,
       activeSessionId: null,
@@ -35,9 +35,9 @@ describe("MessageService - Duplicate Message Fix", () => {
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
-      taskId: null,
+      taskId: 0,
       role: "test",
-      status: "inactive",
+      status: "offline",
       hiredBy: null,
       paused: false,
       activeSessionId: null,

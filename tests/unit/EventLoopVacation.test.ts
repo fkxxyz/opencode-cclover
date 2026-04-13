@@ -97,7 +97,7 @@ describe("EventLoop Vacation Mechanism", () => {
       employeeId: "0-Alice",
       name: "Alice",
       role: "test-role",
-      taskId: null,
+      taskId: 0,
       hiredBy: null,
       paused: false,
       activeSessionId: null,

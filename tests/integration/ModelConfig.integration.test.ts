@@ -207,7 +207,7 @@ You create agents.`
       const employee: Employee = {
         employeeId: "0-agent-creator",
         name: "agent-creator",
-        taskId: null,
+        taskId: 0,
         role: "Agent Creator",
         status: "idle",
         createdAt: "2026-03-01T10:00:00.000Z",
@@ -295,7 +295,7 @@ You create agents.`
       const employee: Employee = {
         employeeId: "0-default-creator",
         name: "default-creator",
-        taskId: null,
+        taskId: 0,
         role: "Default Agent Creator",
         status: "idle",
         createdAt: "2026-03-01T10:00:00.000Z",
