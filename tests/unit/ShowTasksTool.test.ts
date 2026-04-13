@@ -47,7 +47,7 @@ describe("ShowTasksTool", () => {
     await memoryManager.write("0-alice", {
       knowledge: [],
       tasks: [],
-      custom: {},
+      args: {},
     })
 
     // 创建 ShowTasksTool

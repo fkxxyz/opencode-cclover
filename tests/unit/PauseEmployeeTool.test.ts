@@ -66,7 +66,7 @@ describe("PauseEmployeeTool", () => {
     await memoryManager.write("0-dev-1", {
       knowledge: [],
       tasks: [],
-      custom: {},
+      args: {},
     })
 
     // 注册 session
@@ -133,7 +133,7 @@ describe("PauseEmployeeTool", () => {
     await memoryManager.write("0-dev-1", {
       knowledge: [],
       tasks: [],
-      custom: {},
+      args: {},
     })
 
     // 注册 session
@@ -351,7 +351,7 @@ describe("PauseEmployeeTool", () => {
           dependencies: [],
         },
       ],
-      custom: {},
+      args: {},
     })
 
     // 创建工具
@@ -408,7 +408,7 @@ describe("PauseEmployeeTool", () => {
           dependencies: [],
         },
       ],
-      custom: {},
+      args: {},
     })
 
     // 注册 session
@@ -462,7 +462,7 @@ describe("PauseEmployeeTool", () => {
           dependencies: [],
         },
       ],
-      custom: {},
+      args: {},
     })
 
     // 注册 session
