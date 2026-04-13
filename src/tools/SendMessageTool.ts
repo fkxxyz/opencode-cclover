@@ -152,7 +152,7 @@ export function createSendMessageTool(
 
       if (!isRecipientBoss) {
         const recipient = stateManager.getEmployee(recipientId)
-        if (recipient?.status === "offline") {
+        if (recipient?.paused) {
           throw new Error(`Employee is on vacation!`)
         }
       }
