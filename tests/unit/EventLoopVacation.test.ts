@@ -312,7 +312,7 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证事件被记录
-      const events = await stateManager.getEvents("Alice")
+      const events = await stateManager.getEvents({ employeeName: "0-Alice" })
       const statusChangeEvent = events.find(
         (e) => e.type === "employee_status_changed"
       )
