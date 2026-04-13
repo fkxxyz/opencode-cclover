@@ -106,6 +106,7 @@ describe("Employees API", () => {
           completed: "2026-03-01T10:00:05.000Z",
         },
       ],
+      args: {},
     }
 
     const memoryPath = path.join(employeeDir, "memory.yaml")
