@@ -5,7 +5,7 @@ import EventEmitter from "eventemitter3"
 import * as lockfile from "proper-lockfile"
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { StateManager } from "../state/StateManager"
-import type { BossManager } from "./BossManager"
+import type { IBossManager } from "../types/boss-manager"
 import type { Message, MessageDirection, Event } from "../types"
 import type { EmployeeId, BossId, TaskId } from "../types/employee"
 import type {
@@ -164,7 +164,7 @@ export class MessageService implements MessageRouter {
     private workspaceRoot: string,
     private stateManager?: StateManager,
     projectId?: string,
-    private bossManager?: BossManager,
+    private bossManager?: IBossManager,
     private opcodeClient?: OpencodeClient
   ) {
     this.projectId = projectId || "default"

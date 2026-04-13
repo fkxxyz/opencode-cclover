@@ -252,9 +252,13 @@ describe("MessageService", () => {
       const bossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
+        getBossName: () => null,
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},
+        recordSession: async () => {},
+        getSession: async () => undefined,
+        clearSession: async () => {},
       }
       const serviceWithBoss = new MessageService(
         TEST_WORKSPACE,
@@ -281,6 +285,7 @@ describe("MessageService", () => {
       const testBossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
+        getBossName: () => null,
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},
@@ -308,6 +313,7 @@ describe("MessageService", () => {
       const testBossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
+        getBossName: () => null,
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},
@@ -335,6 +341,7 @@ describe("MessageService", () => {
       const testBossManager = {
         isBoss: (name: string) => name === "bayecao",
         getBosses: () => ["bayecao"],
+        getBossName: () => null,
         reload: async () => {},
         addBoss: () => {},
         removeBoss: () => {},

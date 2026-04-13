@@ -9,12 +9,13 @@ import type { BossId, EmployeeId } from "../types/index"
 import { formatBossId, isBossId } from "../types/index"
 import { isValidIdentityId } from "../utils/IdentityValidator"
 import type { RoleManager } from "./RoleManager"
+import type { IBossManager } from "../types/boss-manager"
 
 /**
  * Boss 管理器
  * 负责管理全局 boss 列表和 Boss 身份识别
  */
-export class BossManager {
+export class BossManager implements IBossManager {
   private bosses: Set<string> = new Set()
   private sessionToBoss = new Map<string, string>()
   private workspaceRoot?: string
