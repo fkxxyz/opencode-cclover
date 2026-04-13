@@ -392,7 +392,7 @@ describe("EventLoop Vacation Mechanism", () => {
         timestamp: new Date().toISOString(),
       })
 
-      await messageService.send("0-Bob", "0-Alice", "Hello", "test-role")
+      await messageService.send("0-Bob", "0-Alice", "Hello")
 
       // 创建 EventLoop
       const messageClient = messageService.getClient("0-Alice")
