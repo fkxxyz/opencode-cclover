@@ -52,7 +52,7 @@ Soul Developer prompt`
       mode: "primary",
     } as unknown as string)
 
-    const result = injector.buildInjectedPrompt(
+    const result = await injector.buildInjectedPrompt(
       "session-role-object",
       roleManager
     )
@@ -89,7 +89,7 @@ Soul Developer prompt`
       mode: "primary",
     } as unknown as string)
 
-    const result = injector.buildInjectedPrompt(
+    const result = await injector.buildInjectedPrompt(
       "session-title-overwrite",
       roleManager
     )
@@ -126,7 +126,7 @@ Soul Developer prompt`
       mode: "primary",
     } as unknown as string)
 
-    const result = injector.buildInjectedPrompt(
+    const result = await injector.buildInjectedPrompt(
       "session-non-meeting-overwrite",
       roleManager
     )
