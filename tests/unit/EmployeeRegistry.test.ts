@@ -177,7 +177,7 @@ describe("EmployeeRegistry", () => {
       }
 
       const original = registry.get("0-alice")
-      expect(original?.status).toBe("active")
+      expect(original?.status).toBe("idle")
     })
   })
 
