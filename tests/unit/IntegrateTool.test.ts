@@ -437,16 +437,20 @@ Soulful developer role.
   test("should handle employee with role not found", async () => {
     // 注册员工（角色不存在）
     await stateManager.registerEmployee({
+      employeeId: "0-dev-1",
       name: "dev-1",
+      taskId: 0,
       role: "unknown-role",
+      hiredBy: null,
       status: "busy",
       paused: false,
+      activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     })
 
     // 初始化员工记忆
-    await memoryManager.write("dev-1", {
+    await memoryManager.write("0-dev-1", {
       knowledge: [],
       tasks: [],
       args: {},
