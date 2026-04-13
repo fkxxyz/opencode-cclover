@@ -17,7 +17,7 @@ import type { IBossManager } from "../types/boss-manager"
  */
 export class BossManager implements IBossManager {
   // 系统生成的 boss（不可配置）
-  private static readonly SYSTEM_BOSSES = ["0-cclover"]
+  private static readonly SYSTEM_BOSSES = ["cclover"]
 
   private bosses: Set<string> = new Set()
   private sessionToBoss = new Map<string, string>()

@@ -17,12 +17,7 @@ function resolveRecipientId(
   bossManager: BossManager | undefined,
   stateManager: StateManager
 ): string {
-  // 1. Check if recipient is a Boss identity ID
-  if (bossManager?.isBoss(recipient)) {
-    return formatBossId(recipient)
-  }
-
-  // 2. Check if recipient is a BossId format (0-{id})
+  // 1. Check if recipient is a BossId format (0-{id})
   if (recipient.startsWith("0-")) {
     const bossId = recipient.substring(2)
     if (bossManager?.isBoss(bossId)) {
@@ -30,7 +25,7 @@ function resolveRecipientId(
     }
   }
 
-  // 3. Find employee (supports name or employeeId)
+  // 2. Find employee (supports name or employeeId)
   const allEmployees = stateManager.getEmployees()
   const matchedEmployee = allEmployees.find(
     (employee) =>
