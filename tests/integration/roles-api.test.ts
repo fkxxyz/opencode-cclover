@@ -15,6 +15,7 @@ import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
 import { AgentRegistry } from "../../src/utils/AgentRegistry"
 import type { Employee } from "../../src/types/index"
+import { createTestProjectInstance } from "../helpers/createTestProjectInstance"
 
 const TEST_WORKSPACE = path.join(
   import.meta.dir,
@@ -60,9 +61,13 @@ You are a test role. This is your system prompt.
     const messageService = new MessageService(TEST_WORKSPACE)
     const memoryManager = new MemoryManager(TEST_WORKSPACE)
     const stateManager = new StateManager()
-    const bossManager = new BossManager(TEST_WORKSPACE)
     roleManager = new RoleManager(TEST_WORKSPACE)
     await roleManager.refresh()
+    const bossManager = new BossManager(
+      { bosses: [], projects: [], modelTypes: {} },
+      TEST_WORKSPACE,
+      roleManager
+    )
 
     const testAgentRegistry = new AgentRegistry()
 
@@ -83,20 +88,15 @@ You are a test role. This is your system prompt.
 
     // 启动服务器
     projectRegistry = new ProjectRegistry()
-    projectRegistry.register({
-      projectId: "test-project",
-      projectName: "Test Project",
-      directory: TEST_WORKSPACE,
-      workspaceRoot: TEST_WORKSPACE,
+    const projectInstance = await createTestProjectInstance(TEST_WORKSPACE, {
       stateManager,
       messageService,
       memoryManager,
       agentRegistry: testAgentRegistry,
       bossManager,
       roleManager,
-      eventLoopStarted: false,
-      eventLoops: new Map(),
     })
+    projectRegistry.register(projectInstance)
 
     server = new ConsoleServer(
       { port: TEST_PORT, workspaceRoot: TEST_WORKSPACE },
