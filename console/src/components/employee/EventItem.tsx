@@ -38,6 +38,9 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   reply_attempted: "⚠️",
   reply_reminder: "🔔",
   vacation_requested: "🏖️",
+  major_task_completed: "🎉",
+  survey_sent: "📋",
+  feedback_received: "💬",
 }
 
 // 生成事件描述
@@ -171,6 +174,15 @@ function getEventDescription(
 
     case "summary_parse_failed":
       return `会话总结解析失败 (会话: ${details.sessionId})`
+
+    case "major_task_completed":
+      return `重大任务完成 (完成时间: ${new Date(details.completedAt).toLocaleString("zh-CN")})`
+
+    case "survey_sent":
+      return `反馈调查已发送 (发送时间: ${new Date(details.sentAt).toLocaleString("zh-CN")})`
+
+    case "feedback_received":
+      return `反馈已收到 (接收时间: ${new Date(details.receivedAt).toLocaleString("zh-CN")})`
 
     default:
       return JSON.stringify(details)
