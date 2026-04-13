@@ -315,9 +315,7 @@ describe("SendMessageTool with Boss", () => {
         },
         context
       )
-    ).rejects.toThrow(
-      "Recipient 'nonexistent' (resolved to '0-nonexistent') does not exist"
-    )
+    ).rejects.toThrow("Recipient does not exist: nonexistent")
 
     sessionRegistry.unregister("test-session-invalid-short-name")
   })
@@ -431,9 +429,7 @@ describe("SendMessageTool with Boss", () => {
           agent: undefined,
         }
       )
-    ).rejects.toThrow(
-      "Recipient 'nonexistent' (resolved to '0-nonexistent') does not exist"
-    )
+    ).rejects.toThrow("Recipient does not exist: nonexistent")
 
     const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
     const replyTracker = new ReplyTracker(
@@ -742,9 +738,7 @@ describe("SendMessageTool with Boss", () => {
             agent: undefined,
           }
         )
-      ).rejects.toThrow(
-        "Cannot send message to yourself. Use memory for notes."
-      )
+      ).rejects.toThrow("不能向自己发送消息")
 
       sessionRegistry.unregister("test-session-self-message")
     })

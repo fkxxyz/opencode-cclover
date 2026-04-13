@@ -175,10 +175,11 @@ This is the system prompt for the test role.`
     await fs.writeFile(path.join(projectRolesDir, "test-role.md"), roleContent)
 
     await roleManager.refresh()
-    const testRole = roleManager.getRole("test-role")
+    const testRole = roleManager.getRole("TestRole")
 
     expect(testRole).toBeDefined()
-    expect(testRole?.name).toBe("test-role")
+    expect(testRole?.name).toBe("TestRole")
+    expect(testRole?.id).toBe("test-role")
     expect(testRole?.description).toBe("A test role with metadata")
     expect(testRole?.systemPrompt).toBe(
       "This is the system prompt for the test role."
