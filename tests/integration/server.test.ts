@@ -18,6 +18,18 @@ import { AgentRegistry, agentRegistry } from "../../src/utils/AgentRegistry"
 import { ModelConfigManager } from "../../src/config/ModelConfigManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 import type { Employee } from "../../src/types/index"
+import {
+  fetchApi,
+  type HealthData,
+  type EmployeeListData,
+  type EmployeeDetailData,
+  type MessageListData,
+  type TaskListData,
+  type HierarchyData,
+  type EventListData,
+  type StatsData,
+  type TaskHaltData,
+} from "../helpers/api-client"
 
 const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-server")
 const TEST_PORT = 4098
@@ -133,117 +145,128 @@ describe("Console Server", () => {
 
   describe("HTTP API", () => {
     test("GET /api/health - 健康检查", async () => {
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/health`)
-      const json = await response.json()
+      const { response, json } = await fetchApi<HealthData>(
+        `http://localhost:${TEST_PORT}/api/health`
+      )
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.status).toBe("ok")
-      expect(json.data.timestamp).toBeDefined()
-      expect(json.data.version).toBeDefined()
+      if (json.success) {
+        expect(json.data.status).toBe("ok")
+        expect(json.data.timestamp).toBeDefined()
+        expect(json.data.version).toBeDefined()
+      }
     })
 
     test("GET /api/projects/test-project/employees - 获取员工列表", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<EmployeeListData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.employees)).toBe(true)
-      expect(json.data.employees.length).toBeGreaterThan(0)
-      expect(json.data.employees[0].name).toBe("test-role")
+      if (json.success) {
+        expect(Array.isArray(json.data.employees)).toBe(true)
+        expect(json.data.employees.length).toBeGreaterThan(0)
+        expect(json.data.employees[0].name).toBe("test-role")
+      }
     })
 
     test("GET /api/projects/test-project/employees/:name - 获取员工详情", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<EmployeeDetailData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.name).toBe("test-role")
-      expect(json.data.role).toBe("TestRole")
-      expect(json.data.memory).toBeDefined()
-      expect(json.data.tasks).toBeDefined()
-      expect(json.data.agents).toBeDefined()
+      if (json.success) {
+        expect(json.data.name).toBe("test-role")
+        expect(json.data.role).toBe("TestRole")
+        expect(json.data.memory).toBeDefined()
+        expect(json.data.tasks).toBeDefined()
+        expect(json.data.agents).toBeDefined()
+      }
     })
 
     test("GET /api/projects/test-project/employees/:name - 员工不存在返回 404", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<never>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees/unknown`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(false)
-      expect(json.error.code).toBe("EMPLOYEE_NOT_FOUND")
+      if (!json.success) {
+        expect(json.error.code).toBe("EMPLOYEE_NOT_FOUND")
+      }
     })
 
     test("GET /api/projects/test-project/employees/:name/messages - 获取消息历史", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<MessageListData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role/messages`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.messages)).toBe(true)
+      if (json.success) {
+        expect(Array.isArray(json.data.messages)).toBe(true)
+      }
     })
 
     test("GET /api/projects/test-project/employees/:name/tasks - 获取任务列表", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<TaskListData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role/tasks`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.tasks)).toBe(true)
-      expect(Array.isArray(json.data.executableTasks)).toBe(true)
+      if (json.success) {
+        expect(Array.isArray(json.data.tasks)).toBe(true)
+        expect(Array.isArray(json.data.executableTasks)).toBe(true)
+      }
     })
 
     test("GET /api/projects/test-project/employees/hierarchy - 获取雇佣关系树", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<HierarchyData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees/hierarchy`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.hierarchy)).toBe(true)
-      expect(json.data.hierarchy.length).toBeGreaterThan(0)
+      if (json.success) {
+        expect(Array.isArray(json.data.hierarchy)).toBe(true)
+        expect(json.data.hierarchy.length).toBeGreaterThan(0)
+      }
     })
 
     test("GET /api/projects/test-project/events - 获取事件历史", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<EventListData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/events`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.events)).toBe(true)
+      if (json.success) {
+        expect(Array.isArray(json.data.events)).toBe(true)
+      }
     })
 
     test("GET /api/projects/test-project/stats - 获取全局统计", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<StatsData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/stats`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.totalEmployees).toBeGreaterThan(0)
-      expect(json.data.activeEmployees).toBeDefined()
-      expect(json.data.pendingTasks).toBeDefined()
-      expect(json.data.todayMessages).toBeDefined()
+      if (json.success) {
+        expect(json.data.totalEmployees).toBeGreaterThan(0)
+        expect(json.data.activeEmployees).toBeDefined()
+        expect(json.data.pendingTasks).toBeDefined()
+        expect(json.data.todayMessages).toBeDefined()
+      }
     })
 
     test("POST /api/projects/test-project/tasks/:taskId/halt - 急停任务下所有员工", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<TaskHaltData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/tasks/1/halt`,
         {
           method: "POST",
@@ -255,46 +278,51 @@ describe("Console Server", () => {
           }),
         }
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.data.taskId).toBe(1)
-      expect(json.data.employeeIds).toContain("1-worker-001")
-      expect(json.data.employeeIds).toContain("1-worker-002")
+      if (json.success) {
+        expect(json.data.taskId).toBe(1)
+        expect(json.data.employeeIds).toContain("1-worker-001")
+        expect(json.data.employeeIds).toContain("1-worker-002")
 
-      const employeesYamlPath = path.join(
-        TEST_WORKSPACE,
-        ".cclover",
-        "employees.yaml"
-      )
-      const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
-      const persisted = yaml.parse(persistedRaw)
-      const haltedEmployees = persisted.employees.filter((employee: any) =>
-        json.data.employeeIds.includes(employee.employeeId)
-      )
+        const employeesYamlPath = path.join(
+          TEST_WORKSPACE,
+          ".cclover",
+          "employees.yaml"
+        )
+        const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
+        const persisted = yaml.parse(persistedRaw)
+        const haltedEmployees = persisted.employees.filter((employee: any) =>
+          json.data.employeeIds.includes(employee.employeeId)
+        )
 
-      expect(haltedEmployees).toHaveLength(2)
-      expect(
-        haltedEmployees.every((employee: any) => employee.paused === true)
-      ).toBe(true)
+        expect(haltedEmployees).toHaveLength(2)
+        expect(
+          haltedEmployees.every((employee: any) => employee.paused === true)
+        ).toBe(true)
+      }
     })
 
     test("GET /api/unknown - 400 错误 (无效路径)", async () => {
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/unknown`)
-      const json = await response.json()
+      const { response, json } = await fetchApi<never>(
+        `http://localhost:${TEST_PORT}/api/unknown`
+      )
       expect(response.status).toBe(400)
       expect(json.success).toBe(false)
-      expect(json.error.code).toBe("INVALID_PATH")
+      if (!json.success) {
+        expect(json.error.code).toBe("INVALID_PATH")
+      }
     })
     test("GET /api/projects/test-project/unknown - 404 错误", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<never>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/unknown`
       )
-      const json = await response.json()
       expect(response.status).toBe(404)
       expect(json.success).toBe(false)
-      expect(json.error.code).toBe("NOT_FOUND")
+      if (!json.success) {
+        expect(json.error.code).toBe("NOT_FOUND")
+      }
     })
 
     test("OPTIONS 请求 - CORS 预检", async () => {
@@ -394,25 +422,27 @@ describe("Console Server", () => {
 
   describe("查询参数", () => {
     test("GET /api/projects/test-project/events?limit=10 - 限制事件数量", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<EventListData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/events?limit=10`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.events)).toBe(true)
+      if (json.success) {
+        expect(Array.isArray(json.data.events)).toBe(true)
+      }
     })
 
     test("GET /api/projects/test-project/employees/:name/messages?limit=5 - 限制消息数量", async () => {
-      const response = await fetch(
+      const { response, json } = await fetchApi<MessageListData>(
         `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role/messages?limit=5`
       )
-      const json = await response.json()
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(Array.isArray(json.data.messages)).toBe(true)
+      if (json.success) {
+        expect(Array.isArray(json.data.messages)).toBe(true)
+      }
     })
   })
 })
