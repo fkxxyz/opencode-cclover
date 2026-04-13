@@ -8,6 +8,7 @@ import type { RoleManager } from "../../src/core/RoleManager"
 import { vacationRegistry } from "../../src/utils/VacationRegistry"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import { agentRegistry } from "../../src/utils/AgentRegistry"
+import { createTestTask } from "../helpers/taskFactory"
 
 const testWorkspace = "./workspace_test_eventloop_vacation"
 
@@ -219,12 +220,10 @@ describe("EventLoop Vacation Mechanism", () => {
       await memoryManager.write("0-Alice", {
         knowledge: [],
         tasks: [
-          {
+          createTestTask({
             name: "task1",
             description: "Test task",
-            status: "pending",
-            dependencies: [],
-          },
+          }),
         ],
         args: {},
       })
