@@ -461,18 +461,38 @@ export function buildEventMessage(event: RuntimeEvent): string {
     )
     sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "reply_reminder") {
-    sections.push("You have unreplied messages from the following senders:")
-    sections.push("")
-    for (const sender of event.details.senders) {
-      sections.push(`- ${sender}`)
+    // 区分两种 reply_reminder 类型
+    if (event.details?.reason === "survey_pending") {
+      // 调查问卷提醒
+      sections.push("You have a pending feedback survey to complete.")
+      sections.push("")
+      sections.push("---")
+      sections.push("")
+      sections.push(
+        `**Reminder**: You received a feedback survey but haven't responded yet. This is reminder #${event.details.reminderCount}. Please complete the survey when you have time.`
+      )
+      sections.push(`Time: ${event.timestamp}`)
+    } else if (event.details?.senders) {
+      // 消息回复提醒
+      sections.push("You have unreplied messages from the following senders:")
+      sections.push("")
+      for (const sender of event.details.senders) {
+        sections.push(`- ${sender}`)
+      }
+      sections.push("")
+      sections.push("---")
+      sections.push("")
+      sections.push(
+        "**Reminder**: The above senders sent you messages with expect_reply=true, but you haven't replied yet. When you see this event, it means you may have directly output a reply without using send_message tool. Please use send_message to reply to them, otherwise you will keep receiving this event reminder."
+      )
+      sections.push(`Time: ${event.timestamp}`)
+    } else {
+      // 未知的 reply_reminder 类型，记录警告
+      sections.push(
+        `**Warning**: Received reply_reminder event with unknown details structure: ${JSON.stringify(event.details)}`
+      )
+      sections.push(`Time: ${event.timestamp}`)
     }
-    sections.push("")
-    sections.push("---")
-    sections.push("")
-    sections.push(
-      "**Reminder**: The above senders sent you messages with expect_reply=true, but you haven't replied yet. When you see this event, it means you may have directly output a reply without using send_message tool. Please use send_message to reply to them, otherwise you will keep receiving this event reminder."
-    )
-    sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "prompt_recovery") {
     sections.push(
       "System recovery notice: your previous `session.prompt` call was interrupted after work had been dispatched to the model, but before the system recorded successful completion. Resume from the current durable state in memory, tasks, and messages. The prior attempt may or may not have already produced side effects, so avoid assuming the previous reply was lost, and continue with the next best action carefully."
