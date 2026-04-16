@@ -91,10 +91,15 @@ Project override test-role prompt`
 
   test("composeMeetingModePrompt appends stable meeting augmentation after role prompt", async () => {
     const augmentation = await getMeetingModeAugmentation()
-    const prompt = composeMeetingModePrompt("Original role prompt", augmentation)
+    const prompt = composeMeetingModePrompt(
+      "Original role prompt",
+      augmentation
+    )
 
     expect(prompt.startsWith("Original role prompt")).toBe(true)
-    expect(prompt).toContain("Meeting mode is a direct working session between the boss")
+    expect(prompt).toContain(
+      "Meeting mode is a direct working session between the boss"
+    )
     expect(prompt).toContain("Hiring Restrictions Lifted")
     expect(prompt).toContain("hire them immediately")
   })

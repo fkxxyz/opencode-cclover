@@ -7,7 +7,9 @@ describe("EventLoop - Feedback System (checkSurveyReminders)", () => {
         { type: "survey_sent", details: { sentAt: "2026-04-13T00:00:00Z" } },
       ]
       const surveySent = events.find((e) => e.type === "survey_sent")
-      const feedbackReceived = events.find((e) => e.type === "feedback_received")
+      const feedbackReceived = events.find(
+        (e) => e.type === "feedback_received"
+      )
       expect(surveySent).toBeDefined()
       expect(feedbackReceived).toBeUndefined()
     })
@@ -22,9 +24,18 @@ describe("EventLoop - Feedback System (checkSurveyReminders)", () => {
     test("should filter reminders by surveyId", () => {
       const surveyId = "2026-04-13T00:00:00Z"
       const events = [
-        { type: "reply_reminder", details: { surveyId, reason: "survey_pending" } },
-        { type: "reply_reminder", details: { surveyId: "other", reason: "work" } },
-        { type: "reply_reminder", details: { surveyId, reason: "survey_pending" } },
+        {
+          type: "reply_reminder",
+          details: { surveyId, reason: "survey_pending" },
+        },
+        {
+          type: "reply_reminder",
+          details: { surveyId: "other", reason: "work" },
+        },
+        {
+          type: "reply_reminder",
+          details: { surveyId, reason: "survey_pending" },
+        },
       ]
       const surveyReminders = events.filter(
         (e) =>
@@ -38,35 +49,40 @@ describe("EventLoop - Feedback System (checkSurveyReminders)", () => {
     test("should send reminder when 24h passed and count < 3", () => {
       const reminderCount = 0
       const hoursSince = 25
-      const shouldRemind = hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
+      const shouldRemind =
+        hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
       expect(shouldRemind).toBe(true)
     })
 
     test("should not send reminder when time not reached", () => {
       const reminderCount = 0
       const hoursSince = 20
-      const shouldRemind = hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
+      const shouldRemind =
+        hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
       expect(shouldRemind).toBe(false)
     })
 
     test("should send second reminder after 48h", () => {
       const reminderCount = 1
       const hoursSince = 49
-      const shouldRemind = hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
+      const shouldRemind =
+        hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
       expect(shouldRemind).toBe(true)
     })
 
     test("should send third reminder after 72h", () => {
       const reminderCount = 2
       const hoursSince = 73
-      const shouldRemind = hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
+      const shouldRemind =
+        hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
       expect(shouldRemind).toBe(true)
     })
 
     test("should not send fourth reminder", () => {
       const reminderCount = 3
       const hoursSince = 97
-      const shouldRemind = hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
+      const shouldRemind =
+        hoursSince > (reminderCount + 1) * 24 && reminderCount < 3
       expect(shouldRemind).toBe(false)
     })
 

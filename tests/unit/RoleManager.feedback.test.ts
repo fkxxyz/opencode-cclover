@@ -8,7 +8,12 @@ describe("RoleManager - Feedback System (isCoreLead)", () => {
   let roleManager: RoleManager
 
   beforeEach(async () => {
-    tempDir = path.join(import.meta.dir, "..", "fixtures", `role-test-${Date.now()}`)
+    tempDir = path.join(
+      import.meta.dir,
+      "..",
+      "fixtures",
+      `role-test-${Date.now()}`
+    )
     await fs.mkdir(tempDir, { recursive: true })
     const presetRolesDir = path.join(tempDir, "preset-roles")
     await fs.mkdir(presetRolesDir, { recursive: true })

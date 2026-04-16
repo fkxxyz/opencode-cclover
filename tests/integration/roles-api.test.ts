@@ -135,7 +135,9 @@ You are a test role. This is your system prompt.
         if (testRole) {
           expect(testRole.name).toBe("TestRole")
           expect(testRole.id).toBe("test-role")
-          expect(testRole.description).toBe("A test role for integration testing")
+          expect(testRole.description).toBe(
+            "A test role for integration testing"
+          )
           expect(testRole.systemPrompt).toContain("You are a test role")
           expect(testRole.source).toBe("project")
           expect(testRole.requiredArgs).toEqual({
@@ -175,7 +177,9 @@ You are a test role. This is your system prompt.
         expect(json.data).toBeDefined()
         expect(json.data.name).toBe("TestRole")
         expect(json.data.id).toBe("test-role")
-        expect(json.data.description).toBe("A test role for integration testing")
+        expect(json.data.description).toBe(
+          "A test role for integration testing"
+        )
         expect(json.data.systemPrompt).toContain("You are a test role")
         expect(json.data.source).toBe("project")
         expect(json.data.requiredArgs).toEqual({
@@ -226,7 +230,9 @@ You are a test role. This is your system prompt.
         expect(json.data).toBeDefined()
         expect(json.data.name).toBe("TestRole")
         expect(json.data.id).toBe("test-role")
-        expect(json.data.description).toBe("A test role for integration testing")
+        expect(json.data.description).toBe(
+          "A test role for integration testing"
+        )
         expect(json.data.systemPrompt).toContain("You are a test role")
         expect(json.data.source).toBe("project")
         expect(json.data.requiredArgs).toEqual({

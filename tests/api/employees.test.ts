@@ -169,9 +169,13 @@ describe("Employees API", () => {
     const response = getHierarchy(stateManager, bossManager)
 
     expect(response.success).toBe(true)
-    expect(response.data.hierarchy.some((node) => node.name === "cclover")).toBe(true)
+    expect(
+      response.data.hierarchy.some((node) => node.name === "cclover")
+    ).toBe(true)
 
-    const boss1Node = response.data.hierarchy.find((node) => node.name === "boss1")
+    const boss1Node = response.data.hierarchy.find(
+      (node) => node.name === "boss1"
+    )
     expect(boss1Node).toBeDefined()
     expect(boss1Node?.children).toHaveLength(1)
     expect(boss1Node?.children[0].name).toBe("test-role")
@@ -227,9 +231,13 @@ describe("Employees API", () => {
     const response = getHierarchy(stateManager, bossManager)
 
     expect(response.success).toBe(true)
-    expect(response.data.hierarchy.some((node) => node.name === "cclover")).toBe(true)
+    expect(
+      response.data.hierarchy.some((node) => node.name === "cclover")
+    ).toBe(true)
 
-    const boss1Node = response.data.hierarchy.find((node) => node.name === "boss1")
+    const boss1Node = response.data.hierarchy.find(
+      (node) => node.name === "boss1"
+    )
     expect(boss1Node).toBeDefined()
     expect(boss1Node?.children).toHaveLength(1)
     expect(boss1Node?.children[0].name).toBe("test-role")
