@@ -383,11 +383,13 @@ describe("MessageService", () => {
       )
     })
 
-    test("should throw error when sending to non-existent employee", async () => {
+    test("should allow sending to BossId format (meeting-mode roles validated at tool level)", async () => {
+      // MessageService accepts BossId formats optimistically
+      // Validation happens at SendMessageTool level which has access to RoleManager
       const alice = service.getClient("0-alice")
-      await expect(alice.send("0-nonexistent", "Hello")).rejects.toThrow(
-        "目标 '0-nonexistent' 不存在"
-      )
+      await expect(
+        alice.send("0-nonexistent", "Hello")
+      ).resolves.toBeUndefined()
     })
 
     test("should allow sending to existing employee", async () => {

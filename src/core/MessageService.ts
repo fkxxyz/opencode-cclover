@@ -226,7 +226,8 @@ export class MessageService implements MessageRouter {
     const name = RoutingRules.extractNameFromBossId(recipient)
 
     // 3.1 优先检查是否为 Boss
-    if (this.bossManager?.isBoss(name)) {
+    const isConfiguredBoss = this.bossManager?.isBoss(name)
+    if (isConfiguredBoss) {
       // 检查是否同时存在员工 "0-{name}"
       const employee = this.stateManager?.getEmployee(recipient)
       if (employee) {
@@ -242,7 +243,23 @@ export class MessageService implements MessageRouter {
       }
     }
 
-    // 3.2 查找非任务员工
+    // 3.2 检查是否为 meeting-mode role (BossId format but not configured boss)
+    // Meeting-mode roles use BossId format (0-{roleId}) but aren't in boss list
+    if (RoutingRules.isBossOrNonTask(recipient)) {
+      // It's in BossId format but not a configured boss
+      // Treat as meeting-mode role (boss-like for session forwarding)
+      logger.debug(
+        `[MessageService] Treating "${recipient}" as meeting-mode role (BossId format, not configured boss)`
+      )
+      return {
+        targetEmployeeId: recipient,
+        isBoss: true, // Treat as boss for session forwarding
+        isSameTask: false,
+        isCrossTask: false,
+      }
+    }
+
+    // 3.3 查找非任务员工
     const employee = this.stateManager?.getEmployee(recipient)
     if (!employee) {
       throw new Error(`目标 '${recipient}' 不存在`)
@@ -355,11 +372,25 @@ export class MessageService implements MessageRouter {
 
     // 9. 转发消息到用户 session（如果接收方有记录的 session）
     if (this.bossManager && resolution.isBoss) {
-      const sessionId = await this.bossManager.getSession(
-        targetEmployeeId,
-        from
+      // Extract boss name from BossId (0-{bossName})
+      const bossName = isBossId(targetEmployeeId)
+        ? targetEmployeeId.substring(2)
+        : targetEmployeeId
+
+      logger.debug(
+        `[MessageService] Looking up session for boss="${bossName}", employee="${from}"`
       )
+
+      const sessionId = await this.bossManager.getSession(bossName, from)
+
+      logger.debug(
+        `[MessageService] Session lookup result: sessionId=${sessionId || "not found"}`
+      )
+
       if (sessionId && this.opcodeClient) {
+        logger.debug(
+          `[MessageService] Forwarding message to session ${sessionId}`
+        )
         await this.forwardToSession(
           sessionId,
           from,
@@ -367,6 +398,10 @@ export class MessageService implements MessageRouter {
           content,
           reference_docs,
           fromRole
+        )
+      } else if (!sessionId) {
+        logger.debug(
+          `[MessageService] No session found for boss="${bossName}", employee="${from}" - message not forwarded to OpenCode UI`
         )
       }
     }

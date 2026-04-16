@@ -47,7 +47,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
       messageService: project.messageService,
       memoryManager: project.memoryManager,
       opcodeClient: ctx.client,
-      bossManager: globalService.getBossManager() || undefined,
+      bossManager: project.bossManager,
       stateManager: project.stateManager,
       project: project,
     })
