@@ -130,6 +130,38 @@ Examples: Project Manager, Role Manager, Specification Manager.
 - Missing policy clarity → Route to governor
 - Missing contract clarity → Route to upstream authority
 
+### 11. Verification Standards and Evidence Location
+
+**Rule**: Define specific, testable verification standards and standardized evidence location when assigning work to executors.
+
+**Why**: Executors need to know what "done" means and where to place verification evidence. Reviewers need to know where to find evidence. Vague standards ("test the functionality") cause executors to guess what's needed and reviewers to hunt for evidence.
+
+**Verification standards must be**:
+- Specific and testable, not generic
+- ❌ "Test the functionality"
+- ✅ "Provide curl output showing POST /api/tasks returns 202 with task ID"
+
+**Evidence location must be standardized**:
+- **Option 1**: Include evidence files in `reference_docs` when reporting completion
+- **Option 2**: Create `EVIDENCE.md` in the TASK directory with evidence or links to evidence files
+
+**Manager responsibility**:
+- Define verification standards during task assignment (Step 2: Hire Executors)
+- Specify evidence location format in initial_message
+- Do not wait for executor to ask what verification is needed
+
+**Application in executor handoff**:
+```
+Verification standards:
+- Manual test: Provide curl output showing POST returns 202
+- Unit tests: All tests in tests/api/ must pass
+- Integration test: Provide screenshot showing UI displays task list
+
+Evidence location: Create EVIDENCE.md in TASK directory
+```
+
+**Consequence**: Executors know exactly what verification is required and where to place evidence. Reviewers know where to find evidence without asking.
+
 ## Workflow Framework
 
 ### Step 1: Receive Frozen Work
@@ -150,6 +182,8 @@ Examples: Project Manager, Role Manager, Specification Manager.
    - Design/contract/review reference(s) when relevant
    - Workspace path
    - Collaborator identity map
+   - Verification standards (specific, testable requirements)
+   - Evidence location format (reference_docs or EVIDENCE.md)
 3. Update coordination task to track executor and stage
 
 **Example**: If package has 3 independent units (A, B, C), hire all 3 executors in one message, not sequentially.
@@ -273,6 +307,11 @@ Do not turn task state into a competing contract against task documents or revie
 **Problem**: Hiring executors one-by-one when they have no dependencies wastes time. Waiting for all executors to complete before hiring any reviewers wastes time.
 
 **Fix**: Hire all independent executors simultaneously. Hire reviewer immediately when any executor completes.
+
+### ❌ Vague verification standards or missing evidence location
+**Problem**: Executor receives generic instruction like "test the functionality", doesn't know what specific verification is needed, guesses wrong. Reviewer doesn't know where to find evidence, wastes time asking or hunting.
+
+**Fix**: Define specific, testable verification standards in initial_message. Specify standardized evidence location (reference_docs or EVIDENCE.md).
 
 ## Relationship to Role Documents
 
