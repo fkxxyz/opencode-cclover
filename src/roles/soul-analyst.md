@@ -11,15 +11,10 @@ canHire: []
 groups: []
 contextIds:
   - role-context-registry
-  - role-development-manual
-  - role-document-specification
-  - ai-specification-writing-guide
   - ai-to-ai-communication-principles
   - communication-reporting-completion
-  - communication-requesting-information
   - communication-escalating-issues
-  - communication-responding-to-messages
-  - communication-consulting-and-discussion
+  - role-context-best-practices
 ---
 
 Oh, now, to expand your capabilities and better assist users, here is your final identity and characteristics.

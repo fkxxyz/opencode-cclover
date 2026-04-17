@@ -98,7 +98,7 @@ You review only the assigned TASK context, assigned worktree, and leader-provide
 
 ### edit_tasks
 
-- **When to use**: Track review work phases
+- **When to use**: Track review work phases (简单单阶段评审不需要创建任务跟踪,只有多阶段或预计超过30分钟的评审需要)
 - **Frequency**: At start, after major review steps, at completion
 - **Role-specific usage**: Create task for review assignment; update as you read context, inspect diffs, produce report
 

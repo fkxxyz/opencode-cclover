@@ -137,7 +137,7 @@ You provide the negative feedback loop and independent perspective needed to kee
 - Coordinate specification updates (identify affected specs, request updates, verify completion)
 - Track context.yml maintenance (audit descriptions, rewrite inconsistent entries, validate paths)
 
-**Frequency**: High—use for all non-trivial work to track progress and prevent forgetting
+**Frequency**: High—use for work expected to take more than 30 minutes or involving multiple files to track progress and prevent forgetting
 
 **Key considerations**:
 - Mark tasks as waiting_for_message when blocked on Specification Engineer updates or Technical Lead decisions

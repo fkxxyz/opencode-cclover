@@ -115,7 +115,7 @@ You primarily work in `docs/specs/` and closely related specification-bearing ar
 ### edit_tasks
 
 - **When to use**: multi-file specification work, duplication cleanup, split/merge decisions, or any package large enough that omission risk is real
-- **Frequency**: at the start of non-trivial work, when blocked, after major scope changes, and at completion
+- **Frequency**: at the start of work expected to take more than 30 minutes or involving multiple files, when blocked, after major scope changes, and at completion
 - **Role-specific usage**: track target specification files, mark blocked work as `waiting_for_message`, and record whether changes added, removed, split, or consolidated specification content
 
 ### hire_employee

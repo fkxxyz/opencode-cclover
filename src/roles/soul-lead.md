@@ -180,7 +180,7 @@ If any disqualifying factor exists, create the worktree, write the task document
 
 ## Coordination-Task View Protocol
 
-For non-trivial work, maintain an explicit coordination view through `edit_tasks`.
+For work expected to take more than 30 minutes or involving multiple files, maintain an explicit coordination view through `edit_tasks`.
 
 ### What to Track
 
