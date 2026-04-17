@@ -220,18 +220,22 @@ export function createSendMessageTool(
         }
       }
 
-      // 3. Record session if sender is Boss (BEFORE sending)
-      // recordSession tracks which session a Boss is using to communicate with employees
+      // 3. Record or clear session if sender is Boss (BEFORE sending)
+      // Always check session_id: if present update, if absent remove old record
       const senderBossId = from.startsWith("0-") ? from.substring(2) : null
       const isSenderBoss =
         senderBossId !== null && bossManager?.isBoss(senderBossId)
 
-      if (isSenderBoss && bossManager && context.sessionID && recipientId) {
-        await bossManager.recordSession(
-          senderBossId!,
-          recipientId,
-          context.sessionID
-        )
+      if (isSenderBoss && bossManager && recipientId) {
+        if (context.sessionID) {
+          await bossManager.recordSession(
+            senderBossId!,
+            recipientId,
+            context.sessionID
+          )
+        } else {
+          await bossManager.clearSession(senderBossId!, recipientId)
+        }
       }
 
       // 4. Call message service (let exceptions propagate naturally)

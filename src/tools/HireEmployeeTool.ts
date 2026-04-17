@@ -157,22 +157,30 @@ export function createHireEmployeeTool(
         // 7. Start employee's EventLoop
         await startEmployee(project, newEmployeeId, roleDefinition)
 
-        // 8. Record session mapping if hirer is Boss
+        // 8. Record or clear session mapping if hirer is Boss
+        // Always check session_id: if present update, if absent remove old record
         const hirerBossId = hiredByEmployeeId!.startsWith("0-")
           ? hiredByEmployeeId!.substring(2)
           : null
         const isHirerBoss =
           hirerBossId !== null && bossManager?.isBoss(hirerBossId)
 
-        if (isHirerBoss && bossManager && context.sessionID) {
-          await bossManager.recordSession(
-            hirerBossId!,
-            newEmployeeId,
-            context.sessionID
-          )
-          logger.debug(
-            `[HireEmployeeTool] Recorded session mapping for Boss ${hirerBossId} → ${newEmployeeId}`
-          )
+        if (isHirerBoss && bossManager) {
+          if (context.sessionID) {
+            await bossManager.recordSession(
+              hirerBossId!,
+              newEmployeeId,
+              context.sessionID
+            )
+            logger.debug(
+              `[HireEmployeeTool] Recorded session mapping for Boss ${hirerBossId} → ${newEmployeeId}`
+            )
+          } else {
+            await bossManager.clearSession(hirerBossId!, newEmployeeId)
+            logger.debug(
+              `[HireEmployeeTool] Cleared session mapping for Boss ${hirerBossId} → ${newEmployeeId}`
+            )
+          }
         }
 
         logger.info(
