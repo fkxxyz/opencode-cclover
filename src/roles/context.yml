@@ -102,15 +102,15 @@ contexts:
     documents:
       - "docs/specs/task-document-format.md"
 
-  risk-analysis-philosophy:
-    description: "Use when making technical decisions to evaluate through explicit risk analysis rather than momentum, because risk-based decision making forces explicit trade-off judgment instead of implicit bias"
-    documents:
-      - "docs/specs/risk-analysis-philosophy.md"
-
   risk-analysis-practice:
     description: "Use when making decisions that materially affect implementation, architecture, or review to evaluate trade-offs using the six-dimensional risk model and explicit reasoning format, because structured analysis prevents overlooking critical dimensions and ensures decisions are documented"
     documents:
       - "docs/specs/risk-analysis-practice.md"
+
+  leadership-risk-handling:
+    description: "Use when a leadership role observes bug reports, blockers, design complaints, collaboration complaints, or other execution anomalies to decide whether they indicate local trouble or system-level risk and choose concrete containment and repair actions, because leadership must detect structural problems early before they spread through multi-agent coordination"
+    documents:
+      - "docs/specs/leadership-risk-handling.md"
 
   git-repository-workflow:
     description: "Use when committing changes or merging branches to preserve linear history through rebase and fast-forward merge, because the project uses git bisect for debugging"
@@ -146,3 +146,8 @@ contexts:
     description: "Use when reviewing code changes to validate complete change packages against task requirements, design references, and project standards, because reviews must systematically check compliance and catch incomplete packages (missing tests, docs, or navigation updates)"
     documents:
       - "docs/specs/code-review-handbook.md"
+
+  repository-structure-best-practices:
+    description: "Use when deciding where to place files, organizing repository structure, or maintaining documentation indexes to ensure all content is recursively reachable from AGENTS.md through structured index branches, because documentation index maintenance is more important than any other organizational concern and proper indexing prevents AI from losing global vision through code search"
+    documents:
+      - "docs/specs/repository-structure-best-practices.md"
