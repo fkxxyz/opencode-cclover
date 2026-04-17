@@ -26,9 +26,8 @@ opencode-cclover/
 │   ├── requirements-tools.md                    - Tool system requirements
 │   ├── requirements-runtime.md                  - Employee runtime requirements
 │   ├── requirements-project-management.md       - Project management requirements
-│   ├── architecture.md                          - System architecture
-│   ├── architecture-modules.md                  - Module design details
-│   ├── boss-message-system.md                   - Boss message system usage guide
+│   ├── architecture.md                          - System architecture overview and design decisions
+│   ├── architecture-modules.md                  - Detailed module API specifications and interfaces
 │   ├── design.md                                - Main design document
 │   ├── design-message-service.md                - MessageService design
 │   ├── design-memory-manager.md                 - MemoryManager design

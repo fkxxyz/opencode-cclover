@@ -1,404 +1,240 @@
 # opencode-cclover - 开发指南
 
-## 项目概述
+## What This Project Does
 
-一个 OpenCode 插件，实现了多 Agent 自主协作系统，其中 AI 员工通过消息进行通信，管理具有 DAG 依赖的任务，维护个人记忆，并生成后台 Agent 并行执行工作。
+这是一个用于多 Agent 协作的 OpenCode 插件。它在项目工作区内运行 AI 员工，为它们提供消息与任务管理工具，持久化员工状态，并支持后台委派与 Web 管理控制台。
 
 ## 架构
 
-**技术栈**:
-- 运行时: Bun (TypeScript 执行和包管理)
-- 语言: TypeScript 严格模式
-- 插件 SDK: @opencode-ai/plugin, @opencode-ai/sdk
-- 存储: 文件系统 (YAML 格式)
-- 并发: eventemitter3 用于事件驱动消息传递，proper-lockfile 用于文件同步
+**技术栈**
+- 运行时：Bun
+- 语言：TypeScript（strict mode）
+- SDK：`@opencode-ai/plugin`、`@opencode-ai/sdk`
+- 存储：本地文件系统上的 YAML 文件
+- 协调：`eventemitter3`、`proper-lockfile`
 
-**核心组件**:
-- `GlobalCcloverService`: 单例管理所有项目和 HTTP 服务器 (端口 4097)
-- `ConfigManager`: 从 `~/.config/opencode-cclover/config.yaml` 加载项目配置
-- `MessageService`: 去中心化消息存储与中心化同步服务
-- `MemoryManager`: 员工记忆管理 (知识、任务 DAG、自定义数据)
-- `StateManager`: 员工状态和事件持久化
-- `RoleManager`: 角色定义管理
-- `BossManager`: Boss 员工管理
-- `EventLoop`: 员工事件循环驱动自主行为
-- `Tools`: send_message、edit_tasks、create_agent、hire_employee、refresh_roles
+**核心模块**
+- `src/index.ts` - 插件入口
+- `src/server/` - HTTP/WebSocket 服务与项目注册表
+- `src/core/` - `MessageService`、`MemoryManager`、`EventLoop`、`BossManager`、`RoleManager`
+- `src/state/StateManager.ts` - 员工状态持久化
+- `src/tools/` - 暴露给 Agent 的 OpenCode 工具
+- `src/utils/` - 上下文构建、注册表、Mermaid 生成
+- `console/` - 基于 React 的管理控制台
 
-**数据流**:
-```
-1. 插件加载 → GlobalCcloverService.getInstance()
-2. ConfigManager 加载 ~/.config/opencode-cclover/config.yaml
-3. 对于配置中的每个项目:
-   - 创建 ProjectInstance (MessageService, MemoryManager, StateManager, RoleManager)
-   - 注册到 ProjectRegistry
-4. 当 OpenCode 打开项目目录时:
-   - 插件返回该项目的工具
-   - 为每个员工启动 EventLoop
-5. 员工接收事件 → EventLoop → AI 决定行动 → 工具调用 → 状态更新
-```
-
-**配置系统**:
-- 配置文件: `~/.config/opencode-cclover/config.yaml`
-- 格式:
-  ```yaml
-  bosses:
-    - boss_name
-  projects:
-    - name: project_name
-      path: /absolute/path/to/project
-      enabled: true
-  ```
-- 每个项目在 `.cclover/workspace/` 目录存储运行时数据
-- 自动创建 `.cclover/.gitignore` 忽略运行时数据
+**关键流程**
+1. 插件初始化 `GlobalCcloverService`
+2. 配置从 `~/.config/opencode-cclover/config.yaml` 加载启用项目
+3. 每个项目在 `.cclover/workspace/` 下获得运行时服务数据
+4. 打开项目后暴露工具并启动员工事件循环
 
 ## 项目结构
 
+```text
+src/         插件核心代码
+tests/       单元测试与集成测试
+console/     管理控制台前端与文档
+docs/        需求、设计与开发规范
+workspace_test/ 手动测试用插件工作区
 ```
-src/
-├── index.ts              # 插件入口点，初始化 GlobalCcloverService
-├── config/               # 配置管理
-│   ├── ConfigManager.ts  # 从 ~/.config/opencode-cclover/config.yaml 加载/保存配置
-│   └── CandidateProjectsManager.ts  # 跟踪候选项目
-├── server/               # HTTP API 服务器 (端口 4097)
-│   ├── GlobalServer.ts   # 单例服务管理所有项目
-│   ├── ProjectRegistry.ts  # 项目实例注册表
-│   ├── index.ts          # ConsoleServer (HTTP + WebSocket)
-│   ├── router.ts         # 路由分发器 (基于 Map)
-│   ├── routes.ts         # 路由定义与 JSDoc
-│   └── websocket.ts      # WebSocket 管理器
-├── core/                 # 核心业务逻辑
-│   ├── MessageService.ts # 消息发送/接收/同步与事件驱动通知
-│   ├── MemoryManager.ts  # 记忆 CRUD 与任务 DAG 计算
-│   ├── EventLoop.ts      # 员工事件循环
-│   ├── BossManager.ts    # Boss 员工管理
-│   └── RoleManager.ts    # 角色定义管理
-├── state/                # 状态持久化
-│   └── StateManager.ts   # 员工状态和事件历史
-├── tools/                # OpenCode 工具 (AI Agent 可调用)
-│   ├── SendMessageTool.ts
-│   ├── EditTasksTool.ts
-│   ├── CreateAgentTool.ts
-│   ├── HireEmployeeTool.ts
-│   ├── RefreshRolesTool.ts
-│   └── index.ts          # 工具注册表
-├── utils/                # 工具库
-│   ├── MermaidGenerator.ts  # 生成任务 DAG 可视化
-│   ├── ContextBuilder.ts    # 为 AI 提示构建上下文字符串
-│   ├── SessionRegistry.ts   # 映射 sessionID ↔ employeeName
-│   └── AgentRegistry.ts     # 跟踪后台 Agent 任务
-├── roles/                # 内置角色定义
-│   └── calculator.yaml   # 示例角色
-├── agents/               # Agent 提示词
-│   └── role-creator.md   # 角色创建器 Agent 提示词
-├── types/                # TypeScript 类型定义
-└── lib/                  # 共享工具库
-    ├── background.ts     # 后台任务管理
-    └── logger.ts         # 日志工具
 
-tests/
-├── unit/                 # 单个模块的单元测试
-├── integration/          # 模块交互的集成测试
-└── fixtures/             # 测试数据和工作区快照
-
-console/                  # Web 管理控制台
-├── src/                  # 前端源码 (React + MUI)
-│   ├── components/       # UI 组件
-│   ├── pages/            # 页面 (Overview, EmployeeDetail, ProjectManagement)
-│   ├── hooks/            # 自定义 Hooks
-│   ├── services/         # API 和 WebSocket 客户端
-│   └── types/            # TypeScript 类型
-├── docs/                 # Console 文档
-└── DEVELOPMENT.md        # 前端开发规范
-
-workspace_test/           # 插件测试工作区
-├── .opencode/            # OpenCode 配置
-│   └── plugin/
-│       └── cclover.ts -> ../../../src/index.ts  # 插件符号链接
-└── README.md             # 测试指南
-```
+当仅看目录名不足以定位内容时，使用 `docs/structure.md` 查看完整文件结构。
 
 ## 配置
 
-### 初始设置
+主配置文件：`~/.config/opencode-cclover/config.yaml`
 
-1. 创建配置文件:
-```bash
-mkdir -p ~/.config/opencode-cclover
-cat > ~/.config/opencode-cclover/config.yaml << 'EOF'
-bosses:
-  - your_name
-projects:
-  - name: my_project
-    path: /absolute/path/to/project
-    enabled: true
-EOF
-```
+关键字段：
+- `bosses` - boss 身份列表
+- `projects[]` - 受管项目
+- `port` - 服务端口，可被 `CCLOVER_PORT` 覆盖
+- `logLevel` - 日志级别，可被 `CCLOVER_LOG_LEVEL` 覆盖
+- `modelTypes` - 角色模型映射，支持同层重定向
 
-2. 启用插件:
-```bash
-export CCLOVER_ENABLE=1
-```
+模型解析顺序：
+1. 全局配置
+2. `src/config/preset.yaml`
+3. OpenCode 默认模型
 
-3. 启动 OpenCode 服务器:
-```bash
-cd /absolute/path/to/project
-opencode serve --port 4099
-```
+## 角色系统
 
-### 添加项目
+角色文件使用带 YAML frontmatter 的 Markdown。
 
-编辑 `~/.config/opencode-cclover/config.yaml`:
-```yaml
-projects:
-  - name: project1
-    path: /path/to/project1
-    enabled: true
-  - name: project2
-    path: /path/to/project2
-    enabled: false  # 已禁用
-```
+优先级顺序：
+1. `<project>/.cclover/roles/<role>.md`
+2. `~/.config/opencode-cclover/roles/<role>.md`
+3. `src/roles/<role>.md`
 
-重启 OpenCode 服务器以应用更改。
+角色行为以这些角色文件为准。位于这些路径之外的相关提示词文件默认只作补充，除非项目文档另有明确说明。
 
-## HTTP API 路由
-所有 HTTP API 路由定义在 `src/server/routes.ts` 文件中,包含 JSDoc 文档。
+支持的 frontmatter 字段：
+- `name`
+- `description`
+- `model_type`
+- `requiredArgs`
+- `canHire`
+- `groups`
+
 ## 开发规则
 
 ### 每次提交前
 
-**强制检查** (提交前必须通过):
+必须运行以下三项：
 
 ```bash
-# 1. 类型检查 (必须零错误)
-bun run build
-
-# 2. 格式化所有 TypeScript 文件
+bun run type-check
 bunx prettier --write "src/**/*.ts" "tests/**/*.ts"
-
-# 3. 运行所有测试 (必须 100% 通过)
 bun test
 ```
 
-**工作流**:
-```bash
-# 进行更改后
-bun run build          # 检查 TypeScript 错误
-bunx prettier --write "src/**/*.ts" "tests/**/*.ts"
-bun test               # 验证所有测试通过
-git add .
-git commit -m "feat: your feature description"
-```
+说明：
+- `bun run type-check` 同时检查 `src/` 和 `tests/`
+- `bun run build` 用于发布或构建验证，不是必需的提交前类型检查
+- 提交信息必须使用英文 Conventional Commits
 
-### 提交消息格式
-**必需**: 所有提交消息必须使用英文并遵循 [Conventional Commits](https://www.conventionalcommits.org/) 格式。
-**示例**:
-```
-feat: implement task dependency calculation in MemoryManager
-fix: prevent race condition in MessageService file locking
-refactor: extract Mermaid generation to separate utility
-test: add integration tests for message synchronization
-docs: update architecture diagram in README
-chore: add prettier configuration
-```
+## 代码约定
 
-## 代码风格约定
-
-**源自现有代码库** - 这些是项目特定的约定:
-
-### TypeScript 风格
-
-**引号和分号**:
-```typescript
-// ✅ 正确: 双引号，无分号
-import { Plugin } from "@opencode-ai/plugin"
-const message = "Hello"
-
-// ❌ 错误: 单引号或分号
-import { Plugin } from '@opencode-ai/plugin';
-const message = 'Hello';
-```
-
-**导入组织**:
-```typescript
-// ✅ 正确: Node 内置优先，然后外部，然后内部
-import * as fs from "node:fs/promises"
-import * as path from "node:path"
-import * as yaml from "yaml"
-import EventEmitter from "eventemitter3"
-import { MessageService } from "./core/MessageService"
-
-// 对仅类型导入使用 'import type'
-import type { MessageService } from "../core/MessageService"
-```
-
-**注释**:
-```typescript
-// ✅ 正确: 实现注释使用中文
-// 1. 检查未读队列
-const queue = this.service.getUnreadQueue(this.employeeName)
-
-// ✅ 正确: 公共 API 文档使用 JSDoc
-/**
- * 消息客户端
- * 员工通过客户端收发消息
- */
-export class MessageClient {
-```
-
-**命名约定**:
-```typescript
-// ✅ 接口: PascalCase
-export interface Message { }
-export interface YamlMessage { }
-
-// ✅ 类: PascalCase
-export class MessageService { }
-
-// ✅ 函数: camelCase，使用 'export function' (不是 'export const')
-export function createSendMessageTool(messageService: MessageService) {
-  return tool({ ... })
-}
-
-// ✅ 私有方法: camelCase 带 'private' 关键字
-private getMessageFilePath(employeeName: string, peer: string): string {
-```
-
-**错误处理**:
-```typescript
-// ✅ 正确: 将错误类型为 'any'，检查 error.code 是否为 ENOENT
-try {
-  const content = await fs.readFile(filePath, "utf-8")
-} catch (error: any) {
-  if (error.code === "ENOENT") {
-    return []
-  }
-  throw error
-}
-```
-
-**异步/等待**:
-```typescript
-// ✅ 正确: 始终使用 async/await，从不使用 .then()
-async execute(args, context) {
-  const result = await messageService.send(from, args.to, args.content)
-  return `消息已发送给 ${args.to}`
-}
-```
-
-### 文件组织
-
-**模块导出**:
-```typescript
-// ✅ 每个模块都有 index.ts 重新导出公共 API
-// src/core/index.ts
-export { MessageService, MessageClient } from "./MessageService"
-export { MemoryManager } from "./MemoryManager"
-export type { Message, Task, Memory } from "./MessageService"
-```
-
-**测试文件**:
-```typescript
-// ✅ 测试文件使用 .test.ts 后缀
-// tests/unit/MessageService.test.ts
-// tests/integration/MessageService.integration.test.ts
-```
+基于当前代码库提炼出的项目特定约定：
+- 使用双引号，不写分号
+- import 顺序：Node 内置、外部依赖、内部模块
+- 纯类型导入使用 `import type`
+- 实现注释使用中文；公共 API 使用 JSDoc
+- 导出函数优先使用 `export function`，不要用 `export const`
+- 处理文件缺失时使用 `catch (error: any)` 并检查 `error.code === "ENOENT"`
+- 核心代码优先使用 `async`/`await`，不要引入 `.then()` 链
+- 模块对外导出尽量集中在相邻的 `index.ts`
+- 测试文件使用 `.test.ts`
 
 ## 常见陷阱
 
-### 文件锁定
-
-**问题**: 对 YAML 文件的并发写入导致数据损坏。
-
-**解决方案**: 写入时始终使用 `proper-lockfile`:
-```typescript
-import * as lockfile from "proper-lockfile"
-
-const release = await lockfile.lock(filePath, { retries: 10 })
-try {
-  await fs.writeFile(filePath, content, "utf-8")
-} finally {
-  await release()
-}
-```
-
-### 任务 DAG 循环
-
-**问题**: 循环任务依赖导致无限循环。
-
-**解决方案**: `MemoryManager.getExecutableTasks()` 自动检测循环并抛出错误。添加前始终验证任务依赖:
-```typescript
-// ✅ 正确: 让 MemoryManager 验证
-await memoryManager.editTasks(employeeName, {
-  add: [{ name: "task1", dependencies: ["task2"] }]
-})
-// 如果创建循环将抛出错误
-```
-
-### Session 注册表
-
-**问题**: 工具需要映射 `sessionID` 到 `employeeName`，但 OpenCode 不提供此功能。
-
-**解决方案**: 创建 Agent 时使用 `sessionRegistry` 注册映射:
-```typescript
-import { sessionRegistry } from "../utils/SessionRegistry"
-
-// 创建 Agent 时
-const sessionID = await opcodeClient.createAgent(...)
-sessionRegistry.register(sessionID, employeeName)
-
-// 在工具中
-const employeeName = sessionRegistry.getEmployeeName(context.sessionID)
-```
+- **文件写入**：YAML 与运行时持久化写入必须使用 `proper-lockfile`，避免数据损坏
+- **任务依赖**：任务 DAG 变更应交给 `MemoryManager` 校验，不要绕过它
+- **会话映射**：需要员工身份的工具必须通过 `SessionRegistry` 映射 `sessionID`
 
 ## 测试
 
-### 测试结构
+- 单元测试：`bun test tests/unit/...`
+- 集成测试：`bun test tests/integration/...`
+- 手动插件测试：`./start-test-server.sh`
+- 备用手动启动：`OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099`
 
-**单元测试**: 隔离测试单个模块
-```bash
-bun test tests/unit/MessageService.test.ts
-```
-
-**集成测试**: 测试模块交互与真实文件系统
-```bash
-bun test tests/integration/MessageService.integration.test.ts
-```
-
-### 插件测试
-
-**手动测试**: 使用真实的 OpenCode 服务器测试插件
-
-```bash
-# 快速开始: 使用提供的脚本
-./start-test-server.sh
-```
-或手动:
-```bash
-# 使用 OPENCODE_CONFIG_DIR 指向 workspace_test/.opencode 启动 OpenCode 服务器
-OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099
-```
-
-参见 [workspace_test/README.md](workspace_test/README.md) 了解快速开始指南、测试场景和调试技巧。
-
-### 覆盖率目标
-
-在核心模块上争取高覆盖率:
-- MessageService: 100%
-- MemoryManager: 100%
-- Tools: 80%+ (某些错误路径难以测试)
+核心模块覆盖率目标：
+- `MessageService`：100%
+- `MemoryManager`：100%
+- tools：80%+
 
 ## 文档
 
-**设计文档** (在 `docs/` 和 `console/docs/` 中):
-- 插件核心: 实现功能前阅读 `docs/` 以理解系统设计
-- Console: 阅读 `console/docs/` 了解前端架构和需求
-- 进行架构更改时更新
+本节索引项目文档。按任务类型进入对应分支。
 
-**代码注释**:
+### 入门
+
+[README.md - 项目概览与快速开始](README.md) - 如果你刚接触这个项目，先读这里。它说明 opencode-cclover 是什么、当前实现状态，以及如何安装。在深入需求或设计文档之前，先用它建立项目整体认识。
+
+[USAGE.md - 使用指南与配置](USAGE.md) - 当你需要配置、部署或使用这个插件时阅读。包含安装方式、配置文件格式与基础使用模式，是搭建开发或生产环境的主要入口。
+
+[deployment.md - 部署流程](deployment.md) - 当你要部署到生产环境，或配置多项目场景时阅读。包含更进阶的部署方式、排障信息与生产实践。
+
+### 需求分支
+
+[docs/requirements.md - 系统需求总览](docs/requirements.md) - 用于理解系统“要做什么”以及“为什么存在”。这是需求入口文档，解释整体问题空间，并链接到更细的子系统需求。在阅读设计文档前先读这里，先建立基础约束。
+
+详细子系统需求（在处理具体子系统时阅读）：
+- [docs/requirements-messaging.md](docs/requirements-messaging.md) - 消息系统需求
+- [docs/requirements-memory.md](docs/requirements-memory.md) - 记忆管理需求
+- [docs/requirements-tasks.md](docs/requirements-tasks.md) - 任务管理需求
+- [docs/requirements-tools.md](docs/requirements-tools.md) - 工具系统需求
+- [docs/requirements-runtime.md](docs/requirements-runtime.md) - 员工运行时需求
+- [docs/requirements-boss.md](docs/requirements-boss.md) - Boss 系统需求
+- [docs/requirements-project-management.md](docs/requirements-project-management.md) - 项目管理需求
+
+### 设计分支
+
+[docs/architecture.md - 系统架构与模块结构](docs/architecture.md) - 用于理解系统“如何组织”以及“为什么采用这种架构”。它解释核心组件、数据流与架构决策。修改任何核心模块前都应先读，以理解系统级设计约束与组件关系。
+
+[docs/design.md - 设计总览与组件设计入口](docs/design.md) - 用于理解整体设计方式，并导航到具体组件设计文档。这是设计分支的入口。
+
+详细组件设计（在实现或修改具体组件时阅读）：
+- [docs/design-message-service.md](docs/design-message-service.md) - MessageService 设计
+- [docs/design-memory-manager.md](docs/design-memory-manager.md) - MemoryManager 设计
+- [docs/design-event-loop.md](docs/design-event-loop.md) - EventLoop 设计
+- [docs/design-tools.md](docs/design-tools.md) - 工具系统设计
+- [docs/design-roles.md](docs/design-roles.md) - 角色定义设计
+- [docs/design-plugin-entry.md](docs/design-plugin-entry.md) - 插件入口设计
+- [docs/design-meeting-mode.md](docs/design-meeting-mode.md) - Meeting Mode 设计
+
+[docs/migration-guide.md - 角色格式迁移指南](docs/migration-guide.md) - 当你需要把旧格式角色定义升级到 YAML frontmatter 新格式时阅读。包含迁移步骤与兼容性信息。
+
+### 开发规范分支
+
+[docs/specs/repository-structure-best-practices.md - 仓库组织原则](docs/specs/repository-structure-best-practices.md) - 当你需要组织文档、决定文件放置位置或维护文档索引时阅读。它解释为什么文档索引维护很重要，以及如何为 AI 导航组织仓库。
+
+**角色开发：**
+- [docs/specs/role-development-manual.md](docs/specs/role-development-manual.md) - 创建新角色时阅读
+- [docs/specs/role-document-specification.md](docs/specs/role-document-specification.md) - 角色文件格式规范
+- [docs/specs/role-context-best-practices.md](docs/specs/role-context-best-practices.md) - 角色上下文设计模式
+- [docs/specs/role-review-handbook.md](docs/specs/role-review-handbook.md) - 角色评审流程
+- [docs/specs/role-review-report-format.md](docs/specs/role-review-report-format.md) - 角色评审报告格式
+
+**通信模式：**
+- [docs/specs/communication-patterns/ai-to-ai-communication-principles.md](docs/specs/communication-patterns/ai-to-ai-communication-principles.md) - AI 间高效通信的核心原则
+- [docs/specs/communication-patterns/responding-to-messages.md](docs/specs/communication-patterns/responding-to-messages.md) - 如何回复消息
+- [docs/specs/communication-patterns/delegating-work.md](docs/specs/communication-patterns/delegating-work.md) - 工作委派模式
+- [docs/specs/communication-patterns/escalating-issues.md](docs/specs/communication-patterns/escalating-issues.md) - 问题升级模式
+- [docs/specs/communication-patterns/reporting-completion.md](docs/specs/communication-patterns/reporting-completion.md) - 完成汇报模式
+- [docs/specs/communication-patterns/requesting-information.md](docs/specs/communication-patterns/requesting-information.md) - 信息请求模式
+- [docs/specs/communication-patterns/consulting-and-discussion.md](docs/specs/communication-patterns/consulting-and-discussion.md) - 咨询与讨论模式
+
+**代码开发：**
+- [docs/specs/code-development-standards.md](docs/specs/code-development-standards.md) - 代码质量与开发规范
+- [docs/specs/code-review-handbook.md](docs/specs/code-review-handbook.md) - 代码评审流程
+- [docs/specs/git-repository-workflow.md](docs/specs/git-repository-workflow.md) - Git 工作流与分支策略
+
+**任务与项目管理：**
+- [docs/specs/task-management-best-practices.md](docs/specs/task-management-best-practices.md) - 任务管理模式
+- [docs/specs/task-document-format.md](docs/specs/task-document-format.md) - 任务文档格式
+- [docs/specs/manager-execution-pattern.md](docs/specs/manager-execution-pattern.md) - Manager 角色执行模式
+- [docs/specs/subordinate-management-philosophy.md](docs/specs/subordinate-management-philosophy.md) - 下属管理原则
+- [docs/specs/leadership-risk-handling.md](docs/specs/leadership-risk-handling.md) - 领导风险处理
+- [docs/specs/risk-analysis-practice.md](docs/specs/risk-analysis-practice.md) - 风险分析实践
+- [docs/specs/system-entropy-analysis.md](docs/specs/system-entropy-analysis.md) - 系统熵分析
+
+**规范写作：**
+- [docs/specs/ai-specification-writing-guide.md](docs/specs/ai-specification-writing-guide.md) - 如何编写规范
+- [docs/specs/ai-specification-review-guide.md](docs/specs/ai-specification-review-guide.md) - 如何评审规范
+- [docs/specs/prompt-specification.md](docs/specs/prompt-specification.md) - Prompt 设计规范
+- [docs/specs/context-description-writing-guide.md](docs/specs/context-description-writing-guide.md) - 上下文描述写作指南
+
+### Console 文档
+
+[console/docs/requirements.md - Console 需求](console/docs/requirements.md) - 用于理解控制台功能需求。Console 是独立模块，拥有自己的文档分支。
+
+[console/docs/architecture.md - Console 架构](console/docs/architecture.md) - 修改 Console 代码前先读，用于理解前端架构。
+
+更多 Console 设计文档：
+- [console/docs/design.md](console/docs/design.md) - Console 设计总览
+- [console/docs/design-components.md](console/docs/design-components.md) - 组件设计
+- [console/docs/design-services.md](console/docs/design-services.md) - 服务层设计
+- [console/docs/design-state-hooks.md](console/docs/design-state-hooks.md) - 状态管理设计
+- [console/docs/design-patterns.md](console/docs/design-patterns.md) - 设计模式
+- [console/docs/design-testing.md](console/docs/design-testing.md) - 测试策略
+- [console/docs/design-event-timeline.md](console/docs/design-event-timeline.md) - 事件时间线功能
+- [console/docs/session-link-feature.md](console/docs/session-link-feature.md) - Session Link 功能
+- [console/docs/structure.md](console/docs/structure.md) - Console 文件结构
+
+### 参考文档
+
+[docs/structure.md - 项目文件结构参考](docs/structure.md) - 完整文件结构清单。当你需要定位具体文件或理解整体项目组织时阅读。
+
+### 文档维护
+
+**代码注释：**
 - 实现细节使用中文
 - 公共 API 文档使用 JSDoc
-- 解释为什么，而不是什么 (代码显示什么)
+- 解释 WHY，而不是 WHAT（代码已经展示 WHAT）
 
-**README.md**:
-- 与实现状态保持同步
-- 完成阶段时更新"当前进度"部分
+**保持文档最新：**
+- 架构变更时同步更新设计文档
+- 保持 README.md 与实现状态同步
+- 新增文档时同步更新这里的文档索引
+
