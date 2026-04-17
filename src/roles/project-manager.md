@@ -5,8 +5,8 @@ description: "Orchestrates frozen-task execution across developers and reviewers
 soul: false
 requiredArgs: {}
 canHire:
-  - "group:developers"
-  - "group:reviewers"
+  - "General Developer"
+  - "Code Reviewer"
 groups: []
 contextIds:
   - "manager-execution-pattern"
