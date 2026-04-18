@@ -54,3 +54,7 @@ migrate*.ts
 test-debug.ts
 test-message-path*.ts
 test-workspace-msg/
+
+# Local Vite environment overrides
+console/.env.local
+console/.env.*.local
