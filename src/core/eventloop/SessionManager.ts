@@ -128,7 +128,8 @@ export class SessionManager {
                 this.employeeId,
                 ".cclover/workspace",
                 role,
-                supervisor
+                supervisor,
+                this.roleManager
               )
             : buildSystemPrompt(
                 role.systemPrompt,
@@ -136,7 +137,8 @@ export class SessionManager {
                 this.employeeId,
                 ".cclover/workspace",
                 role,
-                supervisor
+                supervisor,
+                this.roleManager
               ) // 降级：使用当前状态
 
           this.currentSession = {
@@ -218,7 +220,8 @@ export class SessionManager {
       this.employeeId,
       ".cclover/workspace",
       role,
-      supervisor
+      supervisor,
+      this.roleManager
     )
 
     this.currentSession = {
@@ -313,7 +316,8 @@ export class SessionManager {
           this.employeeId,
           ".cclover/workspace",
           role,
-          supervisor
+          supervisor,
+          this.roleManager
         )
       : buildSystemPrompt(
           role.systemPrompt,
@@ -321,7 +325,8 @@ export class SessionManager {
           this.employeeId,
           ".cclover/workspace",
           role,
-          supervisor
+          supervisor,
+          this.roleManager
         )
 
     // 更新缓存的系统提示词

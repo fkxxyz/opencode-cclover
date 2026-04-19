@@ -223,6 +223,10 @@ You are a project manager.`
           name: "charlie",
           id: "charlie",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -249,6 +253,10 @@ You are a project manager.`
           name: "meeting-hire",
           id: "meeting-hire",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -292,6 +300,10 @@ You are a project manager.`
         {
           name: "meeting-hire-b",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         {
           sessionID: "test-session-meeting-agent-boss-b",
@@ -388,6 +400,10 @@ You are a project manager.`
           name: "frank",
           id: "frank",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -401,8 +417,8 @@ You are a project manager.`
     })
   })
 
-  describe("Required Parameters Reminder", () => {
-    test("displays required parameters for role with requiredArgs", async () => {
+  describe("Required Parameters Validation", () => {
+    test("rejects hire when requiredArgs missing", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -417,24 +433,16 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-george' (name: george)"
-      )
-      expect(result).toContain(
-        "IMPORTANT: This role requires the following parameters"
-      )
-      expect(result).toContain(
-        "projectPath (string): Path to the project directory"
-      )
-      expect(result).toContain(
-        "language (string): Primary programming language"
-      )
-      expect(result).toContain(
-        "Please send a message to 'george' with these parameters"
-      )
+      expect(result).toContain("Error: Role 'developer' requires")
+      expect(result).toContain("projectPath, language")
+      expect(result).toContain("Provide them via initial_args parameter")
+
+      // Verify employee was NOT created
+      const employee = stateManager.getEmployee("0-george")
+      expect(employee).toBeUndefined()
     })
 
-    test("no reminder for role without requiredArgs", async () => {
+    test("rejects hire when requiredArgs partially provided", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -444,18 +452,22 @@ You are a project manager.`
         {
           name: "helen",
           id: "helen",
-          role: "tester",
+          role: "developer",
+          initial_args: [{ name: "projectPath", value: "/tmp/project" }],
         },
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-helen' (name: helen)"
-      )
-      expect(result).not.toContain("IMPORTANT: This role requires")
+      expect(result).toContain("Error: Role 'developer' requires")
+      expect(result).toContain("language")
+      expect(result).not.toContain("projectPath")
+
+      // Verify employee was NOT created
+      const employee = stateManager.getEmployee("0-helen")
+      expect(employee).toBeUndefined()
     })
 
-    test("includes initial message sent confirmation", async () => {
+    test("succeeds when all requiredArgs provided", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -466,7 +478,10 @@ You are a project manager.`
           name: "ivan",
           id: "ivan",
           role: "developer",
-          initial_message: "Welcome to the team!",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -474,8 +489,96 @@ You are a project manager.`
       expect(result).toContain(
         "Successfully hired employee '0-ivan' (name: ivan)"
       )
-      expect(result).toContain("IMPORTANT: This role requires")
+      expect(result).not.toContain("IMPORTANT: This role requires")
+
+      // Verify employee was created
+      const employee = stateManager.getEmployee("0-ivan")
+      expect(employee).toBeDefined()
+      expect(employee?.role).toBe("developer")
+    })
+
+    test("persists initial_args to memory", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      await hireEmployeeTool.execute(
+        {
+          name: "julia",
+          id: "julia",
+          role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/home/user/project" },
+            { name: "language", value: "Python" },
+          ],
+        },
+        context
+      )
+
+      // Verify args persisted to memory
+      const memory = await memoryManager.read("0-julia")
+      expect(memory.args).toBeDefined()
+      expect(memory.args.projectPath).toBe("/home/user/project")
+      expect(memory.args.language).toBe("Python")
+    })
+
+    test("succeeds for role without requiredArgs", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "kate",
+          id: "kate",
+          role: "tester",
+        },
+        context
+      )
+
+      expect(result).toContain(
+        "Successfully hired employee '0-kate' (name: kate)"
+      )
+      expect(result).not.toContain("Error:")
+
+      // Verify employee was created
+      const employee = stateManager.getEmployee("0-kate")
+      expect(employee).toBeDefined()
+    })
+
+    test("includes initial_message with requiredArgs", async () => {
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "leo",
+          id: "leo",
+          role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "JavaScript" },
+          ],
+          initial_message: "Welcome to the team!",
+        },
+        context
+      )
+
+      expect(result).toContain(
+        "Successfully hired employee '0-leo' (name: leo)"
+      )
       expect(result).toContain("Initial message sent")
+
+      // Verify message was sent
+      const leoClient = messageService.getClient("0-leo")
+      const messages = await leoClient.history("0-boss")
+      expect(messages.length).toBeGreaterThan(0)
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.content).toBe("Welcome to the team!")
     })
   })
 
@@ -535,6 +638,10 @@ You are a project manager.`
           name: "alice",
           id: "alice", // 已存在
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -553,6 +660,10 @@ You are a project manager.`
           name: "leo",
           id: "leo",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -572,6 +683,10 @@ You are a project manager.`
         {
           name: undefined,
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -594,6 +709,10 @@ You are a project manager.`
         {
           name: "",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -618,6 +737,10 @@ You are a project manager.`
         {
           name: "   ",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -642,6 +765,10 @@ You are a project manager.`
         {
           name: "  trimmed-name  ",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -686,12 +813,16 @@ You are a project manager.`
         {
           name: "  param-test  ",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
 
       // 验证参数提醒使用 trimmed name
-      expect(result).toContain("Please send a message to 'param-test'")
+      expect(result).toContain("Successfully hired employee")
       expect(result).not.toContain("Please send a message to '  param-test  '")
     })
   })
@@ -709,6 +840,10 @@ You are a project manager.`
           name: "mike",
           id: "mike",
           role: "developer", // 这是 name 字段，不是文件名
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -736,6 +871,10 @@ You are a project manager.`
           name: "nancy",
           id: "nancy",
           role: "developer",
+          initial_args: [
+            { name: "projectPath", value: "/tmp/project" },
+            { name: "language", value: "TypeScript" },
+          ],
         },
         context
       )
@@ -812,39 +951,6 @@ You are a project manager.`
       expect(lastMessage.content).toContain("Your role is tester")
       expect(lastMessage.content).toContain(
         "Please start working according to your role definition"
-      )
-    })
-
-    test("default message includes role parameters reminder for role with requiredArgs", async () => {
-      const context = {
-        sessionID: "test-session-boss",
-        agent: "boss",
-      }
-
-      await hireEmployeeTool.execute(
-        {
-          name: "quinn",
-          id: "quinn",
-          role: "developer",
-        },
-        context
-      )
-
-      // 验证消息已发送
-      const quinnClient = messageService.getClient("0-quinn")
-      const messages = await quinnClient.history("0-boss")
-      expect(messages.length).toBeGreaterThan(0)
-
-      const lastMessage = messages[messages.length - 1]
-      expect(lastMessage.content).toContain(
-        "Your role requires the following parameters"
-      )
-      expect(lastMessage.content).toContain("projectPath (string)")
-      expect(lastMessage.content).toContain("Path to the project directory")
-      expect(lastMessage.content).toContain("language (string)")
-      expect(lastMessage.content).toContain("Primary programming language")
-      expect(lastMessage.content).toContain(
-        "Please check your memory to confirm these parameters are provided"
       )
     })
 

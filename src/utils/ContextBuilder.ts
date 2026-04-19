@@ -6,6 +6,7 @@
 
 import type { Task, Memory } from "../core/MemoryManager"
 import type { RoleMetadata, RoleRequiredArgSpec } from "../types"
+import type { RoleManager } from "../core/RoleManager"
 import { generateMermaid } from "./MermaidGenerator"
 
 export interface Event {
@@ -150,6 +151,7 @@ function injectRoleContexts(
  * @param workspaceRoot 工作区根目录
  * @param roleMetadata 角色元数据（可选）
  * @param supervisor 主管信息（可选）
+ * @param roleManager 角色管理器（可选，用于解析 canHire）
  * @returns 完整的系统提示词
  */
 export function buildSystemPrompt(
@@ -158,7 +160,8 @@ export function buildSystemPrompt(
   employeeId: string,
   workspaceRoot: string,
   roleMetadata?: RoleMetadata,
-  supervisor?: { name: string; role: string }
+  supervisor?: { name: string; role: string },
+  roleManager?: RoleManager
 ): string {
   const sections: string[] = []
 
@@ -166,6 +169,40 @@ export function buildSystemPrompt(
   sections.push("# Role Definition")
   sections.push(rolePrompt)
   sections.push("")
+
+  // 1.5 雇佣参考（如果角色可以雇佣其他角色）
+  if (roleMetadata?.canHire && roleMetadata.canHire.length > 0 && roleManager) {
+    const hireableRoles = roleManager.resolveCanHire(roleMetadata.canHire)
+    if (hireableRoles.length > 0) {
+      sections.push("## Hiring Reference")
+      sections.push("")
+      sections.push(
+        "When using `hire_employee`, required parameters for the target role must be passed via `initial_args`. `initial_message` is task/context text only. It does not satisfy requiredArgs."
+      )
+      sections.push("")
+      sections.push("You can hire these roles:")
+      sections.push("")
+      for (const roleName of hireableRoles) {
+        const role = roleManager.getRole(roleName)
+        if (role) {
+          sections.push(`**${roleName}**`)
+          if (role.requiredArgs && Object.keys(role.requiredArgs).length > 0) {
+            sections.push("- Required parameters:")
+            for (const [argName, argSpec] of Object.entries(
+              role.requiredArgs
+            )) {
+              sections.push(
+                `  - **${argName}** (${argSpec.type}): ${argSpec.description}`
+              )
+            }
+          } else {
+            sections.push("- No required parameters")
+          }
+          sections.push("")
+        }
+      }
+    }
+  }
 
   // 2. 当前记忆
   sections.push("# Current Memory")
@@ -178,27 +215,6 @@ export function buildSystemPrompt(
     sections.push("")
     sections.push(...formatArgsAsMarkdown(args))
     sections.push("")
-  }
-
-  // 2.2 参数提醒（如果有缺失的必需参数）
-  if (roleMetadata?.requiredArgs) {
-    const missingArgs = checkMissingArgs(roleMetadata.requiredArgs, args)
-    if (missingArgs.length > 0) {
-      sections.push("## ⚠️ Missing Required Parameters")
-      sections.push("")
-      sections.push(
-        "The following parameters are required for your role but not yet provided:"
-      )
-      sections.push("")
-      for (const arg of missingArgs) {
-        sections.push(`- **${arg.name}** (${arg.type}): ${arg.description}`)
-      }
-      sections.push("")
-      sections.push(
-        "Please ask your supervisor or relevant employees for this information."
-      )
-      sections.push("")
-    }
   }
 
   // 2.2 角色上下文
@@ -558,6 +574,7 @@ export function getExecutableTasks(tasks: Task[]): Task[] {
  * @param event 事件
  * @param roleMetadata 角色元数据（可选）
  * @param supervisor 主管信息（可选）
+ * @param roleManager 角色管理器（可选）
  * @returns 完整上下文
  */
 export function buildFullContext(
@@ -567,7 +584,8 @@ export function buildFullContext(
   workspaceRoot: string,
   event: RuntimeEvent,
   roleMetadata?: RoleMetadata,
-  supervisor?: { name: string; role: string }
+  supervisor?: { name: string; role: string },
+  roleManager?: RoleManager
 ): { systemPrompt: string; eventMessage: string } {
   return {
     systemPrompt: buildSystemPrompt(
@@ -576,7 +594,8 @@ export function buildFullContext(
       employeeId,
       workspaceRoot,
       roleMetadata,
-      supervisor
+      supervisor,
+      roleManager
     ),
     eventMessage: buildEventMessage(event),
   }

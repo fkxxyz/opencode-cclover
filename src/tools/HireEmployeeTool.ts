@@ -31,6 +31,17 @@ export function createHireEmployeeTool(
         .describe(
           "Optional: First message to send to the new employee immediately after hiring"
         ),
+      initial_args: tool.schema
+        .array(
+          tool.schema.object({
+            name: tool.schema.string().describe("Parameter name"),
+            value: tool.schema.string().describe("Parameter value"),
+          })
+        )
+        .optional()
+        .describe(
+          "Optional: Initial arguments for roles with requiredArgs. Array of {name, value} objects."
+        ),
     },
     async execute(args, context) {
       try {
@@ -70,7 +81,23 @@ export function createHireEmployeeTool(
           return `Error: You do not have permission to hire role '${args.role}'. Use show_hireable_roles tool to see roles you can hire.`
         }
 
-        // 4. Validate name parameter
+        // 4. Validate requiredArgs if role has them
+        if (roleDefinition.requiredArgs) {
+          const requiredArgNames = Object.keys(roleDefinition.requiredArgs)
+          const providedArgNames = new Set(
+            (args.initial_args || []).map((arg) => arg.name)
+          )
+
+          const missingArgs = requiredArgNames.filter(
+            (name) => !providedArgNames.has(name)
+          )
+
+          if (missingArgs.length > 0) {
+            return `Error: Role '${args.role}' requires the following parameters: ${missingArgs.join(", ")}. Provide them via initial_args parameter.`
+          }
+        }
+
+        // 5. Validate name parameter
         if (args.name === undefined || typeof args.name !== "string") {
           return "Error: Employee name is required"
         }
@@ -80,7 +107,7 @@ export function createHireEmployeeTool(
           return "Error: Employee name cannot be empty or whitespace"
         }
 
-        // 5. Determine taskId and employeeId based on hiring logic
+        // 6. Determine taskId and employeeId based on hiring logic
         let taskId: number
         let newEmployeeId: EmployeeId
 
@@ -119,13 +146,13 @@ export function createHireEmployeeTool(
           }
         }
 
-        // 5. Check if employee already exists
+        // 7. Check if employee already exists
         const existing = stateManager.getEmployee(newEmployeeId)
         if (existing) {
           return `Error: Employee '${newEmployeeId}' already exists`
         }
 
-        // 6. Register employee (automatically persisted)
+        // 8. Register employee (automatically persisted)
         await stateManager.registerEmployee({
           employeeId: newEmployeeId,
           name: trimmedName,
@@ -139,7 +166,16 @@ export function createHireEmployeeTool(
           activeSessionId: null,
         })
 
-        // 6. Record employee_hired event
+        // 9. Persist initial_args to memory if provided
+        if (args.initial_args && args.initial_args.length > 0) {
+          const argsRecord: Record<string, string> = {}
+          for (const arg of args.initial_args) {
+            argsRecord[arg.name] = arg.value
+          }
+          await project.memoryManager.updateArgs(newEmployeeId, argsRecord)
+        }
+
+        // 10. Record employee_hired event
         const hiredEvent = {
           projectId: stateManager.getProjectId(),
           type: "employee_hired" as const,
@@ -154,11 +190,11 @@ export function createHireEmployeeTool(
         }
         await stateManager.addEvent(hiredEvent)
 
-        // 7. Start employee's EventLoop
+        // 11. Start employee's EventLoop
         await startEmployee(project, newEmployeeId, roleDefinition)
 
-        // 8. Record or clear session mapping if hirer is Boss
-        // Always check session_id: if present update, if absent remove old record
+        // 12. Record or clear session mapping if hirer is Boss
+        // Only record if session is from a meeting-mode role, otherwise clear
         const hirerBossId = hiredByEmployeeId!.startsWith("0-")
           ? hiredByEmployeeId!.substring(2)
           : null
@@ -166,11 +202,17 @@ export function createHireEmployeeTool(
           hirerBossId !== null && bossManager?.isBoss(hirerBossId)
 
         if (isHirerBoss && bossManager) {
-          if (context.sessionID) {
+          // Check if agent is a valid meeting-mode role
+          const isValidRole =
+            context.sessionID &&
+            context.agent &&
+            roleManager?.getRole(context.agent)
+
+          if (isValidRole) {
             await bossManager.recordSession(
               hirerBossId!,
               newEmployeeId,
-              context.sessionID
+              context.sessionID!
             )
             logger.debug(
               `[HireEmployeeTool] Recorded session mapping for Boss ${hirerBossId} → ${newEmployeeId}`
@@ -187,22 +229,10 @@ export function createHireEmployeeTool(
           `[HireEmployeeTool] Employee '${trimmedName}' hired by '${hiredBy}' with role '${args.role}'`
         )
 
-        // 9. Build success message with parameter reminder
+        // 13. Build success message
         let successMessage = `Successfully hired employee '${newEmployeeId}' (name: ${trimmedName}), role: ${args.role}`
 
-        // 9. Add required parameters reminder if role has requiredArgs
-        if (roleDefinition.requiredArgs) {
-          const requiredParams = Object.entries(roleDefinition.requiredArgs)
-          if (requiredParams.length > 0) {
-            successMessage += `\n\nIMPORTANT: This role requires the following parameters to be set:\n`
-            for (const [key, value] of requiredParams) {
-              successMessage += `- ${key} (${value.type}): ${value.description}\n`
-            }
-            successMessage += `\nPlease send a message to '${trimmedName}' with these parameters.`
-          }
-        }
-
-        // 10. Send message to new employee
+        // 14. Send message to new employee
         if (args.initial_message) {
           // 如果提供了 initial_message，发送自定义消息
           await project.messageService.send(
@@ -216,21 +246,7 @@ export function createHireEmployeeTool(
           successMessage += `\n\nInitial message sent.`
         } else {
           // 如果没有提供 initial_message，发送默认消息
-          let defaultMessage = `Hello! I am ${hiredBy}, and I just hired you. Your role is ${args.role}.`
-
-          // 如果角色有 requiredArgs，添加参数提醒
-          if (roleDefinition.requiredArgs) {
-            const requiredParams = Object.entries(roleDefinition.requiredArgs)
-            if (requiredParams.length > 0) {
-              defaultMessage += `\n\nYour role requires the following parameters:\n`
-              for (const [key, value] of requiredParams) {
-                defaultMessage += `- ${key} (${value.type}): ${value.description}\n`
-              }
-              defaultMessage += `\n\nPlease check your memory to confirm these parameters are provided. If missing, ask your employer.`
-            }
-          }
-
-          defaultMessage += `\n\nPlease start working according to your role definition.`
+          const defaultMessage = `Hello! I am ${hiredBy}, and I just hired you. Your role is ${args.role}.\n\nPlease start working according to your role definition.`
 
           await project.messageService.send(
             hiredByEmployeeId!,

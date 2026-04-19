@@ -419,7 +419,7 @@ describe("ContextBuilder", () => {
       expect(result).not.toContain("## Role Arguments")
     })
 
-    test("should show missing required parameters", () => {
+    test("should not show missing required parameters warning", () => {
       const rolePrompt = "你是一个员工"
       const memory: Memory = {
         knowledge: [],
@@ -456,22 +456,11 @@ describe("ContextBuilder", () => {
         roleMetadata
       )
 
-      expect(result).toContain("## ⚠️ Missing Required Parameters")
-      expect(result).toContain("repository_url")
-      expect(result).toContain("branch")
-      expect(result).toContain("The URL of the git repository")
-      expect(result).toContain("The branch to work on")
-
-      // project_name should appear in Role Arguments but not in Missing Parameters section
-      const missingParamsStart = result.indexOf(
-        "## ⚠️ Missing Required Parameters"
+      // Warning section should NOT be present
+      expect(result).not.toContain("## ⚠️ Missing Required Parameters")
+      expect(result).not.toContain(
+        "The following parameters are required for your role but not yet provided"
       )
-      const missingParamsEnd = result.indexOf("# Workspace Files")
-      const missingParamsSection = result.substring(
-        missingParamsStart,
-        missingParamsEnd
-      )
-      expect(missingParamsSection).not.toContain("project_name")
     })
 
     test("should not show missing parameters section when all required args are provided", () => {
@@ -531,10 +520,11 @@ describe("ContextBuilder", () => {
         roleMetadata
       )
 
+      // Warning section should NOT be present
       expect(result).not.toContain("## ⚠️ Missing Required Parameters")
     })
 
-    test("should treat null and undefined args as missing", () => {
+    test("should not treat null and undefined args as missing in warning", () => {
       const rolePrompt = "你是一个员工"
       const memory: Memory = {
         knowledge: [],
@@ -563,20 +553,125 @@ describe("ContextBuilder", () => {
         roleMetadata
       )
 
-      expect(result).toContain("## ⚠️ Missing Required Parameters")
-      expect(result).toContain("field1")
-      expect(result).toContain("field2")
+      // Warning section should NOT be present
+      expect(result).not.toContain("## ⚠️ Missing Required Parameters")
+    })
+  })
 
-      // field3 should appear in Role Arguments but not in Missing Parameters section (empty string is valid)
-      const missingParamsStart = result.indexOf(
-        "## ⚠️ Missing Required Parameters"
+  describe("Hiring Reference", () => {
+    test("should include hiring reference when role can hire others", () => {
+      const rolePrompt = "你是一个项目经理"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "project-manager",
+        id: "project-manager",
+        description: "A project manager role",
+        canHire: ["developer", "tester"],
+      }
+
+      // Mock RoleManager with minimal interface
+      const mockRoleManager = {
+        resolveCanHire: (canHire: string[]) => canHire,
+        getRole: (name: string) => {
+          if (name === "developer") {
+            return {
+              name: "developer",
+              id: "developer",
+              systemPrompt: "You are a developer",
+              requiredArgs: {
+                worktree_path: {
+                  type: "string",
+                  description: "Path to the worktree",
+                },
+              },
+            }
+          }
+          if (name === "tester") {
+            return {
+              name: "tester",
+              id: "tester",
+              systemPrompt: "You are a tester",
+            }
+          }
+          return undefined
+        },
+      } as any
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "pm-001",
+        ".cclover/workspace",
+        roleMetadata,
+        undefined,
+        mockRoleManager
       )
-      const missingParamsEnd = result.indexOf("# Workspace Files")
-      const missingParamsSection = result.substring(
-        missingParamsStart,
-        missingParamsEnd
+
+      expect(result).toContain("## Hiring Reference")
+      expect(result).toContain(
+        "When using `hire_employee`, required parameters for the target role must be passed via `initial_args`"
       )
-      expect(missingParamsSection).not.toContain("field3")
+      expect(result).toContain("You can hire these roles:")
+      expect(result).toContain("**developer**")
+      expect(result).toContain("worktree_path")
+      expect(result).toContain("Path to the worktree")
+      expect(result).toContain("**tester**")
+      expect(result).toContain("No required parameters")
+    })
+
+    test("should not include hiring reference when role cannot hire", () => {
+      const rolePrompt = "你是一个开发者"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "developer",
+        id: "developer",
+        description: "A developer role",
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "dev-001",
+        ".cclover/workspace",
+        roleMetadata
+      )
+
+      expect(result).not.toContain("## Hiring Reference")
+    })
+
+    test("should not include hiring reference when roleManager is not provided", () => {
+      const rolePrompt = "你是一个项目经理"
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      }
+      const roleMetadata: RoleMetadata = {
+        name: "project-manager",
+        id: "project-manager",
+        description: "A project manager role",
+        canHire: ["developer"],
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "pm-001",
+        ".cclover/workspace",
+        roleMetadata,
+        undefined,
+        undefined
+      )
+
+      expect(result).not.toContain("## Hiring Reference")
     })
   })
 })
