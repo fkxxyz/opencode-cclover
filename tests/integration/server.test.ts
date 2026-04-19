@@ -33,12 +33,14 @@ import {
 
 const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-server")
 const TEST_PORT = 4098
+const STATIC_TEST_PORT = 4108
 
 describe("Console Server", () => {
   let projectRegistry: ProjectRegistry
   let server: ConsoleServer
   let stateManager: StateManager
   let abortMock: any
+  let staticDir: string | undefined
 
   beforeEach(async () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
@@ -128,12 +130,17 @@ describe("Console Server", () => {
       eventLoops: new Map(),
     })
     server = new ConsoleServer(
-      { port: TEST_PORT, workspaceRoot: TEST_WORKSPACE },
+      {
+        port: TEST_PORT,
+        workspaceRoot: TEST_WORKSPACE,
+        staticDir,
+      } as any,
       projectRegistry
     )
     await server.start()
     await new Promise((resolve) => setTimeout(resolve, 100))
     agentRegistry.clear()
+    staticDir = undefined
   })
 
   afterEach(async () => {
@@ -349,6 +356,78 @@ describe("Console Server", () => {
         "GET"
       )
       expect(response.headers.get("Content-Type")).toBe("application/json")
+    })
+
+    test("GET / - 未配置静态目录时返回 404", async () => {
+      const response = await fetch(`http://localhost:${TEST_PORT}/`)
+
+      expect(response.status).toBe(404)
+    })
+  })
+
+  describe("静态资源托管", () => {
+    beforeEach(async () => {
+      await server.stop()
+
+      staticDir = path.join(TEST_WORKSPACE, "console-dist")
+      await fs.mkdir(path.join(staticDir, "assets"), { recursive: true })
+      await fs.writeFile(
+        path.join(staticDir, "index.html"),
+        '<html><body><div id="root">console</div></body></html>'
+      )
+      await fs.writeFile(
+        path.join(staticDir, "assets", "app.js"),
+        'console.log("hello")'
+      )
+
+      server = new ConsoleServer(
+        {
+          port: STATIC_TEST_PORT,
+          workspaceRoot: TEST_WORKSPACE,
+          staticDir,
+        } as any,
+        projectRegistry
+      )
+      await server.start()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    })
+
+    test("GET / - 返回静态 index.html", async () => {
+      const response = await fetch(`http://localhost:${STATIC_TEST_PORT}/`)
+      const text = await response.text()
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get("Content-Type")).toContain("text/html")
+      expect(text).toContain('<div id="root">console</div>')
+    })
+
+    test("GET /employees/test-role - SPA 路由 fallback 到 index.html", async () => {
+      const response = await fetch(
+        `http://localhost:${STATIC_TEST_PORT}/employees/test-role`
+      )
+      const text = await response.text()
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get("Content-Type")).toContain("text/html")
+      expect(text).toContain('<div id="root">console</div>')
+    })
+
+    test("GET /assets/app.js - 返回真实静态资源", async () => {
+      const response = await fetch(
+        `http://localhost:${STATIC_TEST_PORT}/assets/app.js`
+      )
+      const text = await response.text()
+
+      expect(response.status).toBe(200)
+      expect(text).toContain('console.log("hello")')
+    })
+
+    test("GET /assets/missing.js - 不存在的静态资源返回 404", async () => {
+      const response = await fetch(
+        `http://localhost:${STATIC_TEST_PORT}/assets/missing.js`
+      )
+
+      expect(response.status).toBe(404)
     })
   })
 

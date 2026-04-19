@@ -14,8 +14,9 @@ import type {
   Role,
 } from "../types/index"
 import { ApiError, NetworkError } from "../lib/error-handler"
+import { getApiBaseUrlFromRuntime } from "../lib/backend-config"
 
-const API_BASE_URL = "http://localhost:4097/api"
+const API_BASE_URL = getApiBaseUrlFromRuntime()
 
 export class ApiClient {
   async getProjects(): Promise<Project[]> {

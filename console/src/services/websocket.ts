@@ -1,6 +1,7 @@
 import type { Event, EventType, WebSocketMessage } from "../types/index"
+import { getWebSocketUrlFromRuntime } from "../lib/backend-config"
 
-const WS_URL = "ws://localhost:4097/ws"
+const WS_URL = getWebSocketUrlFromRuntime()
 const HEARTBEAT_INTERVAL = 30000 // 30 seconds
 const HEARTBEAT_TIMEOUT = 60000 // 60 seconds
 const MAX_RECONNECT_ATTEMPTS = 10

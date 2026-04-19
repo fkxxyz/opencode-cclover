@@ -3,6 +3,8 @@ import { Router } from "./router"
 import { WebSocketManager } from "./websocket"
 import type { Event } from "../types/index"
 import { logger } from "../lib/logger"
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
 
 const DEFAULT_PORT = 4097
 
@@ -12,6 +14,7 @@ const DEFAULT_PORT = 4097
  */
 export class ConsoleServer {
   private port: number
+  private staticDir?: string
   private router: Router
   private wsManager: WebSocketManager
   private projectRegistry: any
@@ -19,6 +22,7 @@ export class ConsoleServer {
 
   constructor(config: ServerConfig, projectRegistry: any) {
     this.port = config.port || DEFAULT_PORT
+    this.staticDir = config.staticDir
     this.projectRegistry = projectRegistry
     this.router = new Router(projectRegistry)
     this.wsManager = new WebSocketManager()
@@ -87,8 +91,65 @@ export class ConsoleServer {
       })
     }
 
+    if (!url.pathname.startsWith("/api")) {
+      const staticResponse = await this.serveStatic(url.pathname)
+      if (staticResponse) {
+        return staticResponse
+      }
+      return new Response("Not Found", { status: 404 })
+    }
+
     // HTTP 请求处理
     return this.router.handle(req)
+  }
+
+  private async serveStatic(pathname: string): Promise<Response | null> {
+    if (!this.staticDir) {
+      return null
+    }
+
+    const decodedPath = decodeURIComponent(pathname)
+    const normalizedPath = decodedPath.replace(/^\/+/, "")
+    const relativePath = normalizedPath || "index.html"
+    const candidatePath = path.join(this.staticDir, relativePath)
+
+    const fileResponse = await this.readStaticFile(candidatePath)
+    if (fileResponse) {
+      return fileResponse
+    }
+
+    if (this.shouldFallbackToIndex(decodedPath)) {
+      const indexPath = path.join(this.staticDir, "index.html")
+      const indexResponse = await this.readStaticFile(indexPath)
+      if (indexResponse) {
+        return indexResponse
+      }
+    }
+
+    return null
+  }
+
+  private async readStaticFile(filePath: string): Promise<Response | null> {
+    try {
+      const content = await fs.readFile(filePath)
+      const type = Bun.file(filePath).type || "application/octet-stream"
+      return new Response(content, {
+        status: 200,
+        headers: {
+          "Content-Type": type,
+        },
+      })
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        return null
+      }
+      throw error
+    }
+  }
+
+  private shouldFallbackToIndex(pathname: string): boolean {
+    const lastSegment = pathname.split("/").pop() || ""
+    return !lastSegment.includes(".")
   }
 
   /**

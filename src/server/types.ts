@@ -23,6 +23,7 @@ export interface Route {
 export interface ServerConfig {
   port: number
   workspaceRoot: string
+  staticDir?: string
 }
 
 // 服务器依赖
