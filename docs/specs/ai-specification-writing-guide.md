@@ -92,9 +92,9 @@ Use minimum words to convey information clearly.
 - Multiple examples showing the same distinction
 - Explaining why obvious things are obvious
 
-### Adherence to Prompt Specification
+### Adherence to Prompt Best Practices
 
-Specifications are prompt artifacts. Follow prompt specification principles:
+Specifications are prompt artifacts. Follow prompt best practice principles:
 - Describe situations and outcomes, not just commands
 - State boundaries rather than micromanaging
 - Explain why for non-obvious recommendations
@@ -179,10 +179,10 @@ export interface RoleMetadata {
 # Keys are context IDs referenced by role metadata: contextIds: ["..."]
 
 contexts:
-  prompt-specification:
+  prompt-best-practices:
     description: "Use when creating or reviewing prompt-bearing artifacts"
     documents:
-      - "docs/specs/prompt-specification.md"
+      - "docs/specs/prompt-best-practices.md"
 ```
 
 **Key principles**:
@@ -384,10 +384,10 @@ This demonstrates good configuration specification style:
 # Keys are context IDs referenced by role metadata: contextIds: ["..."]
 
 contexts:
-  prompt-specification:
+  prompt-best-practices:
     description: "Use when creating or reviewing prompt-bearing artifacts"
     documents:
-      - "docs/specs/prompt-specification.md"
+      - "docs/specs/prompt-best-practices.md"
 
   role-metadata-types:
     description: "Use when creating or modifying role definitions to understand valid frontmatter fields"

@@ -24,7 +24,7 @@ Use when [situation] to [outcome], because [reason]
 
 **Example**:
 ```yaml
-prompt-specification:
+prompt-best-practices:
   description: "Use when creating or reviewing prompt-bearing artifacts to ensure prompts guide effectively without over-constraining, because prompt quality directly affects AI reasoning and adaptation"
 ```
 
@@ -99,7 +99,7 @@ Before finalizing a description, verify:
 ### Good Examples
 
 ```yaml
-prompt-specification:
+prompt-best-practices:
   description: "Use when creating or reviewing prompt-bearing artifacts to ensure prompts guide effectively without over-constraining, because prompt quality directly affects AI reasoning and adaptation"
 
 role-document-specification:
@@ -119,7 +119,7 @@ git-repository-workflow:
 
 **❌ Content listing**:
 ```yaml
-prompt-specification:
+prompt-best-practices:
   description: "Prompt writing principles and best practices"
 ```
 Problem: Only describes what's inside, not when to use it.
@@ -179,9 +179,9 @@ Problem: Doesn't explain why linear history matters for this project.
 
 **Fix**: Add "because [reason]" to explain the necessity.
 
-## Relationship to Prompt Specification
+## Relationship to Prompt Best Practices
 
-Context descriptions are prompts. They should follow prompt-specification principles:
+Context descriptions are prompts. They should follow these prompt best practice principles:
 
 1. **Describe situation over commands**: "Use when [situation]" not "Load this for X"
 2. **Describe outcome over procedure**: "Enables [capability]" not "Contains steps to X"

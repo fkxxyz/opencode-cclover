@@ -12,7 +12,7 @@ groups:
   - developers
 contextIds:
   - role-context-registry
-  - prompt-specification
+  - prompt-best-practices
   - role-development-manual
   - role-document-specification
   - role-metadata-types

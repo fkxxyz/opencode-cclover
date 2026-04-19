@@ -22,7 +22,7 @@ Specifications can be markdown documents, code files, or configuration files.
 - [ ] Self-contained within scope (uses consistent terminology without re-explaining)
 
 ### Prompt Quality
-- [ ] Follows prompt specification principles
+- [ ] Follows prompt best practice principles
 - [ ] Concise and information-dense (every sentence adds project-specific information)
 - [ ] Explains non-obvious rationale only
 

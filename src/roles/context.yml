@@ -2,10 +2,10 @@
 # Keys are context IDs referenced by role metadata: contextIds: ["..."]
 
 contexts:
-  prompt-specification:
+  prompt-best-practices:
     description: "Use when creating or reviewing prompt-bearing artifacts to ensure prompts guide effectively without over-constraining, because prompt quality directly affects AI reasoning and adaptation"
     documents:
-      - "docs/specs/prompt-specification.md"
+      - "docs/specs/prompt-best-practices.md"
 
   role-development-manual:
     description: "Use when creating or modifying role definitions to design valid metadata and effective prompts, because the system requires specific format for role loading and well-structured roles enable better AI behavior"

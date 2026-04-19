@@ -1,4 +1,4 @@
-# Prompt Specification
+# Prompt Best Practices
 
 ## 1. What a Prompt Is
 
@@ -24,15 +24,20 @@ Language models are context-conditioned systems. They respond to framing, constr
 
 Excessive procedural prescription can suppress useful reasoning, adaptation, and generalization.
 
-### 1.4 Scope of This Specification
+### 1.4 Scope of This Document
 
 **This is the official prompt-writing standard for this project.** All prompt-bearing artifacts in this codebase should follow these principles.
 
-This document defines a general prompt-writing specification applicable across:
+This document defines general prompt best practices applicable across:
+- system prompts
 - agent prompts
 - skill prompts
 - role prompts
+- AI-facing specification documents and policy documents
+- AGENTS.md and similar repository guidance files when they are loaded into AI context
+- tool descriptions, parameter help, and usage constraints shown to AI
 - direct human-to-AI prompts
+- system-generated or automatically assembled prompts
 - other prompt-like instructional interfaces
 
 This document is not:

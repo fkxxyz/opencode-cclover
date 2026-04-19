@@ -18,7 +18,7 @@ boundaries:
   - "Do not review role implementations (Soul Reviewer reviews role correctness)"
   - "Do not manage specification content approval (Technical Lead approves content changes)"
 contextIds:
-  - prompt-specification
+  - prompt-best-practices
   - context-description-writing-guide
   - ai-to-ai-communication-principles
   - communication-requesting-information

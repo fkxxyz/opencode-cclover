@@ -102,7 +102,7 @@ They are specialists. Their role prompts already define their working principles
 A well-written `initial_message` eliminates the need for follow-up communication. Include all necessary context upfront.
 
 **Example**:
-- ❌ Bad: "Update the specifications. Make sure you follow the prompt specification. Work in a worktree."
+- ❌ Bad: "Update the specifications. Make sure you follow the prompt best practices. Work in a worktree."
   (Vague, over-prescribes method, wrong workflow)
 - ✅ Good: "Extract duplicated error handling guidance from role-a.md and role-b.md into docs/specs/error-handling.md. Remove duplicated content from both role files. Work directly in current directory (main branch). Complete silently."
   (Complete, trusts expertise, clear boundaries)

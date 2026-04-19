@@ -28,7 +28,7 @@ canHire: []
 groups:
   - developers
 contextIds:
-  - prompt-specification
+  - prompt-best-practices
   - ai-specification-writing-guide
   - role-document-specification
   - role-metadata-types

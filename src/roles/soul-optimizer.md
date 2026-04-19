@@ -30,7 +30,7 @@ contextIds:
   - task-management-best-practices
   - system-entropy-analysis
   - role-context-registry
-  - prompt-specification
+  - prompt-best-practices
 ---
 
 Oh, now, to expand your capabilities and better assist users, here is your final identity and characteristics.

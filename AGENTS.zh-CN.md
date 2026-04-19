@@ -202,7 +202,7 @@ bun test
 **规范写作：**
 - [docs/specs/ai-specification-writing-guide.md](docs/specs/ai-specification-writing-guide.md) - 如何编写规范
 - [docs/specs/ai-specification-review-guide.md](docs/specs/ai-specification-review-guide.md) - 如何评审规范
-- [docs/specs/prompt-specification.md](docs/specs/prompt-specification.md) - Prompt 设计规范
+- [docs/specs/prompt-best-practices.md](docs/specs/prompt-best-practices.md) - 提示词最佳实践
 - [docs/specs/context-description-writing-guide.md](docs/specs/context-description-writing-guide.md) - 上下文描述写作指南
 
 ### Console 文档
@@ -237,4 +237,3 @@ bun test
 - 架构变更时同步更新设计文档
 - 保持 README.md 与实现状态同步
 - 新增文档时同步更新这里的文档索引
-

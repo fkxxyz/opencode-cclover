@@ -12,7 +12,7 @@ groups: []
 contextIds:
   - ai-specification-review-guide
   - ai-specification-writing-guide
-  - prompt-specification
+  - prompt-best-practices
   - ai-to-ai-communication-principles
   - communication-reporting-completion
   - communication-escalating-issues

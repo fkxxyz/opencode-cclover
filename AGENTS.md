@@ -202,7 +202,7 @@ Detailed component designs (read when implementing or modifying specific compone
 **Specification Writing:**
 - [docs/specs/ai-specification-writing-guide.md](docs/specs/ai-specification-writing-guide.md) - How to write specifications
 - [docs/specs/ai-specification-review-guide.md](docs/specs/ai-specification-review-guide.md) - How to review specifications
-- [docs/specs/prompt-specification.md](docs/specs/prompt-specification.md) - Prompt design specification
+- [docs/specs/prompt-best-practices.md](docs/specs/prompt-best-practices.md) - Prompt best practices
 - [docs/specs/context-description-writing-guide.md](docs/specs/context-description-writing-guide.md) - Context description writing
 
 ### Console Documentation
@@ -237,4 +237,3 @@ Additional console design documents:
 - Update design documents when making architectural changes
 - Keep README.md synchronized with implementation status
 - Update this documentation index when adding new documents
-
