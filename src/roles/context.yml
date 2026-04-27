@@ -151,3 +151,8 @@ contexts:
     description: "Use when deciding where to place files, organizing repository structure, or maintaining documentation indexes to ensure all content is recursively reachable from AGENTS.md through structured index branches, because documentation index maintenance is more important than any other organizational concern and proper indexing prevents AI from losing global vision through code search"
     documents:
       - "docs/specs/repository-structure-best-practices.md"
+
+  operation-handbook-specification:
+    description: "Use when creating or updating operation handbooks to enforce closed-world input/output boundaries and consistent acceptance criteria, because handbook quality determines whether roles can avoid out-of-scope reads/writes and produce reviewable outputs"
+    documents:
+      - "docs/specs/operation-handbook-specification.md"
