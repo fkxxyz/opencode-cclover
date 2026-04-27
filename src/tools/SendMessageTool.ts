@@ -221,17 +221,23 @@ export function createSendMessageTool(
       }
 
       // 3. Record or clear session if sender is Boss (BEFORE sending)
-      // Always check session_id: if present update, if absent remove old record
+      // Only record if session is from a meeting-mode role, otherwise clear
       const senderBossId = from.startsWith("0-") ? from.substring(2) : null
       const isSenderBoss =
         senderBossId !== null && bossManager?.isBoss(senderBossId)
 
       if (isSenderBoss && bossManager && recipientId) {
-        if (context.sessionID) {
+        // Check if agent is a valid meeting-mode role
+        const isValidRole =
+          context.sessionID &&
+          context.agent &&
+          roleManager?.getRole(context.agent)
+
+        if (isValidRole) {
           await bossManager.recordSession(
             senderBossId!,
             recipientId,
-            context.sessionID
+            context.sessionID!
           )
         } else {
           await bossManager.clearSession(senderBossId!, recipientId)

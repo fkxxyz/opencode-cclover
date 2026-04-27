@@ -75,6 +75,34 @@ export interface ResolvedRoleContext {
 }
 
 /**
+ * Reusable domain-level context definition
+ *
+ * Shared by roles operating in the same subject area.
+ */
+export interface RoleDomainContextDefinition {
+  /** Stable domain identifier, e.g. "messaging", "memory", "role-design" */
+  id: string
+  /** Optional explanation of this domain */
+  description?: string
+  /** Context IDs automatically applied to roles in this domain */
+  contextIds: string[]
+}
+
+/**
+ * Reusable role-type context definition
+ *
+ * Shared by similar role functions across different domains.
+ */
+export interface RoleTypeContextDefinition {
+  /** Stable role type identifier, e.g. "lead", "reviewer", "manager", "diagnostician", "executor" */
+  id: string
+  /** Optional explanation of this role type */
+  description?: string
+  /** Context IDs automatically applied to roles of this type */
+  contextIds: string[]
+}
+
+/**
  * @experimental internal
  *
  * Specification definition within an action.
@@ -173,6 +201,18 @@ export interface RoleMetadata {
 
   /** Brief description of the role's purpose */
   description?: string
+
+  /**
+   * Stable domain identifier for this role.
+   * Domain-level contexts are resolved from this ID and merged into the role prompt context.
+   */
+  domainId?: string
+
+  /**
+   * Stable role type identifier for this role.
+   * Role-type contexts are resolved from this ID and merged into the role prompt context.
+   */
+  typeId?: string
 
   /**
    * Memory persistence mode
