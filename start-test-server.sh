@@ -3,9 +3,11 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+PORT=${PORT:-"4099"}
+
 echo "🚀 Starting OpenCode server for cclover plugin testing..."
 echo ""
-echo "🔌 Port: 4099"
+echo "🔌 Port: $PORT"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -13,8 +15,8 @@ echo ""
 
 # 后台启动 OpenCode server，输出到临时文件
 LOG_FILE="/tmp/opencode-cclover-test.log"
-cd "$SCRIPT_DIR"
-CCLOVER_ENABLE=1 opencode serve --port 4099 > "$LOG_FILE" 2>&1 &
+cd "$SCRIPT_DIR" || exit 1
+CCLOVER_ENABLE=1 opencode serve --port "$PORT" > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 
 # 清理函数
@@ -62,7 +64,7 @@ trap cleanup SIGINT SIGTERM
 # 等待服务器启动并触发插件加载
 echo "⏳ Waiting for server to start..."
 for i in {1..10}; do
-  if curl -s -o /dev/null -w "%{http_code}" http://localhost:4099/project/current >/dev/null 2>&1; then
+  if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/project/current" >/dev/null 2>&1; then
     echo "✅ Server started and plugin loaded"
     break
   fi
