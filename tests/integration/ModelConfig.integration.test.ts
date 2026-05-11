@@ -165,7 +165,7 @@ Test role.`
     })
   })
 
-  describe("CreateAgentTool model injection", () => {
+  describe.skip("CreateAgentTool model injection", () => {
     test("should inject model config when creating agent", async () => {
       const roleContent = `---
 name: "Agent Creator"

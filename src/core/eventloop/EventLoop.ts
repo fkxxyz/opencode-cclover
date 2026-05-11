@@ -74,6 +74,30 @@ export class EventLoop {
   private progressTracker: ProgressTracker
   private replyTracker: ReplyTracker
 
+  private formatErrorForLog(error: unknown): {
+    message: string
+    stack?: string
+    name?: string
+  } {
+    if (error instanceof Error) {
+      return {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      }
+    }
+
+    try {
+      return {
+        message: JSON.stringify(error),
+      }
+    } catch {
+      return {
+        message: String(error),
+      }
+    }
+  }
+
   constructor(
     private projectPath: string,
     private employeeId: EmployeeId,
@@ -128,11 +152,14 @@ export class EventLoop {
       `[${this.employeeId}] Starting event loop for project ${this.projectPath} with role ${this.roleName}`
     )
 
-    // 启动 Agent 监听器（后台运行，不阻塞）
-    logger.debug(`[${this.employeeId}] Starting agent listener`)
-    this.waitForAgentCompletion().catch((error) => {
-      console.error(`[${this.employeeId}] Agent listener error:`, error)
-    })
+    // 临时禁用子 agent：
+    // OpenCode SSE event stream 在新版本会主动结束，导致 waitForAgentCompletion() 抛错并干扰主循环。
+    // 子 agent 功能暂时关闭，避免员工事件循环被拖垮。
+    // logger.debug(`[${this.employeeId}] Starting agent listener`)
+    // this.waitForAgentCompletion().catch((error) => {
+    //   const info = this.formatErrorForLog(error)
+    //   logger.error(`[${this.employeeId}] Agent listener error`, info)
+    // })
 
     // 启动时检查是否有立即可用的事件，决定初始状态
     logger.debug(`[${this.employeeId}] Checking for immediate events`)
@@ -321,26 +348,24 @@ export class EventLoop {
       }
     }
 
-    // 2. 非阻塞检查 Agent 完成队列
-    const completedAgent = agentRegistry.getCompletedEvent(this.employeeId)
-    if (completedAgent) {
-      // Agent 完成，清空快照和计数器
-      this.progressTracker.clearProgressTracking()
-      return {
-        projectId: "",
-        type: "agent_completed",
-        timestamp: completedAgent.timestamp,
-        details: {
-          agentId: completedAgent.agentId,
-          taskName: completedAgent.taskName,
-          result: completedAgent.result,
-        },
-      }
-    }
+    // 2. 子 agent 功能暂时禁用：不再消费 agentRegistry 完成队列
+    // const completedAgent = agentRegistry.getCompletedEvent(this.employeeId)
+    // if (completedAgent) {
+    //   this.progressTracker.clearProgressTracking()
+    //   return {
+    //     projectId: "",
+    //     type: "agent_completed",
+    //     timestamp: completedAgent.timestamp,
+    //     details: {
+    //       agentId: completedAgent.agentId,
+    //       taskName: completedAgent.taskName,
+    //       result: completedAgent.result,
+    //     },
+    //   }
+    // }
 
-    // 3. 检查是否有运行中的 Agent
-    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeId)
-    const hasRunningAgent = runningAgents.length > 0
+    // 3. 子 agent 功能暂时禁用：不再根据 agentRegistry 判断运行中 agent
+    const hasRunningAgent = false
 
     // 4. 获取当前员工状态
     const employee = await this.stateManager?.getEmployee(this.employeeId)
@@ -399,7 +424,8 @@ export class EventLoop {
     }
 
     // 9. 以上都没有，阻塞等待
-    return Promise.race([this.waitForMessage(), this.waitForAgentCompletion()])
+    // 子 agent 功能暂时禁用：不再阻塞等待 SSE 事件流
+    return this.waitForMessage()
   }
 
   /**
@@ -426,17 +452,15 @@ export class EventLoop {
     const unreadQueue = messageService.getUnreadQueue(this.employeeId)
     if (unreadQueue.length > 0) return true
 
-    // 2. 检查 Agent 完成队列
-    const completedAgent = agentRegistry.getCompletedEvent(this.employeeId)
-    if (completedAgent) {
-      // 放回队列（因为只是检查，不是真正取出）
-      agentRegistry.addCompletedEvent(this.employeeId, completedAgent)
-      return true
-    }
+    // 2. 子 agent 功能暂时禁用：不检查 agentRegistry 完成队列
+    // const completedAgent = agentRegistry.getCompletedEvent(this.employeeId)
+    // if (completedAgent) {
+    //   agentRegistry.addCompletedEvent(this.employeeId, completedAgent)
+    //   return true
+    // }
 
-    // 3. 检查是否有运行中的 Agent
-    const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeId)
-    const hasRunningAgent = runningAgents.length > 0
+    // 3. 子 agent 功能暂时禁用：不检查运行中的 agent
+    const hasRunningAgent = false
 
     // 只有在没有运行中的 Agent 时才检查任务
     if (!hasRunningAgent) {
@@ -565,60 +589,9 @@ export class EventLoop {
    * 将完成的 agent 放入队列，而不是直接返回
    */
   private async waitForAgentCompletion(): Promise<Event> {
-    // 订阅 OpenCode 事件流
-    const events = await this.opcodeClient.event.subscribe()
-
-    for await (const event of events.stream) {
-      // 监听 message.updated 事件（assistant 消息完成）
-      if (event.type === "message.updated") {
-        const msg = (event as any).properties.info
-        if (msg.role === "assistant" && msg.time.completed) {
-          const sessionId = msg.sessionID
-
-          // 检查是否是我们创建的 agent
-          const agentInfo = agentRegistry.getInfo(sessionId)
-          if (agentInfo) {
-            // 获取 agent 的最后一条消息作为结果
-            const result = await this.getAgentResult(sessionId)
-
-            // 取消注册
-            agentRegistry.unregister(sessionId)
-
-            // 创建事件对象
-            const agentEvent: InternalAgentEvent = {
-              type: "agent_completed",
-              agentId: sessionId,
-              taskName: agentInfo.taskName,
-              result,
-              timestamp: new Date().toISOString(),
-            }
-
-            // 记录 agent 完成事件
-            await this.stateManager?.addEvent({
-              projectId: "",
-              type: "agent_completed",
-              timestamp: agentEvent.timestamp,
-              employeeId: this.employeeId,
-              details: {
-                agentId: sessionId,
-                taskName: agentInfo.taskName,
-                result,
-              },
-            })
-
-            // 如果是当前员工的 agent，放入队列
-            if (agentInfo.employeeId === this.employeeId) {
-              agentRegistry.addCompletedEvent(this.employeeId, agentEvent)
-            }
-
-            // 继续监听（不返回，让 waitForEvent 从队列中取）
-          }
-        }
-      }
-    }
-
-    // 永远不会到达这里（for await 会一直等待）
-    throw new Error("Unexpected end of event stream")
+    // 子 agent 功能暂时禁用：
+    // OpenCode SSE event stream 在新版本可能会频繁/定期结束，当前实现会将其视为异常并影响主循环。
+    throw new Error("waitForAgentCompletion is temporarily disabled")
   }
 
   /**

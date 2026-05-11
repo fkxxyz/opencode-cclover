@@ -34,82 +34,13 @@ export function createCreateAgentTool(
       prompt: tool.schema.string().describe("Prompt for the agent"),
     },
     async execute(args, context) {
-      const actor = resolveToolActor(
-        context,
-        stateManager,
-        bossManager,
-        roleManager
+      // 临时禁用子 agent 功能：
+      // 1) OpenCode 全局 SSE event stream 在新版本可能会主动关闭/不再长连接
+      // 2) 现有实现依赖 SSE 监听 message.updated 来判定 agent 完成，导致员工 EventLoop 被连带拖垮
+      // 这里保留工具入口但直接抛异常，让上层尽早发现并回退到“单员工直接执行”模式。
+      throw new Error(
+        "create_agent is temporarily disabled: OpenCode event stream compatibility issue"
       )
-      const employeeId = actor?.actorEmployeeId
-
-      if (!employeeId) {
-        return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
-      }
-
-      // Look up employee to get name
-      if (!stateManager) {
-        return `Error: StateManager not available`
-      }
-
-      const employee = stateManager.getEmployee(employeeId)
-      const employeeName = employee?.name || actor?.actorName
-      if (!employeeName) {
-        return `Error: Employee not found (employeeId: ${employeeId})`
-      }
-
-      try {
-        // 2. Create agent session
-        const session = await opcodeClient.session.create({
-          body: {
-            title: `${employeeName} - ${args.task_name}`,
-          },
-        })
-
-        const agentId = session.data?.id
-
-        if (!agentId) {
-          return `Failed to create agent: Unable to get session ID`
-        }
-
-        // 3. Query model config
-        let modelConfig = null
-        if (employee && roleManager && modelConfigManager) {
-          const role = roleManager.getRole(employee.role)
-          const modelType = role?.model_type || "default"
-          modelConfig = modelConfigManager.resolve(modelType)
-        }
-
-        // 4. Send prompt
-        await opcodeClient.session.prompt({
-          path: { id: agentId },
-          body: {
-            agent: "cclover-empty-agent", // Use empty agent to avoid preset prompt pollution
-            parts: [{ type: "text", text: args.prompt }],
-            ...(modelConfig && { model: modelConfig }),
-          },
-        })
-
-        // 5. Record agent information (for subsequent event matching)
-        agentRegistry.register(agentId, {
-          employeeId: employeeId,
-          taskName: args.task_name,
-        })
-        // 6. Record agent creation event
-        await stateManager?.addEvent({
-          projectId: "",
-          type: "agent_created",
-          timestamp: new Date().toISOString(),
-          employeeId: employeeId,
-          details: {
-            agentId,
-            taskName: args.task_name,
-          },
-        })
-
-        return `✓ Created agent: ${agentId}, executing task: ${args.task_name}`
-      } catch (error) {
-        return `Failed to create agent: ${error instanceof Error ? error.message : String(error)}`
-      }
     },
   })
 }

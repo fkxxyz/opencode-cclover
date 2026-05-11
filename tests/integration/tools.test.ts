@@ -414,64 +414,57 @@ describe("Tools Integration", () => {
   })
 
   describe("create_agent tool", () => {
-    test("should create agent successfully", async () => {
+    test("should be temporarily disabled", async () => {
       const tool = createCreateAgentTool(mockOpcodeClient, stateManager)
       const sessionId = "test-session-7"
       const employeeName = "0-test-role"
 
       sessionRegistry.register(sessionId, employeeName)
 
-      const result = await tool.execute(
-        {
-          task_name: "复杂计算",
-          prompt: "请计算 (123+456)*789",
-        },
-        {
-          sessionID: sessionId,
-          messageID: "msg-1",
-          agent: "test",
-          directory: TEST_WORKSPACE,
-          worktree: TEST_WORKSPACE,
-          abort: new AbortController().signal,
-          metadata: () => {},
-          ask: async () => {},
-        }
-      )
-
-      expect(result).toContain("✓ Created agent: mock-session-id")
-      expect(result).toContain("executing task: 复杂计算")
-
-      // 验证 agent 已注册
-      const agentInfo = agentRegistry.getInfo("mock-session-id")
-      expect(agentInfo).not.toBeUndefined()
-      expect(agentInfo?.employeeId).toBe("0-test-role")
-      expect(agentInfo?.taskName).toBe("复杂计算")
+      await expect(
+        tool.execute(
+          {
+            task_name: "复杂计算",
+            prompt: "请计算 (123+456)*789",
+          },
+          {
+            sessionID: sessionId,
+            messageID: "msg-1",
+            agent: "test",
+            directory: TEST_WORKSPACE,
+            worktree: TEST_WORKSPACE,
+            abort: new AbortController().signal,
+            metadata: () => {},
+            ask: async () => {},
+          }
+        )
+      ).rejects.toThrow(/temporarily disabled/i)
     })
 
-    test("should return error if session not registered", async () => {
+    test("should throw even if session not registered", async () => {
       const tool = createCreateAgentTool(mockOpcodeClient, stateManager)
 
-      const result = await tool.execute(
-        {
-          task_name: "任务",
-          prompt: "提示词",
-        },
-        {
-          sessionID: "unknown-session",
-          messageID: "msg-1",
-          agent: "test",
-          directory: TEST_WORKSPACE,
-          worktree: TEST_WORKSPACE,
-          abort: new AbortController().signal,
-          metadata: () => {},
-          ask: async () => {},
-        }
-      )
-
-      expect(result).toContain("Error: Unable to identify caller")
+      await expect(
+        tool.execute(
+          {
+            task_name: "任务",
+            prompt: "提示词",
+          },
+          {
+            sessionID: "unknown-session",
+            messageID: "msg-1",
+            agent: "test",
+            directory: TEST_WORKSPACE,
+            worktree: TEST_WORKSPACE,
+            abort: new AbortController().signal,
+            metadata: () => {},
+            ask: async () => {},
+          }
+        )
+      ).rejects.toThrow(/temporarily disabled/i)
     })
 
-    test("should handle client errors", async () => {
+    test("should throw before calling client", async () => {
       // Mock 失败的客户端
       const failingClient = {
         session: {
@@ -487,25 +480,24 @@ describe("Tools Integration", () => {
 
       sessionRegistry.register(sessionId, employeeName)
 
-      const result = await tool.execute(
-        {
-          task_name: "任务",
-          prompt: "提示词",
-        },
-        {
-          sessionID: sessionId,
-          messageID: "msg-1",
-          agent: "test",
-          directory: TEST_WORKSPACE,
-          worktree: TEST_WORKSPACE,
-          abort: new AbortController().signal,
-          metadata: () => {},
-          ask: async () => {},
-        }
-      )
-
-      expect(result).toContain("Failed to create agent")
-      expect(result).toContain("Network error")
+      await expect(
+        tool.execute(
+          {
+            task_name: "任务",
+            prompt: "提示词",
+          },
+          {
+            sessionID: sessionId,
+            messageID: "msg-1",
+            agent: "test",
+            directory: TEST_WORKSPACE,
+            worktree: TEST_WORKSPACE,
+            abort: new AbortController().signal,
+            metadata: () => {},
+            ask: async () => {},
+          }
+        )
+      ).rejects.toThrow(/temporarily disabled/i)
     })
   })
 })
