@@ -29,6 +29,12 @@ export interface ProjectInstance {
   meetingModePromptInjector: MeetingModePromptInjector
   feedbackManager: FeedbackManager
   eventLoopStarted: boolean // EventLoop 是否已启动
+  /**
+   * EventLoop 启动中的一次性锁（用于防止并发/重复启动）
+   * - null: 当前没有启动任务
+   * - Promise: 启动进行中（后续调用应复用并 await）
+   */
+  eventLoopStarting: Promise<void> | null
   eventLoops: Map<string, EventLoop> // 员工名称 -> EventLoop 实例
 }
 

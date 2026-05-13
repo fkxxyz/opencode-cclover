@@ -127,6 +127,7 @@ describe("Console Server", () => {
       meetingModePromptInjector,
       feedbackManager: {} as any,
       eventLoopStarted: false,
+      eventLoopStarting: null,
       eventLoops: new Map(),
     })
     server = new ConsoleServer(

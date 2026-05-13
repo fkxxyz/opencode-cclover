@@ -222,6 +222,7 @@ export class GlobalCcloverService {
       meetingModePromptInjector,
       feedbackManager,
       eventLoopStarted: false, // 初始化时不启动 EventLoop
+      eventLoopStarting: null,
       eventLoops: new Map(), // 初始化 EventLoop Map
     }
 
@@ -239,7 +240,8 @@ export class GlobalCcloverService {
     logger.debug(
       `[GlobalServer] startEmployees called for project: ${project.projectName}`
     )
-    // 防止重复启动
+
+    // 1) 如果已经启动完成，直接返回
     if (project.eventLoopStarted) {
       logger.debug(
         `[GlobalServer] EventLoop already started for project: ${project.projectName}`
@@ -247,161 +249,181 @@ export class GlobalCcloverService {
       return
     }
 
-    // 1. 从持久化文件加载员工列表
-    logger.debug(
-      `[GlobalServer] Loading employees for project: ${project.projectName}`
-    )
-    await project.stateManager.loadEmployees()
-    logger.debug(
-      `[GlobalServer] Employees loaded for project: ${project.projectName}`
-    )
-
-    // 2. 注册初始员工（如果不存在）
-    if (!project.stateManager.getEmployee(formatEmployeeId(0, "calculator"))) {
-      await project.stateManager.registerEmployee({
-        employeeId: formatEmployeeId(0, "calculator"),
-        name: "calculator",
-        taskId: 0,
-        role: "calculator",
-        hiredBy: null,
-        status: "offline",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
-    }
-
-    // 3. 加载历史事件到内存
-    try {
-      await project.stateManager.loadHistoricalEvents()
-      logger.info(
-        `Loaded historical events for project: ${project.projectName}`
+    // 2) 并发安全防重：如果启动进行中，复用同一个 Promise
+    if (project.eventLoopStarting) {
+      logger.debug(
+        `[GlobalServer] EventLoop startup already in progress for project: ${project.projectName}`
       )
-    } catch (error: any) {
-      logger.error(
-        `Failed to load historical events for project ${project.projectName}:`,
-        error
-      )
+      await project.eventLoopStarting
+      return
     }
 
-    // 4. 为所有员工启动 EventLoop
-    const employees = project.stateManager.getEmployees()
-    const promptRecoveries = new Map<string, InternalPromptRecoveryEvent>()
-    for (const employee of project.stateManager.listEmployeesWithPromptRecovery()) {
-      if (!employee.promptRecovery || employee.paused) {
-        continue
-      }
-      promptRecoveries.set(employee.employeeId, {
-        type: "prompt_recovery",
-        timestamp: new Date().toISOString(),
-        sessionId: employee.promptRecovery.sessionId,
-        startedAt: employee.promptRecovery.startedAt,
-        triggerEventType: employee.promptRecovery.triggerEventType,
-        version: employee.promptRecovery.version,
-      })
-    }
-    logger.debug(
-      `[GlobalServer] Found ${employees.length} employees for project: ${project.projectName}`
-    )
-    logger.debug(
-      `[GlobalServer] Employee list: ${employees.map((e) => e.name).join(", ")}`
-    )
-    const opcodeClient = this.getOpencodeClient()
-    let startedCount = 0
-
-    for (const employee of employees) {
+    // 3) 建立一次性启动锁
+    project.eventLoopStarting = (async () => {
       try {
+        // 1. 从持久化文件加载员工列表
         logger.debug(
-          `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
+          `[GlobalServer] Loading employees for project: ${project.projectName}`
         )
-        // 验证角色存在
-        const role = project.roleManager.getRole(employee.role)
-        if (!role) {
-          logger.error(
-            `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
-          )
-          continue
+        await project.stateManager.loadEmployees()
+        logger.debug(
+          `[GlobalServer] Employees loaded for project: ${project.projectName}`
+        )
+
+        // 2. 注册初始员工（如果不存在）
+        if (!project.stateManager.getEmployee(formatEmployeeId(0, "calculator"))) {
+          await project.stateManager.registerEmployee({
+            employeeId: formatEmployeeId(0, "calculator"),
+            name: "calculator",
+            taskId: 0,
+            role: "calculator",
+            hiredBy: null,
+            status: "offline",
+            paused: false,
+            createdAt: new Date().toISOString(),
+            lastActiveAt: new Date().toISOString(),
+            activeSessionId: null,
+          })
         }
 
-        // 根据配置计算运行时状态
-        if (employee.paused) {
-          // 配置为暂停 → 设置运行时状态为 offline
-          await project.stateManager.updateEmployeeStatus(
-            employee.employeeId,
-            "offline"
-          )
-          // 不启动 EventLoop
+        // 3. 加载历史事件到内存
+        try {
+          await project.stateManager.loadHistoricalEvents()
           logger.info(
-            `[${project.projectId}] Skipping paused employee: ${employee.name}`
+            `Loaded historical events for project: ${project.projectName}`
           )
-          continue
-        } else {
-          // 配置为活跃 → 设置运行时状态为 idle
-          await project.stateManager.updateEmployeeStatus(
-            employee.employeeId,
-            "idle"
+        } catch (error: any) {
+          logger.error(
+            `Failed to load historical events for project ${project.projectName}:`,
+            error
           )
-          // 启动 EventLoop
         }
 
-        const messageClient = project.messageService.getClient(
-          employee.employeeId
-        )
-
+        // 4. 为所有员工启动 EventLoop
+        const employees = project.stateManager.getEmployees()
+        const promptRecoveries = new Map<string, InternalPromptRecoveryEvent>()
+        for (const employee of project.stateManager.listEmployeesWithPromptRecovery()) {
+          if (!employee.promptRecovery || employee.paused) {
+            continue
+          }
+          promptRecoveries.set(employee.employeeId, {
+            type: "prompt_recovery",
+            timestamp: new Date().toISOString(),
+            sessionId: employee.promptRecovery.sessionId,
+            startedAt: employee.promptRecovery.startedAt,
+            triggerEventType: employee.promptRecovery.triggerEventType,
+            version: employee.promptRecovery.version,
+          })
+        }
         logger.debug(
-          `[GlobalServer] Creating EventLoop for employee: ${employee.name}`
+          `[GlobalServer] Found ${employees.length} employees for project: ${project.projectName}`
         )
-        const eventLoop = new EventLoop(
-          project.directory,
-          employee.employeeId,
-          employee.role,
-          project.roleManager,
-          messageClient,
-          project.memoryManager,
-          opcodeClient,
-          project.modelConfigManager,
-          project.stateManager
+        logger.debug(
+          `[GlobalServer] Employee list: ${employees.map((e) => e.name).join(", ")}`
         )
+        const opcodeClient = this.getOpencodeClient()
+        let startedCount = 0
 
-        const promptRecovery = promptRecoveries.get(employee.employeeId)
-        if (promptRecovery) {
-          eventLoop.enqueuePromptRecovery(promptRecovery)
+        for (const employee of employees) {
+          try {
+            logger.debug(
+              `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
+            )
+            // 验证角色存在
+            const role = project.roleManager.getRole(employee.role)
+            if (!role) {
+              logger.error(
+                `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
+              )
+              continue
+            }
+
+            // 根据配置计算运行时状态
+            if (employee.paused) {
+              // 配置为暂停 → 设置运行时状态为 offline
+              await project.stateManager.updateEmployeeStatus(
+                employee.employeeId,
+                "offline"
+              )
+              // 不启动 EventLoop
+              logger.info(
+                `[${project.projectId}] Skipping paused employee: ${employee.name}`
+              )
+              continue
+            } else {
+              // 配置为活跃 → 设置运行时状态为 idle
+              await project.stateManager.updateEmployeeStatus(
+                employee.employeeId,
+                "idle"
+              )
+              // 启动 EventLoop
+            }
+
+            const messageClient = project.messageService.getClient(
+              employee.employeeId
+            )
+
+            logger.debug(
+              `[GlobalServer] Creating EventLoop for employee: ${employee.name}`
+            )
+            const eventLoop = new EventLoop(
+              project.directory,
+              employee.employeeId,
+              employee.role,
+              project.roleManager,
+              messageClient,
+              project.memoryManager,
+              opcodeClient,
+              project.modelConfigManager,
+              project.stateManager
+            )
+
+            const promptRecovery = promptRecoveries.get(employee.employeeId)
+            if (promptRecovery) {
+              eventLoop.enqueuePromptRecovery(promptRecovery)
+            }
+
+            // 存储到 project.eventLoops
+            project.eventLoops.set(employee.employeeId, eventLoop)
+
+            // 后台运行
+            logger.debug(
+              `[GlobalServer] Starting EventLoop.run() for employee: ${employee.name}`
+            )
+            eventLoop.run().catch((error) => {
+              logger.error(`[${employee.name}] EventLoop crashed:`, error)
+            })
+
+            logger.debug(`EventLoop started for employee: ${employee.name}`)
+            startedCount++
+          } catch (error: any) {
+            logger.error(
+              `[GlobalServer] Failed to start EventLoop for employee '${employee.name}':`,
+              error
+            )
+            // 继续处理下一个员工
+          }
         }
 
-        // 存储到 project.eventLoops
-        project.eventLoops.set(employee.employeeId, eventLoop)
-
-        // 后台运行
-        logger.debug(
-          `[GlobalServer] Starting EventLoop.run() for employee: ${employee.name}`
+        // 标记为已启动
+        project.eventLoopStarted = true
+        logger.info(
+          `Started ${startedCount}/${employees.length} EventLoops for project: ${project.projectName}`
         )
-        eventLoop.run().catch((error) => {
-          logger.error(`[${employee.name}] EventLoop crashed:`, error)
-        })
 
-        logger.debug(`EventLoop started for employee: ${employee.name}`)
-        startedCount++
-      } catch (error: any) {
-        logger.error(
-          `[GlobalServer] Failed to start EventLoop for employee '${employee.name}':`,
-          error
-        )
-        // 继续处理下一个员工
+        if (startedCount < employees.length) {
+          logger.error(
+            `Failed to start ${employees.length - startedCount} EventLoops due to missing roles`
+          )
+        }
+      } finally {
+        // 无论成功失败都要清理启动锁；失败时允许后续重试
+        project.eventLoopStarting = null
       }
-    }
+    })()
 
-    // 标记为已启动
-    project.eventLoopStarted = true
-    logger.info(
-      `Started ${startedCount}/${employees.length} EventLoops for project: ${project.projectName}`
-    )
-
-    if (startedCount < employees.length) {
-      logger.error(
-        `Failed to start ${employees.length - startedCount} EventLoops due to missing roles`
-      )
-    }
+    await project.eventLoopStarting
+    return
   }
 
   /**
