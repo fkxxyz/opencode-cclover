@@ -104,9 +104,7 @@ describe.skip("Hiring Flow Integration", () => {
       {
         name: "soul-dev",
         role: "Soul Developer",
-        initial_args: [
-          { name: "worktree_path", value: TEST_WORKSPACE },
-        ],
+        initial_args: [{ name: "worktree_path", value: TEST_WORKSPACE }],
       },
       {
         sessionID: "boss-session",
@@ -161,9 +159,7 @@ describe.skip("Hiring Flow Integration", () => {
       {
         name: "dev-001",
         role: "General Developer",
-        initial_args: [
-          { name: "worktree_path", value: TEST_WORKSPACE },
-        ],
+        initial_args: [{ name: "worktree_path", value: TEST_WORKSPACE }],
       },
       {
         sessionID: "pm-session",
@@ -217,9 +213,7 @@ describe.skip("Hiring Flow Integration", () => {
       {
         name: "soul-dev",
         role: "Soul Developer",
-        initial_args: [
-          { name: "worktree_path", value: TEST_WORKSPACE },
-        ],
+        initial_args: [{ name: "worktree_path", value: TEST_WORKSPACE }],
       },
       {
         sessionID: "pm-session",

@@ -270,23 +270,7 @@ export class GlobalCcloverService {
           `[GlobalServer] Employees loaded for project: ${project.projectName}`
         )
 
-        // 2. 注册初始员工（如果不存在）
-        if (!project.stateManager.getEmployee(formatEmployeeId(0, "calculator"))) {
-          await project.stateManager.registerEmployee({
-            employeeId: formatEmployeeId(0, "calculator"),
-            name: "calculator",
-            taskId: 0,
-            role: "calculator",
-            hiredBy: null,
-            status: "offline",
-            paused: false,
-            createdAt: new Date().toISOString(),
-            lastActiveAt: new Date().toISOString(),
-            activeSessionId: null,
-          })
-        }
-
-        // 3. 加载历史事件到内存
+        // 2. 加载历史事件到内存
         try {
           await project.stateManager.loadHistoricalEvents()
           logger.info(
@@ -299,7 +283,7 @@ export class GlobalCcloverService {
           )
         }
 
-        // 4. 为所有员工启动 EventLoop
+        // 3. 为所有员工启动 EventLoop
         const employees = project.stateManager.getEmployees()
         const promptRecoveries = new Map<string, InternalPromptRecoveryEvent>()
         for (const employee of project.stateManager.listEmployeesWithPromptRecovery()) {
@@ -323,41 +307,41 @@ export class GlobalCcloverService {
         )
         const opcodeClient = this.getOpencodeClient()
         let startedCount = 0
+        let missingRoleCount = 0
+        let startErrorCount = 0
+        const activeEmployees = employees.filter((e) => !e.paused)
 
         for (const employee of employees) {
           try {
             logger.debug(
               `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
             )
-            // 验证角色存在
-            const role = project.roleManager.getRole(employee.role)
-            if (!role) {
-              logger.error(
-                `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
-              )
-              continue
-            }
 
-            // 根据配置计算运行时状态
+            // paused 员工：静默跳过（不校验 role，不启动 EventLoop）
             if (employee.paused) {
               // 配置为暂停 → 设置运行时状态为 offline
               await project.stateManager.updateEmployeeStatus(
                 employee.employeeId,
                 "offline"
               )
-              // 不启动 EventLoop
-              logger.info(
-                `[${project.projectId}] Skipping paused employee: ${employee.name}`
+              continue
+            }
+
+            // 非 paused 员工：验证角色存在
+            const role = project.roleManager.getRole(employee.role)
+            if (!role) {
+              missingRoleCount++
+              logger.error(
+                `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
               )
               continue
-            } else {
-              // 配置为活跃 → 设置运行时状态为 idle
-              await project.stateManager.updateEmployeeStatus(
-                employee.employeeId,
-                "idle"
-              )
-              // 启动 EventLoop
             }
+
+            // 配置为活跃 → 设置运行时状态为 idle
+            await project.stateManager.updateEmployeeStatus(
+              employee.employeeId,
+              "idle"
+            )
 
             const messageClient = project.messageService.getClient(
               employee.employeeId
@@ -397,6 +381,7 @@ export class GlobalCcloverService {
             logger.debug(`EventLoop started for employee: ${employee.name}`)
             startedCount++
           } catch (error: any) {
+            startErrorCount++
             logger.error(
               `[GlobalServer] Failed to start EventLoop for employee '${employee.name}':`,
               error
@@ -408,12 +393,17 @@ export class GlobalCcloverService {
         // 标记为已启动
         project.eventLoopStarted = true
         logger.info(
-          `Started ${startedCount}/${employees.length} EventLoops for project: ${project.projectName}`
+          `Started ${startedCount}/${activeEmployees.length} EventLoops for project: ${project.projectName}`
         )
 
-        if (startedCount < employees.length) {
+        if (missingRoleCount > 0) {
           logger.error(
-            `Failed to start ${employees.length - startedCount} EventLoops due to missing roles`
+            `Failed to start ${missingRoleCount} EventLoops due to missing roles`
+          )
+        }
+        if (startErrorCount > 0) {
+          logger.error(
+            `Failed to start ${startErrorCount} EventLoops due to startup errors`
           )
         }
       } finally {

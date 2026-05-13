@@ -1195,9 +1195,7 @@ Tester`
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
-  test.skip(
-    "all preset role contextIds should be defined in context.yml",
-    async () => {
+  test.skip("all preset role contextIds should be defined in context.yml", async () => {
     const yaml = await import("yaml")
 
     // 读取 context.yml
@@ -1258,8 +1256,7 @@ Tester`
     }
 
     expect(undefinedContextIds.length).toBe(0)
-    }
-  )
+  })
 
   test("all documents in context.yml should be relative paths and exist", async () => {
     const yaml = await import("yaml")
