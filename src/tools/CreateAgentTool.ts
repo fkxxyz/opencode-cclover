@@ -9,6 +9,7 @@ import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
 import type { ModelConfigManager } from "../config/ModelConfigManager"
+import type { WorkItemManager } from "../core/WorkItemManager"
 import { agentRegistry } from "../utils/AgentRegistry"
 import { resolveToolActor } from "../meeting-mode"
 /**
@@ -25,12 +26,21 @@ export function createCreateAgentTool(
   stateManager?: StateManager,
   bossManager?: BossManager,
   roleManager?: RoleManager,
-  modelConfigManager?: ModelConfigManager
+  modelConfigManager?: ModelConfigManager,
+  _workItemManager?: WorkItemManager
 ) {
   return tool({
-    description: "Create OpenCode agent to execute task",
+    description:
+      "Create OpenCode agent to execute a work item or personal task",
     args: {
-      task_name: tool.schema.string().describe("Associated task name"),
+      work_item_id: tool.schema
+        .string()
+        .optional()
+        .describe("Optional project-level work item ID"),
+      task_name: tool.schema
+        .string()
+        .optional()
+        .describe("Optional personal TODO task name"),
       prompt: tool.schema.string().describe("Prompt for the agent"),
     },
     async execute(args, context) {

@@ -7,7 +7,8 @@
 export interface HaltEvent {
   type: "halt_requested"
   employeeId: string
-  taskId: number
+  rootTaskId?: string
+  workItemId?: string
   reason?: string
   timestamp: string
   triggeredBy?: string

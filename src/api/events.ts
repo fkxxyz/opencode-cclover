@@ -5,7 +5,7 @@ import type { Event, SuccessResponse, ErrorResponse } from "../types/index"
  * 获取事件历史
  */
 export function getEvents(
-  options: { limit?: number; employeeName?: string },
+  options: { limit?: number; employeeId?: string },
   stateManager: StateManager
 ): SuccessResponse<{ events: Event[] }> {
   try {
@@ -24,7 +24,7 @@ export function getEvents(
     // 获取事件
     const events = stateManager.getEvents({
       limit,
-      employeeName: options?.employeeName,
+      employeeId: options?.employeeId,
     })
 
     return {

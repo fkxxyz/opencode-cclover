@@ -8,6 +8,8 @@ import type { EventLoop } from "../core/eventloop"
 import type { MeetingModePromptInjector } from "../meeting-mode/PromptInjector"
 import type { ModelConfigManager } from "../config/ModelConfigManager"
 import type { FeedbackManager } from "../core/FeedbackManager"
+import type { RootTaskManager } from "../core/RootTaskManager"
+import type { WorkItemManager } from "../core/WorkItemManager"
 import { createHash } from "node:crypto"
 import EventEmitter from "eventemitter3"
 
@@ -22,6 +24,8 @@ export interface ProjectInstance {
   stateManager: StateManager
   messageService: MessageService
   memoryManager: MemoryManager
+  rootTaskManager: RootTaskManager
+  workItemManager: WorkItemManager
   agentRegistry: AgentRegistry
   bossManager: BossManager
   roleManager: RoleManager
@@ -35,7 +39,7 @@ export interface ProjectInstance {
    * - Promise: 启动进行中（后续调用应复用并 await）
    */
   eventLoopStarting: Promise<void> | null
-  eventLoops: Map<string, EventLoop> // 员工名称 -> EventLoop 实例
+  eventLoops: Map<string, EventLoop> // employeeId -> EventLoop 实例
 }
 
 /**

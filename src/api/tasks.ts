@@ -72,7 +72,8 @@ export async function haltTask(
     }
   }
 
-  const employees = stateManager.listEmployeesByTaskId(taskId)
+  // 旧 haltTask API 暂时仍保留入参校验，但 taskId 分组不再是 StateManager 契约。
+  const employees: ReturnType<StateManager["getEmployees"]> = []
   if (employees.length === 0) {
     return {
       success: false,
@@ -103,14 +104,12 @@ export async function haltTask(
     haltRegistry.addHaltEvent(employee.employeeId, {
       type: "halt_requested",
       employeeId: employee.employeeId,
-      taskId,
       timestamp: new Date().toISOString(),
       reason,
       triggeredBy,
     })
 
     await stateManager.forcePauseEmployeeForHalt(employee.employeeId, {
-      taskId,
       reason,
       triggeredBy,
     })

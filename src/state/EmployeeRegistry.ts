@@ -3,7 +3,8 @@ import type {
   Employee,
   EmployeeStatus,
   EmployeeId,
-  TaskId,
+  EmployeeName,
+  BossId,
 } from "../types/index"
 
 /**
@@ -91,6 +92,42 @@ export class EmployeeRegistry {
   }
 
   /**
+   * 按员工名称筛选员工
+   */
+  getByName(name: EmployeeName): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.name === name)
+      .map((e) => ({ ...e }))
+  }
+
+  /**
+   * 按角色 ID 筛选员工
+   */
+  getByRoleId(roleId: string): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.roleId === roleId)
+      .map((e) => ({ ...e }))
+  }
+
+  /**
+   * 按雇佣来源筛选员工
+   */
+  getByHiredBy(hiredBy: EmployeeId | BossId): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.hiredBy === hiredBy)
+      .map((e) => ({ ...e }))
+  }
+
+  /**
+   * 按暂停配置筛选员工
+   */
+  getByPaused(paused: boolean): Employee[] {
+    return Array.from(this.employees.values())
+      .filter((e) => e.paused === paused)
+      .map((e) => ({ ...e }))
+  }
+
+  /**
    * 更新员工 paused 配置
    */
   updatePaused(employeeId: EmployeeId, paused: boolean): void {
@@ -140,32 +177,5 @@ export class EmployeeRegistry {
    */
   clear(): void {
     this.employees.clear()
-  }
-
-  /**
-   * 根据 taskId 查询员工列表
-   */
-  getByTaskId(taskId: TaskId): Employee[] {
-    return Array.from(this.employees.values())
-      .filter((e) => e.taskId === taskId)
-      .map((e) => ({ ...e }))
-  }
-
-  /**
-   * 获取活跃员工列表 (taskId > 0)
-   */
-  getActiveEmployees(): Employee[] {
-    return Array.from(this.employees.values())
-      .filter((e) => e.taskId > 0)
-      .map((e) => ({ ...e }))
-  }
-
-  /**
-   * 获取归档员工列表 (taskId === 0)
-   */
-  getArchivedEmployees(): Employee[] {
-    return Array.from(this.employees.values())
-      .filter((e) => e.taskId === 0)
-      .map((e) => ({ ...e }))
   }
 }

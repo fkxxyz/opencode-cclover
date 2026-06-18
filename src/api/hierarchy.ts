@@ -58,7 +58,7 @@ export function getHierarchy(
         includedEmployees.add(e.name) // 记录已包含的员工
         return {
           name: e.name,
-          role: e.role,
+          role: e.roleId,
           status: e.status,
           children: buildTree(e.employeeId, e.name),
         }
@@ -86,7 +86,7 @@ export function getHierarchy(
   for (const orphan of orphanEmployees) {
     roots.push({
       name: orphan.name,
-      role: orphan.role,
+      role: orphan.roleId,
       status: orphan.status,
       children: buildTree(orphan.employeeId, orphan.name), // 递归构建子树（如果有员工被这个 orphan 雇佣）
     })

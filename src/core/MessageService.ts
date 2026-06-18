@@ -7,13 +7,13 @@ import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { StateManager } from "../state/StateManager"
 import type { IBossManager } from "../types/boss-manager"
 import type { Message, MessageDirection, Event } from "../types"
-import type { EmployeeId, BossId, TaskId } from "../types/employee"
+import type { EmployeeId, BossId } from "../types/employee"
 import type {
   RecipientResolution,
   MessageRouter,
 } from "../types/message-routing"
 import { RoutingRules } from "../types/message-routing"
-import { parseEmployeeId, isBossId } from "../types/employee"
+import { isBossId } from "../types/employee"
 import { buildEventMessage } from "../utils/ContextBuilder"
 import { logger } from "../lib/logger"
 
@@ -171,11 +171,8 @@ export class MessageService implements MessageRouter {
   }
 
   /**
-   * 解析收件人到目标 employeeId 或 BossId
-   * 实现三种路由规则:
-   * 1. 同任务通信 (短名称)
-   * 2. 跨任务通信 (完整 employeeId)
-   * 3. Boss/非任务员工 (特殊处理)
+   * 解析收件人到目标 employeeId 或 BossId。
+   * Phase 1 契约不再支持从 employeeId 推断 taskId。
    */
   resolveRecipient(
     sender: EmployeeId | BossId,
@@ -186,49 +183,52 @@ export class MessageService implements MessageRouter {
       isBossId(sender) &&
       this.bossManager &&
       this.bossManager.isBoss(RoutingRules.extractNameFromBossId(sender))
-    if (senderIsBoss) {
-      // Boss can only send to full employeeId or BossId
-      if (!RoutingRules.isFullEmployeeId(recipient)) {
+    if (RoutingRules.isEmployeeId(recipient)) {
+      return {
+        targetId: recipient,
+        targetType: "employee",
+        resolvedBy: "employee_id",
+      }
+    }
+
+    if (!RoutingRules.isBossId(recipient)) {
+      const employees = this.stateManager
+        ?.getEmployees()
+        .filter((employee) => employee.name === recipient)
+      if (employees?.length === 1) {
+        return {
+          targetId: employees[0].employeeId,
+          targetType: "employee",
+          resolvedBy: "unique_name",
+        }
+      }
+
+      if (employees && employees.length > 1) {
         throw new Error(
-          `Boss cannot use short names. Use full employeeId format: {taskId}-{name}`
+          `收件人名称 '${recipient}' 不唯一，请使用稳定 employeeId`
         )
       }
-      // Continue to Rule 2 or Rule 3
-    }
 
-    // Rule 1: 同任务通信 (短名称) - only for non-Boss senders
-    if (!RoutingRules.isFullEmployeeId(recipient)) {
-      // 提取发送者的 taskId
-      const { taskId: senderTaskId } = parseEmployeeId(sender)
-      const targetEmployeeId = RoutingRules.buildSameTaskEmployeeId(
-        senderTaskId,
-        recipient
-      )
+      if (senderIsBoss) {
+        throw new Error(
+          `Boss cannot use unknown short names. Use stable employeeId or configured BossId.`
+        )
+      }
+
+      const employee = this.stateManager?.getEmployee(recipient)
+      if (!employee) {
+        throw new Error(`目标 '${recipient}' 不存在`)
+      }
       return {
-        targetEmployeeId,
-        isBoss: false,
-        isSameTask: true,
-        isCrossTask: false,
+        targetId: recipient,
+        targetType: "employee",
+        resolvedBy: "employee_id",
       }
     }
 
-    // Rule 2: 跨任务通信 (完整 employeeId)
-    if (!RoutingRules.isBossOrNonTask(recipient)) {
-      return {
-        targetEmployeeId: recipient,
-        isBoss: false,
-        isSameTask: false,
-        isCrossTask: true,
-      }
-    }
-
-    // Rule 3: Boss/非任务员工 (特殊处理)
     const name = RoutingRules.extractNameFromBossId(recipient)
-
-    // 3.1 优先检查是否为 Boss
     const isConfiguredBoss = this.bossManager?.isBoss(name)
     if (isConfiguredBoss) {
-      // 检查是否同时存在员工 "0-{name}"
       const employee = this.stateManager?.getEmployee(recipient)
       if (employee) {
         logger.warn(
@@ -236,40 +236,19 @@ export class MessageService implements MessageRouter {
         )
       }
       return {
-        targetEmployeeId: recipient,
-        isBoss: true,
-        isSameTask: false,
-        isCrossTask: false,
+        targetId: recipient,
+        targetType: "boss",
+        resolvedBy: "boss_id",
       }
     }
 
-    // 3.2 检查是否为 meeting-mode role (BossId format but not configured boss)
-    // Meeting-mode roles use BossId format (0-{roleId}) but aren't in boss list
-    if (RoutingRules.isBossOrNonTask(recipient)) {
-      // It's in BossId format but not a configured boss
-      // Treat as meeting-mode role (boss-like for session forwarding)
-      logger.debug(
-        `[MessageService] Treating "${recipient}" as meeting-mode role (BossId format, not configured boss)`
-      )
-      return {
-        targetEmployeeId: recipient,
-        isBoss: true, // Treat as boss for session forwarding
-        isSameTask: false,
-        isCrossTask: false,
-      }
-    }
-
-    // 3.3 查找非任务员工
-    const employee = this.stateManager?.getEmployee(recipient)
-    if (!employee) {
-      throw new Error(`目标 '${recipient}' 不存在`)
-    }
-
+    logger.debug(
+      `[MessageService] Treating "${recipient}" as meeting-mode role (BossId format, not configured boss)`
+    )
     return {
-      targetEmployeeId: recipient,
-      isBoss: false,
-      isSameTask: false,
-      isCrossTask: false,
+      targetId: recipient,
+      targetType: "meeting-role",
+      resolvedBy: "meeting_role",
     }
   }
 
@@ -297,7 +276,7 @@ export class MessageService implements MessageRouter {
   ): Promise<void> {
     // 1. 解析收件人
     const resolution = this.resolveRecipient(from, to)
-    const targetEmployeeId = resolution.targetEmployeeId
+    const targetEmployeeId = resolution.targetId
 
     // 2. 校验：不能向自己发送
     if (from === targetEmployeeId) {
@@ -314,7 +293,7 @@ export class MessageService implements MessageRouter {
       fromRole = "boss"
     } else {
       const employee = this.stateManager?.getEmployee(from)
-      fromRole = employee?.role
+      fromRole = employee?.roleId
     }
 
     const timestamp = new Date().toISOString()
@@ -371,7 +350,11 @@ export class MessageService implements MessageRouter {
     this.notifyNewMessage(targetEmployeeId)
 
     // 9. 转发消息到用户 session（如果接收方有记录的 session）
-    if (this.bossManager && resolution.isBoss) {
+    if (
+      this.bossManager &&
+      (resolution.targetType === "boss" ||
+        resolution.targetType === "meeting-role")
+    ) {
       // Extract boss name from BossId (0-{bossName})
       const bossName = isBossId(targetEmployeeId)
         ? targetEmployeeId.substring(2)

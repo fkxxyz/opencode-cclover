@@ -3,23 +3,34 @@ import type {
   Employee as EmployeeBase,
   EmployeeStatus,
   EmployeeId,
+  BossId,
 } from "./employee"
+import type { RootTaskId, WorkItemId } from "./work"
 export type {
-  TaskId,
   EmployeeId,
   EmployeeName,
   BossId,
-  ProjectState,
+  PromptRecovery,
   EmployeeStatus,
 } from "./employee"
 export type { Employee } from "./employee"
 export {
   isValidEmployeeName,
-  parseEmployeeId,
-  formatEmployeeId,
+  createEmployeeId,
   formatBossId,
   isBossId,
 } from "./employee"
+export type {
+  RootTaskId,
+  WorkItemId,
+  WorktreeRef,
+  RootTask,
+  WorkItem,
+  CreateRootTaskInput,
+  CreateWorkItemInput,
+  UpdateWorkItemInput,
+  WorkItemFilters,
+} from "./work"
 
 // 员工详细信息
 export interface EmployeeDetail extends EmployeeBase {
@@ -60,7 +71,12 @@ export interface PeerWithLastMessage {
 }
 
 // 消息路由
-export type { RecipientResolution, MessageRouter } from "./message-routing"
+export type {
+  MessageRouter,
+  RecipientResolution,
+  RecipientResolvedBy,
+  RecipientTargetType,
+} from "./message-routing"
 export { RoutingRules } from "./message-routing"
 
 // 任务状态类型
@@ -154,6 +170,11 @@ export type EventType =
   | "major_task_completed"
   | "survey_sent"
   | "feedback_received"
+  | "root_task_created"
+  | "root_task_deleted"
+  | "work_item_created"
+  | "work_item_updated"
+  | "work_item_deleted"
 
 // 事件
 export interface Event {
@@ -161,7 +182,16 @@ export interface Event {
   type: EventType
   timestamp: string
   employeeId?: EmployeeId
+  rootTaskId?: RootTaskId
+  workItemId?: WorkItemId
   details: Record<string, any>
+}
+
+export interface HaltDetails {
+  rootTaskId?: RootTaskId
+  workItemId?: WorkItemId
+  reason?: string
+  triggeredBy?: EmployeeId | BossId
 }
 
 // API 响应类型

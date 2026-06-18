@@ -9,17 +9,21 @@ import { tool } from "@opencode-ai/plugin"
 import type { MessageService } from "../core/MessageService"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
+import type { WorkItemManager } from "../core/WorkItemManager"
 import { resolveToolActor } from "../meeting-mode"
 
 export function createCompleteMajorTaskTool(
   messageService: MessageService,
   stateManager: StateManager,
-  roleManager: RoleManager
+  roleManager?: RoleManager,
+  workItemManager?: WorkItemManager
 ) {
   return tool({
     description:
-      "Mark major task completion and trigger team feedback survey. Only core lead roles can call this.",
-    args: {},
+      "Mark a root task completion and trigger team feedback survey. Only core lead roles can call this.",
+    args: {
+      root_task_id: tool.schema.string().describe("Completed root task ID"),
+    },
     async execute(args, context) {
       // 解析调用者身份
       const actor = resolveToolActor(context, stateManager)
@@ -40,13 +44,17 @@ export function createCompleteMajorTaskTool(
         throw new Error(`Employee ${employeeName} not found`)
       }
 
-      const role = roleManager.getRole(employee.role)
+      const role = roleManager?.getRole(employee.roleId)
 
       if (!role || !role.isCoreLead) {
         throw new Error(
           `Permission denied: Only core lead roles can complete major tasks. ` +
-            `Your role '${employee.role}' does not have isCoreLead permission.`
+            `Your role '${employee.roleId}' does not have isCoreLead permission.`
         )
+      }
+
+      if (!workItemManager) {
+        throw new Error("WorkItemManager is required to complete a root task")
       }
 
       // 2. 记录 major_task_completed 事件
@@ -55,15 +63,20 @@ export function createCompleteMajorTaskTool(
         type: "major_task_completed",
         timestamp: new Date().toISOString(),
         employeeId: employee.employeeId,
+        rootTaskId: args.root_task_id,
         details: { completedAt: new Date().toISOString() },
       })
 
-      // 3. 过滤出与调用者相同 taskId 的员工
-      const taskEmployees = employees.filter(
-        (e) => e.taskId === employee.taskId
+      // 3. 从 root task 下的 work item 找到参与员工
+      const workItems = await workItemManager.listWorkItems({
+        rootTaskId: args.root_task_id,
+      })
+      const employeeIds = new Set(workItems.map((item) => item.employeeId))
+      const taskEmployees = employees.filter((e) =>
+        employeeIds.has(e.employeeId)
       )
 
-      // 4. 发送调查问卷给同一 taskId 的员工
+      // 4. 发送调查问卷给 root task 下 work item 覆盖到的员工
       const SURVEY_PROMPT = `[Work Experience Survey]
 
 Hello! I'm the Boss, the developer of this system.
@@ -145,7 +158,7 @@ Any degree of discomfort is worth mentioning — even just a momentary "Huh?", i
         })
       }
 
-      return `Major task marked complete. Feedback survey sent to ${taskEmployees.length} employees in taskId ${employee.taskId}.`
+      return `Root task ${args.root_task_id} marked complete. Feedback survey sent to ${taskEmployees.length} employees.`
     },
   })
 }

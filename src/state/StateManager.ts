@@ -8,7 +8,11 @@ import type {
   Event,
   EventType,
   EmployeeId,
-  TaskId,
+  EmployeeName,
+  BossId,
+  HaltDetails,
+  RootTaskId,
+  WorkItemId,
 } from "../types/index"
 import { isValidEmployeeName } from "../types/index"
 import EventEmitter from "eventemitter3"
@@ -207,11 +211,7 @@ export class StateManager {
    */
   async forcePauseEmployeeForHalt(
     employeeId: EmployeeId,
-    details: {
-      taskId: number
-      reason?: string
-      triggeredBy?: string
-    }
+    details: HaltDetails
   ): Promise<void> {
     const employee = this.employeeRegistry.get(employeeId)
     if (!employee) {
@@ -231,6 +231,8 @@ export class StateManager {
       type: "employee_halted" as const,
       timestamp: new Date().toISOString(),
       employeeId,
+      rootTaskId: details.rootTaskId,
+      workItemId: details.workItemId,
       details,
     }
     this.eventHistory.add(event)
@@ -362,22 +364,71 @@ export class StateManager {
    */
   getEvents(options?: {
     limit?: number
-    employeeName?: string
+    employeeId?: EmployeeId
+    rootTaskId?: RootTaskId
+    workItemId?: WorkItemId
     type?: EventType
   }): Event[] {
     const limit = options?.limit || 50
-    const employeeName = options?.employeeName
-    const type = options?.type
 
-    if (employeeName) {
-      return this.eventHistory.getByEmployee(employeeName, limit)
-    }
+    return this.eventHistory
+      .getAll()
+      .filter(
+        (event) =>
+          !options?.employeeId || event.employeeId === options.employeeId
+      )
+      .filter(
+        (event) =>
+          !options?.rootTaskId || event.rootTaskId === options.rootTaskId
+      )
+      .filter(
+        (event) =>
+          !options?.workItemId || event.workItemId === options.workItemId
+      )
+      .filter((event) => !options?.type || event.type === options.type)
+      .slice(0, limit)
+  }
 
-    if (type) {
-      return this.eventHistory.getByType(type, limit)
-    }
+  /**
+   * 按员工名称查询员工列表
+   */
+  listEmployeesByName(name: EmployeeName): Employee[] {
+    return this.employeeRegistry.getByName(name)
+  }
 
-    return this.eventHistory.getRecent(limit)
+  /**
+   * 按角色 ID 查询员工列表
+   */
+  listEmployeesByRoleId(roleId: string): Employee[] {
+    return this.employeeRegistry.getByRoleId(roleId)
+  }
+
+  /**
+   * 按雇佣来源查询员工列表
+   */
+  listEmployeesByHiredBy(hiredBy: EmployeeId | BossId): Employee[] {
+    return this.employeeRegistry.getByHiredBy(hiredBy)
+  }
+
+  /**
+   * 按运行状态查询员工列表
+   */
+  listEmployeesByStatus(status: EmployeeStatus): Employee[] {
+    return this.employeeRegistry.getByStatus(status)
+  }
+
+  /**
+   * 查询已暂停员工
+   */
+  listPausedEmployees(): Employee[] {
+    return this.employeeRegistry.getByPaused(true)
+  }
+
+  /**
+   * 查询未暂停员工
+   */
+  listRunningEmployees(): Employee[] {
+    return this.employeeRegistry.getByPaused(false)
   }
 
   /**
@@ -549,26 +600,5 @@ export class StateManager {
     logger.debug(
       `[StateManager] loadEmployees: completed, total employees in registry: ${this.employeeRegistry.getAll().length}`
     )
-  }
-
-  /**
-   * 根据 taskId 查询员工列表
-   */
-  listEmployeesByTaskId(taskId: TaskId): Employee[] {
-    return this.employeeRegistry.getByTaskId(taskId)
-  }
-
-  /**
-   * 获取活跃员工列表 (taskId > 0)
-   */
-  listActiveEmployees(): Employee[] {
-    return this.employeeRegistry.getActiveEmployees()
-  }
-
-  /**
-   * 获取归档员工列表 (taskId === 0)
-   */
-  listArchivedEmployees(): Employee[] {
-    return this.employeeRegistry.getArchivedEmployees()
   }
 }

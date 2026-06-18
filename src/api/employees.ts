@@ -208,8 +208,7 @@ export async function getBossDetail(
     const detail: EmployeeDetail = {
       employeeId: formatBossId(name),
       name,
-      taskId: 0,
-      role: "Boss",
+      roleId: "Boss",
       hiredBy: null,
       status: "busy" as const,
       paused: false,

@@ -85,14 +85,14 @@ export async function getEmployeeRole(
   }
 
   // 获取角色信息
-  const role = roleManager.getRole(employee.role)
+  const role = roleManager.getRole(employee.roleId)
 
   if (!role) {
     return {
       success: false,
       error: {
         code: "ROLE_NOT_FOUND",
-        message: `Role "${employee.role}" not found`,
+        message: `Role "${employee.roleId}" not found`,
       },
     }
   }

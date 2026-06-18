@@ -53,9 +53,9 @@ export function createShowHireableRolesTool(
             return `Error: Employee '${callerName}' not found`
           }
 
-          const callerRole = roleManager.getRole(employee.role)
+          const callerRole = roleManager.getRole(employee.roleId)
           if (!callerRole) {
-            return `Error: Cannot find role definition for role '${employee.role}'`
+            return `Error: Cannot find role definition for role '${employee.roleId}'`
           }
 
           if (!callerRole.canHire || callerRole.canHire.length === 0) {

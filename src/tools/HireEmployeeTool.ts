@@ -12,7 +12,7 @@ import type { BossManager } from "../core/BossManager"
 import { resolveToolActor } from "../meeting-mode"
 import { logger } from "../lib/logger"
 import type { EmployeeId } from "../types/employee"
-import { formatBossId } from "../types/employee"
+import { createEmployeeId } from "../types/employee"
 
 export function createHireEmployeeTool(
   stateManager: StateManager,
@@ -107,42 +107,13 @@ export function createHireEmployeeTool(
           return "Error: Employee name cannot be empty or whitespace"
         }
 
-        // 6. Determine taskId and employeeId based on hiring logic
-        let taskId: number
-        let newEmployeeId: EmployeeId
+        // 6. 生成与任务无关的稳定 employeeId
+        const newEmployeeId = createEmployeeId()
 
-        // Check if role is soul (defaults to true if not specified)
-        const isSoulRole = roleDefinition.soul !== false
-
-        if (actor?.hasBossAuthority || bossManager?.isBoss(hiredBy)) {
-          // Boss hiring logic
-          if (isSoulRole) {
-            // Soul employee hired by boss gets taskId=0
-            taskId = 0
-            newEmployeeId = formatBossId(trimmedName)
-          } else {
-            // Non-soul employee hired by boss gets generated taskId
-            taskId = await generateNextTaskId(stateManager)
-            newEmployeeId = `${taskId}-${trimmedName}` as EmployeeId
-          }
-        } else {
-          // Non-boss hiring logic
+        if (!(actor?.hasBossAuthority || bossManager?.isBoss(hiredBy))) {
           const parentEmployee = stateManager.getEmployee(hiredByEmployeeId!)
           if (!parentEmployee) {
             return `Error: Parent employee not found`
-          }
-
-          if (isSoulRole) {
-            // Soul employee can only be hired by boss (taskId=0)
-            if (parentEmployee.taskId > 0) {
-              return `Error: Only boss (taskId=0) can hire soul employees. Your taskId is ${parentEmployee.taskId}.`
-            }
-            taskId = 0
-            newEmployeeId = formatBossId(trimmedName)
-          } else {
-            // Non-soul employee inherits parent's taskId
-            taskId = parentEmployee.taskId
-            newEmployeeId = `${taskId}-${trimmedName}` as EmployeeId
           }
         }
 
@@ -156,8 +127,7 @@ export function createHireEmployeeTool(
         await stateManager.registerEmployee({
           employeeId: newEmployeeId,
           name: trimmedName,
-          taskId,
-          role: args.role,
+          roleId: args.role,
           status: "offline",
           paused: false,
           createdAt: new Date().toISOString(),
@@ -301,7 +271,7 @@ function checkHiringPermission(
   }
 
   // 检查雇佣者的角色是否允许雇佣目标角色
-  return roleManager.canHire(employee.role, targetRole)
+  return roleManager.canHire(employee.roleId, targetRole)
 }
 
 /**
@@ -316,10 +286,8 @@ async function startEmployee(
     // Dynamically import EventLoop (avoid circular dependency)
     const { EventLoop } = await import("../core/eventloop")
     const { GlobalCcloverService } = await import("../server/GlobalServer")
-    const { parseEmployeeId } = await import("../types/employee")
-
-    // Parse employeeId to get name for backward compatibility
-    const { name } = parseEmployeeId(employeeId)
+    const employee = project.stateManager.getEmployee(employeeId)
+    const eventLoopKey = employee?.employeeId ?? employeeId
 
     const messageClient = project.messageService.getClient(employeeId)
     const globalService = await GlobalCcloverService.getInstance()
@@ -337,8 +305,7 @@ async function startEmployee(
       project.stateManager
     )
 
-    // Store in project.eventLoops (use name as key for backward compatibility)
-    project.eventLoops.set(name, eventLoop)
+    project.eventLoops.set(eventLoopKey, eventLoop)
 
     // Run in background
     eventLoop.run().catch((error: any) => {
@@ -355,19 +322,4 @@ async function startEmployee(
       `[startEmployee] Skipping EventLoop startup for ${employeeId}: ${error.message}`
     )
   }
-}
-
-/**
- * Generate next taskId by finding max taskId from existing employees
- * TODO: Use TaskManager.createTask() when TaskManager is fully integrated
- */
-async function generateNextTaskId(stateManager: StateManager): Promise<number> {
-  const employees = stateManager.getEmployees()
-  let maxTaskId = 0
-  for (const employee of employees) {
-    if (employee.taskId > maxTaskId) {
-      maxTaskId = employee.taskId
-    }
-  }
-  return maxTaskId + 1
 }

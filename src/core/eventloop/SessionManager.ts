@@ -116,7 +116,7 @@ export class SessionManager {
             if (supervisorEmployee) {
               supervisor = {
                 name: supervisorEmployee.name,
-                role: supervisorEmployee.role,
+                role: supervisorEmployee.roleId,
               }
             }
           }
@@ -204,7 +204,7 @@ export class SessionManager {
       if (supervisorEmployee) {
         supervisor = {
           name: supervisorEmployee.name,
-          role: supervisorEmployee.role,
+          role: supervisorEmployee.roleId,
         }
       }
     }
@@ -304,7 +304,7 @@ export class SessionManager {
       if (supervisorEmployee) {
         supervisor = {
           name: supervisorEmployee.name,
-          role: supervisorEmployee.role,
+          role: supervisorEmployee.roleId,
         }
       }
     }

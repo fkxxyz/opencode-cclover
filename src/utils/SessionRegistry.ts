@@ -1,3 +1,5 @@
+import type { EmployeeId } from "../types/employee"
+
 /**
  * Session Registry
  *
@@ -6,19 +8,19 @@
  */
 
 class SessionRegistry {
-  private sessionToEmployeeId = new Map<string, string>()
+  private sessionToEmployeeId = new Map<string, EmployeeId>()
 
   /**
    * 注册 session 和员工 ID 的映射关系
    */
-  register(sessionId: string, employeeId: string): void {
+  register(sessionId: string, employeeId: EmployeeId): void {
     this.sessionToEmployeeId.set(sessionId, employeeId)
   }
 
   /**
    * 根据 sessionID 获取员工 ID
    */
-  getEmployeeId(sessionId: string): string | undefined {
+  getEmployeeId(sessionId: string): EmployeeId | undefined {
     return this.sessionToEmployeeId.get(sessionId)
   }
 

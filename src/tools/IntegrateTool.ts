@@ -32,7 +32,7 @@ export function createIntegrateTool(
 
       // 2. 筛选出 soulless 员工（role.soul === false）
       const soullessEmployees = employees.filter((employee) => {
-        const role = roleManager.getRole(employee.role)
+        const role = roleManager.getRole(employee.roleId)
         return role && role.soul === false
       })
 

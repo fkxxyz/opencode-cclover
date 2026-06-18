@@ -55,7 +55,8 @@ interface RuntimeHaltEvent {
   type: "halt_requested"
   timestamp: string
   details: {
-    taskId: number
+    rootTaskId?: string
+    workItemId?: string
     reason?: string
     triggeredBy?: string
   }
@@ -291,7 +292,8 @@ export class EventLoop {
         type: "halt_requested",
         timestamp: haltEvent.timestamp,
         details: {
-          taskId: haltEvent.taskId,
+          rootTaskId: haltEvent.rootTaskId,
+          workItemId: haltEvent.workItemId,
           reason: haltEvent.reason,
           triggeredBy: haltEvent.triggeredBy,
         },
@@ -643,7 +645,8 @@ export class EventLoop {
         timestamp: new Date().toISOString(),
         employeeId: this.employeeId,
         details: {
-          taskId: event.details.taskId,
+          rootTaskId: event.details.rootTaskId,
+          workItemId: event.details.workItemId,
           reason: event.details.reason,
           triggeredBy: event.details.triggeredBy,
         },

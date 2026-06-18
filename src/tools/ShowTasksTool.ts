@@ -24,7 +24,8 @@ export function createShowTasksTool(
   roleManager?: RoleManager
 ) {
   return tool({
-    description: "Display all tasks with dependency graph visualization",
+    description:
+      "Display personal TODO tasks with dependency graph visualization; project-level work items use list_work_items",
     args: {},
     async execute(args, context) {
       // 1. Get caller information

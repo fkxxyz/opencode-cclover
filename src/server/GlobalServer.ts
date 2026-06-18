@@ -15,11 +15,12 @@ import { MemoryManager } from "../core/MemoryManager"
 import { BossManager } from "../core/BossManager"
 import { RoleManager } from "../core/RoleManager"
 import { FeedbackManager } from "../core/FeedbackManager"
+import { RootTaskManager } from "../core/RootTaskManager"
+import { WorkItemManager } from "../core/WorkItemManager"
 import { AgentRegistry } from "../utils/AgentRegistry"
 import { EventLoop } from "../core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
-import { formatEmployeeId } from "../types/employee"
 import type { InternalPromptRecoveryEvent } from "../core/eventloop/EventLoop"
 import { MeetingModePromptInjector } from "../meeting-mode/PromptInjector"
 
@@ -173,6 +174,8 @@ export class GlobalCcloverService {
       stateManager,
       projectId
     )
+    const rootTaskManager = new RootTaskManager(config.path)
+    const workItemManager = new WorkItemManager(config.path, stateManager)
     const agentRegistry = new AgentRegistry()
     const roleManager = new RoleManager(config.path)
     const meetingModePromptInjector = new MeetingModePromptInjector(
@@ -215,6 +218,8 @@ export class GlobalCcloverService {
       stateManager,
       messageService,
       memoryManager,
+      rootTaskManager,
+      workItemManager,
       agentRegistry,
       bossManager: projectBossManager,
       roleManager,
@@ -314,7 +319,7 @@ export class GlobalCcloverService {
         for (const employee of employees) {
           try {
             logger.debug(
-              `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.role}, paused: ${employee.paused})`
+              `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.roleId}, paused: ${employee.paused})`
             )
 
             // paused 员工：静默跳过（不校验 role，不启动 EventLoop）
@@ -328,11 +333,11 @@ export class GlobalCcloverService {
             }
 
             // 非 paused 员工：验证角色存在
-            const role = project.roleManager.getRole(employee.role)
+            const role = project.roleManager.getRole(employee.roleId)
             if (!role) {
               missingRoleCount++
               logger.error(
-                `Role '${employee.role}' not found for employee '${employee.name}', skipping EventLoop startup`
+                `Role '${employee.roleId}' not found for employee '${employee.name}', skipping EventLoop startup`
               )
               continue
             }
@@ -353,7 +358,7 @@ export class GlobalCcloverService {
             const eventLoop = new EventLoop(
               project.directory,
               employee.employeeId,
-              employee.role,
+              employee.roleId,
               project.roleManager,
               messageClient,
               project.memoryManager,
@@ -446,10 +451,10 @@ export class GlobalCcloverService {
     }
 
     // 4. 验证角色存在
-    const role = project.roleManager.getRole(employee.role)
+    const role = project.roleManager.getRole(employee.roleId)
     if (!role) {
       throw new Error(
-        `Role '${employee.role}' not found for employee '${employeeId}'`
+        `Role '${employee.roleId}' not found for employee '${employeeId}'`
       )
     }
 
@@ -461,7 +466,7 @@ export class GlobalCcloverService {
     const eventLoop = new EventLoop(
       project.directory,
       employeeId,
-      employee.role,
+      employee.roleId,
       project.roleManager,
       messageClient,
       project.memoryManager,

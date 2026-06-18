@@ -7,6 +7,8 @@ import type { ToolDefinition } from "@opencode-ai/plugin"
 import type { MessageService } from "../core/MessageService"
 import type { MemoryManager } from "../core/MemoryManager"
 import type { BossManager } from "../core/BossManager"
+import type { RootTaskManager } from "../core/RootTaskManager"
+import type { WorkItemManager } from "../core/WorkItemManager"
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { ProjectInstance } from "../server/ProjectRegistry"
 import { createSendMessageTool } from "./SendMessageTool"
@@ -20,6 +22,14 @@ import { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 import { createPauseEmployeeTool } from "./PauseEmployeeTool"
 import { createIntegrateTool } from "./IntegrateTool"
 import { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
+import {
+  createCreateRootTaskTool,
+  createCreateWorkItemTool,
+  createDeleteWorkItemTool,
+  createGetWorkItemTool,
+  createListWorkItemsTool,
+  createUpdateWorkItemTool,
+} from "./WorkItemTools.contract"
 
 /**
  * 工具定义类型
@@ -59,6 +69,12 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   pause_employee: true,
   integrate: true,
   complete_major_task: true,
+  create_root_task: true,
+  create_work_item: true,
+  update_work_item: true,
+  delete_work_item: true,
+  get_work_item: true,
+  list_work_items: true,
 }
 
 /**
@@ -93,6 +109,14 @@ export { createResumeEmployeeTool } from "./ResumeEmployeeTool"
 export { createPauseEmployeeTool } from "./PauseEmployeeTool"
 export { createIntegrateTool } from "./IntegrateTool"
 export { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
+export {
+  createCreateRootTaskTool,
+  createCreateWorkItemTool,
+  createDeleteWorkItemTool,
+  createGetWorkItemTool,
+  createListWorkItemsTool,
+  createUpdateWorkItemTool,
+} from "./WorkItemTools.contract"
 
 /**
  * 创建所有工具
@@ -103,6 +127,8 @@ export { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
 export function createTools(deps: {
   messageService: MessageService
   memoryManager: MemoryManager
+  rootTaskManager: RootTaskManager
+  workItemManager: WorkItemManager
   opcodeClient: OpencodeClient
   bossManager?: BossManager
   stateManager?: any
@@ -126,7 +152,8 @@ export function createTools(deps: {
       deps.stateManager,
       deps.bossManager,
       deps.project?.roleManager,
-      deps.project?.modelConfigManager
+      deps.project?.modelConfigManager,
+      deps.workItemManager
     ),
     hire_employee: deps.project
       ? createHireEmployeeTool(
@@ -180,8 +207,40 @@ export function createTools(deps: {
       ? createCompleteMajorTaskTool(
           deps.messageService,
           deps.stateManager!,
-          deps.project.roleManager
+          deps.project.roleManager,
+          deps.workItemManager
         )
-      : (null as any), // fallback
+      : createCompleteMajorTaskTool(
+          deps.messageService,
+          deps.stateManager!,
+          undefined,
+          deps.workItemManager
+        ), // fallback
+    create_root_task: createCreateRootTaskTool(
+      deps.rootTaskManager,
+      deps.stateManager!,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
+    create_work_item: createCreateWorkItemTool(
+      deps.workItemManager,
+      deps.stateManager!,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
+    update_work_item: createUpdateWorkItemTool(
+      deps.workItemManager,
+      deps.stateManager!,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
+    delete_work_item: createDeleteWorkItemTool(deps.workItemManager),
+    get_work_item: createGetWorkItemTool(deps.workItemManager),
+    list_work_items: createListWorkItemsTool(
+      deps.workItemManager,
+      deps.stateManager!,
+      deps.bossManager,
+      deps.project?.roleManager
+    ),
   }
 }

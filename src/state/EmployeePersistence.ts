@@ -7,8 +7,8 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as yaml from "yaml"
-import type { Employee, EmployeeId } from "../types/index"
-import { formatEmployeeId, isValidEmployeeName } from "../types/index"
+import type { Employee } from "../types/index"
+import { createEmployeeId, isValidEmployeeName } from "../types/index"
 import { logger } from "../lib/logger"
 
 export class EmployeePersistence {
@@ -61,7 +61,7 @@ export class EmployeePersistence {
           // 如果是旧格式（没有 employeeId 字段），进行迁移
           if (!emp.employeeId) {
             // 旧格式: { name, role, ... }
-            // 新格式: { employeeId, name, taskId, role, ... }
+            // 新格式: { employeeId, name, roleId, hiredBy, ... }
 
             // 验证 name 格式
             if (!isValidEmployeeName(emp.name)) {
@@ -71,16 +71,12 @@ export class EmployeePersistence {
               return null
             }
 
-            // 为旧员工分配 taskId = 1 (默认活跃任务)
-            // 注意: 如果需要不同的 taskId 分配策略，需要手动迁移
-            const taskId = 1
-            const employeeId = formatEmployeeId(taskId, emp.name)
+            const employeeId = createEmployeeId()
 
             return {
               employeeId,
               name: emp.name,
-              taskId,
-              role: emp.role,
+              roleId: emp.roleId ?? emp.role ?? "employee",
               hiredBy: null, // 旧员工默认为 Boss 雇佣
               status: "idle" as const, // 重置运行时状态
               paused: emp.paused ?? false,

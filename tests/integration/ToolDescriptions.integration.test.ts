@@ -5,6 +5,8 @@ import type { MemoryManager } from "../../src/core/MemoryManager"
 import type { StateManager } from "../../src/state/StateManager"
 import type { BossManager } from "../../src/core/BossManager"
 import type { ProjectInstance } from "../../src/server/ProjectRegistry"
+import { RootTaskManager } from "../../src/core/RootTaskManager"
+import { WorkItemManager } from "../../src/core/WorkItemManager"
 
 /**
  * Integration tests for tool creation
@@ -22,6 +24,8 @@ describe("Tool Creation Integration", () => {
     const mockDeps = {
       messageService: {} as MessageService,
       memoryManager: {} as MemoryManager,
+      rootTaskManager: new RootTaskManager("/tmp/project"),
+      workItemManager: new WorkItemManager("/tmp/project", {} as StateManager),
       opcodeClient: {} as any,
       stateManager: {} as StateManager,
       bossManager: {} as BossManager,
@@ -69,7 +73,9 @@ describe("Tool Creation Integration", () => {
   test("create_agent tool is properly configured", () => {
     const tool = tools.create_agent
     expect(tool).toBeDefined()
-    expect(tool.description).toBe("Create OpenCode agent to execute task")
+    expect(tool.description).toBe(
+      "Create OpenCode agent to execute a work item or personal task"
+    )
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")
   })
@@ -96,7 +102,7 @@ describe("Tool Creation Integration", () => {
     const tool = tools.show_tasks
     expect(tool).toBeDefined()
     expect(tool.description).toBe(
-      "Display all tasks with dependency graph visualization"
+      "Display personal TODO tasks with dependency graph visualization; project-level work items use list_work_items"
     )
     expect(tool.args).toBeDefined()
     expect(typeof tool.execute).toBe("function")

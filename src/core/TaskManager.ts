@@ -1,14 +1,18 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
-import type { TaskId } from "../types/index"
+
+/**
+ * @deprecated Legacy numeric task group identifier. Use RootTaskId/WorkItemId.
+ */
+export type LegacyTaskId = number
 
 /**
  * ProjectStateManager 接口（来自 Task 2.1）
  * 用于依赖注入，实际实现由 Task 2.1 提供
  */
 export interface ProjectStateManager {
-  getNextTaskId(): Promise<TaskId>
-  getCurrentNextTaskId(): Promise<TaskId>
+  getNextTaskId(): Promise<LegacyTaskId>
+  getCurrentNextTaskId(): Promise<LegacyTaskId>
 }
 
 /**
@@ -28,7 +32,7 @@ export class TaskManager {
    * 创建新任务（当 Boss 雇佣非灵魂员工时调用）
    * 返回 taskId
    */
-  async createTask(): Promise<TaskId> {
+  async createTask(): Promise<LegacyTaskId> {
     // 1. 获取下一个 TaskId
     const taskId = await this.projectStateManager.getNextTaskId()
 
@@ -42,7 +46,7 @@ export class TaskManager {
   /**
    * 检查任务目录是否存在
    */
-  async taskExists(taskId: TaskId): Promise<boolean> {
+  async taskExists(taskId: LegacyTaskId): Promise<boolean> {
     const taskPath = this.getTaskPath(taskId)
     try {
       const stat = await fs.stat(taskPath)
@@ -58,12 +62,12 @@ export class TaskManager {
   /**
    * 列出所有任务目录
    */
-  async listTasks(): Promise<TaskId[]> {
+  async listTasks(): Promise<LegacyTaskId[]> {
     const tasksDir = path.join(this.projectRoot, ".cclover", "tasks")
 
     try {
       const entries = await fs.readdir(tasksDir, { withFileTypes: true })
-      const taskIds: TaskId[] = []
+      const taskIds: LegacyTaskId[] = []
 
       for (const entry of entries) {
         if (entry.isDirectory()) {
@@ -86,7 +90,7 @@ export class TaskManager {
   /**
    * 获取任务目录路径
    */
-  getTaskPath(taskId: TaskId): string {
+  getTaskPath(taskId: LegacyTaskId): string {
     return path.join(this.projectRoot, ".cclover", "tasks", taskId.toString())
   }
 }

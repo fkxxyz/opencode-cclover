@@ -342,7 +342,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
    *
    * @queryParams
    *   - limit: 返回事件数量，默认 50，最大 200（可选）
-   *   - employeeName: 筛选特定员工的事件（可选）
+   *   - employeeId: 筛选特定员工的事件（可选）
    *
    * @response {
    *   success: true,
@@ -351,7 +351,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
    *       {
    *         type: "message",
    *         timestamp: "2026-03-01T10:00:00.000Z",
-   *         employeeName: "calculator",
+   *         employeeId: "emp_calculator",
    *         details: {
    *           from: "alice",
    *           to: "calculator",
@@ -363,7 +363,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
    * }
    *
    * @example
-   * GET /api/projects/abc123/events?limit=10&employeeName=calculator
+   * GET /api/projects/abc123/events?limit=10&employeeId=emp_calculator
    * Response: { success: true, data: { events: [...] } }
    */
   [
@@ -373,8 +373,8 @@ export const projectRoutes = new Map<string, RouteHandler>([
       const limit = url.searchParams.get("limit")
         ? parseInt(url.searchParams.get("limit")!)
         : 50
-      const employeeName = url.searchParams.get("employeeName") || undefined
-      return events.getEvents({ limit, employeeName }, deps.stateManager)
+      const employeeId = url.searchParams.get("employeeId") || undefined
+      return events.getEvents({ limit, employeeId }, deps.stateManager)
     },
   ],
 

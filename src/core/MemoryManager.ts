@@ -4,7 +4,6 @@ import * as yaml from "yaml"
 import * as lockfile from "proper-lockfile"
 import type { StateManager } from "../state/StateManager"
 import type { EmployeeId } from "../types"
-import { parseEmployeeId } from "../types"
 
 /**
  * 任务状态

@@ -1,10 +1,4 @@
 /**
- * TaskId type - incremental counter starting from 1
- * 0 is reserved for non-task employees
- */
-export type TaskId = number
-
-/**
  * Employee status type
  */
 export type EmployeeStatus =
@@ -15,56 +9,35 @@ export type EmployeeStatus =
   | "abnormal"
   | "waiting_for_message"
 
-/**
- * EmployeeId format: "{taskId}-{name}" or "0-{name}"
- * Examples: "1-td-001", "2-dev-001", "0-mason"
- */
 export type EmployeeId = string
 
-/**
- * Employee name - cannot start with pattern "digit-hyphen"
- * Valid: "mason", "task-designer", "dev-001"
- * Invalid: "1-mason", "0-worker", "123-dev"
- */
 export type EmployeeName = string
 
+export type BossId = string
+
+export interface PromptRecovery {
+  version?: number
+  sessionId: string
+  startedAt: string
+  triggerEventType: string
+}
+
 /**
- * Employee interface (replaces current Employee type)
+ * 员工是角色的稳定实例，身份不再编码任务归属。
  */
 export interface Employee {
-  // New fields for employeeId system
   employeeId: EmployeeId
   name: EmployeeName
-  taskId: TaskId
-
-  // Existing fields (keep)
-  role: string
-  hiredBy: EmployeeId | null // Updated to use employeeId, null for Boss-hired employees
+  roleId: string
+  handbookPath?: string
+  hiredBy: EmployeeId | BossId | null
   status: EmployeeStatus
-  paused: boolean // Keep for vacation mechanism
+  paused: boolean
   createdAt: string
-  lastActiveAt: string // Keep for monitoring
-  activeSessionId: string | null // Keep for session management
-  promptRecovery?: {
-    version?: number
-    sessionId: string
-    startedAt: string
-    triggerEventType: string
-  }
+  lastActiveAt: string
+  activeSessionId: string | null
+  promptRecovery?: PromptRecovery
 }
-
-/**
- * Project state interface
- */
-export interface ProjectState {
-  nextTaskId: TaskId // Starts from 1
-}
-
-/**
- * Boss identifier for messaging
- * Format: "0-{bossName}" (used in to/from parameters only)
- */
-export type BossId = string
 
 /**
  * Validation functions
@@ -73,25 +46,9 @@ export function isValidEmployeeName(name: string): boolean {
   return !/^[0-9]+-/.test(name)
 }
 
-export function parseEmployeeId(employeeId: EmployeeId): {
-  taskId: TaskId
-  name: EmployeeName
-} {
-  const match = employeeId.match(/^([0-9]+)-(.+)$/)
-  if (!match) {
-    throw new Error(`Invalid employeeId format: ${employeeId}`)
-  }
-  return {
-    taskId: parseInt(match[1], 10),
-    name: match[2],
-  }
-}
-
-export function formatEmployeeId(
-  taskId: TaskId,
-  name: EmployeeName
-): EmployeeId {
-  return `${taskId}-${name}`
+export function createEmployeeId(): EmployeeId {
+  const randomPart = crypto.randomUUID().replace(/-/g, "")
+  return `emp_${randomPart}`
 }
 
 export function formatBossId(bossName: string): BossId {
