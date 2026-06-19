@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
 import { StateManager } from "../../src/state/StateManager"
+import { createTestEmployee } from "../helpers/employeeFactory"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -30,30 +31,18 @@ describe("Boss Message Integration", () => {
 
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
-    await stateManager.registerEmployee({
-      employeeId: "0-alice",
-      name: "alice",
-      taskId: 0,
-      role: "test",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
-    await stateManager.registerEmployee({
-      employeeId: "0-bob",
-      name: "bob",
-      taskId: 0,
-      role: "test",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_alice",
+        name: "alice",
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_bob",
+        name: "bob",
+      })
+    )
 
     // 创建 MessageService
     messageService = new MessageService(
@@ -72,14 +61,14 @@ describe("Boss Message Integration", () => {
   describe("File structure", () => {
     test("should create bosses directory for boss messages", async () => {
       const boss = messageService.getClient("0-bayecao")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
-      await boss.send("0-alice", "Hello")
+      await boss.send("emp_alice", "Hello")
 
       // 检查 boss 目录结构
       const bossDir = path.join(
         TEST_WORKSPACE,
-        "bosses/bayecao/messages/0-alice"
+        "bosses/bayecao/messages/emp_alice"
       )
       const bossFile = path.join(bossDir, "chat.yaml")
       const bossExists = await fs
@@ -91,7 +80,7 @@ describe("Boss Message Integration", () => {
       // 检查 employee 目录结构
       const employeeDir = path.join(
         TEST_WORKSPACE,
-        "employees/0-alice/messages/0-bayecao"
+        "employees/emp_alice/messages/0-bayecao"
       )
       const employeeFile = path.join(employeeDir, "chat.yaml")
       const employeeExists = await fs
@@ -102,7 +91,7 @@ describe("Boss Message Integration", () => {
     })
 
     test("should create employees directory for employee messages", async () => {
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
       const boss = messageService.getClient("0-bayecao")
 
       await employee.send("0-bayecao", "Report")
@@ -110,7 +99,7 @@ describe("Boss Message Integration", () => {
       // 检查 employee 目录结构
       const employeeDir = path.join(
         TEST_WORKSPACE,
-        "employees/0-alice/messages/0-bayecao"
+        "employees/emp_alice/messages/0-bayecao"
       )
       const employeeFile = path.join(employeeDir, "chat.yaml")
       const employeeExists = await fs
@@ -122,7 +111,7 @@ describe("Boss Message Integration", () => {
       // 检查 boss 目录结构
       const bossDir = path.join(
         TEST_WORKSPACE,
-        "bosses/bayecao/messages/0-alice"
+        "bosses/bayecao/messages/emp_alice"
       )
       const bossFile = path.join(bossDir, "chat.yaml")
       const bossExists = await fs
@@ -136,10 +125,10 @@ describe("Boss Message Integration", () => {
   describe("Message synchronization", () => {
     test("should synchronize boss-to-employee messages", async () => {
       const boss = messageService.getClient("0-bayecao")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
-      await boss.send("0-alice", "Task 1")
-      await boss.send("0-alice", "Task 2")
+      await boss.send("emp_alice", "Task 1")
+      await boss.send("emp_alice", "Task 2")
 
       // Employee 接收消息
       const msg1 = await employee.recv()
@@ -151,7 +140,7 @@ describe("Boss Message Integration", () => {
       expect(msg2.content).toBe("Task 2")
 
       // 检查历史记录
-      const bossHistory = await boss.history("0-alice")
+      const bossHistory = await boss.history("emp_alice")
       const employeeHistory = await employee.history("0-bayecao")
 
       expect(bossHistory).toHaveLength(2)
@@ -162,7 +151,7 @@ describe("Boss Message Integration", () => {
 
     test("should synchronize employee-to-boss messages", async () => {
       const boss = messageService.getClient("0-bayecao")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
       await employee.send("0-bayecao", "Report 1")
       await employee.send("0-bayecao", "Report 2")
@@ -171,13 +160,13 @@ describe("Boss Message Integration", () => {
       const msg1 = await boss.recv()
       const msg2 = await boss.recv()
 
-      expect(msg1.from).toBe("0-alice")
+      expect(msg1.from).toBe("emp_alice")
       expect(msg1.content).toBe("Report 1")
-      expect(msg2.from).toBe("0-alice")
+      expect(msg2.from).toBe("emp_alice")
       expect(msg2.content).toBe("Report 2")
 
       // 检查历史记录
-      const bossHistory = await boss.history("0-alice")
+      const bossHistory = await boss.history("emp_alice")
       const employeeHistory = await employee.history("0-bayecao")
 
       expect(bossHistory).toHaveLength(2)
@@ -186,16 +175,16 @@ describe("Boss Message Integration", () => {
 
     test("should handle bidirectional communication", async () => {
       const boss = messageService.getClient("0-bayecao")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
       // 双向通信
-      await boss.send("0-alice", "Do task A")
+      await boss.send("emp_alice", "Do task A")
       await employee.send("0-bayecao", "Task A done")
-      await boss.send("0-alice", "Do task B")
+      await boss.send("emp_alice", "Do task B")
       await employee.send("0-bayecao", "Task B done")
 
       // 检查历史记录
-      const bossHistory = await boss.history("0-alice")
+      const bossHistory = await boss.history("emp_alice")
       const employeeHistory = await employee.history("0-bayecao")
 
       expect(bossHistory).toHaveLength(4)
@@ -203,9 +192,9 @@ describe("Boss Message Integration", () => {
 
       // 验证消息顺序
       expect(bossHistory[0].from).toBe("0-bayecao")
-      expect(bossHistory[1].from).toBe("0-alice")
+      expect(bossHistory[1].from).toBe("emp_alice")
       expect(bossHistory[2].from).toBe("0-bayecao")
-      expect(bossHistory[3].from).toBe("0-alice")
+      expect(bossHistory[3].from).toBe("emp_alice")
     })
   })
 
@@ -213,10 +202,10 @@ describe("Boss Message Integration", () => {
     test("should handle messages from different bosses", async () => {
       const boss1 = messageService.getClient("0-bayecao")
       const boss2 = messageService.getClient("0-admin")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
-      await boss1.send("0-alice", "From bayecao")
-      await boss2.send("0-alice", "From admin")
+      await boss1.send("emp_alice", "From bayecao")
+      await boss2.send("emp_alice", "From admin")
 
       const msg1 = await employee.recv()
       const msg2 = await employee.recv()
@@ -229,14 +218,14 @@ describe("Boss Message Integration", () => {
     test("should isolate messages between different bosses", async () => {
       const boss1 = messageService.getClient("0-bayecao")
       const boss2 = messageService.getClient("0-admin")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
-      await boss1.send("0-alice", "From bayecao")
-      await boss2.send("0-alice", "From admin")
+      await boss1.send("emp_alice", "From bayecao")
+      await boss2.send("emp_alice", "From admin")
 
       // 检查各自的历史记录
-      const boss1History = await boss1.history("0-alice")
-      const boss2History = await boss2.history("0-alice")
+      const boss1History = await boss1.history("emp_alice")
+      const boss2History = await boss2.history("emp_alice")
 
       expect(boss1History).toHaveLength(1)
       expect(boss2History).toHaveLength(1)
@@ -247,21 +236,24 @@ describe("Boss Message Integration", () => {
 
   describe("Employee-to-employee messages", () => {
     test("should not affect employee-to-employee communication", async () => {
-      const alice = messageService.getClient("0-alice")
-      const bob = messageService.getClient("0-bob")
+      const alice = messageService.getClient("emp_alice")
+      const bob = messageService.getClient("emp_bob")
 
-      await alice.send("0-bob", "Hello Bob")
+      await alice.send("emp_bob", "Hello Bob")
 
       const message = await bob.recv()
-      expect(message.from).toBe("0-alice")
+      expect(message.from).toBe("emp_alice")
       expect(message.content).toBe("Hello Bob")
 
       // 检查文件路径（应该在 employees 目录下）
-      const alicePath = messageService.getMessageFilePath("0-alice", "0-bob")
-      expect(alicePath).toContain("employees/0-alice/messages/0-bob")
+      const alicePath = messageService.getMessageFilePath(
+        "emp_alice",
+        "emp_bob"
+      )
+      expect(alicePath).toContain("employees/emp_alice/messages/emp_bob")
 
-      const bobPath = messageService.getMessageFilePath("0-bob", "0-alice")
-      expect(bobPath).toContain("employees/0-bob/messages/0-alice")
+      const bobPath = messageService.getMessageFilePath("emp_bob", "emp_alice")
+      expect(bobPath).toContain("employees/emp_bob/messages/emp_alice")
     })
   })
 
@@ -271,18 +263,18 @@ describe("Boss Message Integration", () => {
       const client = messageService.getClient("0-bayecao")
 
       // bayecao 作为 boss 发送消息给 alice
-      await client.send("0-alice", "As boss")
+      await client.send("emp_alice", "As boss")
 
       // 检查路径
-      const path = messageService.getMessageFilePath("0-bayecao", "0-alice")
-      expect(path).toContain("bosses/bayecao/messages/0-alice")
+      const path = messageService.getMessageFilePath("0-bayecao", "emp_alice")
+      expect(path).toContain("bosses/bayecao/messages/emp_alice")
     })
 
     test("should handle empty message content", async () => {
       const boss = messageService.getClient("0-bayecao")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
-      await boss.send("0-alice", "")
+      await boss.send("emp_alice", "")
 
       const message = await employee.recv()
       expect(message.content).toBe("")
@@ -290,10 +282,10 @@ describe("Boss Message Integration", () => {
 
     test("should handle special characters in message", async () => {
       const boss = messageService.getClient("0-bayecao")
-      const employee = messageService.getClient("0-alice")
+      const employee = messageService.getClient("emp_alice")
 
       const specialContent = "Hello\nWorld\t测试\r\n特殊字符: @#$%^&*()"
-      await boss.send("0-alice", specialContent)
+      await boss.send("emp_alice", specialContent)
 
       const message = await employee.recv()
       expect(message.content).toBe(specialContent)

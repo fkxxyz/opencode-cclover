@@ -240,16 +240,21 @@ describe("EventLoop", () => {
       haltRegistry.addHaltEvent("test-employee", {
         type: "halt_requested",
         employeeId: "test-employee",
-        taskId: 1,
+        rootTaskId: "rt-alpha",
+        workItemId: "wi-alpha-1",
         timestamp: "2026-04-08T00:00:02.000Z",
         reason: "runaway-agents",
+        triggeredBy: "emp-exec",
       })
 
       const event = await (eventLoop as any).waitForEvent()
 
       expect(event.type).toBe("halt_requested")
-      expect(event.details.taskId).toBe(1)
+      expect(event.details.rootTaskId).toBe("rt-alpha")
+      expect(event.details.workItemId).toBe("wi-alpha-1")
       expect(event.details.reason).toBe("runaway-agents")
+      expect(event.details.triggeredBy).toBe("emp-exec")
+      expect("taskId" in event.details).toBe(false)
     })
 
     test("should persist prompt recovery before prompt and clear after success", async () => {
@@ -262,8 +267,7 @@ describe("EventLoop", () => {
       await stateManager.registerEmployee({
         employeeId: "test-employee",
         name: "test-employee",
-        taskId: 1,
-        role: testRole.name,
+        roleId: testRole.name,
         hiredBy: null,
         status: "idle",
         paused: false,
@@ -335,8 +339,7 @@ describe("EventLoop", () => {
       await stateManager.registerEmployee({
         employeeId: "test-employee",
         name: "test-employee",
-        taskId: 1,
-        role: testRole.name,
+        roleId: testRole.name,
         hiredBy: null,
         status: "idle",
         paused: false,
@@ -406,8 +409,7 @@ describe("EventLoop", () => {
       await stateManager.registerEmployee({
         employeeId: "1-test-employee",
         name: "test-employee",
-        taskId: 1,
-        role: testRole.name,
+        roleId: testRole.name,
         hiredBy: null,
         status: "idle",
         paused: false,
@@ -418,8 +420,7 @@ describe("EventLoop", () => {
       await stateManager.registerEmployee({
         employeeId: "0-alice",
         name: "alice",
-        taskId: 0,
-        role: "test-role",
+        roleId: "test-role",
         hiredBy: null,
         status: "idle",
         paused: false,

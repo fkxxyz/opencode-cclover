@@ -2,22 +2,22 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import {
+  type LegacyTaskId,
   TaskManager,
   type ProjectStateManager,
 } from "../../src/core/TaskManager"
-import type { TaskId } from "../../src/types/index"
 
 // Mock ProjectStateManager
 class MockProjectStateManager implements ProjectStateManager {
-  private nextTaskId: TaskId = 1
+  private nextTaskId: LegacyTaskId = 1
 
-  async getNextTaskId(): Promise<TaskId> {
+  async getNextTaskId(): Promise<LegacyTaskId> {
     const current = this.nextTaskId
     this.nextTaskId++
     return current
   }
 
-  async getCurrentNextTaskId(): Promise<TaskId> {
+  async getCurrentNextTaskId(): Promise<LegacyTaskId> {
     return this.nextTaskId
   }
 

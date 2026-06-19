@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { MessageService } from "../../src/core/MessageService"
 import { StateManager } from "../../src/state/StateManager"
-import { formatEmployeeId } from "../../src/types/index"
+import { createTestEmployee } from "../helpers/employeeFactory"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as yaml from "yaml"
@@ -21,66 +21,21 @@ describe("MessageService Integration", () => {
 
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
-    await stateManager.registerEmployee({
-      employeeId: "0-test-role",
-      name: "test-role",
-      taskId: 0,
-      role: "test-role",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
-    await stateManager.registerEmployee({
-      employeeId: "0-bayecao",
-      name: "bayecao",
-      taskId: 0,
-      role: "test",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
-    await stateManager.registerEmployee({
-      employeeId: "0-bob",
-      name: "bob",
-      taskId: 0,
-      role: "test",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
-    await stateManager.registerEmployee({
-      employeeId: "0-alice",
-      name: "alice",
-      taskId: 0,
-      role: "test",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
-    await stateManager.registerEmployee({
-      employeeId: "0-charlie",
-      name: "charlie",
-      taskId: 0,
-      role: "test",
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_test_role", name: "test-role" })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_bayecao", name: "bayecao" })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_bob", name: "bob" })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_alice", name: "alice" })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_charlie", name: "charlie" })
+    )
 
     service = new MessageService(TEST_WORKSPACE, stateManager)
   })
@@ -90,21 +45,21 @@ describe("MessageService Integration", () => {
   })
 
   test("should create correct directory structure", async () => {
-    const testRole = service.getClient("0-test-role")
-    const bayecao = service.getClient("0-bayecao")
+    const testRole = service.getClient("emp_test_role")
+    const bayecao = service.getClient("emp_bayecao")
 
     // 发送消息
-    await bayecao.send("0-test-role", "计算 1+1")
-    await testRole?.send("0-bayecao", "结果是 2")
+    await bayecao.send("emp_test_role", "计算 1+1")
+    await testRole?.send("emp_bayecao", "结果是 2")
 
     // 验证目录结构
     const testRoleDir = path.join(
       TEST_WORKSPACE,
-      "employees/0-test-role/messages/0-bayecao"
+      "employees/emp_test_role/messages/emp_bayecao"
     )
     const bayecaoDir = path.join(
       TEST_WORKSPACE,
-      "employees/0-bayecao/messages/0-test-role"
+      "employees/emp_bayecao/messages/emp_test_role"
     )
 
     const testRoleDirExists = await fs
@@ -121,23 +76,23 @@ describe("MessageService Integration", () => {
   })
 
   test("should maintain synchronized message files", async () => {
-    const testRole = service.getClient("0-test-role")
-    const bayecao = service.getClient("0-bayecao")
+    const testRole = service.getClient("emp_test_role")
+    const bayecao = service.getClient("emp_bayecao")
 
     // 双向对话
-    await bayecao.send("0-test-role", "计算 1+1")
+    await bayecao.send("emp_test_role", "计算 1+1")
     await testRole?.recv()
-    await testRole?.send("0-bayecao", "结果是 2")
+    await testRole?.send("emp_bayecao", "结果是 2")
     await bayecao.recv()
 
     // 读取双方的消息文件
     const testRoleFilePath = service.getMessageFilePath(
-      "0-test-role",
-      "0-bayecao"
+      "emp_test_role",
+      "emp_bayecao"
     )
     const bayecaoFilePath = service.getMessageFilePath(
-      "0-bayecao",
-      "0-test-role"
+      "emp_bayecao",
+      "emp_test_role"
     )
 
     const testRoleContent = await fs.readFile(testRoleFilePath, "utf-8")
@@ -164,50 +119,50 @@ describe("MessageService Integration", () => {
   })
 
   test("should handle long conversation", async () => {
-    const alice = service.getClient("0-alice")
-    const bob = service.getClient("0-bob")
+    const alice = service.getClient("emp_alice")
+    const bob = service.getClient("emp_bob")
 
     // 发送 20 条消息
     for (let i = 1; i <= 20; i++) {
       if (i % 2 === 1) {
-        await alice.send("0-bob", `Message ${i}`)
+        await alice.send("emp_bob", `Message ${i}`)
         await bob.recv()
       } else {
-        await bob.send("0-alice", `Message ${i}`)
+        await bob.send("emp_alice", `Message ${i}`)
         await alice.recv()
       }
     }
 
     // 验证历史记录
-    const aliceHistory = await alice.history("0-bob")
+    const aliceHistory = await alice.history("emp_bob")
     expect(aliceHistory.length).toBe(20)
 
     // 验证最近 5 条
-    const recentHistory = await alice.history("0-bob", 5)
+    const recentHistory = await alice.history("emp_bob", 5)
     expect(recentHistory.length).toBe(5)
     expect(recentHistory[0].content).toBe("Message 16")
     expect(recentHistory[4].content).toBe("Message 20")
   })
 
   test("should handle multiple concurrent conversations", async () => {
-    const alice = service.getClient("0-alice")
-    const bob = service.getClient("0-bob")
-    const charlie = service.getClient("0-charlie")
+    const alice = service.getClient("emp_alice")
+    const bob = service.getClient("emp_bob")
+    const charlie = service.getClient("emp_charlie")
 
     // Alice 同时和 Bob、Charlie 对话
-    await alice.send("0-bob", "Hi Bob")
-    await alice.send("0-charlie", "Hi Charlie")
+    await alice.send("emp_bob", "Hi Bob")
+    await alice.send("emp_charlie", "Hi Charlie")
 
     // Bob 和 Charlie 分别回复
     await bob.recv()
-    await bob.send("0-alice", "Hi Alice from Bob")
+    await bob.send("emp_alice", "Hi Alice from Bob")
 
     await charlie.recv()
-    await charlie.send("0-alice", "Hi Alice from Charlie")
+    await charlie.send("emp_alice", "Hi Alice from Charlie")
 
     // 验证 Alice 的两个对话历史
-    const aliceBobHistory = await alice.history("0-bob")
-    const aliceCharlieHistory = await alice.history("0-charlie")
+    const aliceBobHistory = await alice.history("emp_bob")
+    const aliceCharlieHistory = await alice.history("emp_charlie")
 
     expect(aliceBobHistory.length).toBe(2)
     expect(aliceCharlieHistory.length).toBe(2)
@@ -217,18 +172,18 @@ describe("MessageService Integration", () => {
   })
 
   test("should handle reference_docs in concurrent sends", async () => {
-    const alice = service.getClient("0-alice")
-    const bob = service.getClient("0-bob")
+    const alice = service.getClient("emp_alice")
+    const bob = service.getClient("emp_bob")
 
     const sends = [
-      alice.send("0-bob", "消息1", ["/file1.ts"]),
-      alice.send("0-bob", "消息2", ["/file2.ts"]),
-      alice.send("0-bob", "消息3"), // 无 reference_docs
+      alice.send("emp_bob", "消息1", ["/file1.ts"]),
+      alice.send("emp_bob", "消息2", ["/file2.ts"]),
+      alice.send("emp_bob", "消息3"), // 无 reference_docs
     ]
 
     await Promise.all(sends)
 
-    const history = await bob.history("0-alice")
+    const history = await bob.history("emp_alice")
 
     expect(history).toHaveLength(3)
 

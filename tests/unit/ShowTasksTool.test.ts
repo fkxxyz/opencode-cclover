@@ -29,9 +29,8 @@ describe("ShowTasksTool", () => {
     )
     await stateManager.registerEmployee({
       employeeId: "0-alice",
-      taskId: 0,
       name: "alice",
-      role: "test",
+      roleId: "test",
       status: "offline",
       paused: false,
       activeSessionId: null,

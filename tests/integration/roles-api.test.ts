@@ -81,8 +81,7 @@ You are a test role. This is your system prompt.
     const testEmployee: Employee = {
       employeeId: "0-test-employee",
       name: "test-employee",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",

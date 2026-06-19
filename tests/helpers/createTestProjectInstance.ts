@@ -2,7 +2,15 @@ import {
   ModelConfigManager,
   loadPresetConfig,
 } from "../../src/config/ModelConfigManager"
+import { AgentRegistry } from "../../src/utils/AgentRegistry"
+import { BossManager } from "../../src/core/BossManager"
+import { MessageService } from "../../src/core/MessageService"
+import { MemoryManager } from "../../src/core/MemoryManager"
+import { RoleManager } from "../../src/core/RoleManager"
+import { RootTaskManager } from "../../src/core/RootTaskManager"
+import { WorkItemManager } from "../../src/core/WorkItemManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
+import { StateManager } from "../../src/state/StateManager"
 import type { ProjectInstance } from "../../src/server/ProjectRegistry"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 
@@ -27,16 +35,49 @@ export async function createTestProjectInstance(
     "test-project",
     "Test Project"
   )
+  const stateManager = new StateManager(
+    "test-project",
+    workspaceRoot,
+    workspaceRoot
+  )
+  const bossManager = new BossManager(globalConfig, workspaceRoot)
+  const messageService = new MessageService(
+    workspaceRoot,
+    stateManager,
+    "test-project",
+    bossManager
+  )
+  const memoryManager = new MemoryManager(
+    workspaceRoot,
+    stateManager,
+    "test-project"
+  )
+  const workItemManager = new WorkItemManager(workspaceRoot, stateManager)
+  const rootTaskManager = new RootTaskManager(
+    workspaceRoot,
+    stateManager,
+    workItemManager
+  )
 
   return {
     projectId: "test-project",
     projectName: "Test Project",
     directory: workspaceRoot,
     workspaceRoot,
+    stateManager,
+    messageService,
+    memoryManager,
+    rootTaskManager,
+    workItemManager,
+    agentRegistry: new AgentRegistry(),
+    bossManager,
+    roleManager: new RoleManager(workspaceRoot),
     modelConfigManager,
     meetingModePromptInjector,
+    feedbackManager: {} as any,
     eventLoopStarted: false,
+    eventLoopStarting: null,
     eventLoops: new Map(),
     ...overrides, // 允许测试覆盖特定属性
-  } as ProjectInstance
+  }
 }

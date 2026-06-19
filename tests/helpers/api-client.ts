@@ -36,7 +36,7 @@ export interface EmployeeListData {
  */
 export interface EmployeeDetailData {
   name: string
-  role: string
+  roleId: string
   memory: any
   tasks: Task[]
   agents: any[]
@@ -82,11 +82,11 @@ export interface StatsData {
 }
 
 /**
- * 任务急停响应数据
+ * 员工急停响应数据
  */
-export interface TaskHaltData {
-  taskId: number
-  employeeIds: string[]
+export interface EmployeeHaltData {
+  employeeId: string
+  halted: true
 }
 
 /**

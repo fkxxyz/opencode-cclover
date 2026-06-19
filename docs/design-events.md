@@ -34,6 +34,22 @@ Based on brainstorming session (2026-03-03):
 
 ## Event Types
 
+Current backend event payloads use stable IDs:
+
+```typescript
+{
+  projectId: "project-id",
+  type: "work_item_created",
+  timestamp: "2026-03-03T10:00:00.000Z",
+  employeeId: "emp_xxx",
+  rootTaskId: "rt_xxx",
+  workItemId: "wi_xxx",
+  details: {}
+}
+```
+
+`employeeName` is legacy documentation terminology and must not be used as a backend event filter contract. Event APIs support `employeeId`, `rootTaskId`, `workItemId`, `type`, and `limit`. Personal TODO events keep the `task_*` event names; project-level assignment events use `root_task_*` and `work_item_*` names so TODO tasks remain distinct from root tasks/work items.
+
 ### 1. Employee Status Changed
 
 Records employee status transitions.

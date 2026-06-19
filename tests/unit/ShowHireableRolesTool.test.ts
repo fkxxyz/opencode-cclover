@@ -105,9 +105,8 @@ You are a UI/UX designer.`
     )
     await stateManager.registerEmployee({
       employeeId: "0-alice",
-      taskId: 0,
       name: "alice",
-      role: "developer",
+      roleId: "developer",
       status: "offline",
       paused: false,
       activeSessionId: null,
@@ -117,9 +116,8 @@ You are a UI/UX designer.`
     })
     await stateManager.registerEmployee({
       employeeId: "0-bob",
-      taskId: 0,
       name: "bob",
-      role: "tester",
+      roleId: "tester",
       status: "offline",
       paused: false,
       activeSessionId: null,
@@ -129,9 +127,8 @@ You are a UI/UX designer.`
     })
     await stateManager.registerEmployee({
       employeeId: "0-charlie",
-      taskId: 0,
       name: "charlie",
-      role: "manager",
+      roleId: "manager",
       status: "offline",
       paused: false,
       activeSessionId: null,
@@ -290,9 +287,8 @@ You are a role without description.`
     // 注册一个角色不存在的员工
     await stateManager.registerEmployee({
       employeeId: "0-dave",
-      taskId: 0,
       name: "dave",
-      role: "non-existent-role",
+      roleId: "non-existent-role",
       status: "offline",
       paused: false,
       activeSessionId: null,

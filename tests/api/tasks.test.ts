@@ -5,6 +5,7 @@ import * as yaml from "yaml"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { getTasks, haltTask } from "../../src/api/tasks"
 import { StateManager } from "../../src/state/StateManager"
+import { projectParamRoutes } from "../../src/server/routes"
 import type { Employee, Memory } from "../../src/types/index"
 
 const testWorkspace = "./workspace_test_tasks_api"
@@ -142,7 +143,47 @@ describe("Tasks API", () => {
     }
   })
 
-  it("should reuse message service interruption path when halting a task", async () => {
+  it("routes personal TODO tasks by stable employeeId when name differs", async () => {
+    const memoryManager = new MemoryManager(testWorkspace)
+    const employeeDir = path.join(testWorkspace, "employees", "emp-worker")
+    await fs.mkdir(employeeDir, { recursive: true })
+
+    const memory: Memory = {
+      knowledge: [],
+      tasks: [
+        {
+          name: "检查API契约",
+          status: "pending",
+          description: "确保个人TODO按employeeId读取",
+          dependencies: [],
+          created: "2026-06-19T00:00:00.000Z",
+        },
+      ],
+      args: {},
+    }
+    await fs.writeFile(
+      path.join(employeeDir, "memory.yaml"),
+      yaml.stringify(memory),
+      "utf-8"
+    )
+
+    const handler = projectParamRoutes.get("GET:/employees/:employeeId/tasks")
+    expect(handler).toBeDefined()
+
+    const response = await handler!(
+      new Request(
+        "http://localhost/api/projects/test-project/employees/emp-worker/tasks"
+      ),
+      { employeeId: "emp-worker", projectId: "test-project" },
+      { memoryManager }
+    )
+
+    expect(response.success).toBe(true)
+    expect(response.data.tasks).toHaveLength(1)
+    expect(response.data.tasks[0].name).toBe("检查API契约")
+  })
+
+  it("should halt one employee by stable employeeId", async () => {
     const stateManager = new StateManager(
       "test-project",
       testWorkspace,
@@ -153,10 +194,9 @@ describe("Tasks API", () => {
     } as any
 
     const employee1: Employee = {
-      employeeId: "13-worker-001",
+      employeeId: "emp-worker-001",
       name: "worker-001",
-      taskId: 13,
-      role: "Developer",
+      roleId: "Developer",
       status: "busy",
       paused: false,
       hiredBy: null,
@@ -166,13 +206,12 @@ describe("Tasks API", () => {
     }
 
     const employee2: Employee = {
-      employeeId: "13-worker-002",
+      employeeId: "emp-worker-002",
       name: "worker-002",
-      taskId: 13,
-      role: "Reviewer",
+      roleId: "Reviewer",
       status: "idle",
       paused: false,
-      hiredBy: "13-worker-001",
+      hiredBy: "emp-worker-001",
       activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -182,7 +221,7 @@ describe("Tasks API", () => {
     await stateManager.registerEmployee(employee2)
 
     const response = await haltTask(
-      13,
+      "emp-worker-001",
       stateManager,
       "runaway nested employees",
       "test",
@@ -190,12 +229,42 @@ describe("Tasks API", () => {
     )
 
     expect(response.success).toBe(true)
-    expect(messageService.abortActiveSession).toHaveBeenCalledTimes(2)
+    if (response.success) {
+      expect(response.data).toEqual({
+        employeeId: "emp-worker-001",
+        halted: true,
+      })
+    }
+    expect(messageService.abortActiveSession).toHaveBeenCalledTimes(1)
     expect(messageService.abortActiveSession).toHaveBeenCalledWith(
-      "13-worker-001"
+      "emp-worker-001"
     )
-    expect(messageService.abortActiveSession).toHaveBeenCalledWith(
-      "13-worker-002"
+
+    const events = stateManager.getEvents({ type: "employee_halted" })
+    expect(events).toHaveLength(1)
+    expect(events[0].employeeId).toBe("emp-worker-001")
+    expect("taskId" in events[0].details).toBe(false)
+  })
+
+  it("should reject old numeric taskId halt behavior", async () => {
+    const stateManager = new StateManager(
+      "test-project",
+      testWorkspace,
+      testWorkspace
+    )
+
+    const response = await haltTask(13 as any, stateManager)
+
+    expect(response.success).toBe(false)
+    if (!response.success) {
+      expect(response.error.code).toBe("INVALID_EMPLOYEE_ID")
+    }
+  })
+
+  it("should not register old numeric taskId halt route", () => {
+    expect(projectParamRoutes.has("POST:/tasks/:taskId/halt")).toBe(false)
+    expect(projectParamRoutes.has("POST:/employees/:employeeId/halt")).toBe(
+      true
     )
   })
 })

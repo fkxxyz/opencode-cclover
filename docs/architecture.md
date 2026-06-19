@@ -234,14 +234,17 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
   ```
   .cclover/
   ├── employees.yaml          # Employee list
+  ├── root-tasks.yaml         # Project-level high-level requests
+  ├── work-items.yaml         # Project-level assigned work packages
   └── workspace/
       ├── employees/
-      │   ├── {employeeName}/
+      │   ├── {employeeId}/
       │   │   ├── messages/
       │   │   │   ├── {peerName}/
       │   │   │   │   └── chat.yaml
       │   │   │   └── {bossName}/
       │   │   │       └── chat.yaml
+      │   │   ├── events.jsonl
       │   │   └── memory.yaml
       └── bosses/
           └── {bossName}/
@@ -278,6 +281,8 @@ export const CcloverPlugin: Plugin = async (ctx: PluginContext) => {
   return { tool: tools }
 }
 ```
+
+`employees.yaml`, `root-tasks.yaml`, and `work-items.yaml` are separate stores. Employee identity uses stable `employeeId` values and does not encode root task or work item membership. `MemoryManager.tasks` remain employee-private TODO/reminder items under each employee memory file; project-level assignment belongs to `WorkItemManager` and `work-items.yaml`.
 
 ### Tool Interface
 
@@ -323,7 +328,7 @@ projects:
 
 ### Memory Data
 
-**File**: `{workspace}/employees/{name}/memory.yaml`
+**File**: `{workspace}/employees/{employeeId}/memory.yaml`
 
 **Schema**:
 ```yaml
@@ -343,9 +348,17 @@ custom:
 
 **See**: [Memory System Requirements](./requirements-memory.md)
 
+### Project Work Data
+
+**Root tasks file**: `{projectRoot}/.cclover/root-tasks.yaml`
+
+**Work items file**: `{projectRoot}/.cclover/work-items.yaml`
+
+Root tasks represent boss/user-level requests. Work items represent concrete packages assigned to exactly one employee and may reference a worktree. The legacy numeric `taskId` grouping model is removed from the employee contract; root tasks and work items use `rt_*` and `wi_*` identifiers.
+
 ### Message Data
 
-**File**: `{workspace}/employees/{name}/messages/{peer}/chat.yaml`
+**File**: `{workspace}/employees/{employeeId}/messages/{peer}/chat.yaml`
 
 **Schema**:
 ```yaml

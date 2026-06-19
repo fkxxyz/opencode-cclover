@@ -103,8 +103,7 @@ describe("Name Reuse Without Archiving", () => {
     await stateManager.registerEmployee({
       employeeId: "1-dev-001" as EmployeeId,
       name: "dev-001",
-      taskId: 1,
-      role: "General Developer",
+      roleId: "General Developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -117,8 +116,7 @@ describe("Name Reuse Without Archiving", () => {
     await stateManager.registerEmployee({
       employeeId: "2-dev-001" as EmployeeId,
       name: "dev-001",
-      taskId: 2,
-      role: "General Developer",
+      roleId: "General Developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),

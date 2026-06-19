@@ -12,12 +12,14 @@ import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"
 import { BossManager } from "../../src/core/BossManager"
 import { RoleManager } from "../../src/core/RoleManager"
+import { RootTaskManager } from "../../src/core/RootTaskManager"
+import { WorkItemManager } from "../../src/core/WorkItemManager"
 import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
 import { AgentRegistry, agentRegistry } from "../../src/utils/AgentRegistry"
 import { ModelConfigManager } from "../../src/config/ModelConfigManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
-import type { Employee } from "../../src/types/index"
+import { createTestEmployee } from "../helpers/employeeFactory"
 import {
   fetchApi,
   type HealthData,
@@ -28,7 +30,7 @@ import {
   type HierarchyData,
   type EventListData,
   type StatsData,
-  type TaskHaltData,
+  type EmployeeHaltData,
 } from "../helpers/api-client"
 
 const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-server")
@@ -74,43 +76,38 @@ describe("Console Server", () => {
       "test-project",
       "Test Project"
     )
-    const testEmployee: Employee = {
-      employeeId: "0-test-role",
+    const testEmployee = createTestEmployee({
+      employeeId: "emp_test_role",
       name: "test-role",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "idle",
-      paused: false,
       hiredBy: "boss1",
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    }
+    })
     stateManager.registerEmployee(testEmployee)
-    await stateManager.registerEmployee({
-      employeeId: "1-worker-001",
-      name: "worker-001",
-      taskId: 1,
-      role: "Developer",
-      status: "busy",
-      paused: false,
-      hiredBy: "0-test-role",
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
-    await stateManager.registerEmployee({
-      employeeId: "1-worker-002",
-      name: "worker-002",
-      taskId: 1,
-      role: "Reviewer",
-      status: "idle",
-      paused: false,
-      hiredBy: "1-worker-001",
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_worker_001",
+        name: "worker-001",
+        roleId: "Developer",
+        status: "busy",
+        hiredBy: "emp_test_role",
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_worker_002",
+        name: "worker-002",
+        roleId: "Reviewer",
+        status: "idle",
+        hiredBy: "emp_worker_001",
+      })
+    )
+    const workItemManager = new WorkItemManager(TEST_WORKSPACE, stateManager)
+    const rootTaskManager = new RootTaskManager(
+      TEST_WORKSPACE,
+      stateManager,
+      workItemManager
+    )
     projectRegistry = new ProjectRegistry()
     projectRegistry.register({
       projectId: "test-project",
@@ -120,6 +117,8 @@ describe("Console Server", () => {
       stateManager,
       messageService,
       memoryManager,
+      rootTaskManager,
+      workItemManager,
       agentRegistry: testAgentRegistry,
       bossManager,
       roleManager,
@@ -190,7 +189,7 @@ describe("Console Server", () => {
       expect(json.success).toBe(true)
       if (json.success) {
         expect(json.data.name).toBe("test-role")
-        expect(json.data.role).toBe("TestRole")
+        expect(json.data.roleId).toBe("TestRole")
         expect(json.data.memory).toBeDefined()
         expect(json.data.tasks).toBeDefined()
         expect(json.data.agents).toBeDefined()
@@ -274,9 +273,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("POST /api/projects/test-project/tasks/:taskId/halt - 急停任务下所有员工", async () => {
-      const { response, json } = await fetchApi<TaskHaltData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/tasks/1/halt`,
+    test("POST /api/projects/test-project/employees/:employeeId/halt - 急停指定员工", async () => {
+      const { response, json } = await fetchApi<EmployeeHaltData>(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_worker_001/halt`,
         {
           method: "POST",
           headers: {
@@ -291,9 +290,8 @@ describe("Console Server", () => {
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
       if (json.success) {
-        expect(json.data.taskId).toBe(1)
-        expect(json.data.employeeIds).toContain("1-worker-001")
-        expect(json.data.employeeIds).toContain("1-worker-002")
+        expect(json.data.employeeId).toBe("emp_worker_001")
+        expect(json.data.halted).toBe(true)
 
         const employeesYamlPath = path.join(
           TEST_WORKSPACE,
@@ -302,14 +300,35 @@ describe("Console Server", () => {
         )
         const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
         const persisted = yaml.parse(persistedRaw)
-        const haltedEmployees = persisted.employees.filter((employee: any) =>
-          json.data.employeeIds.includes(employee.employeeId)
+        const haltedEmployees = persisted.employees.filter(
+          (employee: any) => employee.employeeId === json.data.employeeId
         )
 
-        expect(haltedEmployees).toHaveLength(2)
+        expect(haltedEmployees).toHaveLength(1)
         expect(
           haltedEmployees.every((employee: any) => employee.paused === true)
         ).toBe(true)
+      }
+    })
+
+    test("POST /api/projects/test-project/tasks/:taskId/halt - rejects old numeric halt route", async () => {
+      const { response, json } = await fetchApi<never>(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/tasks/1/halt`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reason: "legacy numeric route",
+          }),
+        }
+      )
+
+      expect(response.status).toBe(404)
+      expect(json.success).toBe(false)
+      if (!json.success) {
+        expect(json.error.code).toBe("NOT_FOUND")
       }
     })
 
@@ -457,7 +476,7 @@ describe("Console Server", () => {
             type: "message",
             projectId: "test-project",
             timestamp: new Date().toISOString(),
-            employeeId: "0-test-role",
+            employeeId: "emp_test_role",
             details: {
               from: "alice",
               to: "test-role",
@@ -482,7 +501,7 @@ describe("Console Server", () => {
       const message = await eventPromise
       expect(message.type).toBe("event")
       expect(message.data.type).toBe("message")
-      expect(message.data.employeeId).toBe("0-test-role")
+      expect(message.data.employeeId).toBe("emp_test_role")
 
       ws.close()
     })

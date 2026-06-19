@@ -7,11 +7,14 @@ import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { RoleManager } from "../../src/core/RoleManager"
 import { BossManager } from "../../src/core/BossManager"
+import { RootTaskManager } from "../../src/core/RootTaskManager"
+import { WorkItemManager } from "../../src/core/WorkItemManager"
 import { AgentRegistry } from "../../src/utils/AgentRegistry"
 import { EventLoop } from "../../src/core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { ModelConfigManager } from "../../src/config/ModelConfigManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
+import { createTestEmployee } from "../helpers/employeeFactory"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as os from "node:os"
@@ -88,6 +91,12 @@ describe("GlobalCcloverService.startEmployeeEventLoop", () => {
       stateManager,
       projectId
     )
+    const workItemManager = new WorkItemManager(projectPath, stateManager)
+    const rootTaskManager = new RootTaskManager(
+      projectPath,
+      stateManager,
+      workItemManager
+    )
     const agentRegistry = new AgentRegistry()
     const roleManager = new RoleManager(projectPath)
 
@@ -117,18 +126,16 @@ Test role system prompt`
     )
 
     // 注册测试员工
-    await stateManager.registerEmployee({
-      employeeId: "0-test-employee",
-      name: "test-employee",
-      taskId: 0,
-      role: "test-role",
-      status: "idle",
-      paused: false,
-      hiredBy: "boss1",
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_test_employee",
+        name: "test-employee",
+        roleId: "test-role",
+        status: "idle",
+        paused: false,
+        hiredBy: "boss1",
+      })
+    )
 
     projectInstance = {
       projectId,
@@ -138,6 +145,8 @@ Test role system prompt`
       stateManager,
       messageService,
       memoryManager,
+      rootTaskManager,
+      workItemManager,
       agentRegistry,
       bossManager,
       roleManager,
@@ -189,11 +198,11 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 启动 EventLoop
-    await service.startEmployeeEventLoop(projectId, "0-test-employee")
+    await service.startEmployeeEventLoop(projectId, "emp_test_employee")
 
     // 验证 EventLoop 已创建并存储
-    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
-    const eventLoop = projectInstance.eventLoops.get("0-test-employee")
+    expect(projectInstance.eventLoops.has("emp_test_employee")).toBe(true)
+    const eventLoop = projectInstance.eventLoops.get("emp_test_employee")
     expect(eventLoop).toBeInstanceOf(EventLoop)
   })
 
@@ -219,12 +228,12 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 第一次启动
-    await service.startEmployeeEventLoop(projectId, "0-test-employee")
-    const firstEventLoop = projectInstance.eventLoops.get("0-test-employee")
+    await service.startEmployeeEventLoop(projectId, "emp_test_employee")
+    const firstEventLoop = projectInstance.eventLoops.get("emp_test_employee")
 
     // 第二次启动（应该返回而不是创建新的）
-    await service.startEmployeeEventLoop(projectId, "0-test-employee")
-    const secondEventLoop = projectInstance.eventLoops.get("0-test-employee")
+    await service.startEmployeeEventLoop(projectId, "emp_test_employee")
+    const secondEventLoop = projectInstance.eventLoops.get("emp_test_employee")
 
     // 验证是同一个 EventLoop 实例
     expect(secondEventLoop).toBe(firstEventLoop)
@@ -235,24 +244,24 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 注册一个角色不存在的员工
-    await projectInstance.stateManager.registerEmployee({
-      employeeId: "0-employee-with-missing-role",
-      name: "employee-with-missing-role",
-      taskId: 0,
-      role: "non-existent-role",
-      status: "idle",
-      paused: false,
-      hiredBy: "boss1",
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
+    await projectInstance.stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_employee_with_missing_role",
+        name: "employee-with-missing-role",
+        roleId: "non-existent-role",
+        status: "idle",
+        hiredBy: "boss1",
+      })
+    )
 
     // 尝试启动 EventLoop
     await expect(
-      service.startEmployeeEventLoop(projectId, "0-employee-with-missing-role")
+      service.startEmployeeEventLoop(
+        projectId,
+        "emp_employee_with_missing_role"
+      )
     ).rejects.toThrow(
-      "Role 'non-existent-role' not found for employee '0-employee-with-missing-role'"
+      "Role 'non-existent-role' not found for employee 'emp_employee_with_missing_role'"
     )
   })
 
@@ -260,10 +269,10 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 启动 EventLoop
-    await service.startEmployeeEventLoop(projectId, "0-test-employee")
+    await service.startEmployeeEventLoop(projectId, "emp_test_employee")
 
     // 验证 EventLoop 已创建
-    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
+    expect(projectInstance.eventLoops.has("emp_test_employee")).toBe(true)
 
     // 注意：EventLoop.run() 的错误处理是通过 .catch() 完成的
     // 这里我们只验证 EventLoop 被正确创建和存储
@@ -274,31 +283,28 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
 
     // 注册第二个员工
-    await projectInstance.stateManager.registerEmployee({
-      employeeId: "0-test-employee-2",
-      name: "test-employee-2",
-      taskId: 0,
-      role: "test-role",
-      status: "idle",
-      paused: false,
-      hiredBy: "boss1",
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
+    await projectInstance.stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_test_employee_2",
+        name: "test-employee-2",
+        roleId: "test-role",
+        status: "idle",
+        hiredBy: "boss1",
+      })
+    )
 
     // 启动两个 EventLoop
-    await service.startEmployeeEventLoop(projectId, "0-test-employee")
-    await service.startEmployeeEventLoop(projectId, "0-test-employee-2")
+    await service.startEmployeeEventLoop(projectId, "emp_test_employee")
+    await service.startEmployeeEventLoop(projectId, "emp_test_employee_2")
 
     // 验证两个 EventLoop 都已创建
     expect(projectInstance.eventLoops.size).toBe(2)
-    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(true)
-    expect(projectInstance.eventLoops.has("0-test-employee-2")).toBe(true)
+    expect(projectInstance.eventLoops.has("emp_test_employee")).toBe(true)
+    expect(projectInstance.eventLoops.has("emp_test_employee_2")).toBe(true)
   })
 
   test("should inject startup prompt recovery event for active employee", async () => {
-    await projectInstance.stateManager.setPromptRecovery("0-test-employee", {
+    await projectInstance.stateManager.setPromptRecovery("emp_test_employee", {
       version: 1,
       sessionId: "session-recover",
       startedAt: "2026-04-08T00:00:00.000Z",
@@ -308,7 +314,7 @@ Test role system prompt`
     const service = await GlobalCcloverService.getInstance()
     await service.startEmployees(projectInstance)
 
-    const eventLoop = projectInstance.eventLoops.get("0-test-employee") as any
+    const eventLoop = projectInstance.eventLoops.get("emp_test_employee") as any
     expect(eventLoop).toBeInstanceOf(EventLoop)
     expect(eventLoop.recoveryQueue).toHaveLength(1)
     expect(eventLoop.recoveryQueue[0]).toMatchObject({
@@ -319,40 +325,40 @@ Test role system prompt`
   })
 
   test("should not inject startup prompt recovery event for paused employee", async () => {
-    await projectInstance.stateManager.setPromptRecovery("0-test-employee", {
+    await projectInstance.stateManager.setPromptRecovery("emp_test_employee", {
       version: 1,
       sessionId: "session-recover",
       startedAt: "2026-04-08T00:00:00.000Z",
       triggerEventType: "message",
     })
-    await projectInstance.stateManager.pauseEmployee("0-test-employee")
+    await projectInstance.stateManager.pauseEmployee("emp_test_employee")
 
     const service = await GlobalCcloverService.getInstance()
     await service.startEmployees(projectInstance)
 
-    expect(projectInstance.eventLoops.has("0-test-employee")).toBe(false)
+    expect(projectInstance.eventLoops.has("emp_test_employee")).toBe(false)
   })
 
   test("should not treat persisted runtime offline status as recovery gating", async () => {
-    await projectInstance.stateManager.setPromptRecovery("0-test-employee", {
+    await projectInstance.stateManager.setPromptRecovery("emp_test_employee", {
       version: 1,
       sessionId: "session-recover",
       startedAt: "2026-04-08T00:00:00.000Z",
       triggerEventType: "message",
     })
     await projectInstance.stateManager.updateEmployeeStatus(
-      "0-test-employee",
+      "emp_test_employee",
       "offline"
     )
 
     const service = await GlobalCcloverService.getInstance()
     await service.startEmployees(projectInstance)
 
-    const eventLoop = projectInstance.eventLoops.get("0-test-employee") as any
+    const eventLoop = projectInstance.eventLoops.get("emp_test_employee") as any
     expect(eventLoop).toBeInstanceOf(EventLoop)
     expect(eventLoop.recoveryQueue).toHaveLength(1)
     expect(
-      projectInstance.stateManager.getEmployee("0-test-employee")?.status
+      projectInstance.stateManager.getEmployee("emp_test_employee")?.status
     ).not.toBe("offline")
   })
 })

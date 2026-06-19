@@ -36,5 +36,7 @@ export interface ServerDependencies {
   agentRegistry: any
   bossManager: any
   roleManager: any
+  rootTaskManager: any
+  workItemManager: any
   workspaceRoot: string
 }

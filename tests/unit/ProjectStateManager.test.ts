@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
-import type { ProjectStateManager } from "../../src/core/TaskManager"
-import type { TaskId, ProjectState } from "../../src/types/index"
+import type {
+  LegacyTaskId,
+  ProjectStateManager,
+} from "../../src/core/TaskManager"
 import * as lockfile from "proper-lockfile"
 import * as yaml from "yaml"
 
@@ -26,13 +28,13 @@ class RealProjectStateManager implements ProjectStateManager {
   /**
    * 获取下一个 TaskId 并递增计数器
    */
-  async getNextTaskId(): Promise<TaskId> {
+  async getNextTaskId(): Promise<LegacyTaskId> {
     await this.ensureStateFile()
 
     const release = await lockfile.lock(this.stateFilePath, { retries: 10 })
     try {
       const content = await fs.readFile(this.stateFilePath, "utf-8")
-      const state: ProjectState = yaml.parse(content)
+      const state: LegacyProjectState = yaml.parse(content)
 
       const currentTaskId = state.nextTaskId
       state.nextTaskId++
@@ -48,11 +50,11 @@ class RealProjectStateManager implements ProjectStateManager {
   /**
    * 获取当前的 nextTaskId（不递增）
    */
-  async getCurrentNextTaskId(): Promise<TaskId> {
+  async getCurrentNextTaskId(): Promise<LegacyTaskId> {
     await this.ensureStateFile()
 
     const content = await fs.readFile(this.stateFilePath, "utf-8")
-    const state: ProjectState = yaml.parse(content)
+    const state: LegacyProjectState = yaml.parse(content)
     return state.nextTaskId
   }
 
@@ -68,7 +70,7 @@ class RealProjectStateManager implements ProjectStateManager {
         await fs.mkdir(path.dirname(this.stateFilePath), { recursive: true })
 
         // 创建初始状态文件
-        const initialState: ProjectState = {
+        const initialState: LegacyProjectState = {
           nextTaskId: 1,
         }
         await fs.writeFile(
@@ -81,6 +83,10 @@ class RealProjectStateManager implements ProjectStateManager {
       }
     }
   }
+}
+
+interface LegacyProjectState {
+  nextTaskId: LegacyTaskId
 }
 
 describe("ProjectStateManager", () => {

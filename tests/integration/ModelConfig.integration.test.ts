@@ -69,9 +69,9 @@ You are a fast responder.`
       const roleManager = new RoleManager(projectPath)
       await roleManager.refresh()
 
-      const role = roleManager.getRole("Fast Responder")
-      expect(role).toBeDefined()
-      expect(role?.model_type).toBe("fast")
+      const roleId = roleManager.getRole("Fast Responder")
+      expect(roleId).toBeDefined()
+      expect(roleId?.model_type).toBe("fast")
 
       const modelConfig = modelConfigManager.resolve("fast")
       expect(modelConfig).toEqual({
@@ -111,11 +111,11 @@ You are a default responder.`
       const roleManager = new RoleManager(projectPath)
       await roleManager.refresh()
 
-      const role = roleManager.getRole("Default Responder")
-      expect(role).toBeDefined()
-      expect(role?.model_type).toBeUndefined()
+      const roleId = roleManager.getRole("Default Responder")
+      expect(roleId).toBeDefined()
+      expect(roleId?.model_type).toBeUndefined()
 
-      const modelType = role?.model_type || "default"
+      const modelType = roleId?.model_type || "default"
       expect(modelType).toBe("default")
 
       const modelConfig = modelConfigManager.resolve(modelType)
@@ -206,10 +206,9 @@ You create agents.`
       const bossManager = new BossManager(globalConfig, workspaceRoot)
 
       const employee: Employee = {
-        employeeId: "0-agent-creator",
+        employeeId: "emp_agent_creator",
         name: "agent-creator",
-        taskId: 0,
-        role: "Agent Creator",
+        roleId: "Agent Creator",
         status: "idle",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
@@ -242,7 +241,7 @@ You create agents.`
       )
 
       // Register session for actor resolution
-      sessionRegistry.register("test-session", "0-agent-creator")
+      sessionRegistry.register("test-session", "emp_agent_creator")
 
       await createAgentTool.execute(
         {
@@ -294,10 +293,9 @@ You create agents.`
       const bossManager = new BossManager(globalConfig, workspaceRoot)
 
       const employee: Employee = {
-        employeeId: "0-default-creator",
+        employeeId: "emp_default_creator",
         name: "default-creator",
-        taskId: 0,
-        role: "Default Agent Creator",
+        roleId: "Default Agent Creator",
         status: "idle",
         createdAt: "2026-03-01T10:00:00.000Z",
         lastActiveAt: "2026-03-01T10:00:00.000Z",
@@ -328,7 +326,7 @@ You create agents.`
       )
 
       // Register session for actor resolution
-      sessionRegistry.register("test-session-2", "0-default-creator")
+      sessionRegistry.register("test-session-2", "emp_default_creator")
 
       await createAgentTool.execute(
         {

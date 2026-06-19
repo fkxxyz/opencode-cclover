@@ -96,8 +96,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-dev-1",
       name: "dev-1",
-      taskId: 0,
-      role: "soulless-dev",
+      roleId: "soulless-dev",
       status: "idle",
       hiredBy: null,
       paused: false,
@@ -135,8 +134,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-dev-1",
       name: "dev-1",
-      taskId: 0,
-      role: "soulless-dev",
+      roleId: "soulless-dev",
       status: "busy",
       hiredBy: null,
       paused: false,
@@ -191,8 +189,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-dev-1",
       name: "dev-1",
-      taskId: 0,
-      role: "soulless-dev",
+      roleId: "soulless-dev",
       status: "busy",
       hiredBy: null,
       paused: false,
@@ -204,8 +201,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-dev-2",
       name: "dev-2",
-      taskId: 0,
-      role: "soulless-dev",
+      roleId: "soulless-dev",
       status: "busy",
       hiredBy: null,
       paused: false,
@@ -275,8 +271,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-soulless-1",
       name: "soulless-1",
-      taskId: 0,
-      role: "soulless-dev",
+      roleId: "soulless-dev",
       status: "busy",
       hiredBy: null,
       paused: false,
@@ -289,8 +284,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-soulful-1",
       name: "soulful-1",
-      taskId: 0,
-      role: "soulful-dev",
+      roleId: "soulful-dev",
       status: "busy",
       hiredBy: null,
       paused: false,
@@ -359,8 +353,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-dev-1",
       name: "dev-1",
-      taskId: 0,
-      role: "soulless-dev",
+      roleId: "soulless-dev",
       status: "busy",
       hiredBy: null,
       paused: false,
@@ -439,8 +432,7 @@ Soulful developer role.
     await stateManager.registerEmployee({
       employeeId: "0-dev-1",
       name: "dev-1",
-      taskId: 0,
-      role: "unknown-role",
+      roleId: "unknown-role",
       hiredBy: null,
       status: "busy",
       paused: false,

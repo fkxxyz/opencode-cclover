@@ -1,11 +1,22 @@
 import type { StateManager } from "../state/StateManager"
-import type { Event, SuccessResponse, ErrorResponse } from "../types/index"
+import type {
+  Event,
+  EventType,
+  SuccessResponse,
+  ErrorResponse,
+} from "../types/index"
 
 /**
  * 获取事件历史
  */
 export function getEvents(
-  options: { limit?: number; employeeId?: string },
+  options: {
+    limit?: number
+    employeeId?: string
+    rootTaskId?: string
+    workItemId?: string
+    type?: EventType
+  },
   stateManager: StateManager
 ): SuccessResponse<{ events: Event[] }> {
   try {
@@ -25,6 +36,9 @@ export function getEvents(
     const events = stateManager.getEvents({
       limit,
       employeeId: options?.employeeId,
+      rootTaskId: options?.rootTaskId,
+      workItemId: options?.workItemId,
+      type: options?.type,
     })
 
     return {

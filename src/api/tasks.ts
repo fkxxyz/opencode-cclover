@@ -12,26 +12,26 @@ import type {
  * 获取员工的任务列表
  */
 export async function getTasks(
-  employeeName: string,
+  employeeId: string,
   memoryManager: MemoryManager
 ): Promise<SuccessResponse<TasksResponse> | ErrorResponse> {
   try {
     // 验证参数
-    if (!employeeName || employeeName.trim() === "") {
+    if (!employeeId || employeeId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工名称不能为空",
+          message: "员工ID不能为空",
         },
       }
     }
 
     // 读取员工记忆
-    const memory = await memoryManager.read(employeeName)
+    const memory = await memoryManager.read(employeeId)
 
     // 获取可执行的任务
-    const executableTasks = await memoryManager.getExecutableTasks(employeeName)
+    const executableTasks = await memoryManager.getExecutableTasks(employeeId)
     const executableTaskNames = executableTasks.map((t) => t.name)
 
     return {
@@ -53,74 +53,55 @@ export async function getTasks(
 }
 
 export async function haltTask(
-  taskId: number,
+  employeeId: string,
   stateManager: StateManager,
   reason?: string,
   triggeredBy?: string,
   messageService?: Pick<MessageService, "abortActiveSession">
 ): Promise<
-  | SuccessResponse<{ taskId: number; employeeIds: string[]; count: number }>
-  | ErrorResponse
+  SuccessResponse<{ employeeId: string; halted: true }> | ErrorResponse
 > {
-  if (!Number.isInteger(taskId) || taskId <= 0) {
+  if (typeof employeeId !== "string" || employeeId.trim() === "") {
     return {
       success: false,
       error: {
-        code: "INVALID_TASK_ID",
-        message: "taskId 必须是大于 0 的整数",
+        code: "INVALID_EMPLOYEE_ID",
+        message: "employeeId 不能为空",
       },
     }
   }
 
-  // 旧 haltTask API 暂时仍保留入参校验，但 taskId 分组不再是 StateManager 契约。
-  const employees: ReturnType<StateManager["getEmployees"]> = []
-  if (employees.length === 0) {
+  const employee = stateManager.getEmployee(employeeId)
+  if (!employee) {
     return {
       success: false,
       error: {
-        code: "TASK_NOT_FOUND",
-        message: `Task '${taskId}' not found`,
+        code: "EMPLOYEE_NOT_FOUND",
+        message: `Employee '${employeeId}' not found`,
       },
     }
   }
 
-  const employeeIds = employees.map((employee) => employee.employeeId)
+  await messageService?.abortActiveSession(employee.employeeId)
 
-  await stateManager.addEvent({
-    projectId: stateManager.getProjectId(),
-    type: "task_halt_requested",
+  haltRegistry.addHaltEvent(employee.employeeId, {
+    type: "halt_requested",
+    employeeId: employee.employeeId,
     timestamp: new Date().toISOString(),
-    details: {
-      taskId,
-      employeeIds,
-      reason,
-      triggeredBy,
-    },
+    reason,
+    triggeredBy,
   })
 
-  for (const employee of employees) {
-    await messageService?.abortActiveSession(employee.employeeId)
-
-    haltRegistry.addHaltEvent(employee.employeeId, {
-      type: "halt_requested",
-      employeeId: employee.employeeId,
-      timestamp: new Date().toISOString(),
-      reason,
-      triggeredBy,
-    })
-
-    await stateManager.forcePauseEmployeeForHalt(employee.employeeId, {
-      reason,
-      triggeredBy,
-    })
-  }
+  await stateManager.forcePauseEmployeeForHalt(employee.employeeId, {
+    reason,
+    triggeredBy,
+  })
 
   return {
     success: true,
     data: {
-      taskId,
-      employeeIds,
-      count: employeeIds.length,
+      employeeId: employee.employeeId,
+      halted: true,
     },
   }
 }

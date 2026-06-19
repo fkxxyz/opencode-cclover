@@ -61,8 +61,7 @@ You are a context aware employee.`
     const employee: Employee = {
       employeeId: "1-dev",
       name: "dev",
-      taskId: 1,
-      role: "context-role",
+      roleId: "context-role",
       hiredBy: null,
       status: "idle",
       paused: false,

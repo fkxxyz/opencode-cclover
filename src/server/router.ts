@@ -65,6 +65,8 @@ export class Router {
           agentRegistry: project.agentRegistry,
           bossManager: project.bossManager,
           roleManager: project.roleManager,
+          rootTaskManager: project.rootTaskManager,
+          workItemManager: project.workItemManager,
           workspaceRoot: project.workspaceRoot,
         }
 

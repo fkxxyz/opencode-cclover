@@ -166,7 +166,6 @@ export type EventType =
   | "agent_created"
   | "task_created"
   | "task_modified"
-  | "task_halt_requested"
   | "vacation_requested"
   | "major_task_completed"
   | "survey_sent"

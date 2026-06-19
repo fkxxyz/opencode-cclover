@@ -97,8 +97,7 @@ describe("EventLoop Vacation Mechanism", () => {
     await stateManager.registerEmployee({
       employeeId: "0-Alice",
       name: "Alice",
-      role: "test-role",
-      taskId: 0,
+      roleId: "test-role",
       hiredBy: "Boss",
       paused: false,
       activeSessionId: null,
@@ -111,8 +110,7 @@ describe("EventLoop Vacation Mechanism", () => {
     await stateManager.registerEmployee({
       employeeId: "0-Bob",
       name: "Bob",
-      role: "test-role",
-      taskId: 0,
+      roleId: "test-role",
       hiredBy: "Boss",
       paused: false,
       activeSessionId: null,
@@ -312,7 +310,7 @@ describe("EventLoop Vacation Mechanism", () => {
       await eventLoop.run()
 
       // 验证事件被记录
-      const events = await stateManager.getEvents({ employeeName: "0-Alice" })
+      const events = await stateManager.getEvents({ employeeId: "0-Alice" })
       const statusChangeEvent = events.find(
         (e) => e.type === "employee_status_changed"
       )

@@ -9,6 +9,7 @@ import * as health from "../api/health"
 import * as projectsApi from "../api/projects"
 import * as timeline from "../api/timeline"
 import * as roles from "../api/roles"
+import * as work from "../api/work"
 
 /**
  * 路由处理器函数类型
@@ -374,7 +375,13 @@ export const projectRoutes = new Map<string, RouteHandler>([
         ? parseInt(url.searchParams.get("limit")!)
         : 50
       const employeeId = url.searchParams.get("employeeId") || undefined
-      return events.getEvents({ limit, employeeId }, deps.stateManager)
+      const rootTaskId = url.searchParams.get("rootTaskId") || undefined
+      const workItemId = url.searchParams.get("workItemId") || undefined
+      const type = url.searchParams.get("type") || undefined
+      return events.getEvents(
+        { limit, employeeId, rootTaskId, workItemId, type: type as any },
+        deps.stateManager
+      )
     },
   ],
 
@@ -469,6 +476,24 @@ export const projectRoutes = new Map<string, RouteHandler>([
    * Response: { success: true, data: { roles: [...] } }
    */
   ["GET:/roles", async (req, params, deps) => roles.getRoles(deps.roleManager)],
+  [
+    "GET:/root-tasks",
+    async (req, params, deps) => work.getRootTasks(deps.rootTaskManager),
+  ],
+  [
+    "GET:/work-items",
+    async (req, params, deps) => {
+      const url = new URL(req.url)
+      return work.getWorkItems(deps.workItemManager, {
+        rootTaskId: url.searchParams.get("rootTaskId") || undefined,
+        employeeId: url.searchParams.get("employeeId") || undefined,
+        parentWorkItemId: url.searchParams.has("parentWorkItemId")
+          ? url.searchParams.get("parentWorkItemId") || null
+          : undefined,
+        dependsOn: url.searchParams.get("dependsOn") || undefined,
+      })
+    },
+  ],
 ])
 
 /**
@@ -740,12 +765,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 获取员工任务列表
    *
-   * @endpoint GET /api/projects/:projectId/employees/:name/tasks
-   * @description 获取指定员工的所有任务，包括可执行任务列表
+   * @endpoint GET /api/projects/:projectId/employees/:employeeId/tasks
+   * @description 获取指定员工的个人 TODO 任务，包括可执行任务列表
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @response {
    *   success: true,
@@ -773,24 +798,24 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    * }
    *
    * @example
-   * GET /api/projects/abc123/employees/calculator/tasks
+   * GET /api/projects/abc123/employees/emp_calculator/tasks
    * Response: { success: true, data: { tasks: [...], executableTasks: [...] } }
    */
   [
-    "GET:/employees/:name/tasks",
+    "GET:/employees/:employeeId/tasks",
     async (req, params, deps) => {
-      const employeeName = params.name
-      return tasks.getTasks(employeeName, deps.memoryManager)
+      const employeeId = params.employeeId
+      return tasks.getTasks(employeeId, deps.memoryManager)
     },
   ],
   [
-    "POST:/tasks/:taskId/halt",
+    "POST:/employees/:employeeId/halt",
     async (req, params, deps) => {
       const body = ((await req.json().catch(() => ({}))) || {}) as {
         reason?: string
       }
       return tasks.haltTask(
-        parseInt(params.taskId, 10),
+        params.employeeId,
         deps.stateManager,
         body.reason,
         "http-api",

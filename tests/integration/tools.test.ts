@@ -34,10 +34,9 @@ describe("Tools Integration", () => {
 
     // 注册测试员工
     await stateManager.registerEmployee({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       name: "alice",
-      taskId: 0,
-      role: "test",
+      roleId: "test",
       status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -46,10 +45,9 @@ describe("Tools Integration", () => {
       activeSessionId: null,
     })
     await stateManager.registerEmployee({
-      employeeId: "0-bob",
+      employeeId: "emp_bob",
       name: "bob",
-      taskId: 0,
-      role: "test",
+      roleId: "test",
       status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -58,10 +56,9 @@ describe("Tools Integration", () => {
       activeSessionId: null,
     })
     await stateManager.registerEmployee({
-      employeeId: "0-test-role",
+      employeeId: "emp_test_role",
       name: "test-role",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -102,17 +99,17 @@ describe("Tools Integration", () => {
         stateManager
       )
       const sessionId = "test-session-1"
-      const employeeName = "0-alice"
+      const employeeName = "emp_alice"
 
       // 注册 session
       sessionRegistry.register(sessionId, employeeName)
 
       // 创建接收方客户端
-      const bobClient = messageService.getClient("0-bob")
+      const bobClient = messageService.getClient("emp_bob")
 
       // 执行工具
       const result = await tool.execute(
-        { to: "0-bob", content: "Hello Bob", expect_reply: false },
+        { to: "emp_bob", content: "Hello Bob", expect_reply: false },
         {
           sessionID: sessionId,
           messageID: "msg-1",
@@ -125,11 +122,11 @@ describe("Tools Integration", () => {
         }
       )
 
-      expect(result).toBe("Message sent to 0-bob")
+      expect(result).toBe("Message sent to emp_bob")
 
       // 验证消息已发送
       const message = await bobClient.recv()
-      expect(message.from).toBe("0-alice")
+      expect(message.from).toBe("emp_alice")
       expect(message.content).toBe("Hello Bob")
     })
 
@@ -142,7 +139,7 @@ describe("Tools Integration", () => {
 
       await expect(
         tool.execute(
-          { to: "0-bob", content: "Hello", expect_reply: false },
+          { to: "emp_bob", content: "Hello", expect_reply: false },
           {
             sessionID: "unknown-session",
             messageID: "msg-1",
@@ -164,7 +161,7 @@ describe("Tools Integration", () => {
         stateManager
       )
       const sessionId = "test-session-invalid-recipient"
-      const employeeName = "0-alice"
+      const employeeName = "emp_alice"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -190,7 +187,7 @@ describe("Tools Integration", () => {
     test("should add task successfully", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-2"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -229,7 +226,7 @@ describe("Tools Integration", () => {
     test("should update task successfully", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-3"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -277,7 +274,7 @@ describe("Tools Integration", () => {
     test("should delete task successfully", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-4"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -321,7 +318,7 @@ describe("Tools Integration", () => {
     test("should handle multiple operations", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-5"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -375,7 +372,7 @@ describe("Tools Integration", () => {
     test("should return error for invalid operations", async () => {
       const tool = createEditTasksTool(memoryManager)
       const sessionId = "test-session-6"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -417,7 +414,7 @@ describe("Tools Integration", () => {
     test("should be temporarily disabled", async () => {
       const tool = createCreateAgentTool(mockOpcodeClient, stateManager)
       const sessionId = "test-session-7"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 
@@ -476,7 +473,7 @@ describe("Tools Integration", () => {
 
       const tool = createCreateAgentTool(failingClient, stateManager)
       const sessionId = "test-session-8"
-      const employeeName = "0-test-role"
+      const employeeName = "emp_test_role"
 
       sessionRegistry.register(sessionId, employeeName)
 

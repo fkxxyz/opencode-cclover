@@ -34,10 +34,9 @@ describe("Employees API", () => {
     const stateManager = new StateManager()
 
     const employee1: Employee = {
-      employeeId: "0-test-role",
+      employeeId: "emp-test-role",
       name: "test-role",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -47,13 +46,12 @@ describe("Employees API", () => {
     }
 
     const employee2: Employee = {
-      employeeId: "0-coder",
+      employeeId: "emp-coder",
       name: "coder",
-      taskId: 0,
-      role: "Coder",
+      roleId: "Coder",
       status: "idle",
       paused: false,
-      hiredBy: "0-test-role",
+      hiredBy: "emp-test-role",
       activeSessionId: null,
       createdAt: "2026-03-01T10:02:00.000Z",
       lastActiveAt: "2026-03-01T10:06:00.000Z",
@@ -66,8 +64,18 @@ describe("Employees API", () => {
 
     expect(response.success).toBe(true)
     expect(response.data.employees).toHaveLength(2)
-    expect(response.data.employees[0].name).toBe("test-role")
-    expect(response.data.employees[1].name).toBe("coder")
+    expect(response.data.employees[0]).toMatchObject({
+      employeeId: "emp-test-role",
+      name: "test-role",
+      roleId: "TestRole",
+    })
+    expect(response.data.employees[1]).toMatchObject({
+      employeeId: "emp-coder",
+      name: "coder",
+      roleId: "Coder",
+    })
+    expect("taskId" in response.data.employees[0]).toBe(false)
+    expect("role" in response.data.employees[0]).toBe(false)
   })
 
   it("should return employee detail with memory and tasks", async () => {
@@ -75,10 +83,9 @@ describe("Employees API", () => {
     const memoryManager = new MemoryManager(testWorkspace)
 
     const employee: Employee = {
-      employeeId: "0-test-role",
+      employeeId: "emp-test-role",
       name: "test-role",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -90,7 +97,7 @@ describe("Employees API", () => {
     stateManager.registerEmployee(employee)
 
     // 创建员工目录和记忆文件（使用 employeeId）
-    const employeeDir = path.join(testWorkspace, "employees", "0-test-role")
+    const employeeDir = path.join(testWorkspace, "employees", "emp-test-role")
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -123,6 +130,9 @@ describe("Employees API", () => {
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.name).toBe("test-role")
+      expect(response.data.employeeId).toBe("emp-test-role")
+      expect(response.data.roleId).toBe("TestRole")
+      expect("taskId" in response.data).toBe(false)
       expect(response.data.memory.knowledge).toHaveLength(1)
       expect(response.data.tasks).toHaveLength(1)
       expect(response.data.tasks[0].name).toBe("计算1+1")
@@ -152,10 +162,9 @@ describe("Employees API", () => {
     const bossManager = new BossManager()
 
     const employee: Employee = {
-      employeeId: "0-test-role",
+      employeeId: "emp-test-role",
       name: "test-role",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -186,10 +195,9 @@ describe("Employees API", () => {
     const bossManager = new BossManager()
 
     const root: Employee = {
-      employeeId: "0-test-role",
+      employeeId: "emp-test-role",
       name: "test-role",
-      taskId: 0,
-      role: "TestRole",
+      roleId: "TestRole",
       status: "idle",
       paused: false,
       hiredBy: "boss1",
@@ -199,26 +207,24 @@ describe("Employees API", () => {
     }
 
     const child: Employee = {
-      employeeId: "0-coder",
+      employeeId: "emp-coder",
       name: "coder",
-      taskId: 0,
-      role: "Coder",
+      roleId: "Coder",
       status: "idle",
       paused: false,
-      hiredBy: "0-test-role",
+      hiredBy: "emp-test-role",
       activeSessionId: null,
       createdAt: "2026-03-01T10:02:00.000Z",
       lastActiveAt: "2026-03-01T10:06:00.000Z",
     }
 
     const grandchild: Employee = {
-      employeeId: "0-tester",
+      employeeId: "emp-tester",
       name: "tester",
-      taskId: 0,
-      role: "Tester",
+      roleId: "Tester",
       status: "idle",
       paused: false,
-      hiredBy: "0-coder",
+      hiredBy: "emp-coder",
       activeSessionId: null,
       createdAt: "2026-03-01T10:03:00.000Z",
       lastActiveAt: "2026-03-01T10:07:00.000Z",
