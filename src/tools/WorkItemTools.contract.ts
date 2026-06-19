@@ -10,6 +10,16 @@ function formatToolResult(value: unknown): string {
   return JSON.stringify(value, null, 2)
 }
 
+function setIfProvided<T extends object, K extends keyof T>(
+  target: T,
+  key: K,
+  value: T[K] | undefined
+): void {
+  if (value !== undefined) {
+    target[key] = value
+  }
+}
+
 /**
  * Phase 1.3 contract tool for explicit root task creation.
  */
@@ -127,12 +137,18 @@ export function createUpdateWorkItemTool(
         .describe("Updated worktree reference; null clears worktree"),
     },
     async execute(args) {
-      const workItem = await workItemManager.updateWorkItem(args.work_item_id, {
-        description: args.description,
-        parentWorkItemId: args.parent_work_item_id,
-        dependsOn: args.depends_on,
-        worktreeRef: args.worktree_ref,
-      })
+      const updates: Parameters<WorkItemManager["updateWorkItem"]>[1] = {}
+
+      // undefined 代表省略字段；null 是显式清空，必须保留。
+      setIfProvided(updates, "description", args.description)
+      setIfProvided(updates, "parentWorkItemId", args.parent_work_item_id)
+      setIfProvided(updates, "dependsOn", args.depends_on)
+      setIfProvided(updates, "worktreeRef", args.worktree_ref)
+
+      const workItem = await workItemManager.updateWorkItem(
+        args.work_item_id,
+        updates
+      )
       return formatToolResult(workItem)
     },
   })
@@ -195,12 +211,15 @@ export function createListWorkItemsTool(
         .describe("Dependency work item ID"),
     },
     async execute(args) {
-      const workItems = await workItemManager.listWorkItems({
-        rootTaskId: args.root_task_id,
-        employeeId: args.employee_id,
-        parentWorkItemId: args.parent_work_item_id,
-        dependsOn: args.depends_on,
-      })
+      const filters: Parameters<WorkItemManager["listWorkItems"]>[0] = {}
+
+      // 只传递调用方实际提供的过滤项，避免 undefined 被当作显式过滤值。
+      setIfProvided(filters, "rootTaskId", args.root_task_id)
+      setIfProvided(filters, "employeeId", args.employee_id)
+      setIfProvided(filters, "parentWorkItemId", args.parent_work_item_id)
+      setIfProvided(filters, "dependsOn", args.depends_on)
+
+      const workItems = await workItemManager.listWorkItems(filters)
       return formatToolResult(workItems)
     },
   })

@@ -25,9 +25,8 @@ describe("MessageService", () => {
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
-      taskId: 0,
       hiredBy: null,
-      role: "test",
+      roleId: "test-role",
       paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
@@ -37,9 +36,8 @@ describe("MessageService", () => {
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
-      taskId: 0,
       hiredBy: null,
-      role: "test",
+      roleId: "test-role",
       paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
@@ -49,9 +47,8 @@ describe("MessageService", () => {
     await stateManager.registerEmployee({
       employeeId: "0-charlie",
       name: "charlie",
-      taskId: 0,
       hiredBy: null,
-      role: "test",
+      roleId: "test-role",
       paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
@@ -383,9 +380,7 @@ describe("MessageService", () => {
       )
     })
 
-    test("should allow sending to BossId format (meeting-mode roles validated at tool level)", async () => {
-      // MessageService accepts BossId formats optimistically
-      // Validation happens at SendMessageTool level which has access to RoleManager
+    test("should allow sending to BossId format as meeting-mode role", async () => {
       const alice = service.getClient("0-alice")
       await expect(
         alice.send("0-nonexistent", "Hello")
@@ -412,8 +407,7 @@ describe("MessageService", () => {
   })
 
   describe("Message routing", () => {
-    test("should route messages between employees in same task", async () => {
-      // alice 和 bob 都在 taskId=0
+    test("should route messages by stable employeeId", async () => {
       const alice = service.getClient("0-alice")
       const bob = service.getClient("0-bob")
 
@@ -439,14 +433,67 @@ describe("MessageService", () => {
       expect(fileExists).toBe(true)
     })
 
+    test("should route globally unique employee names", async () => {
+      const alice = service.getClient("0-alice")
+      const bob = service.getClient("0-bob")
+
+      await alice.send("bob", "Unique name message")
+
+      const message = await bob.recv()
+      expect(message.from).toBe("0-alice")
+      expect(message.to).toBe("0-bob")
+      expect(message.content).toBe("Unique name message")
+    })
+
+    test("should reject duplicate employee names instead of task-scoped expansion", async () => {
+      await stateManager.registerEmployee({
+        employeeId: "emp_second_bob",
+        name: "bob",
+        hiredBy: "0-alice",
+        roleId: "test-role",
+        paused: false,
+        status: "offline",
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        activeSessionId: null,
+      })
+
+      const alice = service.getClient("0-alice")
+
+      await expect(alice.send("bob", "Ambiguous name")).rejects.toThrow(
+        "收件人名称 'bob' 不唯一，请使用稳定 employeeId"
+      )
+    })
+
+    test("should reject unknown short names without same-task expansion", async () => {
+      const alice = service.getClient("0-alice")
+
+      await expect(alice.send("ghost", "Unknown name")).rejects.toThrow(
+        "目标 'ghost' 不存在"
+      )
+    })
+
+    test("should record message event fromRole as sender roleId", async () => {
+      const alice = service.getClient("0-alice")
+
+      await alice.send("0-bob", "Role id event")
+
+      const events = stateManager.getEvents({ employeeId: "0-alice", limit: 5 })
+      const event = events.find(
+        (event) =>
+          event.type === "message" && event.details.content === "Role id event"
+      )
+
+      expect(event?.details.fromRole).toBe("test-role")
+    })
+
     test("should route messages between employees in different tasks", async () => {
       // 注册一个 taskId=1 的员工
       await stateManager.registerEmployee({
         employeeId: "1-dave",
         name: "dave",
-        taskId: 1,
         hiredBy: "0-alice",
-        role: "test",
+        roleId: "test-role",
         paused: false,
         status: "offline",
         createdAt: new Date().toISOString(),

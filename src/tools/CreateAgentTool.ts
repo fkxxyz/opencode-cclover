@@ -10,8 +10,6 @@ import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
 import type { ModelConfigManager } from "../config/ModelConfigManager"
 import type { WorkItemManager } from "../core/WorkItemManager"
-import { agentRegistry } from "../utils/AgentRegistry"
-import { resolveToolActor } from "../meeting-mode"
 /**
  * Create create_agent tool
  *
@@ -22,11 +20,11 @@ import { resolveToolActor } from "../meeting-mode"
  * @param modelConfigManager Model config manager
  */
 export function createCreateAgentTool(
-  opcodeClient: OpencodeClient,
-  stateManager?: StateManager,
-  bossManager?: BossManager,
-  roleManager?: RoleManager,
-  modelConfigManager?: ModelConfigManager,
+  _opcodeClient: OpencodeClient,
+  _stateManager?: StateManager,
+  _bossManager?: BossManager,
+  _roleManager?: RoleManager,
+  _modelConfigManager?: ModelConfigManager,
   _workItemManager?: WorkItemManager
 ) {
   return tool({
@@ -43,7 +41,7 @@ export function createCreateAgentTool(
         .describe("Optional personal TODO task name"),
       prompt: tool.schema.string().describe("Prompt for the agent"),
     },
-    async execute(args, context) {
+    async execute(_args, _context) {
       // 临时禁用子 agent 功能：
       // 1) OpenCode 全局 SSE event stream 在新版本可能会主动关闭/不再长连接
       // 2) 现有实现依赖 SSE 监听 message.updated 来判定 agent 完成，导致员工 EventLoop 被连带拖垮

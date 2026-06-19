@@ -59,7 +59,7 @@ describe.skip("Hiring Flow Integration", () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
   })
 
-  test("boss hires non-soul employee creates task", async () => {
+  test("boss hires employee with stable identity", async () => {
     const tool = createHireEmployeeTool(
       stateManager,
       roleManager,
@@ -85,14 +85,17 @@ describe.skip("Hiring Flow Integration", () => {
     )
 
     expect(result).toContain("Successfully hired employee")
-    expect(result).toContain("1-calc-001")
+    expect(result).toContain("emp_")
 
-    const employee = stateManager.getEmployee("1-calc-001" as EmployeeId)
+    const employee = stateManager
+      .getEmployees()
+      .find((candidate) => candidate.name === "calc-001")
     expect(employee).not.toBeNull()
-    expect(employee?.taskId).toBe(1)
+    expect(employee?.employeeId).toMatch(/^emp_[0-9a-f]{32}$/)
+    expect("taskId" in employee!).toBe(false)
   })
 
-  test("boss hires soul employee with taskId 0", async () => {
+  test("boss hires soul employee with stable identity", async () => {
     const tool = createHireEmployeeTool(
       stateManager,
       roleManager,
@@ -119,15 +122,17 @@ describe.skip("Hiring Flow Integration", () => {
     )
 
     expect(result).toContain("Successfully hired employee")
-    // Soul Developer has soul: false, so gets generated taskId
-    expect(result).toContain("1-soul-dev")
+    expect(result).toContain("emp_")
 
-    const employee = stateManager.getEmployee("1-soul-dev" as EmployeeId)
+    const employee = stateManager
+      .getEmployees()
+      .find((candidate) => candidate.name === "soul-dev")
     expect(employee).not.toBeNull()
-    expect(employee?.taskId).toBe(1)
+    expect(employee?.employeeId).toMatch(/^emp_[0-9a-f]{32}$/)
+    expect("taskId" in employee!).toBe(false)
   })
 
-  test("employee hires soul employee inherits taskId 0", async () => {
+  test("employee hires soul employee without inheriting taskId", async () => {
     const tool = createHireEmployeeTool(
       stateManager,
       roleManager,
@@ -152,8 +157,11 @@ describe.skip("Hiring Flow Integration", () => {
       }
     )
 
-    // Project Manager has soul: false, so gets taskId 1
-    sessionRegistry.register("pm-session", "1-pm-001" as EmployeeId)
+    const pm = stateManager
+      .getEmployees()
+      .find((candidate) => candidate.name === "pm-001")
+    expect(pm).toBeDefined()
+    sessionRegistry.register("pm-session", pm!.employeeId as EmployeeId)
 
     const result = await tool.execute(
       {
@@ -175,10 +183,12 @@ describe.skip("Hiring Flow Integration", () => {
 
     expect(result).toContain("Successfully hired employee")
 
-    // General Developer inherits PM's taskId (1)
-    const dev = stateManager.getEmployee("1-dev-001" as EmployeeId)
+    const dev = stateManager
+      .getEmployees()
+      .find((candidate) => candidate.name === "dev-001")
     expect(dev).not.toBeNull()
-    expect(dev?.taskId).toBe(1)
+    expect(dev?.employeeId).toMatch(/^emp_[0-9a-f]{32}$/)
+    expect("taskId" in dev!).toBe(false)
   })
 
   test("soul employee can hire another soul employee", async () => {
@@ -206,8 +216,11 @@ describe.skip("Hiring Flow Integration", () => {
       }
     )
 
-    // Project Manager has soul: false, so gets taskId 1
-    sessionRegistry.register("pm-session", "1-pm-001" as EmployeeId)
+    const pm = stateManager
+      .getEmployees()
+      .find((candidate) => candidate.name === "pm-001")
+    expect(pm).toBeDefined()
+    sessionRegistry.register("pm-session", pm!.employeeId as EmployeeId)
 
     const result = await tool.execute(
       {
@@ -228,11 +241,13 @@ describe.skip("Hiring Flow Integration", () => {
     )
 
     expect(result).toContain("Successfully hired employee")
-    // Soul Developer has soul: false, inherits PM's taskId (1)
-    expect(result).toContain("1-soul-dev")
+    expect(result).toContain("emp_")
 
-    const soulDev = stateManager.getEmployee("1-soul-dev" as EmployeeId)
+    const soulDev = stateManager
+      .getEmployees()
+      .find((candidate) => candidate.name === "soul-dev")
     expect(soulDev).not.toBeNull()
-    expect(soulDev?.taskId).toBe(1)
+    expect(soulDev?.employeeId).toMatch(/^emp_[0-9a-f]{32}$/)
+    expect("taskId" in soulDev!).toBe(false)
   })
 })

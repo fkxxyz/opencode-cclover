@@ -107,9 +107,6 @@ export function createHireEmployeeTool(
           return "Error: Employee name cannot be empty or whitespace"
         }
 
-        // 6. 生成与任务无关的稳定 employeeId
-        const newEmployeeId = createEmployeeId()
-
         if (!(actor?.hasBossAuthority || bossManager?.isBoss(hiredBy))) {
           const parentEmployee = stateManager.getEmployee(hiredByEmployeeId!)
           if (!parentEmployee) {
@@ -117,11 +114,16 @@ export function createHireEmployeeTool(
           }
         }
 
-        // 7. Check if employee already exists
-        const existing = stateManager.getEmployee(newEmployeeId)
-        if (existing) {
-          return `Error: Employee '${newEmployeeId}' already exists`
+        // 6. 稳定 ID 不再编码名称，但名称仍作为人类可读标识保持唯一
+        const existingByName = stateManager
+          .getEmployees()
+          .find((employee) => employee.name === trimmedName)
+        if (existingByName) {
+          return `Error: Employee name '${trimmedName}' already exists`
         }
+
+        // 7. 生成与任务无关的稳定 employeeId
+        const newEmployeeId = createEmployeeId()
 
         // 8. Register employee (automatically persisted)
         await stateManager.registerEmployee({
@@ -154,7 +156,7 @@ export function createHireEmployeeTool(
           employeeName: trimmedName,
           details: {
             hiredBy: hiredByEmployeeId!,
-            role: args.role,
+            roleId: args.role,
             initialMessage: args.initial_message,
           },
         }

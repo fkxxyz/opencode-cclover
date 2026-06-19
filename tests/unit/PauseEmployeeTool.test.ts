@@ -50,10 +50,9 @@ describe("PauseEmployeeTool", () => {
   test("should pause employee successfully when called by boss", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       paused: false,
       activeSessionId: null,
@@ -63,7 +62,7 @@ describe("PauseEmployeeTool", () => {
     })
 
     // 初始化员工记忆（无活动任务）
-    await memoryManager.write("0-dev-1", {
+    await memoryManager.write("emp_dev_1", {
       knowledge: [],
       tasks: [],
       args: {},
@@ -79,7 +78,7 @@ describe("PauseEmployeeTool", () => {
     )
 
     // 执行工具
-    const result = await tool.execute({ employeeId: "0-dev-1" }, {
+    const result = await tool.execute({ employeeId: "emp_dev_1" }, {
       sessionID: "session-1",
       agent: "boss1",
     } as any)
@@ -96,31 +95,29 @@ describe("PauseEmployeeTool", () => {
     expect(event?.employeeName).toBe("dev-1")
 
     // 验证员工状态已更新为离线
-    const updatedEmployee = stateManager.getEmployee("0-dev-1")
+    const updatedEmployee = stateManager.getEmployee("emp_dev_1")
     expect(updatedEmployee?.status).toBe("offline")
   })
 
   test("should pause employee successfully when called by direct supervisor", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-manager-1",
+      hiredBy: "emp_manager_1",
       paused: false,
       activeSessionId: null,
     })
 
     // 注册 manager
     await stateManager.registerEmployee({
-      employeeId: "0-manager-1",
-      taskId: 0,
+      employeeId: "emp_manager_1",
       name: "manager-1",
-      role: "manager",
+      roleId: "manager",
       status: "busy",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -130,14 +127,14 @@ describe("PauseEmployeeTool", () => {
     })
 
     // 初始化员工记忆（无活动任务）
-    await memoryManager.write("0-dev-1", {
+    await memoryManager.write("emp_dev_1", {
       knowledge: [],
       tasks: [],
       args: {},
     })
 
     // 注册 session
-    sessionRegistry.register("session-1", "0-manager-1")
+    sessionRegistry.register("session-1", "emp_manager_1")
 
     // 创建工具
     const tool = createPauseEmployeeTool(
@@ -147,7 +144,7 @@ describe("PauseEmployeeTool", () => {
     )
 
     // 执行工具
-    const result = await tool.execute({ employeeId: "0-dev-1" }, {
+    const result = await tool.execute({ employeeId: "emp_dev_1" }, {
       sessionID: "session-1",
       agent: "boss1",
     } as any)
@@ -157,7 +154,7 @@ describe("PauseEmployeeTool", () => {
     expect(vacationRegistry.hasVacationEvent("dev-1")).toBe(true)
 
     // 验证员工状态已更新为离线
-    const updatedEmployee = stateManager.getEmployee("0-dev-1")
+    const updatedEmployee = stateManager.getEmployee("emp_dev_1")
     expect(updatedEmployee?.status).toBe("offline")
   })
 
@@ -171,7 +168,7 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具（未注册 session）
     await expect(
-      tool.execute({ employeeId: "0-dev-1" }, {
+      tool.execute({ employeeId: "emp_dev_1" }, {
         sessionID: "unknown-session",
       } as any)
     ).rejects.toThrow("Cannot identify operator")
@@ -189,44 +186,42 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     await expect(
-      tool.execute({ employeeId: "0-unknown-employee" }, {
+      tool.execute({ employeeId: "emp_unknown_employee" }, {
         sessionID: "session-1",
         agent: "boss1",
       } as any)
-    ).rejects.toThrow("Employee '0-unknown-employee' not found")
+    ).rejects.toThrow("Employee 'emp_unknown_employee' not found")
   })
 
   test("should throw error when operator is not boss or supervisor", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-manager-1",
+      hiredBy: "emp_manager_1",
       paused: false,
       activeSessionId: null,
     })
 
     // 注册另一个员工（非 boss，非 supervisor）
     await stateManager.registerEmployee({
-      employeeId: "0-dev-2",
-      taskId: 0,
+      employeeId: "emp_dev_2",
       name: "dev-2",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       paused: false,
       activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-manager-1",
+      hiredBy: "emp_manager_1",
     })
 
     // 注册 session
-    sessionRegistry.register("session-1", "0-dev-2")
+    sessionRegistry.register("session-1", "emp_dev_2")
 
     // 创建工具
     const tool = createPauseEmployeeTool(
@@ -237,17 +232,18 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     await expect(
-      tool.execute({ employeeId: "0-dev-1" }, { sessionID: "session-1" } as any)
+      tool.execute({ employeeId: "emp_dev_1" }, {
+        sessionID: "session-1",
+      } as any)
     ).rejects.toThrow("Permission denied")
   })
 
   test("should return message when employee already offline", async () => {
     // 注册员工（已离线）
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "offline",
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
@@ -266,7 +262,7 @@ describe("PauseEmployeeTool", () => {
     )
 
     // 执行工具
-    const result = await tool.execute({ employeeId: "0-dev-1" }, {
+    const result = await tool.execute({ employeeId: "emp_dev_1" }, {
       sessionID: "session-1",
       agent: "boss1",
     } as any)
@@ -282,10 +278,9 @@ describe("PauseEmployeeTool", () => {
   test("should throw error when employee has pending tasks", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       paused: false,
       activeSessionId: null,
@@ -295,7 +290,7 @@ describe("PauseEmployeeTool", () => {
     })
 
     // 初始化员工记忆（有待处理任务）
-    await memoryManager.write("0-dev-1", {
+    await memoryManager.write("emp_dev_1", {
       knowledge: [],
       tasks: [
         {
@@ -318,7 +313,7 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     await expect(
-      tool.execute({ employeeId: "0-dev-1" }, {
+      tool.execute({ employeeId: "emp_dev_1" }, {
         sessionID: "session-1",
         agent: "boss1",
       } as any)
@@ -328,10 +323,9 @@ describe("PauseEmployeeTool", () => {
   test("should throw error when employee has in-progress tasks", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       paused: false,
       activeSessionId: null,
@@ -341,7 +335,7 @@ describe("PauseEmployeeTool", () => {
     })
 
     // 初始化员工记忆（有进行中任务）
-    await memoryManager.write("0-dev-1", {
+    await memoryManager.write("emp_dev_1", {
       knowledge: [],
       tasks: [
         {
@@ -364,7 +358,7 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     await expect(
-      tool.execute({ employeeId: "0-dev-1" }, {
+      tool.execute({ employeeId: "emp_dev_1" }, {
         sessionID: "session-1",
         agent: "boss1",
       } as any)
@@ -374,10 +368,9 @@ describe("PauseEmployeeTool", () => {
   test("should include active task names in error message", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       paused: false,
       activeSessionId: null,
@@ -387,7 +380,7 @@ describe("PauseEmployeeTool", () => {
     })
 
     // 初始化员工记忆（有多个活动任务）
-    await memoryManager.write("0-dev-1", {
+    await memoryManager.write("emp_dev_1", {
       knowledge: [],
       tasks: [
         {
@@ -426,7 +419,7 @@ describe("PauseEmployeeTool", () => {
 
     // 执行工具
     try {
-      await tool.execute({ employeeId: "0-dev-1" }, {
+      await tool.execute({ employeeId: "emp_dev_1" }, {
         sessionID: "session-1",
         agent: "boss1",
       } as any)
@@ -441,10 +434,9 @@ describe("PauseEmployeeTool", () => {
   test("should allow pausing employee with only completed tasks", async () => {
     // 注册员工
     await stateManager.registerEmployee({
-      employeeId: "0-dev-1",
-      taskId: 0,
+      employeeId: "emp_dev_1",
       name: "dev-1",
-      role: "developer",
+      roleId: "developer",
       status: "busy",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -454,7 +446,7 @@ describe("PauseEmployeeTool", () => {
     })
 
     // 初始化员工记忆（只有已完成任务）
-    await memoryManager.write("0-dev-1", {
+    await memoryManager.write("emp_dev_1", {
       knowledge: [],
       tasks: [
         {
@@ -478,7 +470,7 @@ describe("PauseEmployeeTool", () => {
     )
 
     // 执行工具
-    const result = await tool.execute({ employeeId: "0-dev-1" }, {
+    const result = await tool.execute({ employeeId: "emp_dev_1" }, {
       sessionID: "session-1",
       agent: "boss1",
     } as any)
@@ -488,7 +480,7 @@ describe("PauseEmployeeTool", () => {
     expect(vacationRegistry.hasVacationEvent("dev-1")).toBe(true)
 
     // 验证员工状态已更新为离线
-    const updatedEmployee = stateManager.getEmployee("0-dev-1")
+    const updatedEmployee = stateManager.getEmployee("emp_dev_1")
     expect(updatedEmployee?.status).toBe("offline")
   })
 })

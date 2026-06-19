@@ -56,36 +56,33 @@ describe("ResumeEmployeeTool", () => {
 
     // 注册测试员工
     await stateManager.registerEmployee({
-      employeeId: "0-employee1",
-      taskId: 0,
+      employeeId: "emp_employee1",
       name: "employee1",
-      role: "developer",
+      roleId: "developer",
       status: "offline",
       paused: false,
       activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-supervisor1",
+      hiredBy: "emp_supervisor1",
     })
 
     await stateManager.registerEmployee({
-      employeeId: "0-employee2",
-      taskId: 0,
+      employeeId: "emp_employee2",
       name: "employee2",
-      role: "developer",
+      roleId: "developer",
       status: "idle",
       paused: false,
       activeSessionId: null,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-supervisor1",
+      hiredBy: "emp_supervisor1",
     })
 
     await stateManager.registerEmployee({
-      employeeId: "0-supervisor1",
-      taskId: 0,
+      employeeId: "emp_supervisor1",
       name: "supervisor1",
-      role: "manager",
+      roleId: "manager",
       status: "idle",
       paused: false,
       activeSessionId: null,
@@ -103,7 +100,7 @@ describe("ResumeEmployeeTool", () => {
   test("should resume employee when called by Boss", async () => {
     // Don't register session - let resolveToolActor use agent field
     const result = await resumeEmployeeTool.execute(
-      { employeeId: "0-employee1" },
+      { employeeId: "emp_employee1" },
       { sessionID: "session-boss", agent: "boss1" }
     )
 
@@ -111,16 +108,16 @@ describe("ResumeEmployeeTool", () => {
     expect(result).toContain("EventLoop is starting")
 
     // 验证状态已更新
-    const employee = stateManager.getEmployee("0-employee1")
+    const employee = stateManager.getEmployee("emp_employee1")
     expect(employee?.status).toBe("idle")
   })
 
   test("should resume employee when called by direct supervisor", async () => {
     // 注册 session
-    sessionRegistry.register("session-supervisor", "0-supervisor1")
+    sessionRegistry.register("session-supervisor", "emp_supervisor1")
 
     const result = await resumeEmployeeTool.execute(
-      { employeeId: "0-employee1" },
+      { employeeId: "emp_employee1" },
       { sessionID: "session-supervisor", agent: "supervisor1" }
     )
 
@@ -128,17 +125,16 @@ describe("ResumeEmployeeTool", () => {
     expect(result).toContain("EventLoop is starting")
 
     // 验证状态已更新
-    const employee = stateManager.getEmployee("0-employee1")
+    const employee = stateManager.getEmployee("emp_employee1")
     expect(employee?.status).toBe("idle")
   })
 
   test("should reject when called by non-authorized user", async () => {
     // 注册另一个员工
     await stateManager.registerEmployee({
-      employeeId: "0-other-employee",
-      taskId: 0,
+      employeeId: "emp_other_employee",
       name: "other-employee",
-      role: "developer",
+      roleId: "developer",
       status: "idle",
       paused: false,
       activeSessionId: null,
@@ -147,10 +143,10 @@ describe("ResumeEmployeeTool", () => {
       hiredBy: "boss1",
     })
 
-    sessionRegistry.register("session-other", "0-other-employee")
+    sessionRegistry.register("session-other", "emp_other_employee")
 
     const result = await resumeEmployeeTool.execute(
-      { employeeId: "0-employee1" },
+      { employeeId: "emp_employee1" },
       { sessionID: "session-other", agent: "other-employee" }
     )
 
@@ -158,7 +154,7 @@ describe("ResumeEmployeeTool", () => {
     expect(result).toContain("Only Boss or direct supervisor")
 
     // 验证状态未更新
-    const employee = stateManager.getEmployee("0-employee1")
+    const employee = stateManager.getEmployee("emp_employee1")
     expect(employee?.status).toBe("offline")
   })
 
@@ -175,7 +171,7 @@ describe("ResumeEmployeeTool", () => {
   test("should reject when employee is not offline", async () => {
     // Don't register session - let resolveToolActor use agent field
     const result = await resumeEmployeeTool.execute(
-      { employeeId: "0-employee2" },
+      { employeeId: "emp_employee2" },
       { sessionID: "session-boss", agent: "boss1" }
     )
 
@@ -185,7 +181,7 @@ describe("ResumeEmployeeTool", () => {
 
   test("should handle operator identification failure", async () => {
     const result = await resumeEmployeeTool.execute(
-      { employeeId: "0-employee1" },
+      { employeeId: "emp_employee1" },
       { sessionID: "unknown-session", agent: undefined }
     )
 
@@ -195,14 +191,14 @@ describe("ResumeEmployeeTool", () => {
   test("should work with Boss identified from context.agent", async () => {
     // 不注册 session，只通过 context.agent 识别
     const result = await resumeEmployeeTool.execute(
-      { employeeId: "0-employee1" },
+      { employeeId: "emp_employee1" },
       { sessionID: "unknown-session", agent: "boss1" }
     )
 
     expect(result).toContain("has been resumed")
 
     // 验证状态已更新
-    const employee = stateManager.getEmployee("0-employee1")
+    const employee = stateManager.getEmployee("emp_employee1")
     expect(employee?.status).toBe("idle")
   })
 })

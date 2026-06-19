@@ -60,16 +60,31 @@ function resolveRecipientId(
     )
   }
 
-  // 2. Find employee (supports name or employeeId)
+  // 2. Find employee by stable employeeId or globally unique name
   const allEmployees = stateManager.getEmployees()
   logger.debug(
     `[SendMessageTool] Searching in ${allEmployees.length} employees`
   )
 
-  const matchedEmployee = allEmployees.find(
-    (employee) =>
-      employee.name === recipient || employee.employeeId === recipient
+  const matchedEmployeeById = stateManager.getEmployee(recipient)
+  if (matchedEmployeeById) {
+    logger.debug(
+      `[SendMessageTool] Resolved as employee by explicit id: ${matchedEmployeeById.employeeId}`
+    )
+    return matchedEmployeeById.employeeId
+  }
+
+  const matchedEmployeesByName = allEmployees.filter(
+    (employee) => employee.name === recipient
   )
+
+  if (matchedEmployeesByName.length > 1) {
+    throw new Error(
+      `Recipient name is ambiguous: ${recipient}. Use stable employeeId.`
+    )
+  }
+
+  const matchedEmployee = matchedEmployeesByName[0]
 
   if (!matchedEmployee) {
     logger.debug(

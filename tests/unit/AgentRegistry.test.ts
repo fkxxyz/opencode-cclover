@@ -14,6 +14,7 @@ describe("AgentRegistry", () => {
   test("should register and retrieve agent info", () => {
     const info: AgentInfo = {
       employeeId: "0-test-role",
+      workItemId: "wi-test-001",
       taskName: "复杂计算",
     }
 
@@ -21,6 +22,17 @@ describe("AgentRegistry", () => {
 
     const retrieved = agentRegistry.getInfo("agent_001")
     expect(retrieved).toEqual(info)
+  })
+
+  test("should support work item association without personal task name", () => {
+    const info: AgentInfo = {
+      employeeId: "0-test-role",
+      workItemId: "wi-test-001",
+    }
+
+    agentRegistry.register("agent_001", info)
+
+    expect(agentRegistry.getInfo("agent_001")).toEqual(info)
   })
 
   test("should return undefined for unregistered agent", () => {
@@ -75,6 +87,36 @@ describe("AgentRegistry", () => {
     const coderAgents = agentRegistry.getAgentsByEmployee("0-coder")
     expect(coderAgents).toHaveLength(1)
     expect(coderAgents).toContain("agent_003")
+  })
+
+  test("should get agents by work item", () => {
+    agentRegistry.register("agent_001", {
+      employeeId: "0-test-role",
+      workItemId: "wi-test-001",
+      taskName: "任务1",
+    })
+    agentRegistry.register("agent_002", {
+      employeeId: "0-coder",
+      workItemId: "wi-test-001",
+      taskName: "任务2",
+    })
+    agentRegistry.register("agent_003", {
+      employeeId: "0-test-role",
+      workItemId: "wi-test-002",
+      taskName: "任务3",
+    })
+    agentRegistry.register("agent_004", {
+      employeeId: "0-test-role",
+      taskName: "个人任务",
+    })
+
+    const workItemAgents = agentRegistry.getAgentsByWorkItem("wi-test-001")
+    expect(workItemAgents).toHaveLength(2)
+    expect(workItemAgents).toContain("agent_001")
+    expect(workItemAgents).toContain("agent_002")
+
+    const otherWorkItemAgents = agentRegistry.getAgentsByWorkItem("wi-test-002")
+    expect(otherWorkItemAgents).toEqual(["agent_003"])
   })
 
   test("should clear all registrations", () => {

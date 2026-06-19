@@ -1,95 +1,234 @@
-import { describe, test, expect } from "bun:test"
+import { beforeEach, describe, expect, test } from "bun:test"
+import { createCompleteMajorTaskTool } from "../../src/tools/CompleteMajorTaskTool"
+import { sessionRegistry } from "../../src/utils/SessionRegistry"
+import type { Employee, Role, WorkItem } from "../../src/types"
+
+const now = "2026-06-19T00:00:00.000Z"
+
+function employee(employeeId: string, roleId: string): Employee {
+  return {
+    employeeId,
+    name: employeeId.replace(/^emp_/, ""),
+    roleId,
+    hiredBy: "0-boss",
+    status: "idle",
+    paused: false,
+    createdAt: now,
+    lastActiveAt: now,
+    activeSessionId: null,
+  }
+}
+
+function role(id: string, isCoreLead: boolean): Role {
+  return {
+    id,
+    name: id,
+    description: id,
+    systemPrompt: "",
+    source: "project",
+    requiredArgs: {},
+    canHire: [],
+    groups: [],
+    isCoreLead,
+  }
+}
+
+function workItem(
+  workItemId: string,
+  rootTaskId: string,
+  employeeId: string
+): WorkItem {
+  return {
+    workItemId,
+    rootTaskId,
+    parentWorkItemId: null,
+    employeeId,
+    description: workItemId,
+    dependsOn: [],
+    worktreeRef: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function createHarness(options?: {
+  employees?: Employee[]
+  roles?: Record<string, Role>
+  workItems?: WorkItem[]
+  includeWorkItemManager?: boolean
+}) {
+  const employees = options?.employees ?? [employee("emp_lead", "lead")]
+  const events: any[] = []
+  const sentMessages: any[] = []
+  const roleLookups: string[] = []
+  const workItemFilters: any[] = []
+
+  const stateManager = {
+    getEmployees: () => employees,
+    getEmployee: (employeeId: string) =>
+      employees.find((candidate) => candidate.employeeId === employeeId),
+    getProjectId: () => "test-project",
+    addEvent: async (event: any) => {
+      events.push(event)
+    },
+  }
+
+  const roleManager = {
+    getRole: (roleId: string) => {
+      roleLookups.push(roleId)
+      return options?.roles?.[roleId]
+    },
+  }
+
+  const messageService = {
+    send: async (...args: any[]) => {
+      sentMessages.push(args)
+    },
+  }
+
+  const workItemManager =
+    options?.includeWorkItemManager === false
+      ? undefined
+      : {
+          listWorkItems: async (filters: any) => {
+            workItemFilters.push(filters)
+            return (options?.workItems ?? []).filter(
+              (item) => item.rootTaskId === filters.rootTaskId
+            )
+          },
+        }
+
+  const tool = createCompleteMajorTaskTool(
+    messageService as any,
+    stateManager as any,
+    roleManager as any,
+    workItemManager as any
+  )
+
+  return {
+    tool,
+    events,
+    sentMessages,
+    roleLookups,
+    workItemFilters,
+  }
+}
 
 describe("CompleteMajorTaskTool", () => {
-  describe("Permission check logic", () => {
-    test("should allow when role has isCoreLead=true", () => {
-      const role = { name: "Lead", isCoreLead: true }
-      const hasPermission = role && role.isCoreLead
-      expect(hasPermission).toBe(true)
-    })
+  beforeEach(() => {
+    sessionRegistry.clear()
+  })
 
-    test("should deny when role has isCoreLead=false", () => {
-      const role = { name: "Developer", isCoreLead: false }
-      const hasPermission = role && role.isCoreLead
-      expect(hasPermission).toBe(false)
+  test("executes actual tool when caller role has isCoreLead=true", async () => {
+    const lead = employee("emp_lead", "technical-lead")
+    const developer = employee("emp_dev", "developer")
+    const harness = createHarness({
+      employees: [lead, developer],
+      roles: {
+        "technical-lead": role("technical-lead", true),
+        developer: role("developer", false),
+      },
+      workItems: [workItem("wi_dev", "rt_phase3", developer.employeeId)],
     })
+    sessionRegistry.register("session-lead", lead.employeeId)
 
-    test("should deny when role has no isCoreLead field", () => {
-      const role = { name: "Tester" }
-      const hasPermission = role && (role as any).isCoreLead
-      expect(hasPermission).toBeFalsy()
+    const result = await harness.tool.execute({ root_task_id: "rt_phase3" }, {
+      sessionID: "session-lead",
+    } as any)
+
+    expect(result).toContain("Root task rt_phase3 marked complete")
+    expect(harness.roleLookups).toEqual(["technical-lead"])
+    expect(harness.sentMessages).toHaveLength(1)
+  })
+
+  test("denies actual tool execution when caller role has isCoreLead=false", async () => {
+    const developer = employee("emp_dev", "developer")
+    const harness = createHarness({
+      employees: [developer],
+      roles: { developer: role("developer", false) },
+      workItems: [workItem("wi_dev", "rt_phase3", developer.employeeId)],
     })
+    sessionRegistry.register("session-dev", developer.employeeId)
 
-    test("should deny when role not found", () => {
-      const role = null
-      const hasPermission = role && (role as any).isCoreLead
-      expect(hasPermission).toBeFalsy()
+    await expect(
+      harness.tool.execute({ root_task_id: "rt_phase3" }, {
+        sessionID: "session-dev",
+      } as any)
+    ).rejects.toThrow("isCoreLead permission")
+    expect(harness.roleLookups).toEqual(["developer"])
+    expect(harness.sentMessages).toHaveLength(0)
+  })
+
+  test("records major_task_completed event with rootTaskId", async () => {
+    const lead = employee("emp_lead", "lead")
+    const harness = createHarness({
+      employees: [lead],
+      roles: { lead: role("lead", true) },
+      workItems: [],
+    })
+    sessionRegistry.register("session-lead", lead.employeeId)
+
+    await harness.tool.execute({ root_task_id: "rt_phase3" }, {
+      sessionID: "session-lead",
+    } as any)
+
+    expect(harness.events[0]).toMatchObject({
+      type: "major_task_completed",
+      employeeId: lead.employeeId,
+      rootTaskId: "rt_phase3",
     })
   })
 
-  describe("Survey sending logic", () => {
-    test("should send to all employees", () => {
-      const employees = [
-        { employeeId: "emp-1", role: "developer" },
-        { employeeId: "emp-2", role: "tester" },
-        { employeeId: "emp-3", role: "lead" },
-      ]
-      expect(employees.length).toBe(3)
+  test("sends surveys once per unique employee from root task work items only", async () => {
+    const lead = employee("emp_lead", "lead")
+    const devA = employee("emp_dev_a", "developer")
+    const devB = employee("emp_dev_b", "developer")
+    const unrelated = employee("emp_unrelated", "developer")
+    const harness = createHarness({
+      employees: [lead, devA, devB, unrelated],
+      roles: { lead: role("lead", true), developer: role("developer", false) },
+      workItems: [
+        workItem("wi_a_1", "rt_phase3", devA.employeeId),
+        workItem("wi_a_2", "rt_phase3", devA.employeeId),
+        workItem("wi_b", "rt_phase3", devB.employeeId),
+        workItem("wi_unrelated", "rt_other", unrelated.employeeId),
+      ],
     })
+    sessionRegistry.register("session-lead", lead.employeeId)
 
-    test("should use expect_reply=true", () => {
-      const expectReply = true
-      expect(expectReply).toBe(true)
-    })
+    await harness.tool.execute({ root_task_id: "rt_phase3" }, {
+      sessionID: "session-lead",
+    } as any)
 
-    test("should send from 0-cclover", () => {
-      const sender = "0-cclover"
-      expect(sender).toBe("0-cclover")
-    })
-
-    test("should include survey prompt", () => {
-      const prompt = "[Work Experience Survey]"
-      expect(prompt).toContain("Work Experience Survey")
-    })
+    const recipients = harness.sentMessages.map((args) => args[1])
+    expect(harness.workItemFilters).toEqual([{ rootTaskId: "rt_phase3" }])
+    expect(recipients).toEqual([devA.employeeId, devB.employeeId])
+    expect(new Set(recipients).size).toBe(recipients.length)
+    expect(recipients).not.toContain(unrelated.employeeId)
+    expect(harness.sentMessages.every((args) => args[0] === "0-cclover")).toBe(
+      true
+    )
+    expect(harness.sentMessages.every((args) => args[5] === true)).toBe(true)
+    expect(
+      harness.events
+        .filter((event) => event.type === "survey_sent")
+        .map((event) => event.employeeId)
+    ).toEqual([devA.employeeId, devB.employeeId])
   })
 
-  describe("Event recording logic", () => {
-    test("should record major_task_completed event", () => {
-      const event = {
-        type: "major_task_completed",
-        employeeId: "lead-1",
-        details: { completedAt: new Date().toISOString() },
-      }
-      expect(event.type).toBe("major_task_completed")
-      expect(event.details.completedAt).toBeDefined()
+  test("keeps missing WorkItemManager as a hard error", async () => {
+    const lead = employee("emp_lead", "lead")
+    const harness = createHarness({
+      employees: [lead],
+      roles: { lead: role("lead", true) },
+      includeWorkItemManager: false,
     })
+    sessionRegistry.register("session-lead", lead.employeeId)
 
-    test("should record survey_sent formployee", () => {
-      const employees = ["emp-1", "emp-2", "emp-3"]
-      const events = employees.map((empId) => ({
-        type: "survey_sent",
-        employeeId: empId,
-        details: { sentAt: new Date().toISOString() },
-      }))
-      expect(events.length).toBe(3)
-      expect(events[0].type).toBe("survey_sent")
-      expect(events[0].details.sentAt).toBeDefined()
-    })
-
-    test("should use same timestamp for all survey_sent events", () => {
-      const surveyTimestamp = new Date().toISOString()
-      const event1 = { details: { sentAt: surveyTimestamp } }
-      const event2 = { details: { sentAt: surveyTimestamp } }
-      expect(event1.details.sentAt).toBe(event2.details.sentAt)
-    })
-  })
-
-  describe("Return value logic", () => {
-    test("should return success message with count", () => {
-      const employeeCount = 5
-      const message = `Major task marked complete. Feedback survey sent to ${employeeCount} employees.`
-      expect(message).toContain("Major task marked complete")
-      expect(message).toContain("5 employees")
-    })
+    await expect(
+      harness.tool.execute({ root_task_id: "rt_phase3" }, {
+        sessionID: "session-lead",
+      } as any)
+    ).rejects.toThrow("WorkItemManager is required")
   })
 })

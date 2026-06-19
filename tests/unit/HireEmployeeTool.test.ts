@@ -7,6 +7,7 @@ import { MemoryManager } from "../../src/core/MemoryManager"
 import { createHireEmployeeTool } from "../../src/tools/HireEmployeeTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import type { ProjectInstance } from "../../src/server/ProjectRegistry"
+import type { Employee } from "../../src/types/employee"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 
@@ -23,6 +24,36 @@ describe("HireEmployeeTool", () => {
   let memoryManager: MemoryManager
   let hireEmployeeTool: any
   let project: ProjectInstance
+
+  function findEmployeeByName(name: string): Employee | undefined {
+    return stateManager
+      .getEmployees()
+      .find((employee) => employee.name === name)
+  }
+
+  function expectStableEmployee(
+    employee: Employee | undefined,
+    expected: { name: string; roleId: string; hiredBy: string | null }
+  ): Employee {
+    expect(employee).toBeDefined()
+    expect(employee!.employeeId).toMatch(/^emp_[0-9a-f]{32}$/)
+    expect(employee!.employeeId).not.toContain(employee!.name)
+    expect(employee!.name).toBe(expected.name)
+    expect(employee!.roleId).toBe(expected.roleId)
+    expect(employee!.hiredBy).toBe(expected.hiredBy)
+    expect("taskId" in employee!).toBe(false)
+    expect("role" in employee!).toBe(false)
+    return employee!
+  }
+
+  async function expectMissingFile(filePath: string): Promise<void> {
+    try {
+      await fs.stat(filePath)
+      throw new Error(`Expected missing file: ${filePath}`)
+    } catch (error: any) {
+      expect(error.code).toBe("ENOENT")
+    }
+  }
 
   beforeEach(async () => {
     // 清理测试工作空间
@@ -135,9 +166,8 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-boss",
       name: "boss",
-      taskId: 0,
       hiredBy: null,
-      role: "manager",
+      roleId: "manager",
       paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
@@ -149,9 +179,8 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-alice",
       name: "alice",
-      taskId: 0,
       hiredBy: null,
-      role: "developer",
+      roleId: "developer",
       paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
@@ -162,9 +191,8 @@ You are a project manager.`
     await stateManager.registerEmployee({
       employeeId: "0-bob",
       name: "bob",
-      taskId: 0,
       hiredBy: null,
-      role: "manager",
+      roleId: "manager",
       paused: false,
       status: "offline",
       createdAt: new Date().toISOString(),
@@ -231,15 +259,16 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-charlie' (name: charlie)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: charlie)")
       expect(result).toContain("role: developer")
 
       // 验证员工已注册
-      const employee = stateManager.getEmployee("0-charlie")
-      expect(employee).toBeDefined()
-      expect(employee?.role).toBe("developer")
+      expectStableEmployee(findEmployeeByName("charlie"), {
+        name: "charlie",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
     })
 
     test("projected meeting agent can hire with boss-compatible authority", async () => {
@@ -261,15 +290,14 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-meeting-hire' (name: meeting-hire)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: meeting-hire)")
 
-      const employee = stateManager.getEmployee("0-meeting-hire")
-      expect(employee).toBeDefined()
-      expect(employee?.role).toBe("developer")
-      // Meeting-mode agent uses role.id as identity
-      expect(employee?.hiredBy).toBe("0-manager")
+      expectStableEmployee(findEmployeeByName("meeting-hire"), {
+        name: "meeting-hire",
+        roleId: "developer",
+        hiredBy: "0-manager",
+      })
     })
 
     test("projected meeting agent does not depend on boss-session mapping", async () => {
@@ -311,14 +339,14 @@ You are a project manager.`
         } as any
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-meeting-hire-b' (name: meeting-hire-b)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: meeting-hire-b)")
 
-      const employee = stateManager.getEmployee("0-meeting-hire-b")
-      expect(employee).toBeDefined()
-      // Meeting-mode agent uses role.id, not Boss from session
-      expect(employee?.hiredBy).toBe("0-manager")
+      expectStableEmployee(findEmployeeByName("meeting-hire-b"), {
+        name: "meeting-hire-b",
+        roleId: "developer",
+        hiredBy: "0-manager",
+      })
     })
 
     test("employee can hire permitted role", async () => {
@@ -341,15 +369,16 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-dave' (name: dave)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: dave)")
       expect(result).toContain("role: tester")
 
       // 验证员工已注册
-      const employee = stateManager.getEmployee("0-dave")
-      expect(employee).toBeDefined()
-      expect(employee?.role).toBe("tester")
+      expectStableEmployee(findEmployeeByName("dave"), {
+        name: "dave",
+        roleId: "tester",
+        hiredBy: "0-alice",
+      })
 
       sessionRegistry.unregister("test-session-alice")
     })
@@ -378,8 +407,7 @@ You are a project manager.`
       expect(result).toContain("show_hireable_roles")
 
       // 验证员工未注册
-      const employee = stateManager.getEmployee("0-eve")
-      expect(employee).toBeUndefined()
+      expect(findEmployeeByName("eve")).toBeUndefined()
 
       sessionRegistry.unregister("test-session-alice")
     })
@@ -408,10 +436,15 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-frank' (name: frank)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: frank)")
       expect(result).toContain("role: developer")
+
+      expectStableEmployee(findEmployeeByName("frank"), {
+        name: "frank",
+        roleId: "developer",
+        hiredBy: "0-bob",
+      })
 
       sessionRegistry.unregister("test-session-bob")
     })
@@ -438,8 +471,7 @@ You are a project manager.`
       expect(result).toContain("Provide them via initial_args parameter")
 
       // Verify employee was NOT created
-      const employee = stateManager.getEmployee("0-george")
-      expect(employee).toBeUndefined()
+      expect(findEmployeeByName("george")).toBeUndefined()
     })
 
     test("rejects hire when requiredArgs partially provided", async () => {
@@ -463,8 +495,7 @@ You are a project manager.`
       expect(result).not.toContain("projectPath")
 
       // Verify employee was NOT created
-      const employee = stateManager.getEmployee("0-helen")
-      expect(employee).toBeUndefined()
+      expect(findEmployeeByName("helen")).toBeUndefined()
     })
 
     test("succeeds when all requiredArgs provided", async () => {
@@ -486,15 +517,16 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-ivan' (name: ivan)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: ivan)")
       expect(result).not.toContain("IMPORTANT: This role requires")
 
       // Verify employee was created
-      const employee = stateManager.getEmployee("0-ivan")
-      expect(employee).toBeDefined()
-      expect(employee?.role).toBe("developer")
+      expectStableEmployee(findEmployeeByName("ivan"), {
+        name: "ivan",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
     })
 
     test("persists initial_args to memory", async () => {
@@ -517,7 +549,12 @@ You are a project manager.`
       )
 
       // Verify args persisted to memory
-      const memory = await memoryManager.read("0-julia")
+      const employee = expectStableEmployee(findEmployeeByName("julia"), {
+        name: "julia",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
+      const memory = await memoryManager.read(employee.employeeId)
       expect(memory.args).toBeDefined()
       expect(memory.args.projectPath).toBe("/home/user/project")
       expect(memory.args.language).toBe("Python")
@@ -538,14 +575,16 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-kate' (name: kate)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: kate)")
       expect(result).not.toContain("Error:")
 
       // Verify employee was created
-      const employee = stateManager.getEmployee("0-kate")
-      expect(employee).toBeDefined()
+      expectStableEmployee(findEmployeeByName("kate"), {
+        name: "kate",
+        roleId: "tester",
+        hiredBy: "0-boss",
+      })
     })
 
     test("includes initial_message with requiredArgs", async () => {
@@ -568,13 +607,17 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-leo' (name: leo)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: leo)")
       expect(result).toContain("Initial message sent")
 
       // Verify message was sent
-      const leoClient = messageService.getClient("0-leo")
+      const employee = expectStableEmployee(findEmployeeByName("leo"), {
+        name: "leo",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
+      const leoClient = messageService.getClient(employee.employeeId)
       const messages = await leoClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
       const lastMessage = messages[messages.length - 1]
@@ -646,7 +689,7 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain("Error: Employee '0-alice' already exists")
+      expect(result).toContain("Error: Employee name 'alice' already exists")
     })
 
     test("rejects when caller cannot be identified", async () => {
@@ -773,15 +816,15 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-trimmed-name' (name: trimmed-name)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: trimmed-name)")
 
       // 验证员工已注册，且名称已被 trim
-      const employee = stateManager.getEmployee("0-trimmed-name")
-      expect(employee).toBeDefined()
-      expect(employee?.name).toBe("trimmed-name")
-      expect(employee?.employeeId).toBe("0-trimmed-name")
+      expectStableEmployee(findEmployeeByName("trimmed-name"), {
+        name: "trimmed-name",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
     })
 
     test("uses trimmed name in success message", async () => {
@@ -848,14 +891,16 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-mike' (name: mike)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: mike)")
       expect(result).toContain("role: developer")
 
       // 验证员工的角色是 name 字段
-      const employee = stateManager.getEmployee("0-mike")
-      expect(employee?.role).toBe("developer")
+      expectStableEmployee(findEmployeeByName("mike"), {
+        name: "mike",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
     })
   })
 
@@ -884,9 +929,15 @@ You are a project manager.`
       const hiredEvent = events.find((e) => e.type === "employee_hired")
 
       expect(hiredEvent).toBeDefined()
-      expect(hiredEvent?.employeeId).toBe("0-nancy")
+      const employee = expectStableEmployee(findEmployeeByName("nancy"), {
+        name: "nancy",
+        roleId: "developer",
+        hiredBy: "0-boss",
+      })
+      expect(hiredEvent?.employeeId).toBe(employee.employeeId)
       expect(hiredEvent?.details.hiredBy).toBe("0-boss")
-      expect(hiredEvent?.details.role).toBe("developer")
+      expect(hiredEvent?.details.roleId).toBe("developer")
+      expect("role" in hiredEvent!.details).toBe(false)
       expect(hiredEvent?.details.initialMessage).toBeUndefined()
     })
 
@@ -911,9 +962,15 @@ You are a project manager.`
       const hiredEvent = events.find((e) => e.type === "employee_hired")
 
       expect(hiredEvent).toBeDefined()
-      expect(hiredEvent?.employeeId).toBe("0-oliver")
+      const employee = expectStableEmployee(findEmployeeByName("oliver"), {
+        name: "oliver",
+        roleId: "tester",
+        hiredBy: "0-boss",
+      })
+      expect(hiredEvent?.employeeId).toBe(employee.employeeId)
       expect(hiredEvent?.details.hiredBy).toBe("0-boss")
-      expect(hiredEvent?.details.role).toBe("tester")
+      expect(hiredEvent?.details.roleId).toBe("tester")
+      expect("role" in hiredEvent!.details).toBe(false)
       expect(hiredEvent?.details.initialMessage).toBe("Welcome aboard!")
     })
   })
@@ -934,19 +991,23 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-peter' (name: peter)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: peter)")
       expect(result).toContain("Default message sent")
 
       // 验证消息已发送
-      const peterClient = messageService.getClient("0-peter")
+      const employee = expectStableEmployee(findEmployeeByName("peter"), {
+        name: "peter",
+        roleId: "tester",
+        hiredBy: "0-boss",
+      })
+      const peterClient = messageService.getClient(employee.employeeId)
       const messages = await peterClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
       const lastMessage = messages[messages.length - 1]
       expect(lastMessage.from).toBe("0-boss")
-      expect(lastMessage.to).toBe("0-peter")
+      expect(lastMessage.to).toBe(employee.employeeId)
       expect(lastMessage.content).toContain("Hello! I am boss")
       expect(lastMessage.content).toContain("Your role is tester")
       expect(lastMessage.content).toContain(
@@ -970,7 +1031,12 @@ You are a project manager.`
       )
 
       // 验证消息已发送
-      const rachelClient = messageService.getClient("0-rachel")
+      const employee = expectStableEmployee(findEmployeeByName("rachel"), {
+        name: "rachel",
+        roleId: "tester",
+        hiredBy: "0-boss",
+      })
+      const rachelClient = messageService.getClient(employee.employeeId)
       const messages = await rachelClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
@@ -999,14 +1065,18 @@ You are a project manager.`
         context
       )
 
-      expect(result).toContain(
-        "Successfully hired employee '0-sam' (name: sam)"
-      )
+      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("(name: sam)")
       expect(result).toContain("Initial message sent")
       expect(result).not.toContain("Default message sent")
 
       // 验证消息已发送
-      const samClient = messageService.getClient("0-sam")
+      const employee = expectStableEmployee(findEmployeeByName("sam"), {
+        name: "sam",
+        roleId: "designer",
+        hiredBy: "0-boss",
+      })
+      const samClient = messageService.getClient(employee.employeeId)
       const messages = await samClient.history("0-boss")
       expect(messages.length).toBeGreaterThan(0)
 
@@ -1015,8 +1085,8 @@ You are a project manager.`
     })
   })
 
-  describe("TaskId Inheritance", () => {
-    test("boss-hired soul employee gets taskId=0", async () => {
+  describe("Stable Employee Identity", () => {
+    test("boss-hired employee gets stable ID without taskId", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -1031,22 +1101,20 @@ You are a project manager.`
         context
       )
 
-      // 验证员工的 taskId
-      const employee = await stateManager.getEmployee("0-tom")
-      expect(employee).toBeDefined()
-      expect(employee!.taskId).toBe(0)
-      expect(employee!.employeeId).toBe("0-tom")
-      expect(employee!.hiredBy).toBe("0-boss") // Boss-hired employees have hiredBy set to boss ID
+      expectStableEmployee(findEmployeeByName("tom"), {
+        name: "tom",
+        roleId: "tester",
+        hiredBy: "0-boss",
+      })
     })
 
-    test("employee-hired worker inherits hirer's taskId", async () => {
-      // 注册一个 taskId=1 的员工
+    test("employee-hired worker does not inherit parent taskId", async () => {
+      // 注册一个稳定 ID 的员工
       await stateManager.registerEmployee({
-        employeeId: "1-alice",
-        name: "alice",
-        taskId: 1,
+        employeeId: "emp_parentalice000000000000000000000",
+        name: "parent-alice",
         hiredBy: "0-boss",
-        role: "developer",
+        roleId: "developer",
         paused: false,
         status: "idle",
         createdAt: new Date().toISOString(),
@@ -1057,10 +1125,13 @@ You are a project manager.`
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "1-alice")
+      sessionRegistry.register(
+        "test-session-parent-alice",
+        "emp_parentalice000000000000000000000"
+      )
 
       const context = {
-        sessionID: "test-session-alice",
+        sessionID: "test-session-parent-alice",
         agent: undefined,
       }
 
@@ -1073,25 +1144,23 @@ You are a project manager.`
         context
       )
 
-      // 验证新员工继承了 alice 的 taskId
-      const employee = await stateManager.getEmployee("1-jerry")
-      expect(employee).toBeDefined()
-      expect(employee!.taskId).toBe(1)
-      expect(employee!.employeeId).toBe("1-jerry")
-      expect(employee!.hiredBy).toBe("1-alice")
+      expectStableEmployee(findEmployeeByName("jerry"), {
+        name: "jerry",
+        roleId: "worker",
+        hiredBy: "emp_parentalice000000000000000000000",
+      })
 
       // 清理
-      sessionRegistry.unregister("test-session-alice")
+      sessionRegistry.unregister("test-session-parent-alice")
     })
 
-    test("employee in different task can hire with correct taskId", async () => {
-      // 注册一个 taskId=2 的员工
+    test("employee hire creates no root task or task group files", async () => {
+      // 注册一个稳定 ID 的员工
       await stateManager.registerEmployee({
-        employeeId: "2-bob",
-        name: "bob",
-        taskId: 2,
+        employeeId: "emp_parentbob00000000000000000000000",
+        name: "parent-bob",
         hiredBy: "0-boss",
-        role: "manager",
+        roleId: "manager",
         paused: false,
         status: "idle",
         createdAt: new Date().toISOString(),
@@ -1102,31 +1171,39 @@ You are a project manager.`
       // 注册 bob 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-bob", "2-bob")
+      sessionRegistry.register(
+        "test-session-parent-bob",
+        "emp_parentbob00000000000000000000000"
+      )
 
       const context = {
-        sessionID: "test-session-bob",
+        sessionID: "test-session-parent-bob",
         agent: undefined,
       }
 
       await hireEmployeeTool.execute(
         {
-          name: "kate",
-          id: "kate",
+          name: "worker-kate",
+          id: "worker-kate",
           role: "worker", // non-soul role
         },
         context
       )
 
-      // 验证新员工的 taskId=2
-      const employee = await stateManager.getEmployee("2-kate")
-      expect(employee).toBeDefined()
-      expect(employee!.taskId).toBe(2)
-      expect(employee!.employeeId).toBe("2-kate")
-      expect(employee!.hiredBy).toBe("2-bob")
+      expectStableEmployee(findEmployeeByName("worker-kate"), {
+        name: "worker-kate",
+        roleId: "worker",
+        hiredBy: "emp_parentbob00000000000000000000000",
+      })
+      await expectMissingFile(
+        path.join(TEST_WORKSPACE, ".cclover", "root-tasks.yaml")
+      )
+      await expectMissingFile(
+        path.join(TEST_WORKSPACE, ".cclover", "work-items.yaml")
+      )
 
       // 清理
-      sessionRegistry.unregister("test-session-bob")
+      sessionRegistry.unregister("test-session-parent-bob")
     })
   })
 })

@@ -138,7 +138,7 @@ describe("Phase 1.3 tool interface contracts", () => {
         listInput = input
         return []
       },
-    } as WorkItemManager
+    } as unknown as WorkItemManager
 
     await createUpdateWorkItemTool(
       capturingWorkItemManager,

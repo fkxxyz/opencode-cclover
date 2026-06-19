@@ -25,20 +25,23 @@ describe("Message Routing Integration", () => {
 
     stateManager = new StateManager("test-project", TEST_WORKSPACE)
     bossManager = new BossManager({ bosses: ["test-boss"], projects: [] })
-    messageService = new MessageService(TEST_WORKSPACE, stateManager)
+    messageService = new MessageService(
+      TEST_WORKSPACE,
+      stateManager,
+      "test-project",
+      bossManager
+    )
   })
 
   afterEach(async () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
   })
 
-  test("same-task employees use short names", async () => {
-    // Register two employees in same task
+  test("globally unique employee names route without taskId expansion", async () => {
     await stateManager.registerEmployee({
-      employeeId: "1-dev-001" as EmployeeId,
+      employeeId: "emp_dev_001" as EmployeeId,
       name: "dev-001",
-      taskId: 1,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -48,10 +51,9 @@ describe("Message Routing Integration", () => {
     })
 
     await stateManager.registerEmployee({
-      employeeId: "1-dev-002" as EmployeeId,
+      employeeId: "emp_dev_002" as EmployeeId,
       name: "dev-002",
-      taskId: 1,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -62,27 +64,24 @@ describe("Message Routing Integration", () => {
 
     // Send message using short name
     await messageService.send(
-      "1-dev-001" as EmployeeId,
+      "emp_dev_001" as EmployeeId,
       "dev-002",
       "Hello from dev-001"
     )
 
-    // Verify message received
-    const dev002Client = messageService.getClient("1-dev-002" as EmployeeId)
-    const messages = await dev002Client.history("1-dev-001" as EmployeeId)
+    const dev002Client = messageService.getClient("emp_dev_002" as EmployeeId)
+    const messages = await dev002Client.history("emp_dev_001" as EmployeeId)
 
     expect(messages.length).toBe(1)
     expect(messages[0].content).toBe("Hello from dev-001")
-    expect(messages[0].from).toBe("1-dev-001")
+    expect(messages[0].from).toBe("emp_dev_001")
   })
 
-  test("cross-task employees use full employeeIds", async () => {
-    // Register employees in different tasks
+  test("stable employeeIds route across former task boundaries", async () => {
     await stateManager.registerEmployee({
-      employeeId: "1-dev-001" as EmployeeId,
+      employeeId: "emp_dev_001" as EmployeeId,
       name: "dev-001",
-      taskId: 1,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -92,10 +91,9 @@ describe("Message Routing Integration", () => {
     })
 
     await stateManager.registerEmployee({
-      employeeId: "2-dev-001" as EmployeeId,
+      employeeId: "emp_dev_003" as EmployeeId,
       name: "dev-001",
-      taskId: 2,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -104,29 +102,26 @@ describe("Message Routing Integration", () => {
       activeSessionId: null,
     })
 
-    // Send message using full employeeId
     await messageService.send(
-      "1-dev-001" as EmployeeId,
-      "2-dev-001",
+      "emp_dev_001" as EmployeeId,
+      "emp_dev_003",
       "Hello from task 1"
     )
 
-    // Verify message received
-    const dev2Client = messageService.getClient("2-dev-001" as EmployeeId)
-    const messages = await dev2Client.history("1-dev-001" as EmployeeId)
+    const dev2Client = messageService.getClient("emp_dev_003" as EmployeeId)
+    const messages = await dev2Client.history("emp_dev_001" as EmployeeId)
 
     expect(messages.length).toBe(1)
     expect(messages[0].content).toBe("Hello from task 1")
-    expect(messages[0].from).toBe("1-dev-001")
+    expect(messages[0].from).toBe("emp_dev_001")
   })
 
   test("boss messages task employees", async () => {
     // Register boss and employee
     await stateManager.registerEmployee({
-      employeeId: "1-dev-001" as EmployeeId,
+      employeeId: "emp_dev_001" as EmployeeId,
       name: "dev-001",
-      taskId: 1,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -138,12 +133,12 @@ describe("Message Routing Integration", () => {
     // Boss sends message
     await messageService.send(
       "0-test-boss" as EmployeeId,
-      "1-dev-001",
+      "emp_dev_001",
       "Task assignment from boss"
     )
 
     // Verify message received
-    const devClient = messageService.getClient("1-dev-001" as EmployeeId)
+    const devClient = messageService.getClient("emp_dev_001" as EmployeeId)
     const messages = await devClient.history("0-test-boss" as EmployeeId)
 
     expect(messages.length).toBe(1)
@@ -151,13 +146,11 @@ describe("Message Routing Integration", () => {
     expect(messages[0].from).toBe("0-test-boss")
   })
 
-  test("name conflict handling across tasks", async () => {
-    // Register two employees with same name in different tasks
+  test("duplicate employee names are rejected for routing", async () => {
     await stateManager.registerEmployee({
-      employeeId: "1-dev-001" as EmployeeId,
+      employeeId: "emp_dev_001" as EmployeeId,
       name: "dev-001",
-      taskId: 1,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -167,10 +160,9 @@ describe("Message Routing Integration", () => {
     })
 
     await stateManager.registerEmployee({
-      employeeId: "2-dev-001" as EmployeeId,
+      employeeId: "emp_dev_003" as EmployeeId,
       name: "dev-001",
-      taskId: 2,
-      role: "General Developer",
+      roleId: "general-developer",
       status: "offline",
       paused: false,
       createdAt: new Date().toISOString(),
@@ -179,12 +171,22 @@ describe("Message Routing Integration", () => {
       activeSessionId: null,
     })
 
-    // Both employees exist with same name but different employeeIds
-    const emp1 = stateManager.getEmployee("1-dev-001" as EmployeeId)
-    const emp2 = stateManager.getEmployee("2-dev-001" as EmployeeId)
+    await expect(
+      messageService.send(
+        "0-test-boss" as EmployeeId,
+        "dev-001",
+        "Ambiguous task assignment"
+      )
+    ).rejects.toThrow("收件人名称 'dev-001' 不唯一，请使用稳定 employeeId")
+  })
 
-    expect(emp1?.name).toBe("dev-001")
-    expect(emp2?.name).toBe("dev-001")
-    expect(emp1?.employeeId).not.toBe(emp2?.employeeId)
+  test("unknown short names are rejected", async () => {
+    await expect(
+      messageService.send(
+        "0-test-boss" as EmployeeId,
+        "missing-dev",
+        "Unknown short name"
+      )
+    ).rejects.toThrow("Boss cannot use unknown short names")
   })
 })

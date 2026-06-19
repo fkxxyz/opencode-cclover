@@ -6,11 +6,12 @@
  */
 
 import type { InternalAgentEvent } from "../core/eventloop"
-import type { EmployeeId } from "../types"
+import type { EmployeeId, WorkItemId } from "../types"
 
 export interface AgentInfo {
   employeeId: EmployeeId // 创建该 Agent 的员工 ID
-  taskName: string // Agent 关联的任务名称
+  workItemId?: WorkItemId // Agent 关联的项目级工作项 ID
+  taskName?: string // Agent 关联的个人任务名称
 }
 
 export class AgentRegistry {
@@ -52,6 +53,19 @@ export class AgentRegistry {
     const result: string[] = []
     for (const [agentId, info] of this.agents.entries()) {
       if (info.employeeId === employeeId) {
+        result.push(agentId)
+      }
+    }
+    return result
+  }
+
+  /**
+   * 获取某个工作项关联的所有 Agent
+   */
+  getAgentsByWorkItem(workItemId: WorkItemId): string[] {
+    const result: string[] = []
+    for (const [agentId, info] of this.agents.entries()) {
+      if (info.workItemId === workItemId) {
         result.push(agentId)
       }
     }
