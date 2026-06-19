@@ -59,7 +59,7 @@ You are a context aware employee.`
     await roleManager.refresh()
 
     const employee: Employee = {
-      employeeId: "1-dev",
+      employeeId: "emp_dev",
       name: "dev",
       roleId: "context-role",
       hiredBy: null,
@@ -71,7 +71,7 @@ You are a context aware employee.`
     }
     await stateManager.registerEmployee(employee)
 
-    await memoryManager.write("1-dev", {
+    await memoryManager.write("emp_dev", {
       knowledge: [],
       tasks: [],
       args: {},
@@ -87,7 +87,7 @@ You are a context aware employee.`
 
     const sessionManager = new SessionManager(
       projectPath,
-      "1-dev",
+      "emp_dev",
       "context-role",
       roleManager,
       memoryManager,

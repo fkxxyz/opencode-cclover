@@ -407,7 +407,7 @@ describe("EventLoop", () => {
         testWorkspace
       )
       await stateManager.registerEmployee({
-        employeeId: "1-test-employee",
+        employeeId: "emp_test_employee",
         name: "test-employee",
         roleId: testRole.name,
         hiredBy: null,
@@ -418,7 +418,7 @@ describe("EventLoop", () => {
         activeSessionId: null,
       })
       await stateManager.registerEmployee({
-        employeeId: "0-alice",
+        employeeId: "emp_alice",
         name: "alice",
         roleId: "test-role",
         hiredBy: null,
@@ -438,7 +438,7 @@ describe("EventLoop", () => {
         raceOpcodeClient
       )
       memoryManager = new MemoryManager(testWorkspace)
-      const messageClient = messageService.getClient("1-test-employee")
+      const messageClient = messageService.getClient("emp_test_employee")
 
       let promptCalled = false
       raceOpcodeClient.session.prompt = mock(async () => {
@@ -455,7 +455,7 @@ describe("EventLoop", () => {
 
       const eventLoop = new EventLoop(
         testWorkspace,
-        "1-test-employee",
+        "emp_test_employee",
         testRole.name,
         mockRoleManager,
         messageClient,
@@ -465,7 +465,7 @@ describe("EventLoop", () => {
         stateManager
       )
 
-      await memoryManager.write("1-test-employee", {
+      await memoryManager.write("emp_test_employee", {
         knowledge: [],
         tasks: [],
         args: {},
@@ -478,13 +478,13 @@ describe("EventLoop", () => {
         async (employeeId: string, sessionId: string | null) => {
           if (
             !injectedUrgent &&
-            employeeId === "1-test-employee" &&
+            employeeId === "emp_test_employee" &&
             sessionId === "mock-session-id"
           ) {
             injectedUrgent = true
             await messageService.send(
-              "0-alice",
-              "1-test-employee",
+              "emp_alice",
+              "emp_test_employee",
               "urgent interrupt",
               undefined,
               true,
@@ -501,8 +501,8 @@ describe("EventLoop", () => {
         type: "message",
         timestamp: "2026-04-08T00:00:00.000Z",
         details: {
-          from: "0-alice",
-          to: "1-test-employee",
+          from: "emp_alice",
+          to: "emp_test_employee",
           content: "please run a long task",
         },
       })

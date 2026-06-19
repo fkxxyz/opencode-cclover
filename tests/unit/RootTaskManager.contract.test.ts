@@ -104,7 +104,7 @@ describe("RootTaskManager contract", () => {
       const manager = new RootTaskManager(projectPath, eventStateManager)
       const rootTask = await manager.createRootTask({
         summary: "Emit lifecycle metadata",
-        createdBy: "66-phase2-manager",
+        createdBy: "emp_phase2_manager",
       })
       await manager.deleteRootTask(rootTask.rootTaskId)
 
@@ -112,22 +112,22 @@ describe("RootTaskManager contract", () => {
       expect(events[0]).toMatchObject({
         projectId: "root-task-project",
         type: "root_task_created",
-        employeeId: "66-phase2-manager",
+        employeeId: "emp_phase2_manager",
         rootTaskId: rootTask.rootTaskId,
         details: {
           rootTaskId: rootTask.rootTaskId,
           summary: "Emit lifecycle metadata",
-          createdBy: "66-phase2-manager",
+          createdBy: "emp_phase2_manager",
         },
       })
       expect(events[1]).toMatchObject({
         projectId: "root-task-project",
         type: "root_task_deleted",
-        employeeId: "66-phase2-manager",
+        employeeId: "emp_phase2_manager",
         rootTaskId: rootTask.rootTaskId,
         details: {
           rootTaskId: rootTask.rootTaskId,
-          deletedBy: "66-phase2-manager",
+          deletedBy: "emp_phase2_manager",
         },
       })
     } finally {
@@ -145,7 +145,7 @@ describe("RootTaskManager contract", () => {
           workItemId: "wi_existing",
           rootTaskId: "ignored-by-filter",
           parentWorkItemId: null,
-          employeeId: "66-dev",
+          employeeId: "emp_dev",
           description: "Existing work item",
           dependsOn: [],
           worktreeRef: null,

@@ -85,7 +85,7 @@ describe("EmployeePersistence", () => {
     expect(loaded).toEqual([createEmployee()])
   })
 
-  it("migrates legacy records to generated employeeId and role-preferred roleId", async () => {
+  it("ignores records missing employeeId or roleId instead of migrating legacy shape", async () => {
     await fs.mkdir(path.join(testWorkspace, ".cclover"), { recursive: true })
     await fs.writeFile(
       path.join(testWorkspace, ".cclover", "employees.yaml"),
@@ -95,7 +95,6 @@ describe("EmployeePersistence", () => {
             name: "legacy-worker",
             taskId: 7,
             role: "legacy-role",
-            roleId: "stale-role-id",
             hiredBy: "0-boss",
             status: "busy",
             paused: true,
@@ -103,23 +102,29 @@ describe("EmployeePersistence", () => {
             createdAt: "2026-06-18T00:00:00.000Z",
             lastActiveAt: "2026-06-18T01:00:00.000Z",
           },
+          {
+            employeeId: "emp_missing_role",
+            name: "missing-role-worker",
+            hiredBy: "0-boss",
+            status: "idle",
+            paused: false,
+            activeSessionId: null,
+            createdAt: "2026-06-18T00:00:00.000Z",
+            lastActiveAt: "2026-06-18T01:00:00.000Z",
+          },
+          createEmployee({ employeeId: "emp_valid" }),
         ],
       }),
       "utf-8"
     )
 
     const persistence = new EmployeePersistence(testWorkspace)
-    const [migrated] = await persistence.load()
+    const loaded = await persistence.load()
 
-    expect(migrated.employeeId).toStartWith("emp_")
-    expect(migrated.name).toBe("legacy-worker")
-    expect(migrated.roleId).toBe("legacy-role")
-    expect(migrated.hiredBy).toBe("0-boss")
-    expect(migrated.paused).toBe(true)
-    expect(migrated.status).toBe("idle")
-    expect(migrated.activeSessionId).toBeNull()
-    expect("taskId" in migrated).toBe(false)
-    expect("role" in migrated).toBe(false)
+    expect(loaded).toEqual([createEmployee({ employeeId: "emp_valid" })])
+    expect(
+      loaded.some((employee) => "taskId" in employee || "role" in employee)
+    ).toBe(false)
   })
 
   it("returns empty array when file does not exist", async () => {

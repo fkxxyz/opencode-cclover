@@ -143,10 +143,6 @@ export function createSendMessageTool(
   stateManager?: StateManager,
   roleManager?: RoleManager
 ) {
-  logger.info(
-    `[SendMessageTool] *** FIXED VERSION LOADED *** Tool created with roleManager=${roleManager ? "present" : "undefined"}`
-  )
-
   return tool({
     description:
       "Send message to other employees. If any tasks depend on receiving a reply to this message, update those tasks to 'waiting_for_message' status using edit_tasks.",

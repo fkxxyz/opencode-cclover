@@ -79,7 +79,7 @@ You are a test role. This is your system prompt.
 
     // 注册测试员工
     const testEmployee: Employee = {
-      employeeId: "0-test-employee",
+      employeeId: "emp_test_employee",
       name: "test-employee",
       roleId: "TestRole",
       status: "idle",

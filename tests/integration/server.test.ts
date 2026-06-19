@@ -311,27 +311,6 @@ describe("Console Server", () => {
       }
     })
 
-    test("POST /api/projects/test-project/tasks/:taskId/halt - rejects old numeric halt route", async () => {
-      const { response, json } = await fetchApi<never>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/tasks/1/halt`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            reason: "legacy numeric route",
-          }),
-        }
-      )
-
-      expect(response.status).toBe(404)
-      expect(json.success).toBe(false)
-      if (!json.success) {
-        expect(json.error.code).toBe("NOT_FOUND")
-      }
-    })
-
     test("GET /api/unknown - 400 错误 (无效路径)", async () => {
       const { response, json } = await fetchApi<never>(
         `http://localhost:${TEST_PORT}/api/unknown`

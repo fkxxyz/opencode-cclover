@@ -8,7 +8,6 @@ import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as yaml from "yaml"
 import type { Employee } from "../types/index"
-import { createEmployeeId, isValidEmployeeName } from "../types/index"
 import { logger } from "../lib/logger"
 
 export class EmployeePersistence {
@@ -27,9 +26,9 @@ export class EmployeePersistence {
       const dir = path.dirname(this.filePath)
       await fs.mkdir(dir, { recursive: true })
 
-      const persistedEmployees = employees.map((employee) =>
-        this.toPersistedEmployee(employee)
-      )
+      const persistedEmployees = employees
+        .map((employee) => this.toPersistedEmployee(employee))
+        .filter((employee): employee is Employee => employee !== null)
 
       // 转换为 YAML
       const content = yaml.stringify({ employees: persistedEmployees })
@@ -61,53 +60,10 @@ export class EmployeePersistence {
         return []
       }
 
-      // 迁移旧格式到新格式
+      // 只接受当前 Employee 形状；旧字段不会被迁移或保留。
       const employees = data.employees
-        .map((emp: any) => {
-          // 如果是旧格式（没有 employeeId 字段），进行迁移
-          if (!emp.employeeId) {
-            // 旧格式: { name, role, ... }
-            // 新格式: { employeeId, name, roleId, hiredBy, ... }
-
-            // 验证 name 格式
-            if (!isValidEmployeeName(emp.name)) {
-              logger.warn(
-                `[EmployeePersistence] Invalid employee name format: ${emp.name}, skipping`
-              )
-              return null
-            }
-
-            const employeeId = createEmployeeId()
-
-            return this.toPersistedEmployee({
-              employeeId,
-              name: emp.name,
-              roleId: emp.role ?? emp.roleId ?? "employee",
-              hiredBy: emp.hiredBy ?? null,
-              status: "idle" as const, // 重置运行时状态
-              paused: emp.paused ?? false,
-              createdAt: emp.createdAt,
-              lastActiveAt: emp.lastActiveAt,
-              activeSessionId: null, // 旧员工默认无活跃 session
-              promptRecovery: emp.promptRecovery,
-            })
-          }
-
-          // 新格式，直接返回
-          // 如果旧格式（没有 'paused' 字段），默认为未暂停
-          if (emp.paused === undefined) {
-            return this.toPersistedEmployee({
-              ...emp,
-              paused: false,
-              status: "idle",
-            })
-          }
-          return this.toPersistedEmployee({
-            ...emp,
-            promptRecovery: emp.promptRecovery,
-          })
-        })
-        .filter((emp: any) => emp !== null) // 过滤掉无效的员工
+        .map((emp: any) => this.toPersistedEmployee(emp))
+        .filter((emp: Employee | null): emp is Employee => emp !== null)
 
       logger.debug(`[EmployeePersistence] Loaded ${employees.length} employees`)
       return employees
@@ -124,18 +80,25 @@ export class EmployeePersistence {
     }
   }
 
-  private toPersistedEmployee(employee: Employee): Employee {
+  private toPersistedEmployee(employee: Partial<Employee>): Employee | null {
+    if (!employee.employeeId || !employee.roleId) {
+      logger.debug(
+        "[EmployeePersistence] Skipping employee record missing employeeId or roleId"
+      )
+      return null
+    }
+
     return {
       employeeId: employee.employeeId,
-      name: employee.name,
+      name: employee.name ?? "",
       roleId: employee.roleId,
       handbookPath: employee.handbookPath,
-      hiredBy: employee.hiredBy,
-      status: employee.status,
-      paused: employee.paused,
-      createdAt: employee.createdAt,
-      lastActiveAt: employee.lastActiveAt,
-      activeSessionId: employee.activeSessionId,
+      hiredBy: employee.hiredBy ?? null,
+      status: employee.status ?? "idle",
+      paused: employee.paused ?? false,
+      createdAt: employee.createdAt ?? new Date().toISOString(),
+      lastActiveAt: employee.lastActiveAt ?? new Date().toISOString(),
+      activeSessionId: employee.activeSessionId ?? null,
       promptRecovery: employee.promptRecovery,
     }
   }

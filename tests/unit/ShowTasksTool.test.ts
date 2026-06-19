@@ -28,7 +28,7 @@ describe("ShowTasksTool", () => {
       TEST_WORKSPACE
     )
     await stateManager.registerEmployee({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       name: "alice",
       roleId: "test",
       status: "offline",
@@ -43,7 +43,7 @@ describe("ShowTasksTool", () => {
     memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
 
     // 初始化员工记忆
-    await memoryManager.write("0-alice", {
+    await memoryManager.write("emp_alice", {
       knowledge: [],
       tasks: [],
       args: {},
@@ -53,7 +53,7 @@ describe("ShowTasksTool", () => {
     showTasksTool = createShowTasksTool(memoryManager, stateManager)
 
     // 注册 session
-    sessionRegistry.register("test-session-alice", "0-alice")
+    sessionRegistry.register("test-session-alice", "emp_alice")
   })
 
   afterEach(async () => {
@@ -74,13 +74,13 @@ describe("ShowTasksTool", () => {
 
   test("should display task dependency graph", async () => {
     // 添加一些任务
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task A",
       status: "pending",
       description: "First task",
       dependencies: [],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task B",
       status: "pending",
       description: "Second task",
@@ -101,13 +101,13 @@ describe("ShowTasksTool", () => {
 
   test("should list executable tasks correctly", async () => {
     // 添加任务：Task A 可执行，Task B 依赖 Task A
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task A",
       status: "pending",
       description: "First task",
       dependencies: [],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task B",
       status: "pending",
       description: "Second task",
@@ -128,14 +128,14 @@ describe("ShowTasksTool", () => {
 
   test("should show message when no executable tasks", async () => {
     // 添加一个正在进行的任务
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task A",
       status: "in_progress",
       description: "First task",
       dependencies: [],
     })
     // 添加一个依赖 Task A 的任务
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task B",
       status: "pending",
       description: "Second task",
@@ -156,19 +156,19 @@ describe("ShowTasksTool", () => {
 
   test("should display tasks in progress", async () => {
     // 添加正在进行的任务
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task A",
       status: "in_progress",
       description: "First task",
       dependencies: [],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task B",
       status: "in_progress",
       description: "Second task",
       dependencies: [],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task C",
       status: "pending",
       description: "Third task",
@@ -193,7 +193,7 @@ describe("ShowTasksTool", () => {
 
   test("should not display tasks in progress section when none exist", async () => {
     // 只添加 pending 任务
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Task A",
       status: "pending",
       description: "First task",
@@ -222,25 +222,25 @@ describe("ShowTasksTool", () => {
 
   test("should display complete output format", async () => {
     // 创建完整的任务场景
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Setup",
       status: "completed",
       description: "Setup environment",
       dependencies: [],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Development",
       status: "in_progress",
       description: "Write code",
       dependencies: ["Setup"],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Testing",
       status: "pending",
       description: "Run tests",
       dependencies: ["Development"],
     })
-    await memoryManager.addTask("0-alice", {
+    await memoryManager.addTask("emp_alice", {
       name: "Documentation",
       status: "pending",
       description: "Write docs",

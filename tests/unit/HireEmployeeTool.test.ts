@@ -177,7 +177,7 @@ You are a project manager.`
 
     // 注册测试员工
     await stateManager.registerEmployee({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       name: "alice",
       hiredBy: null,
       roleId: "developer",
@@ -189,7 +189,7 @@ You are a project manager.`
     })
 
     await stateManager.registerEmployee({
-      employeeId: "0-bob",
+      employeeId: "emp_bob",
       name: "bob",
       hiredBy: null,
       roleId: "manager",
@@ -313,7 +313,7 @@ You are a project manager.`
       // 建立 session 映射（模拟 Boss 先发送消息）
       await multiBossManager.recordSession(
         "boss-b",
-        "0-some-employee",
+        "emp_some_employee",
         "test-session-meeting-agent-boss-b"
       )
 
@@ -352,7 +352,7 @@ You are a project manager.`
     test("employee can hire permitted role", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "0-alice")
+      sessionRegistry.register("test-session-alice", "emp_alice")
 
       const context = {
         sessionID: "test-session-alice",
@@ -377,7 +377,7 @@ You are a project manager.`
       expectStableEmployee(findEmployeeByName("dave"), {
         name: "dave",
         roleId: "tester",
-        hiredBy: "0-alice",
+        hiredBy: "emp_alice",
       })
 
       sessionRegistry.unregister("test-session-alice")
@@ -386,7 +386,7 @@ You are a project manager.`
     test("employee cannot hire unpermitted role", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "0-alice")
+      sessionRegistry.register("test-session-alice", "emp_alice")
 
       const context = {
         sessionID: "test-session-alice",
@@ -415,7 +415,7 @@ You are a project manager.`
     test("employee can hire role via group reference", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-bob", "0-bob")
+      sessionRegistry.register("test-session-bob", "emp_bob")
 
       const context = {
         sessionID: "test-session-bob",
@@ -443,7 +443,7 @@ You are a project manager.`
       expectStableEmployee(findEmployeeByName("frank"), {
         name: "frank",
         roleId: "developer",
-        hiredBy: "0-bob",
+        hiredBy: "emp_bob",
       })
 
       sessionRegistry.unregister("test-session-bob")
@@ -648,7 +648,7 @@ You are a project manager.`
     test("suggests show_hireable_roles when permission denied", async () => {
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-alice", "0-alice")
+      sessionRegistry.register("test-session-alice", "emp_alice")
 
       const context = {
         sessionID: "test-session-alice",

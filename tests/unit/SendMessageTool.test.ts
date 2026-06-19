@@ -39,7 +39,7 @@ describe("SendMessageTool with Boss", () => {
     roleManager = new RoleManager(TEST_WORKSPACE)
     await roleManager.refresh()
     await stateManager.registerEmployee({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       name: "alice",
       hiredBy: null,
       roleId: "test-role",
@@ -50,7 +50,7 @@ describe("SendMessageTool with Boss", () => {
       activeSessionId: null,
     })
     await stateManager.registerEmployee({
-      employeeId: "0-bob",
+      employeeId: "emp_bob",
       name: "bob",
       hiredBy: null,
       roleId: "test-role",
@@ -92,17 +92,17 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "0-alice",
+        to: "emp_alice",
         content: "Hello from boss",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to 0-alice")
+    expect(result).toBe("Message sent to emp_alice")
 
     // 验证消息已发送
-    const employeeClient = messageService.getClient("0-alice")
+    const employeeClient = messageService.getClient("emp_alice")
     const message = await employeeClient.recv()
     expect(message.from).toBe("0-bayecao")
     expect(message.content).toBe("Hello from boss")
@@ -118,7 +118,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "0-alice",
+          to: "emp_alice",
           content: "Hello",
           expect_reply: false,
         },
@@ -130,7 +130,7 @@ describe("SendMessageTool with Boss", () => {
   test("should treat projected meeting agent as boss-compatible sender", async () => {
     await bossManager.recordSession(
       "bayecao",
-      "0-alice",
+      "emp_alice",
       "test-session-meeting-agent"
     )
 
@@ -141,16 +141,16 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "0-alice",
+        to: "emp_alice",
         content: "Hello from meeting mode",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to 0-alice")
+    expect(result).toBe("Message sent to emp_alice")
 
-    const employeeClient = messageService.getClient("0-alice")
+    const employeeClient = messageService.getClient("emp_alice")
     const message = await employeeClient.recv()
     // Meeting-mode agent uses role.id as sender, not Boss from session
     expect(message.from).toBe("0-test-role")
@@ -183,13 +183,13 @@ describe("SendMessageTool with Boss", () => {
 
     await multiBossManager.recordSession(
       "beta",
-      "0-alice",
+      "emp_alice",
       "test-session-meeting-agent-beta"
     )
 
     const result = await multiBossTool.execute(
       {
-        to: "0-alice",
+        to: "emp_alice",
         content: "Hello from beta meeting",
         expect_reply: false,
       },
@@ -205,9 +205,9 @@ describe("SendMessageTool with Boss", () => {
       }
     )
 
-    expect(result).toBe("Message sent to 0-alice")
+    expect(result).toBe("Message sent to emp_alice")
 
-    const employeeClient = multiBossMessageService.getClient("0-alice")
+    const employeeClient = multiBossMessageService.getClient("emp_alice")
     const message = await employeeClient.recv()
     // Meeting-mode agent uses role.id as sender, not Boss from session
     expect(message.from).toBe("0-test-role")
@@ -217,7 +217,7 @@ describe("SendMessageTool with Boss", () => {
   test("should work with employee from SessionRegistry", async () => {
     // 注册员工到 SessionRegistry
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-employee", "0-alice")
+    sessionRegistry.register("test-session-employee", "emp_alice")
 
     const context = {
       sessionID: "test-session-employee",
@@ -226,19 +226,19 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "0-bob",
+        to: "emp_bob",
         content: "Hello from employee",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to 0-bob")
+    expect(result).toBe("Message sent to emp_bob")
 
     // 验证消息已发送
-    const bobClient = messageService.getClient("0-bob")
+    const bobClient = messageService.getClient("emp_bob")
     const message = await bobClient.recv()
-    expect(message.from).toBe("0-alice")
+    expect(message.from).toBe("emp_alice")
     expect(message.content).toBe("Hello from employee")
 
     // 清理
@@ -248,7 +248,7 @@ describe("SendMessageTool with Boss", () => {
   test("should prioritize SessionRegistry over context.agent", async () => {
     // 注册员工到 SessionRegistry
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-priority", "0-alice")
+    sessionRegistry.register("test-session-priority", "emp_alice")
 
     const context = {
       sessionID: "test-session-priority",
@@ -257,19 +257,19 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "0-bob",
+        to: "emp_bob",
         content: "Hello",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to 0-bob")
+    expect(result).toBe("Message sent to emp_bob")
 
     // 验证消息来自 alice（SessionRegistry），不是 bayecao（agent）
-    const bobClient = messageService.getClient("0-bob")
+    const bobClient = messageService.getClient("emp_bob")
     const message = await bobClient.recv()
-    expect(message.from).toBe("0-alice")
+    expect(message.from).toBe("emp_alice")
 
     // 清理
     sessionRegistry.unregister("test-session-priority")
@@ -284,7 +284,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "0-alice",
+          to: "emp_alice",
           content: "Hello",
           expect_reply: false,
         },
@@ -295,7 +295,7 @@ describe("SendMessageTool with Boss", () => {
 
   test("should reject unknown short-name recipient", async () => {
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-invalid-short-name", "0-alice")
+    sessionRegistry.register("test-session-invalid-short-name", "emp_alice")
 
     const context = {
       sessionID: "test-session-invalid-short-name",
@@ -325,7 +325,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       toolWithoutStateManager.execute(
         {
-          to: "0-bob",
+          to: "emp_bob",
           content: "Hello",
           expect_reply: false,
         },
@@ -345,11 +345,11 @@ describe("SendMessageTool with Boss", () => {
 
   test("should stop reply reminders after reply attempt even if send_message fails", async () => {
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-reply-attempt", "0-alice")
+    sessionRegistry.register("test-session-reply-attempt", "emp_alice")
 
     await messageService.send(
-      "0-bob",
-      "0-alice",
+      "emp_bob",
+      "emp_alice",
       "Please reply to me",
       undefined,
       undefined,
@@ -364,7 +364,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "0-bob",
+          to: "emp_bob",
           content: "I am trying to reply",
           expect_reply: false,
         },
@@ -377,19 +377,19 @@ describe("SendMessageTool with Boss", () => {
 
     const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
     const replyTracker = new ReplyTracker(
-      "0-alice",
+      "emp_alice",
       messageService,
       memoryManager,
       stateManager
     )
 
     const events = stateManager.getEvents({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       limit: 20,
     })
     const replyAttemptEvent = events.find(
       (event) =>
-        event.type === "reply_attempted" && event.details.to === "0-bob"
+        event.type === "reply_attempted" && event.details.to === "emp_bob"
     )
     expect(replyAttemptEvent).toBeDefined()
 
@@ -402,11 +402,14 @@ describe("SendMessageTool with Boss", () => {
 
   test("should stop reply reminders after reply attempt even if recipient does not exist", async () => {
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-missing-recipient-reply", "0-alice")
+    sessionRegistry.register(
+      "test-session-missing-recipient-reply",
+      "emp_alice"
+    )
 
     await messageService.send(
-      "0-bob",
-      "0-alice",
+      "emp_bob",
+      "emp_alice",
       "Please reply to me",
       undefined,
       undefined,
@@ -429,19 +432,19 @@ describe("SendMessageTool with Boss", () => {
 
     const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
     const replyTracker = new ReplyTracker(
-      "0-alice",
+      "emp_alice",
       messageService,
       memoryManager,
       stateManager
     )
 
     const events = stateManager.getEvents({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       limit: 20,
     })
     const replyAttemptEvent = events.find(
       (event) =>
-        event.type === "reply_attempted" && event.details.to === "0-bob"
+        event.type === "reply_attempted" && event.details.to === "emp_bob"
     )
     expect(replyAttemptEvent).toBeDefined()
 
@@ -456,41 +459,41 @@ describe("SendMessageTool with Boss", () => {
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-same-task", "0-alice")
+      sessionRegistry.register("test-session-same-task", "emp_alice")
 
       const context = {
         sessionID: "test-session-same-task",
         agent: undefined,
       }
 
-      // Alice (taskId=0) 发送消息给 Bob (taskId=0)
+      // Alice 发送消息给 Bob
       const result = await sendMessageTool.execute(
         {
-          to: "0-bob",
+          to: "emp_bob",
           content: "Same task message",
           expect_reply: false,
         },
         context
       )
 
-      expect(result).toBe("Message sent to 0-bob")
+      expect(result).toBe("Message sent to emp_bob")
 
       // 验证消息已发送
-      const bobClient = messageService.getClient("0-bob")
+      const bobClient = messageService.getClient("emp_bob")
       const message = await bobClient.recv()
-      expect(message.from).toBe("0-alice")
+      expect(message.from).toBe("emp_alice")
       expect(message.content).toBe("Same task message")
 
       // 清理
       sessionRegistry.unregister("test-session-same-task")
     })
 
-    test("should route messages between employees in different tasks", async () => {
-      // 注册一个 taskId=1 的员工
+    test("should route messages between stable employee IDs", async () => {
+      // 注册另一个稳定 ID 员工
       await stateManager.registerEmployee({
-        employeeId: "1-dave",
+        employeeId: "emp_dave",
         name: "dave",
-        hiredBy: "0-alice",
+        hiredBy: "emp_alice",
         roleId: "test-role",
         paused: false,
         status: "idle",
@@ -502,30 +505,30 @@ describe("SendMessageTool with Boss", () => {
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-cross-task", "0-alice")
+      sessionRegistry.register("test-session-cross-task", "emp_alice")
 
       const context = {
         sessionID: "test-session-cross-task",
         agent: undefined,
       }
 
-      // Alice (taskId=0) 发送消息给 Dave (taskId=1)
+      // Alice 发送消息给 Dave
       const result = await sendMessageTool.execute(
         {
-          to: "1-dave",
-          content: "Cross-task message",
+          to: "emp_dave",
+          content: "Stable ID message",
           expect_reply: false,
         },
         context
       )
 
-      expect(result).toBe("Message sent to 1-dave")
+      expect(result).toBe("Message sent to emp_dave")
 
       // 验证消息已发送
-      const daveClient = messageService.getClient("1-dave")
+      const daveClient = messageService.getClient("emp_dave")
       const message = await daveClient.recv()
-      expect(message.from).toBe("0-alice")
-      expect(message.content).toBe("Cross-task message")
+      expect(message.from).toBe("emp_alice")
+      expect(message.content).toBe("Stable ID message")
 
       // 清理
       sessionRegistry.unregister("test-session-cross-task")
@@ -540,17 +543,17 @@ describe("SendMessageTool with Boss", () => {
       // Boss 发送消息给员工
       const result = await sendMessageTool.execute(
         {
-          to: "0-alice",
+          to: "emp_alice",
           content: "Boss routing message",
           expect_reply: false,
         },
         context
       )
 
-      expect(result).toBe("Message sent to 0-alice")
+      expect(result).toBe("Message sent to emp_alice")
 
       // 验证消息已发送
-      const aliceClient = messageService.getClient("0-alice")
+      const aliceClient = messageService.getClient("emp_alice")
       const message = await aliceClient.recv()
       expect(message.from).toBe("0-bayecao")
       expect(message.content).toBe("Boss routing message")
@@ -560,7 +563,7 @@ describe("SendMessageTool with Boss", () => {
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-to-boss", "0-alice")
+      sessionRegistry.register("test-session-to-boss", "emp_alice")
 
       const context = {
         sessionID: "test-session-to-boss",
@@ -581,7 +584,7 @@ describe("SendMessageTool with Boss", () => {
       // 验证消息已发送
       const bossClient = messageService.getClient("0-bayecao")
       const message = await bossClient.recv()
-      expect(message.from).toBe("0-alice")
+      expect(message.from).toBe("emp_alice")
       expect(message.content).toBe("Message to boss")
 
       // 清理
@@ -674,7 +677,7 @@ describe("SendMessageTool with Boss", () => {
       const result = await sendMessageTool.execute(
         {
           to: "emp_architecture_consultant",
-          content: "Cross-taskId message",
+          content: "Stable employeeId message",
           expect_reply: false,
         },
         {
@@ -691,7 +694,7 @@ describe("SendMessageTool with Boss", () => {
       )
       const message = await recipientClient.recv()
       expect(message.from).toBe("emp_tl_001")
-      expect(message.content).toBe("Cross-taskId message")
+      expect(message.content).toBe("Stable employeeId message")
 
       sessionRegistry.unregister("test-session-explicit-stable-id")
     })

@@ -21,7 +21,7 @@ describe("MessageService - Duplicate Message Fix", () => {
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", workspaceRoot)
     await stateManager.registerEmployee({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       name: "alice",
       roleId: "test",
       status: "offline",
@@ -32,7 +32,7 @@ describe("MessageService - Duplicate Message Fix", () => {
       lastActiveAt: new Date().toISOString(),
     })
     await stateManager.registerEmployee({
-      employeeId: "0-bob",
+      employeeId: "emp_bob",
       name: "bob",
       roleId: "test",
       status: "offline",
@@ -53,8 +53,8 @@ describe("MessageService - Duplicate Message Fix", () => {
   })
 
   test("should not receive duplicate messages when using event notification", async () => {
-    const alice = messageService.getClient("0-alice")
-    const bob = messageService.getClient("0-bob")
+    const alice = messageService.getClient("emp_alice")
+    const bob = messageService.getClient("emp_bob")
 
     // Bob 开始等待消息（模拟 EventLoop 的行为）
     const recvPromise = bob.recv()
@@ -67,7 +67,7 @@ describe("MessageService - Duplicate Message Fix", () => {
 
     // Bob 第一次接收消息（通过事件通知）
     const msg1 = await recvPromise
-    expect(msg1.from).toBe("0-alice")
+    expect(msg1.from).toBe("emp_alice")
     expect(msg1.content).toBe("Hello Bob!")
 
     // Alice 发送第二条消息
@@ -75,7 +75,7 @@ describe("MessageService - Duplicate Message Fix", () => {
 
     // Bob 第二次接收消息（应该是第二条消息，不是重复的第一条）
     const msg2 = await bob.recv()
-    expect(msg2.from).toBe("0-alice")
+    expect(msg2.from).toBe("emp_alice")
     expect(msg2.content).toBe("How are you?")
 
     // 验证：不应该再有消息了
@@ -84,8 +84,8 @@ describe("MessageService - Duplicate Message Fix", () => {
   })
 
   test("should handle multiple messages in queue correctly", async () => {
-    const alice = messageService.getClient("0-alice")
-    const bob = messageService.getClient("0-bob")
+    const alice = messageService.getClient("emp_alice")
+    const bob = messageService.getClient("emp_bob")
 
     // Alice 连续发送三条消息
     await alice.send("bob", "Message 1")
@@ -108,8 +108,8 @@ describe("MessageService - Duplicate Message Fix", () => {
   })
 
   test("should not duplicate messages when alternating between queue and event", async () => {
-    const alice = messageService.getClient("0-alice")
-    const bob = messageService.getClient("0-bob")
+    const alice = messageService.getClient("emp_alice")
+    const bob = messageService.getClient("emp_bob")
 
     // 场景1：先发送消息（进入队列），再接收（从队列取）
     await alice.send("bob", "Queued message")

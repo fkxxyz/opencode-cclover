@@ -74,7 +74,9 @@ describe("StateManager employee state contract", () => {
     ).rejects.toThrow("格式无效")
   })
 
-  it("loads legacy employees as new-shape employees", async () => {
+  it("skips persisted employees missing employeeId or roleId", async () => {
+    const validEmployee = createEmployee({ employeeId: "emp_valid" })
+
     await fs.mkdir(path.join(TEST_WORKSPACE, ".cclover"), { recursive: true })
     await fs.writeFile(
       path.join(TEST_WORKSPACE, ".cclover", "employees.yaml"),
@@ -91,6 +93,17 @@ describe("StateManager employee state contract", () => {
             createdAt: "2026-06-18T00:00:00.000Z",
             lastActiveAt: "2026-06-18T01:00:00.000Z",
           },
+          {
+            employeeId: "emp_missing_role",
+            name: "missing-role-worker",
+            hiredBy: "emp_creator",
+            paused: false,
+            status: "idle",
+            activeSessionId: null,
+            createdAt: "2026-06-18T00:00:00.000Z",
+            lastActiveAt: "2026-06-18T01:00:00.000Z",
+          },
+          validEmployee,
         ],
       }),
       "utf-8"
@@ -98,11 +111,12 @@ describe("StateManager employee state contract", () => {
 
     await stateManager.loadEmployees()
 
-    const [employee] = stateManager.getEmployees()
-    expect(employee.employeeId).toStartWith("emp_")
-    expect(employee.roleId).toBe("legacy-role")
-    expect(employee.hiredBy).toBe("emp_creator")
-    expect("taskId" in employee).toBe(false)
+    expect(stateManager.getEmployees()).toEqual([validEmployee])
+    expect(
+      stateManager
+        .getEmployees()
+        .some((employee) => "taskId" in employee || "role" in employee)
+    ).toBe(false)
   })
 
   it("queries employees by name, roleId, hiredBy, status, paused, and running", async () => {

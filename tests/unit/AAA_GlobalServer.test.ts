@@ -19,6 +19,19 @@ import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as os from "node:os"
 
+async function suppressExpectedWarnings<T>(
+  callback: () => Promise<T>
+): Promise<T> {
+  const originalWarn = console.warn
+  console.warn = () => {}
+
+  try {
+    return await callback()
+  } finally {
+    console.warn = originalWarn
+  }
+}
+
 describe("GlobalCcloverService.startEmployeeEventLoop", () => {
   let testDir: string
   let projectPath: string
@@ -232,7 +245,9 @@ Test role system prompt`
     const firstEventLoop = projectInstance.eventLoops.get("emp_test_employee")
 
     // 第二次启动（应该返回而不是创建新的）
-    await service.startEmployeeEventLoop(projectId, "emp_test_employee")
+    await suppressExpectedWarnings(async () => {
+      await service.startEmployeeEventLoop(projectId, "emp_test_employee")
+    })
     const secondEventLoop = projectInstance.eventLoops.get("emp_test_employee")
 
     // 验证是同一个 EventLoop 实例

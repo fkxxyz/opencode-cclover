@@ -1,12 +1,11 @@
+import type { RootTaskId } from "./work"
+
 /**
  * 归档和恢复系统的类型定义
  */
 
 // 员工 ID 类型（员工名称）
 export type EmployeeId = string
-
-// 任务 ID 类型（任务名称）
-export type TaskId = string
 
 /**
  * 归档验证结果
@@ -32,12 +31,12 @@ export interface RestoreValidation {
  */
 export interface ArchiveManager {
   /**
-   * 归档整个任务树
+   * 归档整个根任务树
    *
-   * @param taskId - 要归档的任务
+   * @param rootTaskId - 要归档的根任务
    * @returns 成功或错误（包含忙碌的员工）
    */
-  archiveTask(taskId: TaskId): Promise<ArchiveValidation>
+  archiveRootTask(rootTaskId: RootTaskId): Promise<ArchiveValidation>
 
   /**
    * 归档单个员工（仅限灵魂员工或非任务员工）
@@ -48,12 +47,12 @@ export interface ArchiveManager {
   archiveEmployee(employeeId: EmployeeId): Promise<ArchiveValidation>
 
   /**
-   * 恢复任务树
+   * 恢复根任务树
    *
-   * @param taskId - 要恢复的任务
+   * @param rootTaskId - 要恢复的根任务
    * @returns 成功或错误（包含冲突）
    */
-  restoreTask(taskId: TaskId): Promise<RestoreValidation>
+  restoreRootTask(rootTaskId: RootTaskId): Promise<RestoreValidation>
 
   /**
    * 恢复单个员工
@@ -64,9 +63,9 @@ export interface ArchiveManager {
   restoreEmployee(employeeId: EmployeeId): Promise<RestoreValidation>
 
   /**
-   * 列出已归档的任务
+   * 列出已归档的根任务
    */
-  listArchivedTasks(): Promise<TaskId[]>
+  listArchivedRootTasks(): Promise<RootTaskId[]>
 
   /**
    * 列出已归档的员工
@@ -78,13 +77,17 @@ export interface ArchiveManager {
  * 归档错误消息
  */
 export const ArchiveErrors = {
-  TASK_HAS_BUSY_EMPLOYEES: (taskId: TaskId, busyEmployees: EmployeeId[]) =>
-    `Cannot archive task ${taskId}: The following employees are busy: ${busyEmployees.join(", ")}`,
+  ROOT_TASK_HAS_BUSY_EMPLOYEES: (
+    rootTaskId: RootTaskId,
+    busyEmployees: EmployeeId[]
+  ) =>
+    `Cannot archive root task ${rootTaskId}: The following employees are busy: ${busyEmployees.join(", ")}`,
 
   EMPLOYEE_IS_BUSY: (employeeId: EmployeeId, status: string) =>
     `Cannot archive employee ${employeeId}: Employee is ${status}`,
 
-  TASK_NOT_FOUND: (taskId: TaskId) => `Task ${taskId} not found in archive`,
+  ROOT_TASK_NOT_FOUND: (rootTaskId: RootTaskId) =>
+    `Root task ${rootTaskId} not found in archive`,
 
   EMPLOYEE_NOT_FOUND: (employeeId: EmployeeId) =>
     `Employee ${employeeId} not found in archive`,
@@ -92,6 +95,8 @@ export const ArchiveErrors = {
   RESTORE_CONFLICT: (conflicts: EmployeeId[]) =>
     `Cannot restore: The following employeeIds already exist: ${conflicts.join(", ")}`,
 
-  TASK_EMPLOYEE_CANNOT_BE_ARCHIVED_INDIVIDUALLY: (employeeId: EmployeeId) =>
-    `Task employee ${employeeId} can only be archived via task archiving`,
+  ROOT_TASK_EMPLOYEE_CANNOT_BE_ARCHIVED_INDIVIDUALLY: (
+    employeeId: EmployeeId
+  ) =>
+    `Root task employee ${employeeId} can only be archived via root task archiving`,
 }

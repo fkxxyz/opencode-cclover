@@ -31,7 +31,7 @@ describe("MemoryManager", () => {
 
   describe("read/write", () => {
     test("should return empty memory for non-existent employee", async () => {
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
 
       expect(memory).toEqual({
         knowledge: [],
@@ -48,8 +48,8 @@ describe("MemoryManager", () => {
         args: { foo: "bar" },
       }
 
-      await manager.write("1-alice", memory)
-      const readMemory = await manager.read("1-alice")
+      await manager.write("emp_alice", memory)
+      const readMemory = await manager.read("emp_alice")
 
       // args 应该被写入
       expect(readMemory.knowledge).toEqual(["I am good at math"])
@@ -82,21 +82,21 @@ describe("MemoryManager", () => {
 
   describe("task management", () => {
     test("should add task", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Test task",
         dependencies: [],
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.tasks).toHaveLength(1)
       expect(memory.tasks[0].name).toBe("task1")
       expect(memory.tasks[0].created).toBeDefined()
     })
 
     test("should throw error when adding duplicate task", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Test task",
@@ -104,7 +104,7 @@ describe("MemoryManager", () => {
       })
 
       await expect(
-        manager.addTask("1-alice", {
+        manager.addTask("emp_alice", {
           name: "task1",
           status: "pending",
           description: "Duplicate task",
@@ -114,35 +114,35 @@ describe("MemoryManager", () => {
     })
 
     test("should update task", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Test task",
         dependencies: [],
       })
 
-      await manager.updateTask("1-alice", "task1", {
+      await manager.updateTask("emp_alice", "task1", {
         status: "in_progress",
       })
 
-      const task = await manager.getTask("1-alice", "task1")
+      const task = await manager.getTask("emp_alice", "task1")
       expect(task?.status).toBe("in_progress")
     })
 
     test("should add completed timestamp when status changes to completed", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Test task",
         dependencies: [],
       })
 
-      await manager.updateTask("1-alice", "task1", {
+      await manager.updateTask("emp_alice", "task1", {
         status: "completed",
         result: "Done",
       })
 
-      const task = await manager.getTask("1-alice", "task1")
+      const task = await manager.getTask("emp_alice", "task1")
       expect(task?.status).toBe("completed")
       expect(task?.result).toBe("Done")
       expect(task?.completed).toBeDefined()
@@ -150,144 +150,144 @@ describe("MemoryManager", () => {
 
     test("should throw error when updating non-existent task", async () => {
       await expect(
-        manager.updateTask("1-alice", "nonexistent", { status: "completed" })
+        manager.updateTask("emp_alice", "nonexistent", { status: "completed" })
       ).rejects.toThrow('Task "nonexistent" not found')
     })
 
     test("should delete task", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Test task",
         dependencies: [],
       })
 
-      await manager.deleteTask("1-alice", "task1")
+      await manager.deleteTask("emp_alice", "task1")
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.tasks).toHaveLength(0)
     })
 
     test("should throw error when deleting non-existent task", async () => {
       await expect(
-        manager.deleteTask("1-alice", "nonexistent")
+        manager.deleteTask("emp_alice", "nonexistent")
       ).rejects.toThrow('Task "nonexistent" not found')
     })
 
     test("should get task", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Test task",
         dependencies: [],
       })
 
-      const task = await manager.getTask("1-alice", "task1")
+      const task = await manager.getTask("emp_alice", "task1")
       expect(task).not.toBeNull()
       expect(task?.name).toBe("task1")
     })
 
     test("should return null for non-existent task", async () => {
-      const task = await manager.getTask("1-alice", "nonexistent")
+      const task = await manager.getTask("emp_alice", "nonexistent")
       expect(task).toBeNull()
     })
   })
 
   describe("getExecutableTasks", () => {
     test("should return pending tasks with no dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: [],
       })
 
-      const executable = await manager.getExecutableTasks("1-alice")
+      const executable = await manager.getExecutableTasks("emp_alice")
       expect(executable).toHaveLength(2)
     })
 
     test("should not return tasks with unmet dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task1"],
       })
 
-      const executable = await manager.getExecutableTasks("1-alice")
+      const executable = await manager.getExecutableTasks("emp_alice")
       expect(executable).toHaveLength(1)
       expect(executable[0].name).toBe("task1")
     })
 
     test("should return tasks when dependencies are completed", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "completed",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task1"],
       })
 
-      const executable = await manager.getExecutableTasks("1-alice")
+      const executable = await manager.getExecutableTasks("emp_alice")
       expect(executable).toHaveLength(1)
       expect(executable[0].name).toBe("task2")
     })
 
     test("should not return in_progress or completed tasks", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "in_progress",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "completed",
         description: "Task 2",
         dependencies: [],
       })
 
-      const executable = await manager.getExecutableTasks("1-alice")
+      const executable = await manager.getExecutableTasks("emp_alice")
       expect(executable).toHaveLength(0)
     })
 
     test("should return tasks when dependencies are cancelled", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "cancelled",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task1"],
       })
 
-      const executable = await manager.getExecutableTasks("1-alice")
+      const executable = await manager.getExecutableTasks("emp_alice")
       expect(executable).toHaveLength(1)
       expect(executable[0].name).toBe("task2")
     })
@@ -295,28 +295,28 @@ describe("MemoryManager", () => {
 
   describe("generateMermaid", () => {
     test("should generate empty graph for no tasks", async () => {
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const mermaid = generateMermaid(memory.tasks)
       expect(mermaid).toContain("graph TD")
       expect(mermaid).toContain("Empty[无任务]")
     })
 
     test("should generate nodes for tasks", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "completed",
         description: "Task 2",
         dependencies: [],
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const mermaid = generateMermaid(memory.tasks)
       expect(mermaid).toContain("graph TD")
       expect(mermaid).toContain("pending: task1")
@@ -324,21 +324,21 @@ describe("MemoryManager", () => {
     })
 
     test("should generate edges for dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "completed",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task1"],
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const mermaid = generateMermaid(memory.tasks)
       expect(mermaid).toContain("task1 --> task2")
     })
@@ -347,7 +347,7 @@ describe("MemoryManager", () => {
   describe("summarize", () => {
     test("should update knowledge and args, preserve tasks", async () => {
       // 添加初始记忆
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: ["old knowledge"],
         tasks: [
           {
@@ -362,12 +362,12 @@ describe("MemoryManager", () => {
       })
 
       // 总结
-      await manager.summarize("1-alice", {
+      await manager.summarize("emp_alice", {
         knowledge: ["new knowledge"],
         args: { new: "value" },
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.knowledge).toEqual(["new knowledge"])
       expect(memory.args).toEqual({ new: "value" })
       expect(memory.tasks).toHaveLength(1) // tasks 保持不变
@@ -375,7 +375,7 @@ describe("MemoryManager", () => {
 
     test("should preserve roleData when summarizing", async () => {
       // 添加初始记忆（包含 roleData）
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: ["old knowledge"],
         tasks: [],
         args: { old: "value" },
@@ -383,12 +383,12 @@ describe("MemoryManager", () => {
       })
 
       // 总结
-      await manager.summarize("1-alice", {
+      await manager.summarize("emp_alice", {
         knowledge: ["new knowledge"],
         args: { new: "value" },
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.knowledge).toEqual(["new knowledge"])
       expect(memory.args).toEqual({ new: "value" })
       expect(memory.roleData).toEqual({ ownedUnits: ["unit1", "unit2"] }) // roleData 保持不变
@@ -397,14 +397,14 @@ describe("MemoryManager", () => {
 
   describe("roleData", () => {
     test("should read roleData from memory.yaml", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: {},
         roleData: { ownedUnits: ["unit1"], delegatedBy: "boss" },
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.roleData).toEqual({
         ownedUnits: ["unit1"],
         delegatedBy: "boss",
@@ -412,30 +412,30 @@ describe("MemoryManager", () => {
     })
 
     test("should return empty object for missing roleData", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: {},
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.roleData).toEqual({})
     })
 
     test("should update roleData with updateRoleData", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: {},
         roleData: { ownedUnits: ["unit1"] },
       })
 
-      await manager.updateRoleData("1-alice", {
+      await manager.updateRoleData("emp_alice", {
         ownedUnits: ["unit1", "unit2"],
         delegatedBy: "boss",
       })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.roleData).toEqual({
         ownedUnits: ["unit1", "unit2"],
         delegatedBy: "boss",
@@ -443,137 +443,137 @@ describe("MemoryManager", () => {
     })
 
     test("should get roleData with getRoleData", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: {},
         roleData: { ownedUnits: ["unit1"] },
       })
 
-      const roleData = await manager.getRoleData("1-alice")
+      const roleData = await manager.getRoleData("emp_alice")
       expect(roleData).toEqual({ ownedUnits: ["unit1"] })
     })
 
     test("should return empty object when roleData is missing", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: {},
       })
 
-      const roleData = await manager.getRoleData("1-alice")
+      const roleData = await manager.getRoleData("emp_alice")
       expect(roleData).toEqual({})
     })
   })
 
   describe("detectCycle", () => {
     test("should return false for no cycle", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task1"],
       })
 
-      const hasCycle = await manager.detectCycle("1-alice")
+      const hasCycle = await manager.detectCycle("emp_alice")
       expect(hasCycle).toBe(false)
     })
 
     test("should return true for direct cycle", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: ["task2"],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task1"],
       })
 
-      const hasCycle = await manager.detectCycle("1-alice")
+      const hasCycle = await manager.detectCycle("emp_alice")
       expect(hasCycle).toBe(true)
     })
 
     test("should return true for indirect cycle", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: ["task2"],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task2",
         status: "pending",
         description: "Task 2",
         dependencies: ["task3"],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task3",
         status: "pending",
         description: "Task 3",
         dependencies: ["task1"],
       })
 
-      const hasCycle = await manager.detectCycle("1-alice")
+      const hasCycle = await manager.detectCycle("emp_alice")
       expect(hasCycle).toBe(true)
     })
   })
 
   describe("deleteTaskWithCleanup", () => {
     test("should delete task with no dependents", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "task1",
         status: "pending",
         description: "Task 1",
         dependencies: [],
       })
 
-      const result = await manager.deleteTaskWithCleanup("1-alice", "task1")
+      const result = await manager.deleteTaskWithCleanup("emp_alice", "task1")
 
       expect(result.affectedTasks).toEqual([])
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.tasks).toHaveLength(0)
     })
 
     test("should delete task and clean dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "taskA",
         status: "pending",
         description: "Task A",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "taskB",
         status: "pending",
         description: "Task B",
         dependencies: ["taskA"],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "taskC",
         status: "pending",
         description: "Task C",
         dependencies: ["taskA"],
       })
 
-      const result = await manager.deleteTaskWithCleanup("1-alice", "taskA")
+      const result = await manager.deleteTaskWithCleanup("emp_alice", "taskA")
 
       expect(result.affectedTasks).toEqual(["taskB", "taskC"])
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.tasks).toHaveLength(2)
 
       const taskB = memory.tasks.find((t) => t.name === "taskB")
@@ -585,38 +585,38 @@ describe("MemoryManager", () => {
 
     test("should throw error when deleting non-existent task", async () => {
       await expect(
-        manager.deleteTaskWithCleanup("1-alice", "nonexistent")
+        manager.deleteTaskWithCleanup("emp_alice", "nonexistent")
       ).rejects.toThrow('Task "nonexistent" not found')
     })
 
     test("should handle multiple dependents correctly", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "base",
         status: "pending",
         description: "Base task",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "dep1",
         status: "pending",
         description: "Dependent 1",
         dependencies: ["base"],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "dep2",
         status: "pending",
         description: "Dependent 2",
         dependencies: ["base", "dep1"],
       })
 
-      const result = await manager.deleteTaskWithCleanup("1-alice", "base")
+      const result = await manager.deleteTaskWithCleanup("emp_alice", "base")
 
       expect(result.affectedTasks).toContain("dep1")
       expect(result.affectedTasks).toContain("dep2")
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const dep2 = memory.tasks.find((t) => t.name === "dep2")
       expect(dep2?.dependencies).toEqual(["dep1"])
     })
@@ -624,19 +624,19 @@ describe("MemoryManager", () => {
 
   describe("decomposeTask", () => {
     test("should decompose task with no original dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "parent",
         status: "in_progress",
         description: "Parent task",
         dependencies: [],
       })
 
-      await manager.decomposeTask("1-alice", "parent", [
+      await manager.decomposeTask("emp_alice", "parent", [
         { name: "sub1", description: "Subtask 1" },
         { name: "sub2", description: "Subtask 2" },
       ])
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.tasks).toHaveLength(3)
 
       const parent = memory.tasks.find((t) => t.name === "parent")
@@ -655,33 +655,33 @@ describe("MemoryManager", () => {
     })
 
     test("should decompose task with original dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "dep1",
         status: "completed",
         description: "Dependency 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "dep2",
         status: "completed",
         description: "Dependency 2",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "parent",
         status: "in_progress",
         description: "Parent task",
         dependencies: ["dep1", "dep2"],
       })
 
-      await manager.decomposeTask("1-alice", "parent", [
+      await manager.decomposeTask("emp_alice", "parent", [
         { name: "sub1", description: "Subtask 1" },
         { name: "sub2", description: "Subtask 2" },
       ])
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const sub1 = memory.tasks.find((t) => t.name === "sub1")
       const sub2 = memory.tasks.find((t) => t.name === "sub2")
 
@@ -690,26 +690,26 @@ describe("MemoryManager", () => {
     })
 
     test("should handle subtask additional dependencies", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "dep1",
         status: "completed",
         description: "Dependency 1",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "parent",
         status: "pending",
         description: "Parent task",
         dependencies: ["dep1"],
       })
 
-      await manager.decomposeTask("1-alice", "parent", [
+      await manager.decomposeTask("emp_alice", "parent", [
         { name: "sub1", description: "Subtask 1" },
         { name: "sub2", description: "Subtask 2", dependencies: ["sub1"] },
       ])
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const sub1 = memory.tasks.find((t) => t.name === "sub1")
       const sub2 = memory.tasks.find((t) => t.name === "sub2")
 
@@ -719,21 +719,21 @@ describe("MemoryManager", () => {
 
     test("should throw error when decomposing non-existent task", async () => {
       await expect(
-        manager.decomposeTask("1-alice", "nonexistent", [
+        manager.decomposeTask("emp_alice", "nonexistent", [
           { name: "sub1", description: "Subtask 1" },
         ])
       ).rejects.toThrow('Task "nonexistent" not found')
     })
 
     test("should throw error when subtask name already exists", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "parent",
         status: "pending",
         description: "Parent task",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "existing",
         status: "pending",
         description: "Existing task",
@@ -741,32 +741,32 @@ describe("MemoryManager", () => {
       })
 
       await expect(
-        manager.decomposeTask("1-alice", "parent", [
+        manager.decomposeTask("emp_alice", "parent", [
           { name: "existing", description: "Subtask 1" },
         ])
       ).rejects.toThrow('Subtask name "existing" already exists')
     })
 
     test("should preserve other tasks dependencies on parent", async () => {
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "parent",
         status: "pending",
         description: "Parent task",
         dependencies: [],
       })
 
-      await manager.addTask("1-alice", {
+      await manager.addTask("emp_alice", {
         name: "dependent",
         status: "pending",
         description: "Dependent task",
         dependencies: ["parent"],
       })
 
-      await manager.decomposeTask("1-alice", "parent", [
+      await manager.decomposeTask("emp_alice", "parent", [
         { name: "sub1", description: "Subtask 1" },
       ])
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       const dependent = memory.tasks.find((t) => t.name === "dependent")
 
       expect(dependent?.dependencies).toEqual(["parent"])
@@ -776,34 +776,34 @@ describe("MemoryManager", () => {
   describe("updateArgs", () => {
     test("should update args field", async () => {
       // 初始化记忆
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: { old: "value" },
       })
 
       // 更新 args
-      await manager.updateArgs("1-alice", { new: "value", count: 123 })
+      await manager.updateArgs("emp_alice", { new: "value", count: 123 })
 
       // 验证更新
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.args).toEqual({ new: "value", count: 123 })
     })
 
     test("should write args correctly", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: [],
         tasks: [],
         args: {},
       })
 
-      await manager.updateArgs("1-alice", { foo: "bar" })
+      await manager.updateArgs("emp_alice", { foo: "bar" })
 
       // 直接读取文件验证 args 被更新
       const memoryPath = path.join(
         TEST_WORKSPACE,
         "employees",
-        "1-alice",
+        "emp_alice",
         "memory.yaml"
       )
       const content = await fs.readFile(memoryPath, "utf-8")
@@ -813,7 +813,7 @@ describe("MemoryManager", () => {
     })
 
     test("should preserve knowledge and tasks when updating args", async () => {
-      await manager.write("1-alice", {
+      await manager.write("emp_alice", {
         knowledge: ["important knowledge"],
         tasks: [
           {
@@ -827,9 +827,9 @@ describe("MemoryManager", () => {
         args: {},
       })
 
-      await manager.updateArgs("1-alice", { foo: "bar" })
+      await manager.updateArgs("emp_alice", { foo: "bar" })
 
-      const memory = await manager.read("1-alice")
+      const memory = await manager.read("emp_alice")
       expect(memory.knowledge).toEqual(["important knowledge"])
       expect(memory.tasks).toHaveLength(1)
       expect(memory.args).toEqual({ foo: "bar" })

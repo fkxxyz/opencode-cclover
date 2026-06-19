@@ -3,10 +3,22 @@ import { logger, LogLevel } from "../../src/lib/logger"
 
 describe("Logger", () => {
   let originalEnv: string | undefined
+  let originalConsoleError: typeof console.error
+  let originalConsoleWarn: typeof console.warn
+  let originalConsoleLog: typeof console.log
+  let originalConsoleDebug: typeof console.debug
 
   beforeEach(() => {
     // 保存原始环境变量
     originalEnv = process.env.CCLOVER_LOG_LEVEL
+    originalConsoleError = console.error
+    originalConsoleWarn = console.warn
+    originalConsoleLog = console.log
+    originalConsoleDebug = console.debug
+    console.error = () => {}
+    console.warn = () => {}
+    console.log = () => {}
+    console.debug = () => {}
   })
 
   afterEach(() => {
@@ -16,8 +28,12 @@ describe("Logger", () => {
     } else {
       process.env.CCLOVER_LOG_LEVEL = originalEnv
     }
+    console.error = originalConsoleError
+    console.warn = originalConsoleWarn
+    console.log = originalConsoleLog
+    console.debug = originalConsoleDebug
     // 重置为默认级别
-    logger.setLevel(LogLevel.INFO)
+    logger.setLevel(LogLevel.WARN)
   })
 
   describe("LogLevel enum", () => {

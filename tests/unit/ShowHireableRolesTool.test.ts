@@ -104,7 +104,7 @@ You are a UI/UX designer.`
       TEST_WORKSPACE
     )
     await stateManager.registerEmployee({
-      employeeId: "0-alice",
+      employeeId: "emp_alice",
       name: "alice",
       roleId: "developer",
       status: "offline",
@@ -115,7 +115,7 @@ You are a UI/UX designer.`
       hiredBy: "boss-alice",
     })
     await stateManager.registerEmployee({
-      employeeId: "0-bob",
+      employeeId: "emp_bob",
       name: "bob",
       roleId: "tester",
       status: "offline",
@@ -126,7 +126,7 @@ You are a UI/UX designer.`
       hiredBy: "boss-alice",
     })
     await stateManager.registerEmployee({
-      employeeId: "0-charlie",
+      employeeId: "emp_charlie",
       name: "charlie",
       roleId: "manager",
       status: "offline",
@@ -145,9 +145,9 @@ You are a UI/UX designer.`
     )
 
     // 注册 sessions
-    sessionRegistry.register("test-session-alice", "0-alice")
-    sessionRegistry.register("test-session-bob", "0-bob")
-    sessionRegistry.register("test-session-charlie", "0-charlie")
+    sessionRegistry.register("test-session-alice", "emp_alice")
+    sessionRegistry.register("test-session-bob", "emp_bob")
+    sessionRegistry.register("test-session-charlie", "emp_charlie")
   })
 
   afterEach(async () => {
@@ -286,7 +286,7 @@ You are a role without description.`
   test("should handle employee with non-existent role", async () => {
     // 注册一个角色不存在的员工
     await stateManager.registerEmployee({
-      employeeId: "0-dave",
+      employeeId: "emp_dave",
       name: "dave",
       roleId: "non-existent-role",
       status: "offline",
@@ -296,7 +296,7 @@ You are a role without description.`
       lastActiveAt: new Date().toISOString(),
       hiredBy: "boss-alice",
     })
-    sessionRegistry.register("test-session-dave", "0-dave")
+    sessionRegistry.register("test-session-dave", "emp_dave")
 
     const context = {
       sessionID: "test-session-dave",

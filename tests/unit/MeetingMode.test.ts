@@ -13,6 +13,20 @@ import {
   resolveToolActor,
 } from "../../src/meeting-mode"
 
+function suppressExpectedHookLogs<T>(callback: () => T): T {
+  const originalError = console.error
+  const originalWarn = console.warn
+  console.error = () => {}
+  console.warn = () => {}
+
+  try {
+    return callback()
+  } finally {
+    console.error = originalError
+    console.warn = originalWarn
+  }
+}
+
 describe("Meeting Mode helpers", () => {
   let tempDir: string
   let roleManager: RoleManager
@@ -124,7 +138,7 @@ Project override test-role prompt`
     )
 
     await roleManager.refresh()
-    await bossManager.recordSession("boss-b", "0-worker", "meeting-session-b")
+    await bossManager.recordSession("boss-b", "emp_worker", "meeting-session-b")
 
     const actor = resolveToolActor(
       {
@@ -277,18 +291,20 @@ Role with context prompt`
   test("records hook success and failure", () => {
     expect(promptInjector.isHookEnabled()).toBe(true)
 
-    // 记录成功
-    promptInjector.recordHookSuccess()
-    expect(promptInjector.isHookEnabled()).toBe(true)
+    suppressExpectedHookLogs(() => {
+      // 记录成功
+      promptInjector.recordHookSuccess()
+      expect(promptInjector.isHookEnabled()).toBe(true)
 
-    // 记录失败（不足以禁用）
-    promptInjector.recordHookFailure(new Error("test error"))
-    expect(promptInjector.isHookEnabled()).toBe(true)
+      // 记录失败（不足以禁用）
+      promptInjector.recordHookFailure(new Error("test error"))
+      expect(promptInjector.isHookEnabled()).toBe(true)
 
-    // 连续失败 3 次应该禁用
-    promptInjector.recordHookFailure(new Error("error 1"))
-    promptInjector.recordHookFailure(new Error("error 2"))
-    promptInjector.recordHookFailure(new Error("error 3"))
+      // 连续失败 3 次应该禁用
+      promptInjector.recordHookFailure(new Error("error 1"))
+      promptInjector.recordHookFailure(new Error("error 2"))
+      promptInjector.recordHookFailure(new Error("error 3"))
+    })
     expect(promptInjector.isHookEnabled()).toBe(false)
   })
 })

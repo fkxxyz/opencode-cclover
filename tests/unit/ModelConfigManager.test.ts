@@ -6,6 +6,17 @@ import type {
 } from "../../src/config/ModelConfigManager"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 
+function suppressExpectedWarnings<T>(callback: () => T): T {
+  const originalWarn = console.warn
+  console.warn = () => {}
+
+  try {
+    return callback()
+  } finally {
+    console.warn = originalWarn
+  }
+}
+
 describe("ModelConfigManager", () => {
   describe("validate", () => {
     test("should validate valid model configs", () => {
@@ -105,7 +116,9 @@ describe("ModelConfigManager", () => {
       const presetConfig: PresetConfig = {}
 
       const manager = new ModelConfigManager(globalConfig, presetConfig)
-      expect(() => manager.validate()).not.toThrow()
+      suppressExpectedWarnings(() => {
+        expect(() => manager.validate()).not.toThrow()
+      })
     })
   })
 
@@ -219,7 +232,9 @@ describe("ModelConfigManager", () => {
       }
 
       const manager = new ModelConfigManager(globalConfig, presetConfig)
-      manager.validate()
+      suppressExpectedWarnings(() => {
+        manager.validate()
+      })
 
       // "fast" redirects to "default" in global, but "default" doesn't exist in global
       // So it should fallback to preset layer and resolve "fast" there (which doesn't exist)

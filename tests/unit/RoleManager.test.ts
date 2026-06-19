@@ -5,6 +5,19 @@ import * as path from "node:path"
 import * as os from "node:os"
 import * as yaml from "yaml"
 
+async function suppressExpectedWarnings<T>(
+  callback: () => Promise<T>
+): Promise<T> {
+  const originalWarn = console.warn
+  console.warn = () => {}
+
+  try {
+    return await callback()
+  } finally {
+    console.warn = originalWarn
+  }
+}
+
 describe("RoleManager", () => {
   let tempDir: string
   let testPresetDir: string
@@ -653,7 +666,9 @@ Resilient prompt.`
       `contexts: [broken`
     )
 
-    await roleManager.refresh()
+    await suppressExpectedWarnings(async () => {
+      await roleManager.refresh()
+    })
     const role = roleManager.getRole("resilient-role")
 
     expect(role).toBeDefined()

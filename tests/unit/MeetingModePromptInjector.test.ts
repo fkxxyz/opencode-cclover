@@ -5,6 +5,20 @@ import * as path from "node:path"
 import { RoleManager } from "../../src/core/RoleManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 
+function suppressExpectedHookLogs<T>(callback: () => T): T {
+  const originalError = console.error
+  const originalWarn = console.warn
+  console.error = () => {}
+  console.warn = () => {}
+
+  try {
+    return callback()
+  } finally {
+    console.error = originalError
+    console.warn = originalWarn
+  }
+}
+
 describe("MeetingModePromptInjector", () => {
   let injector: MeetingModePromptInjector
   let currentTime: number
@@ -139,51 +153,59 @@ Soul Developer prompt`
   })
 
   test("disables hook after three consecutive failures", () => {
-    injector.recordHookSuccess()
-    injector.recordHookSuccess()
-    injector.recordHookFailure(new Error("first"))
-    injector.recordHookFailure(new Error("second"))
+    suppressExpectedHookLogs(() => {
+      injector.recordHookSuccess()
+      injector.recordHookSuccess()
+      injector.recordHookFailure(new Error("first"))
+      injector.recordHookFailure(new Error("second"))
 
-    expect(injector.isHookEnabled()).toBe(true)
+      expect(injector.isHookEnabled()).toBe(true)
 
-    injector.recordHookFailure(new Error("third"))
+      injector.recordHookFailure(new Error("third"))
+    })
 
     expect(injector.isHookEnabled()).toBe(false)
     expect(injector.getDisableReason()).toContain("3 consecutive failures")
   })
 
   test("resets consecutive failures after a successful execution", () => {
-    injector.recordHookSuccess()
-    injector.recordHookSuccess()
-    injector.recordHookSuccess()
-    injector.recordHookFailure(new Error("first"))
-    injector.recordHookSuccess()
-    injector.recordHookFailure(new Error("second"))
-    injector.recordHookFailure(new Error("third"))
+    suppressExpectedHookLogs(() => {
+      injector.recordHookSuccess()
+      injector.recordHookSuccess()
+      injector.recordHookSuccess()
+      injector.recordHookFailure(new Error("first"))
+      injector.recordHookSuccess()
+      injector.recordHookFailure(new Error("second"))
+      injector.recordHookFailure(new Error("third"))
+    })
 
     expect(injector.isHookEnabled()).toBe(true)
   })
 
   test("disables hook when failure rate exceeds 50 percent within five minutes", () => {
-    injector.recordHookSuccess()
-    injector.recordHookFailure(new Error("first"))
+    suppressExpectedHookLogs(() => {
+      injector.recordHookSuccess()
+      injector.recordHookFailure(new Error("first"))
 
-    expect(injector.isHookEnabled()).toBe(true)
+      expect(injector.isHookEnabled()).toBe(true)
 
-    injector.recordHookFailure(new Error("second"))
+      injector.recordHookFailure(new Error("second"))
+    })
 
     expect(injector.isHookEnabled()).toBe(false)
     expect(injector.getDisableReason()).toContain("failure rate exceeded 50%")
   })
 
   test("ignores executions outside the five minute failure-rate window", () => {
-    injector.recordHookSuccess()
-    injector.recordHookFailure(new Error("old-failure"))
+    suppressExpectedHookLogs(() => {
+      injector.recordHookSuccess()
+      injector.recordHookFailure(new Error("old-failure"))
 
-    currentTime = 6 * 60 * 1000
+      currentTime = 6 * 60 * 1000
 
-    injector.recordHookSuccess()
-    injector.recordHookFailure(new Error("recent-failure"))
+      injector.recordHookSuccess()
+      injector.recordHookFailure(new Error("recent-failure"))
+    })
 
     expect(injector.isHookEnabled()).toBe(true)
   })

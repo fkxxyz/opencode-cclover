@@ -167,7 +167,7 @@ describe("Tools Integration", () => {
 
       await expect(
         tool.execute(
-          { to: "0-nonexistent", content: "Hello", expect_reply: false },
+          { to: "emp_nonexistent", content: "Hello", expect_reply: false },
           {
             sessionID: sessionId,
             messageID: "msg-invalid-recipient",
