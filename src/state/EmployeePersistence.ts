@@ -27,13 +27,19 @@ export class EmployeePersistence {
       const dir = path.dirname(this.filePath)
       await fs.mkdir(dir, { recursive: true })
 
+      const persistedEmployees = employees.map((employee) =>
+        this.toPersistedEmployee(employee)
+      )
+
       // 转换为 YAML
-      const content = yaml.stringify({ employees })
+      const content = yaml.stringify({ employees: persistedEmployees })
 
       // 直接写入文件（简化版本，不使用文件锁）
       await fs.writeFile(this.filePath, content, "utf-8")
 
-      logger.debug(`[EmployeePersistence] Saved ${employees.length} employees`)
+      logger.debug(
+        `[EmployeePersistence] Saved ${persistedEmployees.length} employees`
+      )
     } catch (error: any) {
       logger.error(
         `[EmployeePersistence] Failed to save employees: ${error.message}`
@@ -73,33 +79,33 @@ export class EmployeePersistence {
 
             const employeeId = createEmployeeId()
 
-            return {
+            return this.toPersistedEmployee({
               employeeId,
               name: emp.name,
-              roleId: emp.roleId ?? emp.role ?? "employee",
-              hiredBy: null, // 旧员工默认为 Boss 雇佣
+              roleId: emp.role ?? emp.roleId ?? "employee",
+              hiredBy: emp.hiredBy ?? null,
               status: "idle" as const, // 重置运行时状态
               paused: emp.paused ?? false,
               createdAt: emp.createdAt,
               lastActiveAt: emp.lastActiveAt,
               activeSessionId: null, // 旧员工默认无活跃 session
               promptRecovery: emp.promptRecovery,
-            }
+            })
           }
 
           // 新格式，直接返回
           // 如果旧格式（没有 'paused' 字段），默认为未暂停
           if (emp.paused === undefined) {
-            return {
+            return this.toPersistedEmployee({
               ...emp,
               paused: false,
               status: "idle",
-            }
+            })
           }
-          return {
+          return this.toPersistedEmployee({
             ...emp,
             promptRecovery: emp.promptRecovery,
-          }
+          })
         })
         .filter((emp: any) => emp !== null) // 过滤掉无效的员工
 
@@ -115,6 +121,22 @@ export class EmployeePersistence {
         `[EmployeePersistence] Failed to load employees: ${error.message}`
       )
       throw error
+    }
+  }
+
+  private toPersistedEmployee(employee: Employee): Employee {
+    return {
+      employeeId: employee.employeeId,
+      name: employee.name,
+      roleId: employee.roleId,
+      handbookPath: employee.handbookPath,
+      hiredBy: employee.hiredBy,
+      status: employee.status,
+      paused: employee.paused,
+      createdAt: employee.createdAt,
+      lastActiveAt: employee.lastActiveAt,
+      activeSessionId: employee.activeSessionId,
+      promptRecovery: employee.promptRecovery,
     }
   }
 }

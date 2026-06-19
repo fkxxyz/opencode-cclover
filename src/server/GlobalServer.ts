@@ -174,8 +174,12 @@ export class GlobalCcloverService {
       stateManager,
       projectId
     )
-    const rootTaskManager = new RootTaskManager(config.path)
     const workItemManager = new WorkItemManager(config.path, stateManager)
+    const rootTaskManager = new RootTaskManager(
+      config.path,
+      stateManager,
+      workItemManager
+    )
     const agentRegistry = new AgentRegistry()
     const roleManager = new RoleManager(config.path)
     const meetingModePromptInjector = new MeetingModePromptInjector(

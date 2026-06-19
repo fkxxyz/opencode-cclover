@@ -31,6 +31,7 @@ export type {
   UpdateWorkItemInput,
   WorkItemFilters,
 } from "./work"
+export { createRootTaskId, createWorkItemId } from "./work"
 
 // 员工详细信息
 export interface EmployeeDetail extends EmployeeBase {

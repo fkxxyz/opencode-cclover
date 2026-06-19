@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test"
-import { createEmployeeId } from "../../src/types/employee"
+import {
+  createEmployeeId,
+  createRootTaskId,
+  createWorkItemId,
+} from "../../src/types"
 import type {
   BossId,
   CreateRootTaskInput,
@@ -38,8 +42,22 @@ describe("three-layer domain types", () => {
   it("creates stable employee ids with the emp prefix", () => {
     const employeeId = createEmployeeId()
 
-    expect(employeeId).toStartWith("emp_")
+    expect(employeeId).toMatch(/^emp_[0-9a-f]{32}$/)
     expect(employeeId).not.toContain("-")
+  })
+
+  it("creates root task ids with the rt prefix", () => {
+    const rootTaskId = createRootTaskId()
+
+    expect(rootTaskId).toMatch(/^rt_[0-9a-f]{32}$/)
+    expect(rootTaskId).not.toContain("-")
+  })
+
+  it("creates work item ids with the wi prefix", () => {
+    const workItemId = createWorkItemId()
+
+    expect(workItemId).toMatch(/^wi_[0-9a-f]{32}$/)
+    expect(workItemId).not.toContain("-")
   })
 
   it("defines root task and work item contracts", () => {

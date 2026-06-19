@@ -1,10 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import * as fs from "fs/promises"
-import * as path from "path"
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
+import * as yaml from "yaml"
 import { EmployeePersistence } from "../../src/state/EmployeePersistence"
 import type { Employee } from "../../src/types/index"
 
 const testWorkspace = "./workspace_test_persistence"
+
+function createEmployee(overrides: Partial<Employee> = {}): Employee {
+  return {
+    employeeId: "emp_current",
+    name: "current-worker",
+    roleId: "developer",
+    status: "idle",
+    paused: false,
+    activeSessionId: null,
+    createdAt: "2026-06-19T00:00:00.000Z",
+    lastActiveAt: "2026-06-19T00:00:00.000Z",
+    hiredBy: "emp_creator",
+    ...overrides,
+  }
+}
 
 beforeEach(async () => {
   await fs.rm(testWorkspace, { recursive: true, force: true })
@@ -16,86 +32,109 @@ afterEach(async () => {
 })
 
 describe("EmployeePersistence", () => {
-  it("should save and load employees", async () => {
+  it("saves and loads employees with the new task-independent shape", async () => {
     const persistence = new EmployeePersistence(testWorkspace)
-
     const employees: Employee[] = [
-      {
-        employeeId: "0-test-role",
-        taskId: 0,
-        name: "test-role",
-        role: "test-role",
-        status: "idle",
-        paused: false,
-        activeSessionId: null,
-        createdAt: "2024-01-01T00:00:00Z",
-        lastActiveAt: "2024-01-01T00:00:00Z",
-        hiredBy: "boss1",
-      },
-      {
-        employeeId: "1-coder",
-        taskId: 1,
-        name: "coder",
-        role: "coder",
-        status: "idle",
-        paused: false,
-        activeSessionId: null,
-        createdAt: "2024-01-02T00:00:00Z",
-        lastActiveAt: "2024-01-02T00:00:00Z",
-        hiredBy: "0-test-role",
-      },
+      createEmployee(),
+      createEmployee({
+        employeeId: "emp_reviewer",
+        name: "review-worker",
+        roleId: "reviewer",
+        status: "busy",
+        paused: true,
+        activeSessionId: "session-1",
+        hiredBy: null,
+      }),
     ]
 
     await persistence.save(employees)
 
     const loaded = await persistence.load()
     expect(loaded).toEqual(employees)
+
+    const persisted = yaml.parse(
+      await fs.readFile(
+        path.join(testWorkspace, ".cclover", "employees.yaml"),
+        "utf-8"
+      )
+    )
+    expect(persisted.employees).toHaveLength(2)
+    expect("taskId" in persisted.employees[0]).toBe(false)
+    expect("role" in persisted.employees[0]).toBe(false)
   })
 
-  it("should return empty array when file does not exist", async () => {
+  it("does not persist legacy taskId or role fields from widened inputs", async () => {
+    const persistence = new EmployeePersistence(testWorkspace)
+    const employeeWithLegacyFields = {
+      ...createEmployee(),
+      taskId: 42,
+      role: "legacy-developer",
+    } as Employee & { taskId: number; role: string }
+
+    await persistence.save([employeeWithLegacyFields])
+
+    const persisted = yaml.parse(
+      await fs.readFile(
+        path.join(testWorkspace, ".cclover", "employees.yaml"),
+        "utf-8"
+      )
+    )
+    expect(persisted.employees[0]).toEqual(createEmployee())
+
+    const loaded = await persistence.load()
+    expect(loaded).toEqual([createEmployee()])
+  })
+
+  it("migrates legacy records to generated employeeId and role-preferred roleId", async () => {
+    await fs.mkdir(path.join(testWorkspace, ".cclover"), { recursive: true })
+    await fs.writeFile(
+      path.join(testWorkspace, ".cclover", "employees.yaml"),
+      yaml.stringify({
+        employees: [
+          {
+            name: "legacy-worker",
+            taskId: 7,
+            role: "legacy-role",
+            roleId: "stale-role-id",
+            hiredBy: "0-boss",
+            status: "busy",
+            paused: true,
+            activeSessionId: "old-session",
+            createdAt: "2026-06-18T00:00:00.000Z",
+            lastActiveAt: "2026-06-18T01:00:00.000Z",
+          },
+        ],
+      }),
+      "utf-8"
+    )
+
+    const persistence = new EmployeePersistence(testWorkspace)
+    const [migrated] = await persistence.load()
+
+    expect(migrated.employeeId).toStartWith("emp_")
+    expect(migrated.name).toBe("legacy-worker")
+    expect(migrated.roleId).toBe("legacy-role")
+    expect(migrated.hiredBy).toBe("0-boss")
+    expect(migrated.paused).toBe(true)
+    expect(migrated.status).toBe("idle")
+    expect(migrated.activeSessionId).toBeNull()
+    expect("taskId" in migrated).toBe(false)
+    expect("role" in migrated).toBe(false)
+  })
+
+  it("returns empty array when file does not exist", async () => {
     const persistence = new EmployeePersistence(testWorkspace)
     const loaded = await persistence.load()
     expect(loaded).toEqual([])
   })
 
-  it("should overwrite existing file", async () => {
+  it("overwrites existing file", async () => {
     const persistence = new EmployeePersistence(testWorkspace)
 
-    const employees1: Employee[] = [
-      {
-        employeeId: "0-test-role",
-        taskId: 0,
-        name: "test-role",
-        role: "test-role",
-        status: "idle",
-        paused: false,
-        activeSessionId: null,
-        createdAt: "2024-01-01T00:00:00Z",
-        lastActiveAt: "2024-01-01T00:00:00Z",
-        hiredBy: "boss1",
-      },
-    ]
-
-    await persistence.save(employees1)
-
-    const employees2: Employee[] = [
-      {
-        employeeId: "1-coder",
-        taskId: 1,
-        name: "coder",
-        role: "coder",
-        status: "idle",
-        paused: false,
-        activeSessionId: null,
-        createdAt: "2024-01-02T00:00:00Z",
-        lastActiveAt: "2024-01-02T00:00:00Z",
-        hiredBy: "boss1",
-      },
-    ]
-
-    await persistence.save(employees2)
+    await persistence.save([createEmployee({ employeeId: "emp_first" })])
+    await persistence.save([createEmployee({ employeeId: "emp_second" })])
 
     const loaded = await persistence.load()
-    expect(loaded).toEqual(employees2)
+    expect(loaded).toEqual([createEmployee({ employeeId: "emp_second" })])
   })
 })

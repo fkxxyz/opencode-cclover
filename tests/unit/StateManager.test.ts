@@ -3,532 +3,179 @@ import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as yaml from "yaml"
 import { StateManager } from "../../src/state/StateManager"
-import type { Employee, EmployeeId, TaskId } from "../../src/types/index"
-import { formatEmployeeId, formatBossId } from "../../src/types/index"
+import type { Employee } from "../../src/types/index"
 
 const TEST_WORKSPACE = path.join(
   import.meta.dir,
   "../fixtures/state-manager-test"
 )
 
-describe("StateManager - EmployeeId System", () => {
+function createEmployee(overrides: Partial<Employee> = {}): Employee {
+  return {
+    employeeId: "emp_worker",
+    name: "worker",
+    roleId: "developer",
+    hiredBy: null,
+    status: "idle",
+    paused: false,
+    createdAt: "2026-06-19T00:00:00.000Z",
+    lastActiveAt: "2026-06-19T00:00:00.000Z",
+    activeSessionId: null,
+    ...overrides,
+  }
+}
+
+describe("StateManager employee state contract", () => {
   let stateManager: StateManager
 
   beforeEach(async () => {
-    // 清理测试工作空间
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
     await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-
-    // 创建 StateManager
-    stateManager = new StateManager(TEST_WORKSPACE)
+    stateManager = new StateManager(
+      "test-project",
+      TEST_WORKSPACE,
+      TEST_WORKSPACE
+    )
   })
 
   afterEach(async () => {
-    // 清理测试工作空间
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
   })
 
-  describe("registerEmployee", () => {
-    it("should register employee with valid employeeId", async () => {
-      const employee: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
+  it("registers and persists employees without taskId", async () => {
+    const employee = createEmployee({ hiredBy: "0-boss" })
 
-      await stateManager.registerEmployee(employee)
+    await stateManager.registerEmployee(employee)
 
-      const retrieved = stateManager.getEmployee(employee.employeeId)
-      expect(retrieved).toBeDefined()
-      expect(retrieved?.employeeId).toBe("1-dev-001")
-      expect(retrieved?.name).toBe("dev-001")
-      expect(retrieved?.taskId).toBe(1)
-    })
+    expect(stateManager.getEmployee(employee.employeeId)).toEqual(employee)
 
-    it("should reject duplicate employeeId", async () => {
-      const employee1: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await stateManager.registerEmployee(employee1)
-
-      // 尝试注册相同的 employeeId
-      const employee2: Employee = {
-        ...employee1,
-        name: "different-name",
-      }
-
-      await expect(stateManager.registerEmployee(employee2)).rejects.toThrow(
-        "员工 ID '1-dev-001' 已存在"
+    const persisted = yaml.parse(
+      await fs.readFile(
+        path.join(TEST_WORKSPACE, ".cclover", "employees.yaml"),
+        "utf-8"
       )
-    })
-
-    it("should reject invalid employee name format (starts with digit-hyphen)", async () => {
-      const employee: Employee = {
-        employeeId: formatEmployeeId(1, "1-invalid"),
-        name: "1-invalid",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await expect(stateManager.registerEmployee(employee)).rejects.toThrow(
-        "员工名称 '1-invalid' 格式无效，不能以数字-开头"
-      )
-    })
-
-    it("should allow same name in different tasks", async () => {
-      const employee1: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      const employee2: Employee = {
-        employeeId: formatEmployeeId(2, "dev-001"),
-        name: "dev-001",
-        taskId: 2,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await stateManager.registerEmployee(employee1)
-      await stateManager.registerEmployee(employee2)
-
-      const retrieved1 = stateManager.getEmployee("1-dev-001")
-      const retrieved2 = stateManager.getEmployee("2-dev-001")
-
-      expect(retrieved1).toBeDefined()
-      expect(retrieved2).toBeDefined()
-      expect(retrieved1?.name).toBe("dev-001")
-      expect(retrieved2?.name).toBe("dev-001")
-      expect(retrieved1?.taskId).toBe(1)
-      expect(retrieved2?.taskId).toBe(2)
-    })
-
-    it("should allow Boss name to coexist with employee name", async () => {
-      // Boss 使用 taskId 0
-      const boss: Employee = {
-        employeeId: formatBossId("mason"),
-        name: "mason",
-        taskId: 0,
-        role: "boss",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      // 员工使用相同名称但不同 taskId
-      const employee: Employee = {
-        employeeId: formatEmployeeId(1, "mason"),
-        name: "mason",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await stateManager.registerEmployee(boss)
-      await stateManager.registerEmployee(employee)
-
-      const retrievedBoss = stateManager.getEmployee("0-mason")
-      const retrievedEmployee = stateManager.getEmployee("1-mason")
-
-      expect(retrievedBoss).toBeDefined()
-      expect(retrievedEmployee).toBeDefined()
-      expect(retrievedBoss?.taskId).toBe(0)
-      expect(retrievedEmployee?.taskId).toBe(1)
-    })
+    )
+    expect(persisted.employees[0]).toEqual(employee)
+    expect("taskId" in persisted.employees[0]).toBe(false)
   })
 
-  describe("getEmployee", () => {
-    it("should return employee by employeeId", async () => {
-      const employee: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
+  it("rejects duplicate employeeId and invalid legacy-style names", async () => {
+    const employee = createEmployee()
 
-      await stateManager.registerEmployee(employee)
+    await stateManager.registerEmployee(employee)
 
-      const retrieved = stateManager.getEmployee("1-dev-001")
-      expect(retrieved).toBeDefined()
-      expect(retrieved?.employeeId).toBe("1-dev-001")
-    })
-
-    it("should return undefined for non-existent employeeId", () => {
-      const retrieved = stateManager.getEmployee("999-nonexistent")
-      expect(retrieved).toBeUndefined()
-    })
-
-    it("should persist and clear prompt recovery marker", async () => {
-      const employee: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await stateManager.registerEmployee(employee)
-      await stateManager.setPromptRecovery(employee.employeeId, {
-        version: 1,
-        sessionId: "session-123",
-        startedAt: "2026-04-08T00:00:00.000Z",
-        triggerEventType: "task_available",
-      })
-
-      const recovered = stateManager.getEmployee(employee.employeeId)
-      expect(recovered?.promptRecovery).toEqual({
-        version: 1,
-        sessionId: "session-123",
-        startedAt: "2026-04-08T00:00:00.000Z",
-        triggerEventType: "task_available",
-      })
-      expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(1)
-
-      await stateManager.clearPromptRecovery(employee.employeeId)
-
-      const cleared = stateManager.getEmployee(employee.employeeId)
-      expect(cleared?.promptRecovery).toBeUndefined()
-      expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(0)
-    })
-
-    it("should detect prompt recovery marker after reload from persistence", async () => {
-      const persistentWorkspace = path.join(
-        TEST_WORKSPACE,
-        "persistent-project"
+    await expect(stateManager.registerEmployee(employee)).rejects.toThrow(
+      "已存在"
+    )
+    await expect(
+      stateManager.registerEmployee(
+        createEmployee({ employeeId: "emp_invalid", name: "1-invalid" })
       )
-      await fs.mkdir(persistentWorkspace, { recursive: true })
-
-      const persistentStateManager = new StateManager(
-        "test-project",
-        persistentWorkspace,
-        persistentWorkspace
-      )
-
-      const employee: Employee = {
-        employeeId: formatEmployeeId(1, "dev-reload"),
-        name: "dev-reload",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await persistentStateManager.registerEmployee(employee)
-      await persistentStateManager.setPromptRecovery(employee.employeeId, {
-        version: 1,
-        sessionId: "session-reload",
-        startedAt: "2026-04-08T00:00:00.000Z",
-        triggerEventType: "message",
-      })
-
-      const employeesYamlPath = path.join(
-        persistentWorkspace,
-        ".cclover",
-        "employees.yaml"
-      )
-      const persisted = yaml.parse(
-        await fs.readFile(employeesYamlPath, "utf-8")
-      )
-      expect(persisted.employees[0].promptRecovery).toEqual({
-        version: 1,
-        sessionId: "session-reload",
-        startedAt: "2026-04-08T00:00:00.000Z",
-        triggerEventType: "message",
-      })
-
-      const reloadedStateManager = new StateManager(
-        "test-project",
-        persistentWorkspace,
-        persistentWorkspace
-      )
-      await reloadedStateManager.loadEmployees()
-
-      expect(
-        reloadedStateManager.listEmployeesWithPromptRecovery()
-      ).toHaveLength(1)
-      expect(
-        reloadedStateManager.getEmployee(employee.employeeId)?.promptRecovery
-      ).toEqual({
-        version: 1,
-        sessionId: "session-reload",
-        startedAt: "2026-04-08T00:00:00.000Z",
-        triggerEventType: "message",
-      })
-    })
+    ).rejects.toThrow("格式无效")
   })
 
-  describe("listEmployeesByTaskId", () => {
-    it("should return all employees in a task", async () => {
-      const employee1: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
+  it("loads legacy employees as new-shape employees", async () => {
+    await fs.mkdir(path.join(TEST_WORKSPACE, ".cclover"), { recursive: true })
+    await fs.writeFile(
+      path.join(TEST_WORKSPACE, ".cclover", "employees.yaml"),
+      yaml.stringify({
+        employees: [
+          {
+            name: "legacy-worker",
+            taskId: 5,
+            role: "legacy-role",
+            hiredBy: "emp_creator",
+            paused: false,
+            status: "busy",
+            activeSessionId: "old-session",
+            createdAt: "2026-06-18T00:00:00.000Z",
+            lastActiveAt: "2026-06-18T01:00:00.000Z",
+          },
+        ],
+      }),
+      "utf-8"
+    )
 
-      const employee2: Employee = {
-        employeeId: formatEmployeeId(1, "dev-002"),
-        name: "dev-002",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
+    await stateManager.loadEmployees()
 
-      const employee3: Employee = {
-        employeeId: formatEmployeeId(2, "dev-003"),
-        name: "dev-003",
-        taskId: 2,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await stateManager.registerEmployee(employee1)
-      await stateManager.registerEmployee(employee2)
-      await stateManager.registerEmployee(employee3)
-
-      const task1Employees = stateManager.listEmployeesByTaskId(1)
-      expect(task1Employees).toHaveLength(2)
-      expect(task1Employees.map((e) => e.employeeId)).toContain("1-dev-001")
-      expect(task1Employees.map((e) => e.employeeId)).toContain("1-dev-002")
-
-      const task2Employees = stateManager.listEmployeesByTaskId(2)
-      expect(task2Employees).toHaveLength(1)
-      expect(task2Employees[0].employeeId).toBe("2-dev-003")
-    })
-
-    it("should return empty array for non-existent task", () => {
-      const employees = stateManager.listEmployeesByTaskId(999)
-      expect(employees).toEqual([])
-    })
+    const [employee] = stateManager.getEmployees()
+    expect(employee.employeeId).toStartWith("emp_")
+    expect(employee.roleId).toBe("legacy-role")
+    expect(employee.hiredBy).toBe("emp_creator")
+    expect("taskId" in employee).toBe(false)
   })
 
-  describe("forcePauseEmployeeForHalt", () => {
-    it("should persist paused state and log halt event", async () => {
-      const persistentWorkspace = path.join(TEST_WORKSPACE, "halt-persistence")
-      await fs.mkdir(persistentWorkspace, { recursive: true })
-
-      const persistentStateManager = new StateManager(
-        "test-project",
-        persistentWorkspace,
-        persistentWorkspace
-      )
-
-      const employee: Employee = {
-        employeeId: formatEmployeeId(7, "worker-001"),
-        name: "worker-001",
-        taskId: 7,
-        role: "developer",
-        hiredBy: null,
+  it("queries employees by name, roleId, hiredBy, status, paused, and running", async () => {
+    await stateManager.registerEmployee(
+      createEmployee({
+        employeeId: "emp_api_1",
+        name: "api-worker",
+        roleId: "developer",
+        hiredBy: "emp_creator",
         status: "busy",
         paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await persistentStateManager.registerEmployee(employee)
-      await persistentStateManager.forcePauseEmployeeForHalt(
-        employee.employeeId,
-        {
-          taskId: 7,
-          reason: "nested-runaway",
-          triggeredBy: "http-api",
-        }
-      )
-
-      const updated = persistentStateManager.getEmployee(employee.employeeId)
-      expect(updated?.paused).toBe(true)
-      expect(updated?.status).toBe("offline")
-
-      const employeesYamlPath = path.join(
-        persistentWorkspace,
-        ".cclover",
-        "employees.yaml"
-      )
-      const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
-      const persisted = yaml.parse(persistedRaw)
-      expect(persisted.employees[0].paused).toBe(true)
-
-      const events = persistentStateManager.getEvents({
-        employeeName: employee.employeeId,
       })
-      const haltEvent = events.find((event) => event.type === "employee_halted")
-      expect(haltEvent).toBeDefined()
-      expect(haltEvent?.details.taskId).toBe(7)
-      expect(haltEvent?.details.reason).toBe("nested-runaway")
-      expect(haltEvent?.details.triggeredBy).toBe("http-api")
-    })
+    )
+    await stateManager.registerEmployee(
+      createEmployee({
+        employeeId: "emp_api_2",
+        name: "api-worker",
+        roleId: "reviewer",
+        hiredBy: "emp_creator",
+        status: "idle",
+        paused: true,
+      })
+    )
+    await stateManager.registerEmployee(
+      createEmployee({
+        employeeId: "emp_docs_1",
+        name: "docs-worker",
+        roleId: "developer",
+        hiredBy: null,
+        status: "offline",
+        paused: false,
+      })
+    )
+
+    expect(stateManager.listEmployeesByName("api-worker")).toHaveLength(2)
+    expect(
+      stateManager.listEmployeesByRoleId("developer").map((e) => e.employeeId)
+    ).toEqual(["emp_api_1", "emp_docs_1"])
+    expect(stateManager.listEmployeesByHiredBy("emp_creator")).toHaveLength(2)
+    expect(
+      stateManager.listEmployeesByStatus("busy").map((e) => e.employeeId)
+    ).toEqual(["emp_api_1"])
+    expect(stateManager.listPausedEmployees().map((e) => e.employeeId)).toEqual(
+      ["emp_api_2"]
+    )
+    expect(
+      stateManager.listRunningEmployees().map((e) => e.employeeId)
+    ).toEqual(["emp_api_1", "emp_docs_1"])
   })
 
-  describe("getEmployees", () => {
-    it("should return all registered employees", async () => {
-      const employee1: Employee = {
-        employeeId: formatEmployeeId(1, "dev-001"),
-        name: "dev-001",
-        taskId: 1,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
+  it("persists paused and prompt recovery metadata independent of task ownership", async () => {
+    const employee = createEmployee({ status: "busy" })
 
-      const employee2: Employee = {
-        employeeId: formatEmployeeId(2, "dev-002"),
-        name: "dev-002",
-        taskId: 2,
-        role: "developer",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      }
-
-      await stateManager.registerEmployee(employee1)
-      await stateManager.registerEmployee(employee2)
-
-      const allEmployees = stateManager.getEmployees()
-      expect(allEmployees).toHaveLength(2)
-      expect(allEmployees.map((e) => e.employeeId)).toContain("1-dev-001")
-      expect(allEmployees.map((e) => e.employeeId)).toContain("2-dev-002")
+    await stateManager.registerEmployee(employee)
+    await stateManager.pauseEmployee(employee.employeeId)
+    await stateManager.setPromptRecovery(employee.employeeId, {
+      version: 1,
+      sessionId: "session-recover",
+      startedAt: "2026-06-19T00:01:00.000Z",
+      triggerEventType: "message",
     })
 
-    it("should return empty array when no employees registered", () => {
-      const allEmployees = stateManager.getEmployees()
-      expect(allEmployees).toEqual([])
-    })
+    expect(stateManager.getEmployee(employee.employeeId)?.paused).toBe(true)
+    expect(stateManager.getEmployee(employee.employeeId)?.status).toBe(
+      "offline"
+    )
+    expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(1)
+
+    await stateManager.clearPromptRecovery(employee.employeeId)
+    expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(0)
   })
 
-  describe("EmployeeId Format Validation", () => {
-    it("should accept valid employeeId format", async () => {
-      const validIds = [
-        formatEmployeeId(1, "dev-001"),
-        formatEmployeeId(2, "task-designer"),
-        formatEmployeeId(100, "worker"),
-        formatBossId("mason"),
-      ]
-
-      for (const employeeId of validIds) {
-        const employee: Employee = {
-          employeeId,
-          name: employeeId.split("-").slice(1).join("-"),
-          taskId: parseInt(employeeId.split("-")[0]),
-          role: "developer",
-          hiredBy: null,
-          status: "idle",
-          paused: false,
-          createdAt: new Date().toISOString(),
-          lastActiveAt: new Date().toISOString(),
-          activeSessionId: null,
-        }
-
-        await stateManager.registerEmployee(employee)
-        const retrieved = stateManager.getEmployee(employeeId)
-        expect(retrieved).toBeDefined()
-        expect(retrieved?.employeeId).toBe(employeeId)
-      }
-    })
-
-    it("should reject invalid name formats", async () => {
-      const invalidNames = ["1-invalid", "0-worker", "123-dev"]
-
-      for (const name of invalidNames) {
-        const employee: Employee = {
-          employeeId: formatEmployeeId(1, name),
-          name,
-          taskId: 1,
-          role: "developer",
-          hiredBy: null,
-          status: "idle",
-          paused: false,
-          createdAt: new Date().toISOString(),
-          lastActiveAt: new Date().toISOString(),
-          activeSessionId: null,
-        }
-
-        await expect(stateManager.registerEmployee(employee)).rejects.toThrow(
-          "格式无效"
-        )
-      }
-    })
+  it("does not expose taskId-based employee grouping as a state contract", () => {
+    expect("listEmployeesByTaskId" in stateManager).toBe(false)
   })
 })

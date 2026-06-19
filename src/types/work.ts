@@ -50,3 +50,13 @@ export interface WorkItemFilters {
   parentWorkItemId?: WorkItemId | null
   dependsOn?: WorkItemId
 }
+
+export function createRootTaskId(): RootTaskId {
+  const randomPart = crypto.randomUUID().replace(/-/g, "")
+  return `rt_${randomPart}`
+}
+
+export function createWorkItemId(): WorkItemId {
+  const randomPart = crypto.randomUUID().replace(/-/g, "")
+  return `wi_${randomPart}`
+}
