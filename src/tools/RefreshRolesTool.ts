@@ -24,7 +24,7 @@ export function createRefreshRolesTool(project: ProjectInstance) {
 
         // 2. Refresh system prompts for all running employees
         const refreshPromises: Promise<void>[] = []
-        for (const [employeeName, eventLoop] of project.eventLoops.entries()) {
+        for (const [, eventLoop] of project.eventLoops.entries()) {
           refreshPromises.push(eventLoop.refreshSystemPrompt())
         }
         await Promise.all(refreshPromises)

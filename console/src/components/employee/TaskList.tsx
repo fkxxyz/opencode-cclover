@@ -54,7 +54,7 @@ export function TaskList({ projectId, employeeId }: TaskListProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>任务列表</CardTitle>
+          <CardTitle>个人任务诊断</CardTitle>
         </CardHeader>
         <CardContent>
           <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
@@ -68,11 +68,11 @@ export function TaskList({ projectId, employeeId }: TaskListProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>任务列表</CardTitle>
+          <CardTitle>个人任务诊断</CardTitle>
         </CardHeader>
         <CardContent>
           <Typography align="center" color="text.secondary">
-            暂无任务
+            暂无个人任务
           </Typography>
         </CardContent>
       </Card>
@@ -87,7 +87,7 @@ export function TaskList({ projectId, employeeId }: TaskListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>任务名称</TableHead>
+              <TableHead>个人任务名称</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>描述</TableHead>
               <TableHead>创建时间</TableHead>

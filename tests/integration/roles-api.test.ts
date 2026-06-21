@@ -217,10 +217,10 @@ You are a test role. This is your system prompt.
     })
   })
 
-  describe("GET /api/projects/:projectId/employees/:name/role", () => {
+  describe("GET /api/projects/:projectId/employees/:employeeId/role", () => {
     test("should return employee's role with metadata", async () => {
       const { response, json } = await fetchApi<RoleDetailData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-employee/role`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_employee/role`
       )
 
       expect(response.status).toBe(200)

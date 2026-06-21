@@ -6,10 +6,10 @@ import { formatBossId } from "../types/employee"
 /**
  * 获取雇佣关系树（多根节点）
  *
- * 返回所有 boss 和根员工的树结构数组：
- * 1. 所有 boss 作为根节点（包括配置中的和员工 hiredBy 中提到的）
- * 2. hiredBy 为 boss employeeId 的员工作为 boss 的子节点
- * 3. hiredBy 不存在或无效的员工作为独立根节点显示在顶层
+ * 返回所有配置 boss 和根员工的树结构数组：
+ * 1. 配置中的 boss 作为根节点
+ * 2. hiredBy 精确等于父级 employeeId 的员工作为子节点
+ * 3. hiredBy 为空或无法按 employeeId 解析到父级的员工作为独立根节点显示在顶层
  */
 export function getHierarchy(
   stateManager: StateManager,
@@ -18,49 +18,23 @@ export function getHierarchy(
   const employees = stateManager.getEmployees()
   const configuredBosses = bossManager.getBosses()
 
-  // 收集所有 boss 名称
-  // 1. 配置中的 boss
-  // 2. 从员工 hiredBy 中提取的 boss
   const allBossNames = new Set<string>(configuredBosses)
-  const employeeNames = new Set(employees.map((e) => e.name))
+  const employeeIds = new Set(employees.map((e) => e.employeeId))
+  const bossEmployeeIds = new Set(
+    Array.from(allBossNames).map((bossName) => formatBossId(bossName))
+  )
 
-  employees.forEach((emp) => {
-    if (emp.hiredBy) {
-      let bossName: string | null = null
-
-      // 情况 1: hiredBy 是 boss employeeId 格式（"0-{bossName}"）
-      if (emp.hiredBy.startsWith("0-")) {
-        bossName = emp.hiredBy.substring(2)
-      }
-      // 情况 2: hiredBy 是旧格式（直接是 boss name，不包含 "-"）
-      else if (!emp.hiredBy.includes("-")) {
-        bossName = emp.hiredBy
-      }
-
-      // 只有当这个名字不是普通员工时，才认为是 boss
-      if (bossName && !employeeNames.has(bossName)) {
-        allBossNames.add(bossName)
-      }
-    }
-  })
-
-  // 用于跟踪已包含在树中的员工
-  const includedEmployees = new Set<string>()
-
-  // 递归构建子树，同时支持新旧两种 hiredBy 格式
-  const buildTree = (
-    parentEmployeeId: string,
-    parentName: string
-  ): EmployeeHierarchy[] => {
+  // 仅按稳定 employeeId 建立边，避免把展示名称误用为身份
+  const buildTree = (parentEmployeeId: string): EmployeeHierarchy[] => {
     return employees
-      .filter((e) => e.hiredBy === parentEmployeeId || e.hiredBy === parentName)
+      .filter((e) => e.hiredBy === parentEmployeeId)
       .map((e) => {
-        includedEmployees.add(e.name) // 记录已包含的员工
         return {
+          employeeId: e.employeeId,
           name: e.name,
           role: e.roleId,
           status: e.status,
-          children: buildTree(e.employeeId, e.name),
+          children: buildTree(e.employeeId),
         }
       })
   }
@@ -74,21 +48,24 @@ export function getHierarchy(
       name: bossName,
       role: "Boss",
       status: "busy",
-      children: buildTree(bossEmployeeId, bossName), // 同时传入 employeeId 和 name
+      children: buildTree(bossEmployeeId),
     })
   }
 
-  // 找出未被包含的员工（orphan employees），作为根节点添加
-  const orphanEmployees = employees.filter(
-    (e) => !includedEmployees.has(e.name)
+  const rootEmployees = employees.filter(
+    (employee) =>
+      !employee.hiredBy ||
+      (!employeeIds.has(employee.hiredBy) &&
+        !bossEmployeeIds.has(employee.hiredBy))
   )
 
-  for (const orphan of orphanEmployees) {
+  for (const employee of rootEmployees) {
     roots.push({
-      name: orphan.name,
-      role: orphan.roleId,
-      status: orphan.status,
-      children: buildTree(orphan.employeeId, orphan.name), // 递归构建子树（如果有员工被这个 orphan 雇佣）
+      employeeId: employee.employeeId,
+      name: employee.name,
+      role: employee.roleId,
+      status: employee.status,
+      children: buildTree(employee.employeeId),
     })
   }
 

@@ -9,7 +9,7 @@
  * - ProgressTracker: 进展追踪和异常检测
  */
 
-// 角色定义（向后兼容）
+// EventLoop 使用的最小角色上下文
 export interface Role {
   name: string
   systemPrompt: string

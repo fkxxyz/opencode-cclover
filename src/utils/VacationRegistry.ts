@@ -12,7 +12,7 @@
  */
 export interface VacationEvent {
   type: "vacation_requested"
-  employeeName: string
+  employeeId: string
   timestamp: string
 }
 
@@ -25,33 +25,33 @@ export class VacationRegistry {
 
   /**
    * 添加假期事件到员工队列
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    * @param event 假期事件
    */
-  addVacationEvent(employeeName: string, event: VacationEvent): void {
-    if (!this.vacationQueues.has(employeeName)) {
-      this.vacationQueues.set(employeeName, [])
+  addVacationEvent(employeeId: string, event: VacationEvent): void {
+    if (!this.vacationQueues.has(employeeId)) {
+      this.vacationQueues.set(employeeId, [])
     }
-    this.vacationQueues.get(employeeName)!.push(event)
+    this.vacationQueues.get(employeeId)!.push(event)
   }
 
   /**
    * 检查员工是否有假期事件（不移除）
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    * @returns 如果有假期事件返回 true，否则返回 false
    */
-  hasVacationEvent(employeeName: string): boolean {
-    const queue = this.vacationQueues.get(employeeName)
+  hasVacationEvent(employeeId: string): boolean {
+    const queue = this.vacationQueues.get(employeeId)
     return queue !== undefined && queue.length > 0
   }
 
   /**
    * 获取并移除员工队列中的第一个假期事件（FIFO）
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    * @returns 假期事件，如果队列为空则返回 null
    */
-  getVacationEvent(employeeName: string): VacationEvent | null {
-    const queue = this.vacationQueues.get(employeeName)
+  getVacationEvent(employeeId: string): VacationEvent | null {
+    const queue = this.vacationQueues.get(employeeId)
     if (!queue || queue.length === 0) {
       return null
     }
@@ -60,10 +60,10 @@ export class VacationRegistry {
 
   /**
    * 清空指定员工的假期队列
-   * @param employeeName 员工名称
+   * @param employeeId 员工 ID
    */
-  clearVacationQueue(employeeName: string): void {
-    this.vacationQueues.delete(employeeName)
+  clearVacationQueue(employeeId: string): void {
+    this.vacationQueues.delete(employeeId)
   }
 
   /**

@@ -78,7 +78,7 @@ function getEventDescription(
   type: EventType,
   details: Record<string, unknown>,
   projectPath: string,
-  employeeName?: string
+  employeeId?: string
 ): React.ReactNode {
   switch (type) {
     case "message":
@@ -150,10 +150,9 @@ function getEventDescription(
     case "session_summary_completed":
       return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     case "employee_hired":
-      // 向后兼容：优先使用 employeeId，回退到 employeeName
-      return `${details.hiredBy} 雇佣了 ${details.employeeId || details.employeeName} (${details.role})`
+      return `${details.hiredBy} 雇佣了 ${employeeId} (${details.roleId})`
     case "employee_status_changed":
-      return `${employeeName} 状态: ${details.oldStatus} → ${details.newStatus}`
+      return `${employeeId} 状态: ${details.oldStatus} → ${details.newStatus}`
     case "timer":
       return `定时器触发 (间隔: ${details.interval}ms)`
     default:
@@ -227,9 +226,7 @@ export function EventStream({ projectId }: EventStreamProps) {
           }}
         >
           {events.map((event, index) => {
-            // 使用 timestamp + employeeId + type + index 作为唯一 key（向后兼容：回退到 employeeName）
-            const eventEmployeeId =
-              event.employeeId || (event as any).employeeName
+            const eventEmployeeId = event.employeeId
             const uniqueKey = `${event.timestamp}-${eventEmployeeId || "unknown"}-${event.type}-${index}`
             return (
               <Box

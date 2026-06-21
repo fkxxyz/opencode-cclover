@@ -308,6 +308,7 @@ export class EventLoop {
         projectId: "",
         type: "vacation_requested",
         timestamp: vacationEvent.timestamp,
+        employeeId: vacationEvent.employeeId,
         details: {},
       }
     }

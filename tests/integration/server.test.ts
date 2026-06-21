@@ -180,9 +180,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:name - 获取员工详情", async () => {
+    test("GET /api/projects/test-project/employees/:employeeId - 获取员工详情", async () => {
       const { response, json } = await fetchApi<EmployeeDetailData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role`
       )
 
       expect(response.status).toBe(200)
@@ -193,6 +193,18 @@ describe("Console Server", () => {
         expect(json.data.memory).toBeDefined()
         expect(json.data.tasks).toBeDefined()
         expect(json.data.agents).toBeDefined()
+      }
+    })
+
+    test("GET /api/projects/test-project/employees/:name - display name 不作为员工详情资源键", async () => {
+      const { response, json } = await fetchApi<never>(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role`
+      )
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(false)
+      if (!json.success) {
+        expect(json.error.code).toBe("EMPLOYEE_NOT_FOUND")
       }
     })
 
@@ -208,9 +220,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:name/messages - 获取消息历史", async () => {
+    test("GET /api/projects/test-project/employees/:employeeId/messages - 获取消息历史", async () => {
       const { response, json } = await fetchApi<MessageListData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role/messages`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role/messages`
       )
 
       expect(response.status).toBe(200)
@@ -220,9 +232,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:name/tasks - 获取任务列表", async () => {
+    test("GET /api/projects/test-project/employees/:employeeId/tasks - 获取任务列表", async () => {
       const { response, json } = await fetchApi<TaskListData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role/tasks`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role/tasks`
       )
 
       expect(response.status).toBe(200)
@@ -512,9 +524,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:name/messages?limit=5 - 限制消息数量", async () => {
+    test("GET /api/projects/test-project/employees/:employeeId/messages?limit=5 - 限制消息数量", async () => {
       const { response, json } = await fetchApi<MessageListData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/test-role/messages?limit=5`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role/messages?limit=5`
       )
 
       expect(response.status).toBe(200)

@@ -78,7 +78,7 @@ describe("Employees API", () => {
     expect("role" in response.data.employees[0]).toBe(false)
   })
 
-  it("should return employee detail with memory and tasks", async () => {
+  it("should return employee detail by employeeId with memory and tasks", async () => {
     const stateManager = new StateManager()
     const memoryManager = new MemoryManager(testWorkspace)
 
@@ -120,11 +120,10 @@ describe("Employees API", () => {
     await fs.writeFile(memoryPath, yaml.stringify(memory), "utf-8")
 
     const response = await getEmployeeDetail(
-      "test-role",
+      "emp-test-role",
       stateManager,
       memoryManager,
-      agentRegistry,
-      testWorkspace
+      agentRegistry
     )
 
     expect(response.success).toBe(true)
@@ -139,6 +138,35 @@ describe("Employees API", () => {
     }
   })
 
+  it("should not resolve employee detail by display name", async () => {
+    const stateManager = new StateManager()
+    const memoryManager = new MemoryManager(testWorkspace)
+
+    stateManager.registerEmployee({
+      employeeId: "emp-test-role",
+      name: "test-role",
+      roleId: "TestRole",
+      status: "idle",
+      paused: false,
+      hiredBy: null,
+      activeSessionId: null,
+      createdAt: "2026-03-01T10:00:00.000Z",
+      lastActiveAt: "2026-03-01T10:05:00.000Z",
+    })
+
+    const response = await getEmployeeDetail(
+      "test-role",
+      stateManager,
+      memoryManager,
+      agentRegistry
+    )
+
+    expect(response.success).toBe(false)
+    if (!response.success) {
+      expect(response.error.code).toBe("EMPLOYEE_NOT_FOUND")
+    }
+  })
+
   it("should return error for non-existent employee", async () => {
     const stateManager = new StateManager()
     const memoryManager = new MemoryManager(testWorkspace)
@@ -147,8 +175,7 @@ describe("Employees API", () => {
       "unknown",
       stateManager,
       memoryManager,
-      agentRegistry,
-      testWorkspace
+      agentRegistry
     )
 
     expect(response.success).toBe(false)
@@ -160,6 +187,7 @@ describe("Employees API", () => {
   it("should return hierarchy with single root employee", () => {
     const stateManager = new StateManager()
     const bossManager = new BossManager()
+    bossManager.addBoss("boss1")
 
     const employee: Employee = {
       employeeId: "emp-test-role",
@@ -167,7 +195,7 @@ describe("Employees API", () => {
       roleId: "TestRole",
       status: "idle",
       paused: false,
-      hiredBy: "boss1",
+      hiredBy: "0-boss1",
       activeSessionId: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:05:00.000Z",
@@ -186,13 +214,135 @@ describe("Employees API", () => {
       (node) => node.name === "boss1"
     )
     expect(boss1Node).toBeDefined()
+    expect(boss1Node?.employeeId).toBeUndefined()
     expect(boss1Node?.children).toHaveLength(1)
     expect(boss1Node?.children[0].name).toBe("test-role")
+    expect(boss1Node?.children[0].employeeId).toBe("emp-test-role")
+  })
+
+  it("should treat direct boss name hiredBy as orphan instead of legacy boss fallback", () => {
+    const stateManager = new StateManager()
+    const bossManager = new BossManager()
+
+    stateManager.registerEmployee({
+      employeeId: "emp-test-role",
+      name: "test-role",
+      roleId: "TestRole",
+      status: "idle",
+      paused: false,
+      hiredBy: "boss1",
+      activeSessionId: null,
+      createdAt: "2026-03-01T10:00:00.000Z",
+      lastActiveAt: "2026-03-01T10:05:00.000Z",
+    })
+
+    const response = getHierarchy(stateManager, bossManager)
+
+    expect(response.success).toBe(true)
+    expect(response.data.hierarchy.some((node) => node.name === "boss1")).toBe(
+      false
+    )
+    expect(
+      response.data.hierarchy.some((node) => node.name === "test-role")
+    ).toBe(true)
+    const orphanNode = response.data.hierarchy.find(
+      (node) => node.name === "test-role"
+    )
+    expect(orphanNode?.employeeId).toBe("emp-test-role")
+  })
+
+  it("should nest orphan descendants without duplicating them as roots", () => {
+    const stateManager = new StateManager()
+    const bossManager = new BossManager()
+
+    stateManager.registerEmployee({
+      employeeId: "emp-orphan-root",
+      name: "orphan-root",
+      roleId: "RootRole",
+      status: "idle",
+      paused: false,
+      hiredBy: "missing-parent",
+      activeSessionId: null,
+      createdAt: "2026-03-01T10:00:00.000Z",
+      lastActiveAt: "2026-03-01T10:05:00.000Z",
+    })
+    stateManager.registerEmployee({
+      employeeId: "emp-orphan-child",
+      name: "orphan-child",
+      roleId: "ChildRole",
+      status: "idle",
+      paused: false,
+      hiredBy: "emp-orphan-root",
+      activeSessionId: null,
+      createdAt: "2026-03-01T10:01:00.000Z",
+      lastActiveAt: "2026-03-01T10:06:00.000Z",
+    })
+
+    const response = getHierarchy(stateManager, bossManager)
+
+    expect(response.success).toBe(true)
+    const rootNodes = response.data.hierarchy.filter(
+      (node) => node.name === "orphan-root"
+    )
+    const childRootNodes = response.data.hierarchy.filter(
+      (node) => node.name === "orphan-child"
+    )
+    expect(rootNodes).toHaveLength(1)
+    expect(childRootNodes).toHaveLength(0)
+    expect(rootNodes[0].employeeId).toBe("emp-orphan-root")
+    expect(rootNodes[0].children).toHaveLength(1)
+    expect(rootNodes[0].children[0].name).toBe("orphan-child")
+    expect(rootNodes[0].children[0].employeeId).toBe("emp-orphan-child")
+  })
+
+  it("should nest orphan descendants registered before their parent", () => {
+    const stateManager = new StateManager()
+    const bossManager = new BossManager()
+
+    stateManager.registerEmployee({
+      employeeId: "emp-orphan-child",
+      name: "orphan-child",
+      roleId: "ChildRole",
+      status: "idle",
+      paused: false,
+      hiredBy: "emp-orphan-root",
+      activeSessionId: null,
+      createdAt: "2026-03-01T10:01:00.000Z",
+      lastActiveAt: "2026-03-01T10:06:00.000Z",
+    })
+    stateManager.registerEmployee({
+      employeeId: "emp-orphan-root",
+      name: "orphan-root",
+      roleId: "RootRole",
+      status: "idle",
+      paused: false,
+      hiredBy: "missing-parent",
+      activeSessionId: null,
+      createdAt: "2026-03-01T10:00:00.000Z",
+      lastActiveAt: "2026-03-01T10:05:00.000Z",
+    })
+
+    const response = getHierarchy(stateManager, bossManager)
+
+    expect(response.success).toBe(true)
+    const rootNodes = response.data.hierarchy.filter(
+      (node) => node.name === "orphan-root"
+    )
+    const childRootNodes = response.data.hierarchy.filter(
+      (node) => node.name === "orphan-child"
+    )
+    expect(rootNodes).toHaveLength(1)
+    expect(childRootNodes).toHaveLength(0)
+    expect(rootNodes[0].employeeId).toBe("emp-orphan-root")
+    expect(rootNodes[0].children).toHaveLength(1)
+    expect(rootNodes[0].children[0].name).toBe("orphan-child")
+    expect(rootNodes[0].children[0].employeeId).toBe("emp-orphan-child")
   })
 
   it("should return hierarchy with multiple levels", () => {
     const stateManager = new StateManager()
     const bossManager = new BossManager()
+    bossManager.addBoss("boss1")
 
     const root: Employee = {
       employeeId: "emp-test-role",
@@ -200,7 +350,7 @@ describe("Employees API", () => {
       roleId: "TestRole",
       status: "idle",
       paused: false,
-      hiredBy: "boss1",
+      hiredBy: "0-boss1",
       activeSessionId: null,
       createdAt: "2026-03-01T10:00:00.000Z",
       lastActiveAt: "2026-03-01T10:05:00.000Z",
@@ -245,11 +395,17 @@ describe("Employees API", () => {
       (node) => node.name === "boss1"
     )
     expect(boss1Node).toBeDefined()
+    expect(boss1Node?.employeeId).toBeUndefined()
     expect(boss1Node?.children).toHaveLength(1)
     expect(boss1Node?.children[0].name).toBe("test-role")
+    expect(boss1Node?.children[0].employeeId).toBe("emp-test-role")
     expect(boss1Node?.children[0].children).toHaveLength(1)
     expect(boss1Node?.children[0].children[0].name).toBe("coder")
+    expect(boss1Node?.children[0].children[0].employeeId).toBe("emp-coder")
     expect(boss1Node?.children[0].children[0].children).toHaveLength(1)
     expect(boss1Node?.children[0].children[0].children[0].name).toBe("tester")
+    expect(boss1Node?.children[0].children[0].children[0].employeeId).toBe(
+      "emp-tester"
+    )
   })
 })

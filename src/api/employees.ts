@@ -2,11 +2,9 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import type { StateManager } from "../state/StateManager"
 import type { MemoryManager } from "../core/MemoryManager"
-import { agentRegistry } from "../utils/AgentRegistry"
 import type {
   Employee,
   EmployeeDetail,
-  EmployeeHierarchy,
   SuccessResponse,
   ErrorResponse,
 } from "../types/index"
@@ -89,22 +87,21 @@ export function getBosses(
  * 获取员工详情
  */
 export async function getEmployeeDetail(
-  name: string,
+  employeeId: string,
   stateManager: StateManager,
   memoryManager: MemoryManager,
-  agentRegistry: any,
-  workspaceRoot: string
+  agentRegistry: any
 ): Promise<SuccessResponse<EmployeeDetail> | ErrorResponse> {
-  // 根据 name 查找员工
+  // employeeId 是员工资源键，name 只作为展示字段
   const employees = stateManager.getEmployees()
-  const employee = employees.find((e) => e.name === name)
+  const employee = employees.find((e) => e.employeeId === employeeId)
 
   if (!employee) {
     return {
       success: false,
       error: {
         code: "EMPLOYEE_NOT_FOUND",
-        message: `员工 '${name}' 不存在`,
+        message: `员工 '${employeeId}' 不存在`,
       },
     }
   }
@@ -144,7 +141,7 @@ export async function getEmployeeDetail(
       success: false,
       error: {
         code: "FILE_READ_ERROR",
-        message: `读取员工 '${name}' 的数据失败: ${error.message}`,
+        message: `读取员工 '${employeeId}' 的数据失败: ${error.message}`,
       },
     }
   }

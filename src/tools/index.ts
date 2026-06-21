@@ -80,12 +80,12 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
 /**
  * 获取员工可用的工具列表
  *
- * @param employeeName 员工名称
+ * @param employeeId 员工 ID
  * @param customPermissions 自定义权限（可选）
  * @returns 工具权限配置
  */
 export function getToolPermissions(
-  employeeName: string,
+  employeeId: string,
   customPermissions?: ToolPermissions
 ): ToolPermissions {
   // 第一版使用默认权限

@@ -83,9 +83,9 @@ export function createPauseEmployeeTool(
       }
 
       // 6. 发送假期通知
-      vacationRegistry.addVacationEvent(employee.name, {
+      vacationRegistry.addVacationEvent(args.employeeId, {
         type: "vacation_requested",
-        employeeName: employee.name,
+        employeeId: args.employeeId,
         timestamp: new Date().toISOString(),
       })
 

@@ -34,14 +34,14 @@ export function createCompleteMajorTaskTool(
         )
       }
 
-      const employeeName = actor.actorEmployeeId
+      const employeeId = actor.actorEmployeeId
 
       // 1. 权限检查
       const employees = stateManager.getEmployees()
-      const employee = employees.find((e) => e.employeeId === employeeName)
+      const employee = employees.find((e) => e.employeeId === employeeId)
 
       if (!employee) {
-        throw new Error(`Employee ${employeeName} not found`)
+        throw new Error(`Employee ${employeeId} not found`)
       }
 
       const role = roleManager?.getRole(employee.roleId)

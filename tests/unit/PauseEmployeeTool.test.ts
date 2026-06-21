@@ -88,11 +88,11 @@ describe("PauseEmployeeTool", () => {
     expect(result).toContain("dev-1")
 
     // 验证假期通知已发送
-    expect(vacationRegistry.hasVacationEvent("dev-1")).toBe(true)
-    const event = vacationRegistry.getVacationEvent("dev-1")
+    expect(vacationRegistry.hasVacationEvent("emp_dev_1")).toBe(true)
+    const event = vacationRegistry.getVacationEvent("emp_dev_1")
     expect(event).not.toBeNull()
     expect(event?.type).toBe("vacation_requested")
-    expect(event?.employeeName).toBe("dev-1")
+    expect(event?.employeeId).toBe("emp_dev_1")
 
     // 验证员工状态已更新为离线
     const updatedEmployee = stateManager.getEmployee("emp_dev_1")
@@ -151,7 +151,7 @@ describe("PauseEmployeeTool", () => {
 
     // 验证结果
     expect(result).toContain("has been paused")
-    expect(vacationRegistry.hasVacationEvent("dev-1")).toBe(true)
+    expect(vacationRegistry.hasVacationEvent("emp_dev_1")).toBe(true)
 
     // 验证员工状态已更新为离线
     const updatedEmployee = stateManager.getEmployee("emp_dev_1")
@@ -477,7 +477,7 @@ describe("PauseEmployeeTool", () => {
 
     // 验证结果
     expect(result).toContain("has been paused")
-    expect(vacationRegistry.hasVacationEvent("dev-1")).toBe(true)
+    expect(vacationRegistry.hasVacationEvent("emp_dev_1")).toBe(true)
 
     // 验证员工状态已更新为离线
     const updatedEmployee = stateManager.getEmployee("emp_dev_1")

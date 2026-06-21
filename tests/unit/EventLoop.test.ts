@@ -202,7 +202,7 @@ describe("EventLoop", () => {
       })
       vacationRegistry.addVacationEvent("test-employee", {
         type: "vacation_requested",
-        employeeName: "test-employee",
+        employeeId: "test-employee",
         timestamp: "2026-04-08T00:00:01.000Z",
       })
 
@@ -234,7 +234,7 @@ describe("EventLoop", () => {
       })
       vacationRegistry.addVacationEvent("test-employee", {
         type: "vacation_requested",
-        employeeName: "test-employee",
+        employeeId: "test-employee",
         timestamp: "2026-04-08T00:00:01.000Z",
       })
       haltRegistry.addHaltEvent("test-employee", {

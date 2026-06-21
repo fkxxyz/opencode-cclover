@@ -20,11 +20,11 @@ function App() {
           <Route path="/projects" element={<ProjectManagement />} />
           <Route path="/projects/:projectId" element={<Overview />} />
           <Route
-            path="/projects/:projectId/employee/:name"
+            path="/projects/:projectId/employee/:employeeId"
             element={<EmployeeDetail />}
           />
           <Route
-            path="/projects/:projectId/employee/:name/profile"
+            path="/projects/:projectId/employee/:employeeId/profile"
             element={<EmployeeProfile />}
           />
           <Route

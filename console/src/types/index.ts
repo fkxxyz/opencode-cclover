@@ -13,17 +13,38 @@ export interface CandidateProject {
 }
 
 // Employee types
-export type EmployeeStatus = "busy" | "idle" | "error" | "offline" | "abnormal"
+export type EmployeeStatus =
+  | "busy"
+  | "idle"
+  | "error"
+  | "offline"
+  | "abnormal"
+
+export interface PromptRecovery {
+  version?: number
+  sessionId: string
+  startedAt: string
+  triggerEventType: string
+}
 
 export interface Employee {
   employeeId: string
   name: string
-  taskId: number
-  role: string
+  roleId: string
+  handbookPath?: string
+  hiredBy: string | null
   status: EmployeeStatus
+  paused: boolean
   createdAt: string
   lastActiveAt: string
-  hiredBy?: string
+  activeSessionId: string | null
+  promptRecovery?: PromptRecovery
+}
+
+export interface BossInfo {
+  name: string
+  id: string
+  type: "configured" | "meeting-mode"
 }
 
 export interface EmployeeDetail extends Employee {
@@ -33,10 +54,38 @@ export interface EmployeeDetail extends Employee {
 }
 
 export interface EmployeeHierarchy {
+  employeeId?: string
   name: string
   role: string
   status: EmployeeStatus
   children: EmployeeHierarchy[]
+}
+
+// Work model types
+export interface RootTask {
+  rootTaskId: string
+  summary: string
+  createdBy: string
+  createdAt: string
+}
+
+export interface WorkItem {
+  workItemId: string
+  rootTaskId: string
+  parentWorkItemId: string | null
+  employeeId: string
+  description: string
+  dependsOn: string[]
+  worktreeRef: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface WorkItemFilters {
+  rootTaskId?: string
+  employeeId?: string
+  parentWorkItemId?: string | null
+  dependsOn?: string
 }
 
 // Message types
@@ -122,9 +171,6 @@ export type EventType =
   | "reply_reminder"
   | "agent_completed"
   | "agent_failed"
-  | "major_task_completed"
-  | "survey_sent"
-  | "feedback_received"
   | "timer"
   | "employee_hired"
   | "employee_status_changed"
@@ -140,8 +186,15 @@ export type EventType =
   | "agent_created"
   | "task_created"
   | "task_modified"
-  | "task_halt_requested"
   | "vacation_requested"
+  | "major_task_completed"
+  | "survey_sent"
+  | "feedback_received"
+  | "root_task_created"
+  | "root_task_deleted"
+  | "work_item_created"
+  | "work_item_updated"
+  | "work_item_deleted"
   | "*" // Wildcard for subscribing to all events
 
 export interface Event {
@@ -149,6 +202,8 @@ export interface Event {
   type: EventType
   timestamp: string
   employeeId?: string
+  rootTaskId?: string
+  workItemId?: string
   details: Record<string, unknown>
 }
 

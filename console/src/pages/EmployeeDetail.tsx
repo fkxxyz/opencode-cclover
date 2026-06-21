@@ -10,7 +10,10 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
 export function EmployeeDetail() {
-  const { projectId, name } = useParams<{ projectId: string; name: string }>()
+  const { projectId, employeeId } = useParams<{
+    projectId: string
+    employeeId: string
+  }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [employee, setEmployee] = useState<EmployeeDetailType | null>(null)
@@ -21,17 +24,17 @@ export function EmployeeDetail() {
   const currentPeer = searchParams.get("peer") || null
 
   useEffect(() => {
-    if (!name || !projectId) return
+    if (!employeeId || !projectId) return
     setLoading(true)
     apiClient
-      .getEmployeeDetail(projectId, name)
+      .getEmployeeDetail(projectId, employeeId)
       .then(setEmployee)
       .catch((err: Error) => {
         console.error("获取员工详情失败:", err)
         setError(err)
       })
       .finally(() => setLoading(false))
-  }, [name, projectId])
+  }, [employeeId, projectId])
 
   if (loading) {
     return (
@@ -121,7 +124,7 @@ export function EmployeeDetail() {
           size="sm"
           sx={{ marginLeft: "auto" }}
           onClick={() =>
-            navigate(`/projects/${projectId}/employee/${name}/profile`)
+            navigate(`/projects/${projectId}/employee/${employeeId}/profile`)
           }
         >
           <User className="h-4 w-4 mr-2" />

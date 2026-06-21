@@ -498,7 +498,7 @@ export const projectRoutes = new Map<string, RouteHandler>([
 
 /**
  * ============================================================================
- * 项目级参数路由定义（包含路径参数，如 :name）
+ * 项目级参数路由定义（包含路径参数，如 :employeeId）
  * ============================================================================
  *
  * 键格式: "METHOD:subpath_with_params"
@@ -510,12 +510,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 获取员工详情
    *
-   * @endpoint GET /api/projects/:projectId/employees/:name
+   * @endpoint GET /api/projects/:projectId/employees/:employeeId
    * @description 获取指定员工的完整信息，包括记忆、任务和 Agent 执行记录
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @response {
    *   success: true,
@@ -558,19 +558,17 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *   - EMPLOYEE_NOT_FOUND (404): 员工不存在
    *
    * @example
-   * GET /api/projects/abc123/employees/calculator
+   * GET /api/projects/abc123/employees/emp_calculator
    * Response: { success: true, data: { name: "calculator", ... } }
    */
   [
-    "GET:/employees/:name",
+    "GET:/employees/:employeeId",
     async (req, params, deps) => {
-      const employeeName = params.name
       return employees.getEmployeeDetail(
-        employeeName,
+        params.employeeId,
         deps.stateManager,
         deps.memoryManager,
-        deps.agentRegistry,
-        deps.workspaceRoot
+        deps.agentRegistry
       )
     },
   ],
@@ -625,12 +623,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 获取员工消息历史
    *
-   * @endpoint GET /api/projects/:projectId/employees/:name/messages
+   * @endpoint GET /api/projects/:projectId/employees/:employeeId/messages
    * @description 获取指定员工的消息历史
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @queryParams
    *   - peer: 对话对象名称，不传则返回所有对话（可选）
@@ -659,14 +657,14 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    * }
    *
    * @example
-   * GET /api/projects/abc123/employees/calculator/messages?peer=alice&limit=10
+   * GET /api/projects/abc123/employees/emp_calculator/messages?peer=0-alice&limit=10
    * Response: { success: true, data: { messages: [...] } }
    */
   [
-    "GET:/employees/:name/messages",
+    "GET:/employees/:employeeId/messages",
     async (req, params, deps) => {
       const url = new URL(req.url)
-      const employeeId = params.name
+      const employeeId = params.employeeId
       const peer = url.searchParams.get("peer") || undefined
       const limit = url.searchParams.get("limit")
         ? parseInt(url.searchParams.get("limit")!)
@@ -678,12 +676,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 获取员工的对话对象列表
    *
-   * @endpoint GET /api/projects/:projectId/employees/:name/peers
+   * @endpoint GET /api/projects/:projectId/employees/:employeeId/peers
    * @description 获取指定员工的所有对话对象（peers）列表
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @response {
    *   success: true,
@@ -693,18 +691,18 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    * }
    *
    * @errors
-   *   - INVALID_PARAMETER: 员工名称为空
+   *   - INVALID_PARAMETER: 员工 ID 为空
    *   - FILE_READ_ERROR: 读取对话列表失败
    *   - INTERNAL_ERROR: 消息服务未初始化
    *
    * @example
-   * GET /api/projects/abc123/employees/calculator/peers
+   * GET /api/projects/abc123/employees/emp_calculator/peers
    * Response: { success: true, data: { peers: ["bayecao", "alice"] } }
    */
   [
-    "GET:/employees/:name/peers",
+    "GET:/employees/:employeeId/peers",
     async (req, params, deps) => {
-      const employeeId = params.name
+      const employeeId = params.employeeId
       return messages.getPeers(
         employeeId,
         deps.messageService,
@@ -717,12 +715,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 发送消息
    *
-   * @endpoint POST /api/projects/:projectId/employees/:name/messages
+   * @endpoint POST /api/projects/:projectId/employees/:employeeId/messages
    * @description 发送消息给指定对象
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @requestBody {
    *   to: "接收者名称",
@@ -742,14 +740,14 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *   - INTERNAL_ERROR: 消息服务未初始化
    *
    * @example
-   * POST /api/projects/abc123/employees/calculator/messages
+   * POST /api/projects/abc123/employees/emp_calculator/messages
    * Body: { to: "alice", content: "Hello" }
    * Response: { success: true, data: { message: "消息发送成功" } }
    */
   [
-    "POST:/employees/:name/messages",
+    "POST:/employees/:employeeId/messages",
     async (req, params, deps) => {
-      const employeeId = params.name
+      const employeeId = params.employeeId
       const body = (await req.json()) as { to: string; content: string }
       return messages.sendMessage(
         employeeId,
@@ -826,12 +824,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 获取员工的时间线（消息 + 事件混合）
    *
-   * @endpoint GET /api/projects/:projectId/employees/:name/timeline
+   * @endpoint GET /api/projects/:projectId/employees/:employeeId/timeline
    * @description 获取指定员工的时间线，包括消息和事件按时间排序
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @queryParams
    *   - limit: 返回数量，默认 50，最大 200（可选）
@@ -856,7 +854,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *         timestamp: "2026-03-03T10:00:05.000Z",
    *         data: {
    *           type: "task_completed",
-   *           employeeName: "calculator",
+   *           employeeId: "emp_calculator",
    *           details: { taskName: "Task1", result: "2" }
    *         }
    *       }
@@ -865,21 +863,21 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    * }
    *
    * @example
-   * GET /api/projects/abc123/employees/calculator/timeline?limit=10
-   * GET /api/projects/abc123/employees/calculator/timeline?limit=50&before=2026-03-03T10:00:00.000Z
+   * GET /api/projects/abc123/employees/emp_calculator/timeline?limit=10
+   * GET /api/projects/abc123/employees/emp_calculator/timeline?limit=50&before=2026-03-03T10:00:00.000Z
    * Response: { success: true, data: { timeline: [...] } }
    */
   [
-    "GET:/employees/:name/timeline",
+    "GET:/employees/:employeeId/timeline",
     async (req, params, deps) => {
       const url = new URL(req.url)
-      const employeeName = params.name
+      const employeeId = params.employeeId
       const limit = url.searchParams.get("limit")
         ? parseInt(url.searchParams.get("limit")!)
         : 50
       const before = url.searchParams.get("before") || undefined
       return timeline.getTimeline(
-        employeeName,
+        employeeId,
         deps.messageService,
         deps.stateManager,
         limit,
@@ -891,12 +889,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 获取员工的角色元数据
    *
-   * @endpoint GET /api/projects/:projectId/employees/:name/role
+   * @endpoint GET /api/projects/:projectId/employees/:employeeId/role
    * @description 获取指定员工的角色元数据
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - name: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @response {
    *   success: true,
@@ -918,13 +916,17 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *   - ROLE_NOT_FOUND: 角色不存在
    *
    * @example
-   * GET /api/projects/abc123/employees/calculator/role
+   * GET /api/projects/abc123/employees/emp_calculator/role
    * Response: { success: true, data: { role: {...} } }
    */
   [
-    "GET:/employees/:name/role",
+    "GET:/employees/:employeeId/role",
     async (req, params, deps) =>
-      roles.getEmployeeRole(params.name, deps.stateManager, deps.roleManager),
+      roles.getEmployeeRole(
+        params.employeeId,
+        deps.stateManager,
+        deps.roleManager
+      ),
   ],
 
   /**
@@ -967,12 +969,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 暂停员工（放假）
    *
-   * @endpoint POST /api/projects/:projectId/employees/:employeeName/pause
+   * @endpoint POST /api/projects/:projectId/employees/:employeeId/pause
    * @description 暂停员工的 EventLoop，员工将进入离线状态
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - employeeName: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @requestBody {} (empty)
    *
@@ -990,24 +992,26 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *   - ACTIVE_TASKS (400): 有待处理或进行中的任务
    *
    * @example
-   * POST /api/projects/abc123/employees/calculator/pause
-   * Response: { success: true, data: { message: "Employee 'calculator' has been paused..." } }
+   * POST /api/projects/abc123/employees/emp_calculator/pause
+   * Response: { success: true, data: { message: "Employee 'emp_calculator' has been paused..." } }
    */
   [
-    "POST:/employees/:employeeName/pause",
+    "POST:/employees/:employeeId/pause",
     async (req, params, deps) => {
       try {
-        const { employeeName } = params
+        const { employeeId } = params
 
-        // 查找员工 ID
+        // 查找员工
         const allEmployees = deps.stateManager.getEmployees()
-        const employee = allEmployees.find((e: any) => e.name === employeeName)
+        const employee = allEmployees.find(
+          (e: any) => e.employeeId === employeeId
+        )
         if (!employee) {
           return {
             success: false,
             error: {
               code: "EMPLOYEE_NOT_FOUND",
-              message: `Employee '${employeeName}' not found`,
+              message: `Employee '${employeeId}' not found`,
             },
           }
         }
@@ -1068,12 +1072,12 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   /**
    * 恢复员工（结束假期）
    *
-   * @endpoint POST /api/projects/:projectId/employees/:employeeName/resume
+   * @endpoint POST /api/projects/:projectId/employees/:employeeId/resume
    * @description 恢复员工的 EventLoop，员工将从离线状态恢复
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - employeeName: 员工名称
+   *   - employeeId: 稳定员工 ID
    *
    * @requestBody {} (empty)
    *
@@ -1091,24 +1095,26 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *   - NOT_ON_VACATION (400): 员工不在离线状态
    *
    * @example
-   * POST /api/projects/abc123/employees/calculator/resume
-   * Response: { success: true, data: { message: "Employee 'calculator' has been resumed..." } }
+   * POST /api/projects/abc123/employees/emp_calculator/resume
+   * Response: { success: true, data: { message: "Employee 'emp_calculator' has been resumed..." } }
    */
   [
-    "POST:/employees/:employeeName/resume",
+    "POST:/employees/:employeeId/resume",
     async (req, params, deps) => {
       try {
-        const { employeeName } = params
+        const { employeeId } = params
 
-        // 查找员工 ID
+        // 查找员工
         const allEmployees = deps.stateManager.getEmployees()
-        const employee = allEmployees.find((e: any) => e.name === employeeName)
+        const employee = allEmployees.find(
+          (e: any) => e.employeeId === employeeId
+        )
         if (!employee) {
           return {
             success: false,
             error: {
               code: "EMPLOYEE_NOT_FOUND",
-              message: `Employee '${employeeName}' not found`,
+              message: `Employee '${employeeId}' not found`,
             },
           }
         }

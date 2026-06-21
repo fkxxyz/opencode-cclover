@@ -153,7 +153,6 @@ export function createHireEmployeeTool(
           type: "employee_hired" as const,
           timestamp: new Date().toISOString(),
           employeeId: newEmployeeId,
-          employeeName: trimmedName,
           details: {
             hiredBy: hiredByEmployeeId!,
             roleId: args.role,

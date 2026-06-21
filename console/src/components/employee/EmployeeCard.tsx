@@ -52,7 +52,7 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
             {employee.name}
           </CardTitle>
           {/* Boss 不显示状态 */}
-          {employee.role !== "Boss" && (
+          {employee.roleId !== "Boss" && (
             <Badge
               style={{
                 backgroundColor: statusColors[employee.status]?.bg ?? "#f1f5f9",
@@ -68,9 +68,27 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
           <Typography variant="body2" color="text.secondary">
             <Box component="span" fontWeight="medium">
-              角色:
+              员工 ID:
             </Box>{" "}
-            {employee.role}
+            {employee.employeeId}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            <Box component="span" fontWeight="medium">
+              姓名:
+            </Box>{" "}
+            {employee.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            <Box component="span" fontWeight="medium">
+              角色 ID:
+            </Box>{" "}
+            {employee.roleId}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            <Box component="span" fontWeight="medium">
+              角色手册:
+            </Box>{" "}
+            {employee.handbookPath || "未设置"}
           </Typography>
           {employee.hiredBy && (
             <Typography variant="body2" color="text.secondary">
@@ -80,6 +98,17 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
               {employee.hiredBy}
             </Typography>
           )}
+          {!employee.hiredBy && (
+            <Typography variant="body2" color="text.secondary">
+              <Box component="span" fontWeight="medium">
+                雇佣者:
+              </Box>{" "}
+              无
+            </Typography>
+          )}
+          <Typography variant="caption" color="text.secondary">
+            创建时间: {new Date(employee.createdAt).toLocaleString("zh-CN")}
+          </Typography>
           <Typography variant="caption" color="text.secondary">
             最后活跃: {new Date(employee.lastActiveAt).toLocaleString("zh-CN")}
           </Typography>

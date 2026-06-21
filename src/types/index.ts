@@ -42,6 +42,7 @@ export interface EmployeeDetail extends EmployeeBase {
 
 // 员工雇佣关系树
 export interface EmployeeHierarchy {
+  employeeId?: string
   name: string
   role: string
   status: EmployeeStatus

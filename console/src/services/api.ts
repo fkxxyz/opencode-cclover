@@ -1,17 +1,21 @@
 import type {
   Project,
   CandidateProject,
+  BossInfo,
   Employee,
   EmployeeDetail,
   EmployeeHierarchy,
   Message,
   PeerWithLastMessage,
+  RootTask,
   TasksResponse,
   Event,
   SuccessResponse,
   ErrorResponse,
   TimelineItem,
   Role,
+  WorkItem,
+  WorkItemFilters,
 } from "../types/index"
 import { ApiError, NetworkError } from "../lib/error-handler"
 import { getApiBaseUrlFromRuntime } from "../lib/backend-config"
@@ -101,8 +105,8 @@ export class ApiClient {
     )
     return data.employees
   }
-  async getBosses(projectId: string): Promise<Employee[]> {
-    const data = await this.request<{ bosses: Employee[] }>(
+  async getBosses(projectId: string): Promise<BossInfo[]> {
+    const data = await this.request<{ bosses: BossInfo[] }>(
       `/projects/${projectId}/bosses`
     )
     return data.bosses
@@ -115,11 +119,36 @@ export class ApiClient {
   }
   async getEmployeeDetail(
     projectId: string,
-    name: string
+    employeeId: string
   ): Promise<EmployeeDetail> {
     return this.request<EmployeeDetail>(
-      `/projects/${projectId}/employees/${name}`
+      `/projects/${projectId}/employees/${employeeId}`
     )
+  }
+
+  async getRootTasks(projectId: string): Promise<RootTask[]> {
+    const data = await this.request<{ rootTasks: RootTask[] }>(
+      `/projects/${projectId}/root-tasks`
+    )
+    return data.rootTasks
+  }
+
+  async getWorkItems(
+    projectId: string,
+    filters?: WorkItemFilters
+  ): Promise<WorkItem[]> {
+    const params = new URLSearchParams()
+    if (filters?.rootTaskId) params.append("rootTaskId", filters.rootTaskId)
+    if (filters?.employeeId) params.append("employeeId", filters.employeeId)
+    if (filters?.parentWorkItemId !== undefined) {
+      params.append("parentWorkItemId", filters.parentWorkItemId ?? "")
+    }
+    if (filters?.dependsOn) params.append("dependsOn", filters.dependsOn)
+    const query = params.toString() ? `?${params.toString()}` : ""
+    const data = await this.request<{ workItems: WorkItem[] }>(
+      `/projects/${projectId}/work-items${query}`
+    )
+    return data.workItems
   }
 
   async getMessages(
@@ -192,11 +221,17 @@ export class ApiClient {
     options?: {
       limit?: number
       employeeId?: string
+      rootTaskId?: string
+      workItemId?: string
+      type?: string
     }
   ): Promise<Event[]> {
     const params = new URLSearchParams()
     if (options?.limit) params.append("limit", options.limit.toString())
     if (options?.employeeId) params.append("employeeId", options.employeeId)
+    if (options?.rootTaskId) params.append("rootTaskId", options.rootTaskId)
+    if (options?.workItemId) params.append("workItemId", options.workItemId)
+    if (options?.type) params.append("type", options.type)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ events: Event[] }>(
       `/projects/${projectId}/events${query}`

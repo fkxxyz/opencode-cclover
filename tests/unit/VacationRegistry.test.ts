@@ -17,7 +17,7 @@ describe("VacationRegistry", () => {
   test("should add and get vacation event (FIFO)", () => {
     const event: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-01T00:00:00Z",
     }
 
@@ -40,17 +40,17 @@ describe("VacationRegistry", () => {
   test("should maintain FIFO order for multiple events", () => {
     const event1: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-01T00:00:00Z",
     }
     const event2: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-02T00:00:00Z",
     }
     const event3: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-03T00:00:00Z",
     }
 
@@ -68,12 +68,12 @@ describe("VacationRegistry", () => {
   test("should maintain separate queues for different employees", () => {
     const event1: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-01T00:00:00Z",
     }
     const event2: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-2",
+      employeeId: "dev-2",
       timestamp: "2024-01-02T00:00:00Z",
     }
 
@@ -90,12 +90,12 @@ describe("VacationRegistry", () => {
   test("should clear specific employee queue", () => {
     const event1: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-01T00:00:00Z",
     }
     const event2: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-2",
+      employeeId: "dev-2",
       timestamp: "2024-01-02T00:00:00Z",
     }
 
@@ -113,12 +113,12 @@ describe("VacationRegistry", () => {
   test("should clear all queues", () => {
     const event1: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-01T00:00:00Z",
     }
     const event2: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-2",
+      employeeId: "dev-2",
       timestamp: "2024-01-02T00:00:00Z",
     }
 
@@ -142,7 +142,7 @@ describe("VacationRegistry", () => {
   test("should return null after queue becomes empty", () => {
     const event: VacationEvent = {
       type: "vacation_requested",
-      employeeName: "dev-1",
+      employeeId: "dev-1",
       timestamp: "2024-01-01T00:00:00Z",
     }
 

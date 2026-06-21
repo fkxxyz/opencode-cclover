@@ -130,7 +130,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -167,7 +167,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -210,7 +210,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -258,7 +258,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -288,7 +288,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -326,7 +326,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -352,7 +352,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -386,7 +386,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期和消息
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -422,7 +422,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期和 agent 完成事件
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 
@@ -464,7 +464,7 @@ describe("EventLoop Vacation Mechanism", () => {
       // 添加假期和任务
       vacationRegistry.addVacationEvent("emp_alice", {
         type: "vacation_requested",
-        employeeName: "emp_alice",
+        employeeId: "emp_alice",
         timestamp: new Date().toISOString(),
       })
 

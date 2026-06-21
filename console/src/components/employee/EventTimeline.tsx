@@ -79,7 +79,8 @@ function formatTimestamp(timestamp: string): string {
 function getEventDescription(
   type: EventType,
   details: Record<string, unknown>,
-  projectPath: string
+  projectPath: string,
+  employeeId?: string
 ): React.ReactNode {
   switch (type) {
     case "message":
@@ -99,8 +100,7 @@ function getEventDescription(
     case "agent_failed":
       return `Agent ${details.agentId} 失败: ${details.error}`
     case "employee_hired":
-      // 向后兼容：优先使用 employeeId，回退到 employeeName
-      return `雇佣了 ${details.employeeId || details.employeeName} (${details.role})`
+      return `雇佣了 ${employeeId} (${details.roleId})`
     case "employee_status_changed":
       return `状态变化: ${details.oldStatus} → ${details.newStatus}`
     case "timer":
@@ -311,7 +311,8 @@ export function EventTimeline({ projectId, employeeId }: EventTimelineProps) {
                           getEventDescription(
                             event.type,
                             event.details,
-                            project.directory
+                            project.directory,
+                            event.employeeId
                           )}
                       </Typography>
                     </Box>

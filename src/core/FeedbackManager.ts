@@ -46,14 +46,14 @@ export class FeedbackManager {
    * 保存反馈到文件
    */
   private async saveFeedback(
-    employeeName: string,
+    employeeId: string,
     content: string
   ): Promise<void> {
     const timestamp = Math.floor(Date.now() / 1000)
     const filePath = path.join(
       this.workspaceRoot,
       "employees",
-      employeeName,
+      employeeId,
       `feedback-${timestamp}.md`
     )
 
@@ -67,12 +67,12 @@ export class FeedbackManager {
   /**
    * 记录 feedback_received 事件
    */
-  private async recordEvent(employeeName: string): Promise<void> {
+  private async recordEvent(employeeId: string): Promise<void> {
     await this.stateManager.addEvent({
       projectId: this.stateManager.getProjectId(),
       type: "feedback_received",
       timestamp: new Date().toISOString(),
-      employeeId: employeeName,
+      employeeId,
       details: { receivedAt: new Date().toISOString() },
     })
   }

@@ -73,22 +73,22 @@ function TreeNode({
     e.stopPropagation()
     if (node.role === "Boss") {
       navigate(`/projects/${projectId}/boss/${node.name}`)
-    } else {
-      navigate(`/projects/${projectId}/employee/${node.name}`)
+    } else if (node.employeeId) {
+      navigate(`/projects/${projectId}/employee/${node.employeeId}`)
     }
   }
 
   const handlePauseResume = async (e: React.MouseEvent) => {
     e.stopPropagation()
 
-    if (!projectId) return
+    if (!projectId || !node.employeeId) return
 
     setPauseResumeLoading(true)
     try {
       if (node.status === "offline") {
-        await apiClient.resumeEmployee(projectId, node.name)
+        await apiClient.resumeEmployee(projectId, node.employeeId)
       } else {
-        await apiClient.pauseEmployee(projectId, node.name)
+        await apiClient.pauseEmployee(projectId, node.employeeId)
       }
 
       // 触发刷新

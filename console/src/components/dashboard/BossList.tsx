@@ -5,12 +5,12 @@ import Typography from "@mui/material/Typography"
 import IconButton from "@mui/material/IconButton"
 import { ExternalLink } from "lucide-react"
 import { apiClient } from "../../services"
-import type { Employee } from "../../types"
+import type { BossInfo } from "../../types"
 
 export function BossList() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
-  const [bosses, setBosses] = useState<Employee[]>([])
+  const [bosses, setBosses] = useState<BossInfo[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function BossList() {
                 minWidth: 120,
               }}
             >
-              {boss.role}
+              {boss.type === "meeting-mode" ? "Meeting Mode" : "Boss"}
             </Typography>
           </Box>
 

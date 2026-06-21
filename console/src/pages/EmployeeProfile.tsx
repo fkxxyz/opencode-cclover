@@ -12,12 +12,20 @@ import { TaskDAG } from "../components/visualizations/TaskDAG"
 import { MemoryView } from "../components/employee/MemoryView"
 import { AgentList } from "../components/employee/AgentList"
 import { EventTimeline } from "../components/employee/EventTimeline"
-import type { EmployeeDetail as EmployeeDetailType, Role } from "../types"
+import type {
+  Employee,
+  EmployeeDetail as EmployeeDetailType,
+  Role,
+  WorkItem,
+} from "../types"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 
 export function EmployeeProfile() {
-  const { projectId, name } = useParams<{ projectId: string; name: string }>()
+  const { projectId, employeeId } = useParams<{
+    projectId: string
+    employeeId: string
+  }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [employee, setEmployee] = useState<EmployeeDetailType | null>(null)
@@ -26,35 +34,73 @@ export function EmployeeProfile() {
   const [role, setRole] = useState<Role | null>(null)
   const [roleLoading, setRoleLoading] = useState(true)
   const [roleError, setRoleError] = useState<Error | null>(null)
+  const [assignedWorkItems, setAssignedWorkItems] = useState<WorkItem[]>([])
+  const [childEmployees, setChildEmployees] = useState<Employee[]>([])
+  const [relationshipsLoading, setRelationshipsLoading] = useState(true)
+  const [relationshipsError, setRelationshipsError] = useState<Error | null>(
+    null
+  )
 
   // 从 URL 读取当前标签页，默认为 tasks
   const currentTab = searchParams.get("tab") || "tasks"
 
   useEffect(() => {
-    if (!name || !projectId) return
+    if (!employeeId || !projectId) return
     setLoading(true)
     apiClient
-      .getEmployeeDetail(projectId, name)
+      .getEmployeeDetail(projectId, employeeId)
       .then(setEmployee)
       .catch((err: Error) => {
         console.error("获取员工详情失败:", err)
         setError(err)
       })
       .finally(() => setLoading(false))
-  }, [name, projectId])
+  }, [employeeId, projectId])
 
   useEffect(() => {
-    if (!name || !projectId) return
+    if (!employeeId || !projectId) return
     setRoleLoading(true)
     apiClient
-      .getEmployeeRole(projectId, name)
+      .getEmployeeRole(projectId, employeeId)
       .then(setRole)
       .catch((err: Error) => {
         console.error("获取角色信息失败:", err)
         setRoleError(err)
       })
       .finally(() => setRoleLoading(false))
-  }, [name, projectId])
+  }, [employeeId, projectId])
+
+  useEffect(() => {
+    if (!employee || !projectId) return
+
+    const loadRelationships = async () => {
+      setRelationshipsLoading(true)
+      setRelationshipsError(null)
+      try {
+        const [employees, workItems] = await Promise.all([
+          apiClient.getEmployees(projectId),
+          apiClient.getWorkItems(projectId),
+        ])
+        setAssignedWorkItems(
+          workItems.filter(
+            (workItem) => workItem.employeeId === employee.employeeId
+          )
+        )
+        setChildEmployees(
+          employees.filter(
+            (candidate) => candidate.hiredBy === employee.employeeId
+          )
+        )
+      } catch (err) {
+        console.error("获取员工关系失败:", err)
+        setRelationshipsError(err as Error)
+      } finally {
+        setRelationshipsLoading(false)
+      }
+    }
+
+    void loadRelationships()
+  }, [employee, projectId])
 
   if (loading) {
     return (
@@ -124,7 +170,9 @@ export function EmployeeProfile() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/projects/${projectId}/employee/${name}`)}
+            onClick={() =>
+              navigate(`/projects/${projectId}/employee/${employeeId}`)
+            }
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回消息
@@ -136,13 +184,81 @@ export function EmployeeProfile() {
           <Button
             variant="default"
             size="sm"
-            onClick={() => navigate(`/projects/${projectId}/employee/${name}`)}
+            onClick={() =>
+              navigate(`/projects/${projectId}/employee/${employeeId}`)
+            }
           >
             <MessageSquare className="h-4 w-4 mr-2" />
             消息
           </Button>
         </Box>
         <EmployeeCard employee={employee} />
+        <Card>
+          <CardContent sx={{ pt: 3 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+              工作关系
+            </Typography>
+            {relationshipsLoading && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <Typography color="text.secondary">加载工作关系...</Typography>
+              </Box>
+            )}
+            {relationshipsError && (
+              <Typography color="error">
+                加载工作关系失败: {relationshipsError.message}
+              </Typography>
+            )}
+            {!relationshipsLoading && !relationshipsError && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    分配的 WorkItem ID
+                  </Typography>
+                  {assignedWorkItems.length > 0 ? (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {assignedWorkItems.map((workItem) => (
+                        <Badge key={workItem.workItemId} variant="secondary">
+                          {workItem.workItemId}
+                        </Badge>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      暂无分配的 WorkItem
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    子员工 ID
+                  </Typography>
+                  {childEmployees.length > 0 ? (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {childEmployees.map((child) => (
+                        <Badge key={child.employeeId} variant="outline">
+                          {child.employeeId}
+                        </Badge>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      暂无子员工
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
         {/* 角色信息卡片 */}
         <Card>
           <CardContent sx={{ pt: 3 }}>
@@ -262,7 +378,7 @@ export function EmployeeProfile() {
               gridTemplateColumns: "repeat(4, 1fr)",
             }}
           >
-            <TabsTrigger value="tasks">任务管理</TabsTrigger>
+            <TabsTrigger value="tasks">个人任务诊断</TabsTrigger>
             <TabsTrigger value="memory">记忆系统</TabsTrigger>
             <TabsTrigger value="agents">Agent执行</TabsTrigger>
             <TabsTrigger value="events">事件历史</TabsTrigger>

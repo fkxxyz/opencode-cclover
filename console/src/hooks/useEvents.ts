@@ -58,10 +58,8 @@ export function useEvents(
             return
           }
         } else {
-          // 其他事件：检查 employeeId 字段（向后兼容：回退到 employeeName）
-          const eventEmployeeId =
-            event.employeeId || (event as any).employeeName
-          if (eventEmployeeId !== employeeIdRef.current) {
+          // 其他事件：检查 employeeId 字段
+          if (event.employeeId !== employeeIdRef.current) {
             return
           }
         }

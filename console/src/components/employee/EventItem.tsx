@@ -30,7 +30,11 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   task_waiting_for_message: "🚧",
   task_available: "🔔",
   task_reminder: "⏰",
-  task_halt_requested: "🛑",
+  root_task_created: "🌱",
+  root_task_deleted: "🗑️",
+  work_item_created: "🧩",
+  work_item_updated: "🔧",
+  work_item_deleted: "🗑️",
   message: "💬",
   agent_failed: "❌",
   timer: "⏰",
@@ -136,17 +140,16 @@ function getEventDescription(
       return `Agent 失败: ${details.taskName}`
 
     case "employee_hired":
-      // 向后兼容：优先使用 employeeId，回退到 employeeName
-      return `雇佣员工: ${details.employeeId || details.employeeName} (${details.role})`
+      return `雇佣员工: ${event.employeeId} (${details.roleId})`
 
     case "employee_paused":
-      return `员工暂停: ${details.employeeId || details.employeeName}`
+      return `员工暂停: ${event.employeeId}`
 
     case "employee_resumed":
-      return `员工恢复: ${details.employeeId || details.employeeName}`
+      return `员工恢复: ${event.employeeId}`
 
     case "employee_halted":
-      return `员工停止: ${details.employeeId || details.employeeName}${details.reason ? ` - ${details.reason}` : ""}`
+      return `员工停止: ${event.employeeId}${details.reason ? ` - ${details.reason}` : ""}`
 
     case "message":
       return `消息: ${details.from} → ${details.to}`
@@ -158,7 +161,7 @@ function getEventDescription(
       return `回复错误: ${details.from} 应回复 ${details.to}，但尝试发送给 ${details.attemptedRecipient}`
 
     case "reply_reminder":
-      return `回复提醒: ${details.employeeId || details.employeeName} 需要回复 ${details.peer}`
+      return `回复提醒: ${event.employeeId} 需要回复 ${details.peer}`
 
     case "task_available":
       return `任务可执行: ${details.taskName || (Array.isArray(details.tasks) ? details.tasks.join(", ") : "")}`
@@ -166,23 +169,35 @@ function getEventDescription(
     case "task_reminder":
       return `任务提醒: ${details.taskName || (Array.isArray(details.tasks) ? details.tasks.join(", ") : "")}`
 
-    case "task_halt_requested":
-      return `任务停止请求: ${details.taskName}`
+    case "root_task_created":
+      return `根任务创建: ${details.rootTaskId || event.rootTaskId}`
+
+    case "root_task_deleted":
+      return `根任务删除: ${details.rootTaskId || event.rootTaskId}`
+
+    case "work_item_created":
+      return `工作项创建: ${details.workItemId || event.workItemId}`
+
+    case "work_item_updated":
+      return `工作项更新: ${details.workItemId || event.workItemId}`
+
+    case "work_item_deleted":
+      return `工作项删除: ${details.workItemId || event.workItemId}`
 
     case "vacation_requested":
-      return `休假请求: ${details.employeeId || details.employeeName}`
+      return `休假请求: ${event.employeeId}`
 
     case "summary_parse_failed":
       return `会话总结解析失败 (会话: ${details.sessionId})`
 
     case "major_task_completed":
-      return `重大任务完成 (完成时间: ${new Date(details.completedAt).toLocaleString("zh-CN")})`
+      return `重大任务完成 (完成时间: ${new Date(String(details.completedAt)).toLocaleString("zh-CN")})`
 
     case "survey_sent":
-      return `反馈调查已发送 (发送时间: ${new Date(details.sentAt).toLocaleString("zh-CN")})`
+      return `反馈调查已发送 (发送时间: ${new Date(String(details.sentAt)).toLocaleString("zh-CN")})`
 
     case "feedback_received":
-      return `反馈已收到 (接收时间: ${new Date(details.receivedAt).toLocaleString("zh-CN")})`
+      return `反馈已收到 (接收时间: ${new Date(String(details.receivedAt)).toLocaleString("zh-CN")})`
 
     default:
       return JSON.stringify(details)

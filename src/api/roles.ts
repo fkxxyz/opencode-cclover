@@ -66,20 +66,20 @@ export async function getRole(roleManager: RoleManager, name: string) {
  * 获取员工的角色元数据
  */
 export async function getEmployeeRole(
-  employeeName: string,
+  employeeId: string,
   stateManager: StateManager,
   roleManager: RoleManager
 ) {
-  // 根据 employeeName 查找员工
+  // 根据 employeeId 查找员工
   const employees = await stateManager.getEmployees()
-  const employee = employees.find((e) => e.name === employeeName)
+  const employee = employees.find((e) => e.employeeId === employeeId)
 
   if (!employee) {
     return {
       success: false,
       error: {
         code: "EMPLOYEE_NOT_FOUND",
-        message: `Employee "${employeeName}" not found`,
+        message: `Employee "${employeeId}" not found`,
       },
     }
   }
