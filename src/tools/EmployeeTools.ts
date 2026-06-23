@@ -1,5 +1,6 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
 import { tool } from "@opencode-ai/plugin"
+import type { BossManager } from "../core/BossManager"
 import { EventLoop } from "../core/eventloop"
 import type { EmployeeWorkSessionManager } from "../core/EmployeeWorkSessionManager"
 import type { MemoryManager } from "../core/MemoryManager"
@@ -7,7 +8,6 @@ import type { RoleManager } from "../core/RoleManager"
 import type { ProjectInstance } from "../server/ProjectRegistry"
 import type { StateManager } from "../state/StateManager"
 import type { Employee, EmployeeId, EmployeeWorkSessionId } from "../types"
-import { createEmployeeId } from "../types"
 import { resolveToolActor } from "../meeting-mode"
 
 function getActorId(actor: ReturnType<typeof resolveToolActor>): string | null {
@@ -144,7 +144,8 @@ async function startEmployeeWorkSessionRuntime(
 export function createUpdateEmployeeTool(
   stateManager: StateManager,
   roleManager: RoleManager,
-  employeeWorkSessionManager: EmployeeWorkSessionManager
+  employeeWorkSessionManager: EmployeeWorkSessionManager,
+  bossManager?: BossManager
 ) {
   return tool({
     description:
@@ -169,7 +170,7 @@ export function createUpdateEmployeeTool(
       const actor = resolveToolActor(
         context,
         stateManager,
-        undefined,
+        bossManager,
         roleManager
       )
       const employeeId = args.employee_id as EmployeeId
@@ -201,7 +202,8 @@ export function createUpdateEmployeeTool(
 export function createShowAvailableEmployeesTool(
   stateManager: StateManager,
   roleManager: RoleManager,
-  employeeWorkSessionManager: EmployeeWorkSessionManager
+  employeeWorkSessionManager: EmployeeWorkSessionManager,
+  bossManager?: BossManager
 ) {
   return tool({
     description:
@@ -211,7 +213,7 @@ export function createShowAvailableEmployeesTool(
       const actor = resolveToolActor(
         context,
         stateManager,
-        undefined,
+        bossManager,
         roleManager
       )
       const employees = await visibleEmployees(
@@ -326,7 +328,8 @@ export function createCreateEmployeeWorkSessionTool(
 export function createShowEmployeeWorkSessionsTool(
   stateManager: StateManager,
   roleManager: RoleManager,
-  employeeWorkSessionManager: EmployeeWorkSessionManager
+  employeeWorkSessionManager: EmployeeWorkSessionManager,
+  bossManager?: BossManager
 ) {
   return tool({
     description: "Show visible employee work session records",
@@ -335,7 +338,7 @@ export function createShowEmployeeWorkSessionsTool(
       const actor = resolveToolActor(
         context,
         stateManager,
-        undefined,
+        bossManager,
         roleManager
       )
       const employees = await visibleEmployees(

@@ -6,6 +6,7 @@ import { EventLoop } from "../../src/core/eventloop"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { MessageService } from "../../src/core/MessageService"
 import { RoleManager } from "../../src/core/RoleManager"
+import { BossManager } from "../../src/core/BossManager"
 import { StateManager } from "../../src/state"
 import {
   DEFAULT_TOOL_PERMISSIONS,
@@ -396,5 +397,37 @@ describe("Task 004 EWS tools and messaging surface", () => {
 
     expect(employees).toContain("emp_manager")
     expect(sessions).toContain(supervisor.employeeWorkSessionId)
+  })
+
+  it("shows all available employees to a configured boss", async () => {
+    const bossManager = new BossManager(
+      { bosses: ["alice"], projects: [] },
+      workspaceRoot,
+      roleManager
+    )
+    const tools = createTools({
+      messageService,
+      memoryManager,
+      opcodeClient: {} as any,
+      bossManager,
+      stateManager,
+      project: {
+        directory: projectPath,
+        stateManager,
+        roleManager,
+        memoryManager,
+        messageService,
+        employeeWorkSessionManager: ewsManager,
+        eventLoops: new Map(),
+      } as unknown as ProjectInstance,
+    })
+
+    const employees = await tools.show_available_employees.execute({}, {
+      sessionID: "session-boss",
+      agent: "alice",
+    } as any)
+
+    expect(employees).toContain("emp_manager")
+    expect(employees).toContain("emp_worker")
   })
 })

@@ -124,12 +124,14 @@ export function createTools(deps: {
     update_employee: createUpdateEmployeeTool(
       deps.stateManager,
       deps.project.roleManager,
-      employeeWorkSessionManager
+      employeeWorkSessionManager,
+      deps.bossManager
     ),
     show_available_employees: createShowAvailableEmployeesTool(
       deps.stateManager,
       deps.project.roleManager,
-      employeeWorkSessionManager
+      employeeWorkSessionManager,
+      deps.bossManager
     ),
     create_employee_work_session: createCreateEmployeeWorkSessionTool(
       deps.project,
@@ -141,7 +143,8 @@ export function createTools(deps: {
     show_employee_work_sessions: createShowEmployeeWorkSessionsTool(
       deps.stateManager,
       deps.project.roleManager,
-      employeeWorkSessionManager
+      employeeWorkSessionManager,
+      deps.bossManager
     ),
     close_employee_work_session: createCloseEmployeeWorkSessionTool(
       deps.project,
