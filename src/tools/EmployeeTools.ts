@@ -7,7 +7,7 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { ProjectInstance } from "../server/ProjectRegistry"
 import type { StateManager } from "../state/StateManager"
-import type { Employee, EmployeeId, EmployeeWorkSessionId } from "../types"
+import type { BossId, Employee, EmployeeId, EmployeeWorkSessionId } from "../types"
 import { resolveToolActor } from "../meeting-mode"
 
 function getActorId(actor: ReturnType<typeof resolveToolActor>): string | null {
@@ -255,10 +255,6 @@ export function createCreateEmployeeWorkSessionTool(
       args: tool.schema
         .record(tool.schema.string(), tool.schema.any())
         .describe("Role arguments for this EWS"),
-      parent_employee_work_session_id: tool.schema
-        .string()
-        .optional()
-        .describe("Parent EWS ID"),
       worktree_ref: tool.schema
         .string()
         .optional()
@@ -272,7 +268,7 @@ export function createCreateEmployeeWorkSessionTool(
         roleManager
       )
       const actorId = getActorId(actor)
-      if (!actorId) {
+      if (!actor || !actorId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
       const employeeId = args.employee_id as EmployeeId
@@ -287,15 +283,16 @@ export function createCreateEmployeeWorkSessionTool(
       ) {
         return `Error: You do not have permission to create an employee work session for '${employeeId}'`
       }
+      const parentEmployeeWorkSessionId = actor.actorEmployeeWorkSessionId
+        ? (actor.actorEmployeeWorkSessionId as EmployeeWorkSessionId)
+        : null
       const ews = await employeeWorkSessionManager.createEmployeeWorkSession({
         employeeId,
         description: args.description,
         args: args.args,
-        parentEmployeeWorkSessionId:
-          (args.parent_employee_work_session_id as EmployeeWorkSessionId) ??
-          null,
+        parentEmployeeWorkSessionId,
         worktreeRef: args.worktree_ref ?? null,
-        createdBy: actorId as EmployeeWorkSessionId,
+        createdBy: actorId as EmployeeWorkSessionId | BossId,
       })
       await memoryManager.write(ews.employeeWorkSessionId, {
         knowledge: [],
@@ -313,7 +310,7 @@ export function createCreateEmployeeWorkSessionTool(
         opcodeClient
       )
       await project.messageService.send(
-        actorId as EmployeeWorkSessionId,
+        actorId as EmployeeWorkSessionId | BossId,
         ews.employeeWorkSessionId,
         args.description,
         undefined,
@@ -414,7 +411,7 @@ export function createCloseEmployeeWorkSessionTool(
       project.eventLoops.delete(employeeWorkSessionId)
       const closed = await employeeWorkSessionManager.closeEmployeeWorkSession({
         employeeWorkSessionId,
-        closedBy: actorId as EmployeeWorkSessionId,
+        closedBy: actorId as EmployeeWorkSessionId | BossId,
         reason: args.reason,
       })
       return JSON.stringify(closed, null, 2)

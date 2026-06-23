@@ -169,6 +169,12 @@ describe("Task 004 EWS tools and messaging surface", () => {
     expect(tools.show_tasks.description).toContain(
       "current employee work session"
     )
+    expect(
+      Object.hasOwn(
+        tools.create_employee_work_session.args,
+        "parent_employee_work_session_id"
+      )
+    ).toBe(false)
   })
 
   it("create_employee_work_session starts runtime and sends initial description", async () => {
@@ -221,12 +227,78 @@ describe("Task 004 EWS tools and messaging surface", () => {
         employeeWorkSessionId!
       )
       expect(created?.employeeId).toBe("emp_worker")
+      expect(created?.parentEmployeeWorkSessionId).toBe(
+        caller.employeeWorkSessionId
+      )
       expect(project.eventLoops.has(employeeWorkSessionId!)).toBe(true)
       project.eventLoops.get(employeeWorkSessionId!)?.stop()
       const history = await messageService
         .getClient(caller.employeeWorkSessionId)
         .history(employeeWorkSessionId!)
       expect(history.at(-1)?.content).toBe("Initial task for worker")
+    } finally {
+      EventLoop.prototype.run = originalRun
+      EventLoop.prototype.stop = originalStop
+    }
+  })
+
+  it("create_employee_work_session creates a root EWS when called by a boss", async () => {
+    const originalRun = EventLoop.prototype.run
+    const originalStop = EventLoop.prototype.stop
+    EventLoop.prototype.run = mock(async () => {}) as any
+    EventLoop.prototype.stop = mock(async () => {}) as any
+
+    try {
+      const bossManager = new BossManager(
+        { bosses: ["alice"], projects: [] },
+        workspaceRoot,
+        roleManager
+      )
+      const project = {
+        directory: projectPath,
+        stateManager,
+        roleManager,
+        memoryManager,
+        messageService,
+        bossManager,
+        employeeWorkSessionManager: ewsManager,
+        eventLoops: new Map(),
+        modelConfigManager: {} as any,
+        opcodeClient: {} as any,
+      } as unknown as ProjectInstance
+      const tools = createTools({
+        messageService,
+        memoryManager,
+        opcodeClient: {} as any,
+        bossManager,
+        stateManager,
+        project,
+      })
+
+      const result = await tools.create_employee_work_session.execute(
+        {
+          employee_id: "emp_worker",
+          description: "Root task for worker",
+          args: {},
+        },
+        { sessionID: "session-boss", agent: "alice" } as any
+      )
+      const employeeWorkSessionId = result.match(/ews_[a-f0-9]+/)?.[0] as
+        | EmployeeWorkSessionId
+        | undefined
+
+      expect(employeeWorkSessionId).toBeDefined()
+      const created = await ewsManager.getEmployeeWorkSession(
+        employeeWorkSessionId!
+      )
+      expect(created?.employeeId).toBe("emp_worker")
+      expect(created?.parentEmployeeWorkSessionId).toBe(null)
+      expect(project.eventLoops.has(employeeWorkSessionId!)).toBe(true)
+      project.eventLoops.get(employeeWorkSessionId!)?.stop()
+      const history = await messageService
+        .getClient("boss_alice")
+        .history(employeeWorkSessionId!)
+      expect(history.at(-1)?.content).toBe("Root task for worker")
     } finally {
       EventLoop.prototype.run = originalRun
       EventLoop.prototype.stop = originalStop

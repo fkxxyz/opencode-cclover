@@ -87,6 +87,7 @@ Important behavior:
 
 - Validates Employee metadata and role.
 - Validates required args for the role.
+- Assigns parent EWS automatically: EWS callers become the parent; boss callers create root EWS records.
 - Creates `.cclover/employee-work-sessions.yaml` record.
 - Initializes `.cclover/workspace/ews/{employeeWorkSessionId}/memory.yaml`.
 - Starts an EventLoop keyed by `employeeWorkSessionId`.
