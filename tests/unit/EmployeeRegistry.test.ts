@@ -1,20 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { EmployeeRegistry } from "../../src/state/EmployeeRegistry"
 import type { Employee } from "../../src/types/index"
+import { createTestEmployee } from "../helpers/employeeFactory"
 
 function createEmployee(overrides: Partial<Employee> = {}): Employee {
-  return {
+  return createTestEmployee({
     employeeId: "emp_alice",
     name: "alice",
     roleId: "developer",
-    status: "idle",
     createdAt: "2026-06-19T00:00:00.000Z",
-    lastActiveAt: "2026-06-19T00:00:00.000Z",
-    hiredBy: null,
-    paused: false,
-    activeSessionId: null,
+    updatedAt: "2026-06-19T00:00:00.000Z",
     ...overrides,
-  }
+  })
 }
 
 describe("EmployeeRegistry", () => {
@@ -35,9 +32,9 @@ describe("EmployeeRegistry", () => {
     })
 
     if (retrieved) {
-      retrieved.status = "error"
+      retrieved.contextPaths.push("/mutated")
     }
-    expect(registry.get("emp_alice")?.status).toBe("idle")
+    expect(registry.get("emp_alice")?.contextPaths).toEqual([])
   })
 
   it("throws when registering a duplicate employeeId", () => {
@@ -47,40 +44,31 @@ describe("EmployeeRegistry", () => {
     expect(() => registry.register(employee)).toThrow("已存在")
   })
 
-  it("emits register, update, and status change events", () => {
+  it("emits register and update events", () => {
     const eventLog: string[] = []
     registry.on("employee_registered", (employee: Employee) => {
       eventLog.push(`registered:${employee.employeeId}`)
     })
     registry.on("employee_updated", (employee: Employee) => {
-      eventLog.push(`updated:${employee.employeeId}:${employee.paused}`)
-    })
-    registry.on("status_changed", (event: any) => {
-      eventLog.push(
-        `status:${event.employeeId}:${event.oldStatus}->${event.newStatus}`
-      )
+      eventLog.push(`updated:${employee.employeeId}:${employee.description}`)
     })
 
     registry.register(createEmployee())
-    registry.updatePaused("emp_alice", true)
-    registry.updateStatus("emp_alice", "busy")
+    registry.update("emp_alice", { description: "updated description" })
 
     expect(eventLog).toEqual([
       "registered:emp_alice",
-      "updated:emp_alice:true",
-      "status:emp_alice:idle->busy",
+      "updated:emp_alice:updated description",
     ])
   })
 
-  it("queries employees by status, name, roleId, hiredBy, paused, and running state", () => {
+  it("queries employees by name, roleId, and hiredBy", () => {
     registry.register(
       createEmployee({
         employeeId: "emp_api_1",
         name: "api-worker",
         roleId: "developer",
         hiredBy: "emp_creator",
-        status: "busy",
-        paused: false,
       })
     )
     registry.register(
@@ -89,8 +77,6 @@ describe("EmployeeRegistry", () => {
         name: "api-worker",
         roleId: "reviewer",
         hiredBy: "emp_creator",
-        status: "idle",
-        paused: true,
       })
     )
     registry.register(
@@ -99,34 +85,22 @@ describe("EmployeeRegistry", () => {
         name: "docs-worker",
         roleId: "developer",
         hiredBy: null,
-        status: "offline",
-        paused: false,
       })
     )
 
-    expect(registry.getByStatus("busy").map((e) => e.employeeId)).toEqual([
-      "emp_api_1",
-    ])
     expect(registry.getByName("api-worker")).toHaveLength(2)
     expect(registry.getByRoleId("developer").map((e) => e.employeeId)).toEqual([
       "emp_api_1",
       "emp_docs_1",
     ])
     expect(registry.getByHiredBy("emp_creator")).toHaveLength(2)
-    expect(registry.getByPaused(true).map((e) => e.employeeId)).toEqual([
-      "emp_api_2",
-    ])
-    expect(registry.getByPaused(false).map((e) => e.employeeId)).toEqual([
-      "emp_api_1",
-      "emp_docs_1",
-    ])
   })
 
-  it("updates activeSessionId and clears all employees", () => {
+  it("updates metadata and clears all employees", () => {
     registry.register(createEmployee())
 
-    registry.updateActiveSessionId("emp_alice", "session-1")
-    expect(registry.get("emp_alice")?.activeSessionId).toBe("session-1")
+    registry.update("emp_alice", { contextPaths: ["/project"] })
+    expect(registry.get("emp_alice")?.contextPaths).toEqual(["/project"])
 
     registry.clear()
     expect(registry.getAll()).toEqual([])

@@ -135,7 +135,7 @@ tasks:
     dependencies: ["Identify Root Cause"]
 ```
 
-### create_agent
+### create_employee_work_session
 
 **Use when**: Investigation requires parallel exploration of independent aspects with clear scope.
 
@@ -194,7 +194,7 @@ tasks:
 
 **DON'T Ask**: How to use tools (you're the expert), whether to investigate thoroughly (always do), permission to read code (you have read-only access).
 
-### When to Use create_agent
+### When to Use create_employee_work_session
 
 **DO Use**: Clearly separable parallel aspects, well-scoped independent sub-investigation, main investigation benefits from focused sub-investigations.
 

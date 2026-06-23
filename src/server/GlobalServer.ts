@@ -15,14 +15,13 @@ import { MemoryManager } from "../core/MemoryManager"
 import { BossManager } from "../core/BossManager"
 import { RoleManager } from "../core/RoleManager"
 import { FeedbackManager } from "../core/FeedbackManager"
-import { RootTaskManager } from "../core/RootTaskManager"
-import { WorkItemManager } from "../core/WorkItemManager"
-import { AgentRegistry } from "../utils/AgentRegistry"
+import { EmployeeWorkSessionManager } from "../core/EmployeeWorkSessionManager"
 import { EventLoop } from "../core/eventloop"
 import { OpencodeClient } from "@opencode-ai/sdk"
 import { logger } from "../lib/logger"
 import type { InternalPromptRecoveryEvent } from "../core/eventloop/EventLoop"
 import { MeetingModePromptInjector } from "../meeting-mode/PromptInjector"
+import type { EmployeeWorkSession, EmployeeWorkSessionId } from "../types"
 
 /**
  * 全局 Cclover 服务
@@ -162,26 +161,25 @@ export class GlobalCcloverService {
       await ConfigManager.load(),
       workspaceRoot
     )
+    const roleManager = new RoleManager(config.path)
+    const employeeWorkSessionManager = new EmployeeWorkSessionManager(
+      config.path,
+      stateManager,
+      roleManager
+    )
     const messageService = new MessageService(
       workspaceRoot,
       stateManager,
       projectId,
       projectBossManager,
-      opcodeClient
+      opcodeClient,
+      employeeWorkSessionManager
     )
     const memoryManager = new MemoryManager(
       workspaceRoot,
       stateManager,
       projectId
     )
-    const workItemManager = new WorkItemManager(config.path, stateManager)
-    const rootTaskManager = new RootTaskManager(
-      config.path,
-      stateManager,
-      workItemManager
-    )
-    const agentRegistry = new AgentRegistry()
-    const roleManager = new RoleManager(config.path)
     const meetingModePromptInjector = new MeetingModePromptInjector(
       projectId,
       config.name
@@ -222,9 +220,7 @@ export class GlobalCcloverService {
       stateManager,
       messageService,
       memoryManager,
-      rootTaskManager,
-      workItemManager,
-      agentRegistry,
+      employeeWorkSessionManager,
       bossManager: projectBossManager,
       roleManager,
       modelConfigManager,
@@ -292,51 +288,56 @@ export class GlobalCcloverService {
           )
         }
 
-        // 3. 为所有员工启动 EventLoop
-        const employees = project.stateManager.getEmployees()
-        const promptRecoveries = new Map<string, InternalPromptRecoveryEvent>()
-        for (const employee of project.stateManager.listEmployeesWithPromptRecovery()) {
-          if (!employee.promptRecovery || employee.paused) {
+        // 3. 为所有未关闭的 EmployeeWorkSession 启动 EventLoop
+        const employeeWorkSessions = (
+          await project.employeeWorkSessionManager.listEmployeeWorkSessions()
+        ).filter((session) => session.status !== "closed")
+        const promptRecoveries = new Map<
+          EmployeeWorkSessionId,
+          InternalPromptRecoveryEvent
+        >()
+        for (const session of employeeWorkSessions) {
+          if (!session.promptRecovery) {
             continue
           }
-          promptRecoveries.set(employee.employeeId, {
+          promptRecoveries.set(session.employeeWorkSessionId, {
             type: "prompt_recovery",
             timestamp: new Date().toISOString(),
-            sessionId: employee.promptRecovery.sessionId,
-            startedAt: employee.promptRecovery.startedAt,
-            triggerEventType: employee.promptRecovery.triggerEventType,
-            version: employee.promptRecovery.version,
+            sessionId: session.promptRecovery.sessionId,
+            startedAt: session.promptRecovery.startedAt,
+            triggerEventType: session.promptRecovery.triggerEventType,
+            version: session.promptRecovery.version,
           })
         }
         logger.debug(
-          `[GlobalServer] Found ${employees.length} employees for project: ${project.projectName}`
+          `[GlobalServer] Found ${employeeWorkSessions.length} active employee work sessions for project: ${project.projectName}`
         )
         logger.debug(
-          `[GlobalServer] Employee list: ${employees.map((e) => e.name).join(", ")}`
+          `[GlobalServer] Employee work session list: ${employeeWorkSessions.map((s) => s.employeeWorkSessionId).join(", ")}`
         )
         const opcodeClient = this.getOpencodeClient()
         let startedCount = 0
         let missingRoleCount = 0
         let startErrorCount = 0
-        const activeEmployees = employees.filter((e) => !e.paused)
 
-        for (const employee of employees) {
+        for (const employeeWorkSession of employeeWorkSessions) {
+          const employee = project.stateManager.getEmployee(
+            employeeWorkSession.employeeId
+          )
           try {
-            logger.debug(
-              `[GlobalServer] Processing employee: ${employee.name} (role: ${employee.roleId}, paused: ${employee.paused})`
-            )
-
-            // paused 员工：静默跳过（不校验 role，不启动 EventLoop）
-            if (employee.paused) {
-              // 配置为暂停 → 设置运行时状态为 offline
-              await project.stateManager.updateEmployeeStatus(
-                employee.employeeId,
-                "offline"
+            if (!employee) {
+              startErrorCount++
+              logger.error(
+                `[GlobalServer] Employee '${employeeWorkSession.employeeId}' not found for employee work session '${employeeWorkSession.employeeWorkSessionId}', skipping EventLoop startup`
               )
               continue
             }
 
-            // 非 paused 员工：验证角色存在
+            logger.debug(
+              `[GlobalServer] Processing employee work session: ${employeeWorkSession.employeeWorkSessionId} (employee: ${employee.name}, role: ${employee.roleId})`
+            )
+
+            // 验证角色存在
             const role = project.roleManager.getRole(employee.roleId)
             if (!role) {
               missingRoleCount++
@@ -346,21 +347,22 @@ export class GlobalCcloverService {
               continue
             }
 
-            // 配置为活跃 → 设置运行时状态为 idle
-            await project.stateManager.updateEmployeeStatus(
-              employee.employeeId,
+            // 未关闭的工作会话恢复为可运行状态
+            await project.employeeWorkSessionManager.updateStatus(
+              employeeWorkSession.employeeWorkSessionId,
               "idle"
             )
 
             const messageClient = project.messageService.getClient(
-              employee.employeeId
+              employeeWorkSession.employeeWorkSessionId
             )
 
             logger.debug(
-              `[GlobalServer] Creating EventLoop for employee: ${employee.name}`
+              `[GlobalServer] Creating EventLoop for employee work session: ${employeeWorkSession.employeeWorkSessionId}`
             )
             const eventLoop = new EventLoop(
               project.directory,
+              employeeWorkSession.employeeWorkSessionId,
               employee.employeeId,
               employee.roleId,
               project.roleManager,
@@ -368,31 +370,42 @@ export class GlobalCcloverService {
               project.memoryManager,
               opcodeClient,
               project.modelConfigManager,
+              project.employeeWorkSessionManager,
               project.stateManager
             )
 
-            const promptRecovery = promptRecoveries.get(employee.employeeId)
+            const promptRecovery = promptRecoveries.get(
+              employeeWorkSession.employeeWorkSessionId
+            )
             if (promptRecovery) {
               eventLoop.enqueuePromptRecovery(promptRecovery)
             }
 
             // 存储到 project.eventLoops
-            project.eventLoops.set(employee.employeeId, eventLoop)
+            project.eventLoops.set(
+              employeeWorkSession.employeeWorkSessionId,
+              eventLoop
+            )
 
             // 后台运行
             logger.debug(
               `[GlobalServer] Starting EventLoop.run() for employee: ${employee.name}`
             )
-            eventLoop.run().catch((error) => {
-              logger.error(`[${employee.name}] EventLoop crashed:`, error)
+            eventLoop.run().catch((error: any) => {
+              logger.error(
+                `[${employeeWorkSession.employeeWorkSessionId}] EventLoop crashed:`,
+                error
+              )
             })
 
-            logger.debug(`EventLoop started for employee: ${employee.name}`)
+            logger.debug(
+              `EventLoop started for employee work session: ${employeeWorkSession.employeeWorkSessionId}`
+            )
             startedCount++
           } catch (error: any) {
             startErrorCount++
             logger.error(
-              `[GlobalServer] Failed to start EventLoop for employee '${employee.name}':`,
+              `[GlobalServer] Failed to start EventLoop for employee work session '${employeeWorkSession.employeeWorkSessionId}':`,
               error
             )
             // 继续处理下一个员工
@@ -402,7 +415,7 @@ export class GlobalCcloverService {
         // 标记为已启动
         project.eventLoopStarted = true
         logger.info(
-          `Started ${startedCount}/${activeEmployees.length} EventLoops for project: ${project.projectName}`
+          `Started ${startedCount}/${employeeWorkSessions.length} EventLoops for project: ${project.projectName}`
         )
 
         if (missingRoleCount > 0) {
@@ -426,13 +439,13 @@ export class GlobalCcloverService {
   }
 
   /**
-   * 启动单个员工的 EventLoop
+   * 启动单个 EmployeeWorkSession 的 EventLoop
    * @param projectId 项目 ID
-   * @param employeeId 员工 ID
+   * @param employeeWorkSessionId 员工工作会话 ID
    */
-  async startEmployeeEventLoop(
+  async startEmployeeWorkSessionEventLoop(
     projectId: string,
-    employeeId: string
+    employeeWorkSessionId: EmployeeWorkSessionId
   ): Promise<void> {
     // 1. 获取项目实例
     const project = this.projectRegistry.get(projectId)
@@ -440,16 +453,33 @@ export class GlobalCcloverService {
       throw new Error(`Project not found: ${projectId}`)
     }
 
-    // 2. 验证员工存在
-    const employee = project.stateManager.getEmployee(employeeId)
+    // 2. 验证员工工作会话和员工存在
+    const employeeWorkSession =
+      await project.employeeWorkSessionManager.getEmployeeWorkSession(
+        employeeWorkSessionId
+      )
+    if (!employeeWorkSession) {
+      throw new Error(
+        `Employee work session not found: ${employeeWorkSessionId}`
+      )
+    }
+    if (employeeWorkSession.status === "closed") {
+      throw new Error(
+        `Employee work session is closed: ${employeeWorkSessionId}`
+      )
+    }
+
+    const employee = project.stateManager.getEmployee(
+      employeeWorkSession.employeeId
+    )
     if (!employee) {
-      throw new Error(`Employee not found: ${employeeId}`)
+      throw new Error(`Employee not found: ${employeeWorkSession.employeeId}`)
     }
 
     // 3. 检查 EventLoop 是否已运行
-    if (project.eventLoops.has(employeeId)) {
+    if (project.eventLoops.has(employeeWorkSessionId)) {
       logger.warn(
-        `[${projectId}] EventLoop already running for employee: ${employee.name}`
+        `[${projectId}] EventLoop already running for employee work session: ${employeeWorkSessionId}`
       )
       return
     }
@@ -458,38 +488,69 @@ export class GlobalCcloverService {
     const role = project.roleManager.getRole(employee.roleId)
     if (!role) {
       throw new Error(
-        `Role '${employee.roleId}' not found for employee '${employeeId}'`
+        `Role '${employee.roleId}' not found for employee '${employee.employeeId}'`
       )
     }
 
     // 5. 获取 messageClient
-    const messageClient = project.messageService.getClient(employeeId)
+    const messageClient = project.messageService.getClient(
+      employeeWorkSessionId
+    )
 
     // 6. 创建 EventLoop（参考 startEmployees() 的实现）
     const opcodeClient = this.getOpencodeClient()
     const eventLoop = new EventLoop(
       project.directory,
-      employeeId,
+      employeeWorkSessionId,
+      employee.employeeId,
       employee.roleId,
       project.roleManager,
       messageClient,
       project.memoryManager,
       opcodeClient,
       project.modelConfigManager,
+      project.employeeWorkSessionManager,
       project.stateManager
     )
 
-    // 7. 存储到 Map（使用 employeeId 作为 key）
-    project.eventLoops.set(employeeId, eventLoop)
+    // 7. 存储到 Map（使用 employeeWorkSessionId 作为 key）
+    project.eventLoops.set(employeeWorkSessionId, eventLoop)
 
     // 8. 启动 EventLoop
-    eventLoop.run().catch((error) => {
-      logger.error(`[${employeeId}] EventLoop crashed:`, error)
+    eventLoop.run().catch((error: any) => {
+      logger.error(`[${employeeWorkSessionId}] EventLoop crashed:`, error)
     })
 
     logger.info(
-      `[${projectId}] Started EventLoop for employee: ${employee.name} (${employeeId})`
+      `[${projectId}] Started EventLoop for employee work session: ${employeeWorkSessionId} (employee: ${employee.name})`
     )
+  }
+
+  /**
+   * 关闭 EmployeeWorkSession 并停止对应 EventLoop
+   */
+  async closeEmployeeWorkSession(
+    projectId: string,
+    employeeWorkSessionId: EmployeeWorkSessionId,
+    closedBy: NonNullable<EmployeeWorkSession["closedBy"]>,
+    reason?: string
+  ): Promise<EmployeeWorkSession> {
+    const project = this.projectRegistry.get(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    const eventLoop = project.eventLoops.get(employeeWorkSessionId)
+    if (eventLoop) {
+      await eventLoop.stop()
+      project.eventLoops.delete(employeeWorkSessionId)
+    }
+
+    return await project.employeeWorkSessionManager.closeEmployeeWorkSession({
+      employeeWorkSessionId,
+      closedBy,
+      reason,
+    })
   }
 
   /**

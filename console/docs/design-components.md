@@ -130,9 +130,9 @@ Navigation sidebar with project selector.
 - Dependency visualization
 - Executable task highlighting
 
-**AgentList.tsx**: Agent execution records with:
+**EmployeeWorkSessionRuntime.tsx**: EmployeeWorkSession runtime records with:
 
-- Agent ID and creation time
+- EmployeeWorkSession ID and creation time
 - Status (running/completed/failed)
 - Result display
 - Error messages

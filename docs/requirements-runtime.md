@@ -15,7 +15,7 @@ async function employeeLoop(employeeName: string, role: Role) {
   while (true) {
     // 3. Wait for event (blocking)
     const event = await waitForEvent(msgClient)
-    // event can be MessageEvent, TaskEvent, AgentEvent, TimerEvent
+    // event can be MessageEvent, TaskEvent, EmployeeWorkSessionEvent, TimerEvent
     
     // 4. Read current memory
     const memory = readMemory(employeeName)
@@ -176,10 +176,10 @@ async function waitForEvent(msgClient: MessageClient): Promise<Event> {
 - Implementation: file watch or polling
 - Example: Task completed by another employee
 
-**Agent Events**:
-- Triggered by agent completion
-- Monitored via AgentRegistry
-- Contains agent result
+**EmployeeWorkSession Events**:
+- Triggered by EmployeeWorkSession status changes
+- Monitored through EmployeeWorkSessionManager and StateManager events
+- Contains EmployeeWorkSession status metadata
 
 **Timer Events**:
 - Triggered by scheduled timers

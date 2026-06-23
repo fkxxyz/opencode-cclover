@@ -5,6 +5,7 @@ import { StateManager } from "../../src/state/StateManager"
 import { createShowHireableRolesTool } from "../../src/tools/ShowHireableRolesTool"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
 import { createMockToolContext } from "../helpers/mockContext"
+import { createTestEmployee } from "../helpers/employeeFactory"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 
@@ -103,39 +104,30 @@ You are a UI/UX designer.`
       TEST_WORKSPACE,
       TEST_WORKSPACE
     )
-    await stateManager.registerEmployee({
-      employeeId: "emp_alice",
-      name: "alice",
-      roleId: "developer",
-      status: "offline",
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "boss-alice",
-    })
-    await stateManager.registerEmployee({
-      employeeId: "emp_bob",
-      name: "bob",
-      roleId: "tester",
-      status: "offline",
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "boss-alice",
-    })
-    await stateManager.registerEmployee({
-      employeeId: "emp_charlie",
-      name: "charlie",
-      roleId: "manager",
-      status: "offline",
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "boss-alice",
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_alice",
+        name: "alice",
+        roleId: "developer",
+        hiredBy: "boss_boss-alice",
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_bob",
+        name: "bob",
+        roleId: "tester",
+        hiredBy: "boss_boss-alice",
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_charlie",
+        name: "charlie",
+        roleId: "manager",
+        hiredBy: "boss_boss-alice",
+      })
+    )
 
     // 创建 ShowHireableRolesTool
     showHireableRolesTool = createShowHireableRolesTool(
@@ -285,17 +277,14 @@ You are a role without description.`
 
   test("should handle employee with non-existent role", async () => {
     // 注册一个角色不存在的员工
-    await stateManager.registerEmployee({
-      employeeId: "emp_dave",
-      name: "dave",
-      roleId: "non-existent-role",
-      status: "offline",
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "boss-alice",
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_dave",
+        name: "dave",
+        roleId: "non-existent-role",
+        hiredBy: "boss_boss-alice",
+      })
+    )
     sessionRegistry.register("test-session-dave", "emp_dave")
 
     const context = {

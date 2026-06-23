@@ -117,6 +117,7 @@ Project-specific conventions derived from the current codebase:
 - Integration tests: `bun test tests/integration/...`
 - Manual plugin testing: `./start-test-server.sh`
 - Alternative manual start: `OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099`
+- File-writing tests must follow [testing-workspace-standard.md](testing-workspace-standard.md): use suite-specific directories under `tests/test-workspace/`, keep `projectPath` separate from `.cclover/workspace`, and never write runtime data to the repository root or `tests/fixtures/`.
 
 Coverage targets for core modules:
 - `MessageService`: 100%

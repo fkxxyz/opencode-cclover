@@ -8,6 +8,7 @@ import { tool } from "@opencode-ai/plugin"
 import type { StateManager } from "../state/StateManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { MemoryManager } from "../core/MemoryManager"
+import type { EmployeeWorkSessionManager } from "../core/EmployeeWorkSessionManager"
 import { sessionRegistry } from "../utils/SessionRegistry"
 
 /**
@@ -20,7 +21,8 @@ import { sessionRegistry } from "../utils/SessionRegistry"
 export function createIntegrateTool(
   stateManager: StateManager,
   roleManager: RoleManager,
-  memoryManager: MemoryManager
+  memoryManager: MemoryManager,
+  employeeWorkSessionManager: EmployeeWorkSessionManager
 ) {
   return tool({
     description:
@@ -39,24 +41,42 @@ export function createIntegrateTool(
       // 3. 处理每个 soulless 员工
       const resetEmployees: string[] = []
       for (const employee of soullessEmployees) {
-        // 读取记忆
-        const memory = await memoryManager.read(employee.employeeId)
+        const employeeWorkSessions =
+          await employeeWorkSessionManager.listEmployeeWorkSessions({
+            employeeId: employee.employeeId,
+          })
 
-        // 如果有活跃的 session，则重置
-        if (memory.sessionId) {
-          const sessionId = memory.sessionId
+        for (const employeeWorkSession of employeeWorkSessions) {
+          if (employeeWorkSession.status === "closed") {
+            continue
+          }
 
-          // 清除 sessionId 和 sessionSnapshot
-          memory.sessionId = undefined
+          // 读取 EWS 记忆
+          const memory = await memoryManager.read(
+            employeeWorkSession.employeeWorkSessionId
+          )
+
+          // 如果有活跃的 OpenCode session，则重置
+          if (!memory.opencodeSessionId) {
+            continue
+          }
+
+          const opencodeSessionId = memory.opencodeSessionId
+
+          // 清除 OpenCode session 和 sessionSnapshot
+          memory.opencodeSessionId = undefined
           memory.sessionSnapshot = undefined
 
           // 保留 args 和 roleData（不修改）
 
           // 写回记忆
-          await memoryManager.write(employee.employeeId, memory)
+          await memoryManager.write(
+            employeeWorkSession.employeeWorkSessionId,
+            memory
+          )
 
           // 从 sessionRegistry 注销
-          sessionRegistry.unregister(sessionId)
+          sessionRegistry.unregister(opencodeSessionId)
 
           resetEmployees.push(employee.name)
         }

@@ -1,4 +1,4 @@
-import type { BossId, EmployeeId } from "./employee"
+import type { BossId, EmployeeWorkSessionId } from "./employee"
 
 /**
  * Boss Manager interface
@@ -40,7 +40,7 @@ export interface IBossManager {
    */
   recordSession(
     bossName: string,
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     sessionId: string
   ): Promise<void>
 
@@ -49,11 +49,14 @@ export interface IBossManager {
    */
   getSession(
     bossName: string,
-    employeeId: EmployeeId
+    employeeId: EmployeeWorkSessionId
   ): Promise<string | undefined>
 
   /**
    * Clear session mapping
    */
-  clearSession(bossName: string, employeeId: EmployeeId): Promise<void>
+  clearSession(
+    bossName: string,
+    employeeId: EmployeeWorkSessionId
+  ): Promise<void>
 }

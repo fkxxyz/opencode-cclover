@@ -92,14 +92,15 @@ export class EmployeePersistence {
       employeeId: employee.employeeId,
       name: employee.name ?? "",
       roleId: employee.roleId,
-      handbookPath: employee.handbookPath,
+      description: employee.description ?? "",
+      contextPaths: Array.isArray(employee.contextPaths)
+        ? employee.contextPaths.filter(
+            (contextPath) => typeof contextPath === "string"
+          )
+        : [],
       hiredBy: employee.hiredBy ?? null,
-      status: employee.status ?? "idle",
-      paused: employee.paused ?? false,
       createdAt: employee.createdAt ?? new Date().toISOString(),
-      lastActiveAt: employee.lastActiveAt ?? new Date().toISOString(),
-      activeSessionId: employee.activeSessionId ?? null,
-      promptRecovery: employee.promptRecovery,
+      updatedAt: employee.updatedAt ?? new Date().toISOString(),
     }
   }
 }

@@ -48,7 +48,9 @@ export function createShowHireableRolesTool(
         } else {
           // Regular employee: get their role from StateManager
           const allEmployees = stateManager.getEmployees()
-          const employee = allEmployees.find((e) => e.name === callerName)
+          const employee =
+            allEmployees.find((e) => e.employeeId === callerName) ??
+            allEmployees.find((e) => e.name === callerName)
           if (!employee) {
             return `Error: Employee '${callerName}' not found`
           }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-opencode-cclover is a multi-agent autonomous collaboration system implemented as an OpenCode plugin. The system simulates employee collaboration behavior where AI employees can send/receive messages, manage tasks, create agents to execute work, and achieve autonomous decision-making with parallel execution. The system also supports boss entities (global human operators) that can communicate with employees for testing and debugging purposes.
+opencode-cclover is a multi-employee autonomous collaboration system implemented as an OpenCode plugin. The system simulates employee collaboration behavior where AI employees can send/receive messages, manage tasks, run EmployeeWorkSessions, and achieve autonomous decision-making with parallel execution. The system also supports boss entities (global human operators) that can communicate with employees for testing and debugging purposes.
 
 **Module Purpose**: Provide a complete framework for multi-agent collaboration within OpenCode, enabling AI employees to work together autonomously through event-driven architecture, with support for human operator (boss) communication.
 
@@ -26,7 +26,7 @@ graph TD
 
     D --> G[send_message]
     D --> H[edit_tasks]
-    D --> I[create_agent]
+    D --> I[create_employee_work_session]
     D --> J[hire_employee]
 
     E --> K[Role: Calculator]
@@ -47,7 +47,7 @@ graph TD
 - **Decentralized Storage**: Each employee stores their own data locally
 - **Centralized Coordination**: Services coordinate communication and state
 - **Autonomous Decision-Making**: AI decides next actions based on context
-- **Parallel Execution**: Multiple employees and agents work concurrently
+- **Parallel Execution**: Multiple employees and EmployeeWorkSessions work concurrently
 
 ## Interface
 
@@ -139,7 +139,7 @@ Tools enable AI employees to perform actions.
 
 - `send_message`: Send message to another employee
 - ``edit_tasks`: Batch edit task list (add, update, delete, decompose)
-- `create_agent`: Create OpenCode agent to execute task
+- `create_employee_work_session`: Create EmployeeWorkSession backed by an OpenCode Session to execute task
 - `hire_employee`: Hire new employee (future)
 
 ### Role System
@@ -244,26 +244,26 @@ sequenceDiagram
     Tool-->>AI: Confirmation
 ```
 
-#### Agent Creation Flow
+#### EmployeeWorkSession Creation Flow
 
 ```mermaid
 sequenceDiagram
     participant E as Employee
-    participant Tool as create_agent
+    participant Tool as create_employee_work_session
     participant SDK as OpenCode SDK
-    participant Agent as Agent Session
+    participant EWS as EmployeeWorkSession
 
-    E->>Tool: create_agent(task, prompt)
+    E->>Tool: create_employee_work_session(task, prompt)
     Tool->>SDK: session.create()
     SDK-->>Tool: session.id
     Tool->>SDK: session.prompt(prompt)
-    SDK->>Agent: Start execution
-    Tool-->>E: Agent created
+    SDK->>EWS: Start execution
+    Tool-->>E: EmployeeWorkSession created
 
-    Note over Agent: Agent works in background
+    Note over EWS: EmployeeWorkSession works in background
 
-    Agent-->>SDK: Completion event
-    SDK-->>E: AgentEvent
+    EWS-->>SDK: Status update
+    SDK-->>E: EmployeeWorkSession event
     E->>E: Process result
 ```
 
@@ -408,8 +408,8 @@ await tools.edit_tasks({
   ],
 })
 
-// Create agent
-await tools.create_agent({
+// Create EmployeeWorkSession
+await tools.create_employee_work_session({
   task_name: "ComplexTask",
   prompt: "Execute this complex task...",
 })
@@ -443,7 +443,7 @@ For detailed design of each component, see:
    - Tool definitions and implementations
    - Permission control
    - Context-aware execution
-   - Supporting utilities (SessionRegistry, AgentRegistry)
+   - Supporting utilities (SessionRegistry)
 
 5. **[Role Definition Design](./design-roles.md)**
    - Role interface
@@ -459,7 +459,7 @@ For detailed design of each component, see:
    - .gitignore handling
 
 7. **[Meeting Mode Design](./design-meeting-mode.md)**
-   - Role projection into OpenCode primary agents
+   - Role projection into OpenCode primary sessions
    - Meeting-context prompt augmentation
    - Boss-identity tool execution model
    - Unrestricted hiring authority in direct meetings
@@ -467,7 +467,7 @@ For detailed design of each component, see:
 8. **[Event Tracing System Design](./design-events.md)**
    - Event types and storage format
    - JSONL file persistence
-   - Session and agent lifecycle tracking
+   - Session and EmployeeWorkSession lifecycle tracking
    - Task operation logging
    - Console timeline integration
 
@@ -513,7 +513,7 @@ See [workspace_test/README.md](../workspace_test/README.md) for manual testing g
 - **Employees**: Support 10+ employees per project
 - **Tasks**: Handle 1000+ tasks per employee
 - **Messages**: Manage long-term message history (1000+ messages per peer)
-- **Concurrent Agents**: Support multiple agents per employee
+- **Concurrent EmployeeWorkSessions**: Support multiple EmployeeWorkSessions per employee
 
 ### Optimization Strategies
 

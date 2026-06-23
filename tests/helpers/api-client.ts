@@ -39,7 +39,6 @@ export interface EmployeeDetailData {
   roleId: string
   memory: any
   tasks: Task[]
-  agents: any[]
 }
 
 /**
@@ -84,8 +83,8 @@ export interface StatsData {
 /**
  * 员工急停响应数据
  */
-export interface EmployeeHaltData {
-  employeeId: string
+export interface EmployeeWorkSessionHaltData {
+  employeeWorkSessionId: string
   halted: true
 }
 

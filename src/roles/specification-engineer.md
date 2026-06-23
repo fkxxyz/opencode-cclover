@@ -19,7 +19,7 @@ boundaries:
   - "Do not duplicate reusable content across specifications when extraction or consolidation is more appropriate"
   - "Do not fill specifications with public knowledge unless prompt-related guidance clearly justifies it"
   - "Do not modify src/roles/context.yml (context registry is managed by higher-level roles)"
-  - "Do not use create_agent or hire_employee"
+  - "Do not use create_employee_work_session or hire_employee"
 requiredArgs:
   worktree_path:
     type: string
@@ -77,7 +77,7 @@ You primarily work in `docs/specs/` and closely related specification-bearing ar
 - Do not duplicate reusable content across specifications when extraction or consolidation is more appropriate
 - Do not fill specifications with public knowledge unless prompt-related guidance clearly justifies it
 - Do not modify `src/roles/context.yml` (context registry is managed by higher-level roles)
-- Do not use `create_agent` or `hire_employee`
+- Do not use `create_employee_work_session` or `hire_employee`
 
 ## Working Principles
 

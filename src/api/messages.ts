@@ -1,16 +1,19 @@
 import type { MessageService } from "../core/MessageService"
+import { formatBossId } from "../types"
 import type {
   Message,
   PeerWithLastMessage,
   SuccessResponse,
   ErrorResponse,
+  BossId,
+  EmployeeWorkSessionId,
 } from "../types/index"
 
 /**
  * 获取消息历史
  */
 export async function getMessages(
-  employeeId: string,
+  employeeWorkSessionId: string,
   peer?: string,
   limit?: number,
   messageService?: MessageService
@@ -27,12 +30,12 @@ export async function getMessages(
 
   try {
     // 验证参数
-    if (!employeeId || employeeId.trim() === "") {
+    if (!employeeWorkSessionId || employeeWorkSessionId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工ID不能为空",
+          message: "员工工作会话ID不能为空",
         },
       }
     }
@@ -53,19 +56,30 @@ export async function getMessages(
 
     if (peer) {
       // 获取与特定对象的消息
-      const client = messageService.getClient(employeeId)
-      const serviceMessages = await client.history(peer, msgLimit)
+      const client = messageService.getClient(
+        employeeWorkSessionId as EmployeeWorkSessionId | BossId
+      )
+      const serviceMessages = await client.history(
+        peer as EmployeeWorkSessionId | BossId,
+        msgLimit
+      )
       // client.history() 已经返回完整的 Message 对象
       messages = serviceMessages
     } else {
       // 获取所有消息（遍历所有对话）
-      const peers = await messageService.getPeers(employeeId)
-      const client = messageService.getClient(employeeId)
+      const peers = await messageService.getPeers(
+        employeeWorkSessionId as EmployeeWorkSessionId | BossId
+      )
+      const client = messageService.getClient(
+        employeeWorkSessionId as EmployeeWorkSessionId | BossId
+      )
 
       // 收集所有对话的消息
       const allMessages: Message[] = []
       for (const peer of peers) {
-        const serviceMessages = await client.history(peer)
+        const serviceMessages = await client.history(
+          peer as EmployeeWorkSessionId | BossId
+        )
         // client.history() 已经返回完整的 Message 对象
         allMessages.push(...serviceMessages)
       }
@@ -101,9 +115,8 @@ export async function getMessages(
  * 获取员工的对话对象列表（包括所有员工和 boss，按最后聊天时间排序）
  */
 export async function getPeers(
-  employeeId: string,
+  employeeWorkSessionId: string,
   messageService?: MessageService,
-  stateManager?: any,
   bossManager?: any
 ): Promise<SuccessResponse<{ peers: PeerWithLastMessage[] }> | ErrorResponse> {
   if (!messageService) {
@@ -118,12 +131,12 @@ export async function getPeers(
 
   try {
     // 验证参数
-    if (!employeeId || employeeId.trim() === "") {
+    if (!employeeWorkSessionId || employeeWorkSessionId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工ID不能为空",
+          message: "员工工作会话ID不能为空",
         },
       }
     }
@@ -132,38 +145,35 @@ export async function getPeers(
     const allPossiblePeers = new Set<string>()
 
     // 添加有消息记录的对话对象
-    const peersWithMessages = await messageService.getPeers(employeeId)
+    const peersWithMessages = await messageService.getPeers(
+      employeeWorkSessionId as EmployeeWorkSessionId | BossId
+    )
     peersWithMessages.forEach((peer: string) => allPossiblePeers.add(peer))
-
-    // 添加所有员工（排除自己）
-    if (stateManager) {
-      const employees = stateManager.getEmployees()
-      employees.forEach((emp: any) => {
-        if (emp.employeeId !== employeeId) {
-          allPossiblePeers.add(emp.employeeId)
-        }
-      })
-    }
 
     // 添加所有 boss（排除自己）
     if (bossManager) {
       const bosses = bossManager.getBosses()
       bosses.forEach((boss: string) => {
-        const bossId = `0-${boss}`
-        if (bossId !== employeeId) {
+        const bossId = formatBossId(boss)
+        if (bossId !== employeeWorkSessionId) {
           allPossiblePeers.add(bossId)
         }
       })
     }
 
     // 2. 获取每个 peer 的最后消息时间
-    const client = messageService.getClient(employeeId)
+    const client = messageService.getClient(
+      employeeWorkSessionId as EmployeeWorkSessionId | BossId
+    )
     const peersWithTime: PeerWithLastMessage[] = []
 
     for (const peer of allPossiblePeers) {
       try {
         // 获取与该 peer 的最后一条消息
-        const messages = await client.history(peer, 1)
+        const messages = await client.history(
+          peer as EmployeeWorkSessionId | BossId,
+          1
+        )
 
         if (messages.length > 0) {
           const lastMessage = messages[messages.length - 1]
@@ -235,7 +245,7 @@ export async function getPeers(
  * 发送消息
  */
 export async function sendMessage(
-  employeeId: string,
+  employeeWorkSessionId: string,
   to: string,
   content: string,
   messageService?: MessageService,
@@ -254,12 +264,12 @@ export async function sendMessage(
 
   try {
     // 验证参数
-    if (!employeeId || employeeId.trim() === "") {
+    if (!employeeWorkSessionId || employeeWorkSessionId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工ID不能为空",
+          message: "员工工作会话ID不能为空",
         },
       }
     }
@@ -285,7 +295,9 @@ export async function sendMessage(
     }
 
     // 发送消息
-    const client = messageService.getClient(employeeId)
+    const client = messageService.getClient(
+      employeeWorkSessionId as EmployeeWorkSessionId | BossId
+    )
     await client.send(to, content)
 
     // MessageService.send() 已经通过 stateManager.addEvent() 触发了 "message" 事件

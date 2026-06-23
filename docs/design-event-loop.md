@@ -18,7 +18,7 @@ EventLoop is the core runtime mechanism for employees, responsible for waiting f
 Implements the employee runtime requirements specified in [Requirements - Employee Runtime](./requirements-runtime.md).
 
 **Design Principles**:
-- **Event-Driven**: Employee actions triggered by events (messages, agent completion, etc.)
+- **Event-Driven**: Employee actions triggered by events (messages, task reminders, etc.)
 - **Async Non-Blocking**: Use async/await for concurrency
 - **Session Reuse**: Session persists until token threshold reached
 - **Auto-Summarization**: Automatically summarize memory when threshold exceeded
@@ -47,20 +47,12 @@ class EventLoop {
 #### Event Types
 
 ```typescript
-type Event = MessageEvent | AgentEvent | TaskAvailableEvent | TaskReminderEvent
+type Event = MessageEvent | TaskAvailableEvent | TaskReminderEvent
 
 interface MessageEvent {
   type: 'message'
   from: string
   content: string
-  timestamp: string
-}
-
-interface AgentEvent {
-  type: 'agent_completed'
-  agentId: string
-  taskName: string
-  result: string
   timestamp: string
 }
 
@@ -108,7 +100,7 @@ graph TD
     A --> E[Summarization]
     
     B --> F[MessageClient.recv]
-    B --> G[Agent Completion Events]
+    B --> G[Task Reminder Events]
     
     C --> H[ensureSession]
     C --> I[buildEventMessage]
@@ -150,7 +142,7 @@ async run(): Promise<void> {
 
 #### 2. Event Waiting
 
-**Priority Order**: Messages > Agent Completion > Executable Tasks > In-Progress Tasks
+**Priority Order**: Messages > Executable Tasks > In-Progress Tasks
 
 ```typescript
 private async waitForEvent(): Promise<Event> {
@@ -167,48 +159,32 @@ private async waitForEvent(): Promise<Event> {
     }
   }
 
-  // 2. Non-blocking check for agent completion queue
-  const completedAgent = agentRegistry.getCompletedEvent(this.employeeName)
-  if (completedAgent) {
-    return completedAgent
-  }
-
-  // 3. Check if there are running agents
-  const runningAgents = agentRegistry.getAgentsByEmployee(this.employeeName)
-  const hasRunningAgent = runningAgents.length > 0
-
-  // Only check tasks if no running agents
-  if (!hasRunningAgent) {
-    // 4. Check for executable tasks
-    const executableTasks = await this.memoryManager.getExecutableTasks(
-      this.employeeName
-    )
-    if (executableTasks.length > 0) {
-      return {
-        type: 'task_available',
-        tasks: executableTasks,
-        timestamp: new Date().toISOString()
-      }
-    }
-
-    // 5. Check for in_progress tasks (reminder to continue or block)
-    const inProgressTasks = await this.memoryManager.getInProgressTasks(
-      this.employeeName
-    )
-    if (inProgressTasks.length > 0) {
-      return {
-        type: 'task_reminder',
-        tasks: inProgressTasks,
-        timestamp: new Date().toISOString()
-      }
+  // 2. Check for executable tasks
+  const executableTasks = await this.memoryManager.getExecutableTasks(
+    this.employeeName
+  )
+  if (executableTasks.length > 0) {
+    return {
+      type: 'task_available',
+      tasks: executableTasks,
+      timestamp: new Date().toISOString()
     }
   }
 
-  // 6. Block and wait for events
-  return Promise.race([
-    this.waitForMessage(),
-    this.waitForAgentCompletion()
-  ])
+  // 3. Check for in_progress tasks (reminder to continue or block)
+  const inProgressTasks = await this.memoryManager.getInProgressTasks(
+    this.employeeName
+  )
+  if (inProgressTasks.length > 0) {
+    return {
+      type: 'task_reminder',
+      tasks: inProgressTasks,
+      timestamp: new Date().toISOString()
+    }
+  }
+
+  // 4. Block and wait for messages
+  return this.waitForMessage()
 }
 ```
 
@@ -234,7 +210,7 @@ private async handleEvent(event: Event): Promise<void> {
       tools: {
         'send_message': true,
         'edit_tasks': true,
-        'create_agent': true
+        'create_employee_work_session': true
       }
     }
   })
@@ -324,7 +300,7 @@ export function buildEventMessage(event: Event): string {
     case 'message':
       return `收到来自 ${event.from} 的消息：\n\n${event.content}`
 
-    case 'agent_completed':
+    case 'employee_work_session_status_changed':
       return `你创建的 Agent 已完成任务 "${event.taskName}"。\n\n结果：\n${event.result}`
 
     case 'task_available':
@@ -436,33 +412,21 @@ flowchart TD
     
     WaitEvent --> CheckUnread{1. 检查未读消息<br/>非阻塞}
     CheckUnread -->|有| ReturnMessage[返回 MessageEvent]
-    CheckUnread -->|无| CheckAgentQueue{2. 检查 Agent 完成队列<br/>非阻塞}
-    
-    CheckAgentQueue -->|有| ReturnAgent[返回 AgentEvent]
-    CheckAgentQueue -->|无| HasRunningAgent{有运行中的 Agent?}
-    
-    HasRunningAgent -->|是| BlockWait[阻塞等待]
-    HasRunningAgent -->|否| CheckExecutable{3. 检查可执行任务}
+    CheckUnread -->|无| CheckExecutable{2. 检查可执行任务}
     
     CheckExecutable -->|有| ReturnTaskAvailable[返回 TaskAvailableEvent]
-    CheckExecutable -->|无| CheckInProgress{4. 检查 in_progress 任务}
+    CheckExecutable -->|无| CheckInProgress{3. 检查 in_progress 任务}
     
     CheckInProgress -->|有| ReturnTaskReminder[返回 TaskReminderEvent]
     CheckInProgress -->|无| BlockWait
     
-    BlockWait --> Race[Promise.race]
-    Race --> WaitMsg[waitForMessage<br/>阻塞等待新消息]
-    Race --> WaitAgentComplete[waitForAgentCompletion<br/>阻塞等待 Agent 完成]
+    BlockWait --> WaitMsg[waitForMessage<br/>阻塞等待新消息]
     
     WaitMsg -->|收到消息| ReturnMessage2[返回 MessageEvent]
-    WaitAgentComplete -->|Agent 完成| ReturnAgent2[返回 AgentEvent]
-    
     ReturnMessage --> SetBusy2[设置状态为 busy]
-    ReturnAgent --> SetBusy2
     ReturnTaskAvailable --> SetBusy2
     ReturnTaskReminder --> SetBusy2
     ReturnMessage2 --> SetBusy2
-    ReturnAgent2 --> SetBusy2
     
     SetBusy2 --> HandleEvent[handleEvent<br/>处理事件]
     HandleEvent --> EnsureSession[ensureSession<br/>确保 Session 存在]
@@ -481,7 +445,6 @@ flowchart TD
     
     style Start fill:#e1f5e1
     style CheckUnread fill:#fff4e6
-    style CheckAgentQueue fill:#fff4e6
     style CheckExecutable fill:#fff4e6
     style CheckInProgress fill:#fff4e6
     style BlockWait fill:#ffe6e6

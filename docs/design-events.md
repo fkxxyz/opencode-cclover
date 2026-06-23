@@ -39,16 +39,15 @@ Current backend event payloads use stable IDs:
 ```typescript
 {
   projectId: "project-id",
-  type: "work_item_created",
+  type: "employee_work_session_created",
   timestamp: "2026-03-03T10:00:00.000Z",
   employeeId: "emp_xxx",
-  rootTaskId: "rt_xxx",
-  workItemId: "wi_xxx",
+  employeeWorkSessionId: "ews_xxx",
   details: {}
 }
 ```
 
-`employeeName` is legacy documentation terminology and must not be used as a backend event filter contract. Event APIs support `employeeId`, `rootTaskId`, `workItemId`, `type`, and `limit`. Personal TODO events keep the `task_*` event names; project-level assignment events use `root_task_*` and `work_item_*` names so TODO tasks remain distinct from root tasks/work items.
+Event APIs support `employeeId`, `employeeWorkSessionId`, `type`, and `limit`. EWS TODO events use the `task_*` event names.
 
 ### 1. Employee Status Changed
 
@@ -104,42 +103,42 @@ Records session summarization (equivalent to close).
 
 **Trigger**: When `EventLoop.summarizeIfNeeded()` triggers summarization
 
-### 4. Agent Created
+### 4. EmployeeWorkSession Created
 
-Records agent creation.
+Records EmployeeWorkSession creation.
 
 ```typescript
 {
-  type: "agent_created",
+  type: "employee_work_session_created",
   timestamp: "2026-03-03T10:05:00.000Z",
   employeeName: "calculator",
   details: {
-    agentId: "ses_def456",
+    employeeWorkSessionId: "ews_def456",
     taskName: "ComplexCalculation"
   }
 }
 ```
 
-**Trigger**: When `CreateAgentTool` creates new agent
+**Trigger**: When `create_employee_work_session` creates a new EmployeeWorkSession
 
-### 5. Agent Completed
+### 5. EmployeeWorkSession Status Changed
 
-Records agent completion.
+Records EmployeeWorkSession status changes.
 
 ```typescript
 {
-  type: "agent_completed",
+  type: "employee_work_session_status_changed",
   timestamp: "2026-03-03T10:10:00.000Z",
   employeeName: "calculator",
   details: {
-    agentId: "ses_def456",
+    employeeWorkSessionId: "ews_def456",
     taskName: "ComplexCalculation",
     result: "Calculation completed successfully"
   }
 }
 ```
 
-**Trigger**: When `EventLoop.waitForAgentCompletion()` receives completion event
+**Trigger**: When EmployeeWorkSession runtime status changes
 
 ### 6. Task Created
 
@@ -552,24 +551,24 @@ private async summarizeIfNeeded(): Promise<void> {
 }
 ```
 
-#### 3. CreateAgentTool Integration
+#### 3. EmployeeWorkSession Tool Integration
 
-Add event logging for agent creation:
+Add event logging for EmployeeWorkSession creation:
 
 ```typescript
-// In CreateAgentTool.execute()
+// In create_employee_work_session execute()
 async execute(args, context) {
-  // ... create agent logic
+  // ... create EmployeeWorkSession logic
   const sessionId = response.data?.id
 
-  // NEW: Log agent creation
+  // NEW: Log EmployeeWorkSession creation
   this.stateManager?.addEvent({
     projectId: this.projectId,
-    type: "agent_created",
+    type: "employee_work_session_created",
     timestamp: new Date().toISOString(),
     employeeName: employeeName,
     details: {
-      agentId: sessionId,
+      employeeWorkSessionId,
       taskName: args.task_name
     }
   })
@@ -665,8 +664,8 @@ Concise descriptions for each event type:
 | employee_status_changed | `Status: {oldStatus} → {newStatus}`                                 |
 | session_created         | `Session created ({sessionId})`                                     |
 | session_summarized      | `Session summarized ({messageCount} messages, {tokenCount} tokens)` |
-| agent_created           | `Agent created: {taskName}`                                         |
-| agent_completed         | `Agent completed: {taskName}`                                       |
+| employee_work_session_created           | `EmployeeWorkSession created: {taskName}`                           |
+| employee_work_session_status_changed         | `EmployeeWorkSession status changed: {taskName}`                    |
 | task_created            | `Task created: {taskName}`                                          |
 | task_modified           | `Task modified: {taskName}`                                         |
 | task_completed          | `Task completed: {taskName}`                                        |
@@ -802,7 +801,7 @@ grep '"type":"session_created"' workspace_test/.cclover/workspace/employees/calc
 - [ ] Add event types to `types/index.ts`
 - [ ] Integrate with `StateManager`
 - [ ] Add session events to `EventLoop`
-- [ ] Add agent events to `CreateAgentTool`
+- [ ] Add EmployeeWorkSession events to runtime tools
 - [ ] Add task events to `MemoryManager`
 - [ ] Create API endpoint for timeline
 - [ ] Update Console to display events

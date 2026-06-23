@@ -7,7 +7,8 @@ import * as path from "node:path"
 import { StateManager } from "../../src/state/StateManager"
 import { MessageService } from "../../src/core/MessageService"
 import { BossManager } from "../../src/core/BossManager"
-import type { EmployeeId } from "../../src/types/employee"
+import { createTestEmployee } from "../helpers/employeeFactory"
+import type { BossId, EmployeeWorkSessionId } from "../../src/types/employee"
 
 const TEST_WORKSPACE = path.join(
   import.meta.dir,
@@ -37,156 +38,117 @@ describe("Message Routing Integration", () => {
     await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
   })
 
-  test("globally unique employee names route without taskId expansion", async () => {
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_001" as EmployeeId,
-      name: "dev-001",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
+  test("stable employee work session ids route without taskId expansion", async () => {
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_dev_001",
+        name: "dev-001",
+        roleId: "general-developer",
+        hiredBy: "boss_test-boss" as BossId,
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_dev_002",
+        name: "dev-002",
+        roleId: "general-developer",
+        hiredBy: "boss_test-boss" as BossId,
+      })
+    )
 
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_002" as EmployeeId,
-      name: "dev-002",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
-
-    // Send message using short name
+    // Send message using EWS ID
     await messageService.send(
-      "emp_dev_001" as EmployeeId,
-      "dev-002",
+      "ews_dev_001" as EmployeeWorkSessionId,
+      "ews_dev_002",
       "Hello from dev-001"
     )
 
-    const dev002Client = messageService.getClient("emp_dev_002" as EmployeeId)
-    const messages = await dev002Client.history("emp_dev_001" as EmployeeId)
+    const dev002Client = messageService.getClient(
+      "ews_dev_002" as EmployeeWorkSessionId
+    )
+    const messages = await dev002Client.history(
+      "ews_dev_001" as EmployeeWorkSessionId
+    )
 
     expect(messages.length).toBe(1)
     expect(messages[0].content).toBe("Hello from dev-001")
-    expect(messages[0].from).toBe("emp_dev_001")
+    expect(messages[0].from).toBe("ews_dev_001")
   })
 
   test("stable employeeIds route across former task boundaries", async () => {
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_001" as EmployeeId,
-      name: "dev-001",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
-
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_003" as EmployeeId,
-      name: "dev-001",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_dev_001",
+        name: "dev-001",
+        roleId: "general-developer",
+        hiredBy: "boss_test-boss" as BossId,
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_dev_003",
+        name: "dev-001",
+        roleId: "general-developer",
+        hiredBy: "boss_test-boss" as BossId,
+      })
+    )
 
     await messageService.send(
-      "emp_dev_001" as EmployeeId,
-      "emp_dev_003",
+      "ews_dev_001" as EmployeeWorkSessionId,
+      "ews_dev_003",
       "Hello from task 1"
     )
 
-    const dev2Client = messageService.getClient("emp_dev_003" as EmployeeId)
-    const messages = await dev2Client.history("emp_dev_001" as EmployeeId)
+    const dev2Client = messageService.getClient(
+      "ews_dev_003" as EmployeeWorkSessionId
+    )
+    const messages = await dev2Client.history(
+      "ews_dev_001" as EmployeeWorkSessionId
+    )
 
     expect(messages.length).toBe(1)
     expect(messages[0].content).toBe("Hello from task 1")
-    expect(messages[0].from).toBe("emp_dev_001")
+    expect(messages[0].from).toBe("ews_dev_001")
   })
 
   test("boss messages task employees", async () => {
     // Register boss and employee
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_001" as EmployeeId,
-      name: "dev-001",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_dev_001",
+        name: "dev-001",
+        roleId: "general-developer",
+        hiredBy: "boss_test-boss" as BossId,
+      })
+    )
 
     // Boss sends message
     await messageService.send(
-      "0-test-boss" as EmployeeId,
-      "emp_dev_001",
+      "boss_test-boss" as BossId,
+      "ews_dev_001",
       "Task assignment from boss"
     )
 
     // Verify message received
-    const devClient = messageService.getClient("emp_dev_001" as EmployeeId)
-    const messages = await devClient.history("0-test-boss" as EmployeeId)
+    const devClient = messageService.getClient(
+      "ews_dev_001" as EmployeeWorkSessionId
+    )
+    const messages = await devClient.history("boss_test-boss" as BossId)
 
     expect(messages.length).toBe(1)
     expect(messages[0].content).toBe("Task assignment from boss")
-    expect(messages[0].from).toBe("0-test-boss")
-  })
-
-  test("duplicate employee names are rejected for routing", async () => {
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_001" as EmployeeId,
-      name: "dev-001",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
-
-    await stateManager.registerEmployee({
-      employeeId: "emp_dev_003" as EmployeeId,
-      name: "dev-001",
-      roleId: "general-developer",
-      status: "offline",
-      paused: false,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "0-test-boss" as EmployeeId,
-      activeSessionId: null,
-    })
-
-    await expect(
-      messageService.send(
-        "0-test-boss" as EmployeeId,
-        "dev-001",
-        "Ambiguous task assignment"
-      )
-    ).rejects.toThrow("收件人名称 'dev-001' 不唯一，请使用稳定 employeeId")
+    expect(messages[0].from).toBe("boss_test-boss")
   })
 
   test("unknown short names are rejected", async () => {
     await expect(
       messageService.send(
-        "0-test-boss" as EmployeeId,
+        "boss_test-boss" as BossId,
         "missing-dev",
         "Unknown short name"
       )
-    ).rejects.toThrow("Boss cannot use unknown short names")
+    ).rejects.toThrow(
+      "Unsupported message target 'missing-dev'. Use employee_work_session_id or boss_id."
+    )
   })
 })

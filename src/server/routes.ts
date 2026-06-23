@@ -9,7 +9,6 @@ import * as health from "../api/health"
 import * as projectsApi from "../api/projects"
 import * as timeline from "../api/timeline"
 import * as roles from "../api/roles"
-import * as work from "../api/work"
 
 /**
  * 路由处理器函数类型
@@ -375,11 +374,11 @@ export const projectRoutes = new Map<string, RouteHandler>([
         ? parseInt(url.searchParams.get("limit")!)
         : 50
       const employeeId = url.searchParams.get("employeeId") || undefined
-      const rootTaskId = url.searchParams.get("rootTaskId") || undefined
-      const workItemId = url.searchParams.get("workItemId") || undefined
+      const employeeWorkSessionId =
+        url.searchParams.get("employeeWorkSessionId") || undefined
       const type = url.searchParams.get("type") || undefined
       return events.getEvents(
-        { limit, employeeId, rootTaskId, workItemId, type: type as any },
+        { limit, employeeId, employeeWorkSessionId, type: type as any },
         deps.stateManager
       )
     },
@@ -411,7 +410,11 @@ export const projectRoutes = new Map<string, RouteHandler>([
   [
     "GET:/stats",
     async (req, params, deps) =>
-      stats.getStats(deps.stateManager, deps.memoryManager),
+      stats.getStats(
+        deps.stateManager,
+        deps.memoryManager,
+        deps.employeeWorkSessionManager
+      ),
   ],
 
   /**
@@ -476,24 +479,6 @@ export const projectRoutes = new Map<string, RouteHandler>([
    * Response: { success: true, data: { roles: [...] } }
    */
   ["GET:/roles", async (req, params, deps) => roles.getRoles(deps.roleManager)],
-  [
-    "GET:/root-tasks",
-    async (req, params, deps) => work.getRootTasks(deps.rootTaskManager),
-  ],
-  [
-    "GET:/work-items",
-    async (req, params, deps) => {
-      const url = new URL(req.url)
-      return work.getWorkItems(deps.workItemManager, {
-        rootTaskId: url.searchParams.get("rootTaskId") || undefined,
-        employeeId: url.searchParams.get("employeeId") || undefined,
-        parentWorkItemId: url.searchParams.has("parentWorkItemId")
-          ? url.searchParams.get("parentWorkItemId") || null
-          : undefined,
-        dependsOn: url.searchParams.get("dependsOn") || undefined,
-      })
-    },
-  ],
 ])
 
 /**
@@ -511,7 +496,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    * 获取员工详情
    *
    * @endpoint GET /api/projects/:projectId/employees/:employeeId
-   * @description 获取指定员工的完整信息，包括记忆、任务和 Agent 执行记录
+   * @description 获取指定员工的完整信息，包括元数据、记忆和任务
    *
    * @pathParams
    *   - projectId: 项目ID
@@ -540,16 +525,6 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *         created: "2026-03-01T10:00:00.000Z",
    *         completed: "2026-03-01T10:00:05.000Z"
    *       }
-   *     ],
-   *     agents: [
-   *       {
-   *         agentId: "agent_123",
-   *         taskName: "计算1+1",
-   *         status: "completed",
-   *         createdAt: "2026-03-01T10:00:00.000Z",
-   *         completedAt: "2026-03-01T10:00:05.000Z",
-   *         result: "计算完成"
-   *       }
    *     ]
    *   }
    * }
@@ -567,8 +542,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       return employees.getEmployeeDetail(
         params.employeeId,
         deps.stateManager,
-        deps.memoryManager,
-        deps.agentRegistry
+        deps.memoryManager
       )
     },
   ],
@@ -577,7 +551,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    * 获取 boss 详情
    *
    * @endpoint GET /api/projects/:projectId/boss/:name
-   * @description 获取指定 boss 的详细信息，包括记忆、任务、Agent 执行记录
+   * @description 获取指定 boss 的详细信息，包括元数据、记忆和任务
    *
    * @pathParams
    *   - projectId: 项目ID
@@ -596,8 +570,7 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
    *       tasks: [...],
    *       args: {}
    *     },
-   *     tasks: [...],
-   *     agents: [...]
+   *     tasks: [...]
    *   }
    * }
    *
@@ -615,142 +588,99 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
       await employees.getBossDetail(
         params.name,
         deps.bossManager,
-        deps.agentRegistry,
         deps.workspaceRoot
       ),
   ],
 
   /**
-   * 获取员工消息历史
+   * 获取员工工作会话消息历史
    *
-   * @endpoint GET /api/projects/:projectId/employees/:employeeId/messages
-   * @description 获取指定员工的消息历史
+   * @endpoint GET /api/projects/:projectId/employee-work-sessions/:employeeWorkSessionId/messages
+   * @description 获取指定员工工作会话的消息历史
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - employeeId: 稳定员工 ID
+   *   - employeeWorkSessionId: 员工工作会话 ID
    *
    * @queryParams
-   *   - peer: 对话对象名称，不传则返回所有对话（可选）
+   *   - peer: EWS ID 或 Boss ID，不传则返回所有对话（可选）
    *   - limit: 返回消息数量，默认 50，最大 200（可选）
    *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     messages: [
-   *       {
-   *         timestamp: "2026-03-01T10:00:00.000Z",
-   *         from: "alice",
-   *         to: "calculator",
-   *         content: "计算 1+1",
-   *         direction: "receive"
-   *       },
-   *       {
-   *         timestamp: "2026-03-01T10:00:05.000Z",
-   *         from: "calculator",
-   *         to: "alice",
-   *         content: "结果是 2",
-   *         direction: "send"
-   *       }
-   *     ]
-   *   }
-   * }
-   *
    * @example
-   * GET /api/projects/abc123/employees/emp_calculator/messages?peer=0-alice&limit=10
+   * GET /api/projects/abc123/employee-work-sessions/ews_calculator/messages?peer=boss_alice&limit=10
    * Response: { success: true, data: { messages: [...] } }
    */
   [
-    "GET:/employees/:employeeId/messages",
+    "GET:/employee-work-sessions/:employeeWorkSessionId/messages",
     async (req, params, deps) => {
       const url = new URL(req.url)
-      const employeeId = params.employeeId
+      const employeeWorkSessionId = params.employeeWorkSessionId
       const peer = url.searchParams.get("peer") || undefined
       const limit = url.searchParams.get("limit")
         ? parseInt(url.searchParams.get("limit")!)
         : 50
-      return messages.getMessages(employeeId, peer, limit, deps.messageService)
+      return messages.getMessages(
+        employeeWorkSessionId,
+        peer,
+        limit,
+        deps.messageService
+      )
     },
   ],
 
   /**
-   * 获取员工的对话对象列表
+   * 获取员工工作会话的对话对象列表
    *
-   * @endpoint GET /api/projects/:projectId/employees/:employeeId/peers
-   * @description 获取指定员工的所有对话对象（peers）列表
+   * @endpoint GET /api/projects/:projectId/employee-work-sessions/:employeeWorkSessionId/peers
+   * @description 获取指定员工工作会话的所有 EWS/Boss 对话对象列表
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - employeeId: 稳定员工 ID
-   *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     peers: ["bayecao", "alice", "bob"]
-   *   }
-   * }
-   *
-   * @errors
-   *   - INVALID_PARAMETER: 员工 ID 为空
-   *   - FILE_READ_ERROR: 读取对话列表失败
-   *   - INTERNAL_ERROR: 消息服务未初始化
+   *   - employeeWorkSessionId: 员工工作会话 ID
    *
    * @example
-   * GET /api/projects/abc123/employees/emp_calculator/peers
-   * Response: { success: true, data: { peers: ["bayecao", "alice"] } }
+   * GET /api/projects/abc123/employee-work-sessions/ews_calculator/peers
+   * Response: { success: true, data: { peers: ["boss_alice"] } }
    */
   [
-    "GET:/employees/:employeeId/peers",
+    "GET:/employee-work-sessions/:employeeWorkSessionId/peers",
     async (req, params, deps) => {
-      const employeeId = params.employeeId
+      const employeeWorkSessionId = params.employeeWorkSessionId
       return messages.getPeers(
-        employeeId,
+        employeeWorkSessionId,
         deps.messageService,
-        deps.stateManager,
         deps.bossManager
       )
     },
   ],
 
   /**
-   * 发送消息
+   * 发送员工工作会话消息
    *
-   * @endpoint POST /api/projects/:projectId/employees/:employeeId/messages
-   * @description 发送消息给指定对象
+   * @endpoint POST /api/projects/:projectId/employee-work-sessions/:employeeWorkSessionId/messages
+   * @description 从指定员工工作会话发送消息给 EWS 或 Boss
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - employeeId: 稳定员工 ID
+   *   - employeeWorkSessionId: 员工工作会话 ID
    *
    * @requestBody {
-   *   to: "接收者名称",
+   *   to: "ews_xxx 或 boss_xxx",
    *   content: "消息内容"
    * }
    *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     message: "消息发送成功"
-   *   }
-   * }
-   *
-   * @errors
-   *   - INVALID_PARAMETER: 参数为空
-   *   - MESSAGE_SEND_ERROR: 发送失败
-   *   - INTERNAL_ERROR: 消息服务未初始化
-   *
    * @example
-   * POST /api/projects/abc123/employees/emp_calculator/messages
-   * Body: { to: "alice", content: "Hello" }
+   * POST /api/projects/abc123/employee-work-sessions/ews_calculator/messages
+   * Body: { to: "boss_alice", content: "Hello" }
    * Response: { success: true, data: { message: "消息发送成功" } }
    */
   [
-    "POST:/employees/:employeeId/messages",
+    "POST:/employee-work-sessions/:employeeWorkSessionId/messages",
     async (req, params, deps) => {
-      const employeeId = params.employeeId
+      const employeeWorkSessionId = params.employeeWorkSessionId
       const body = (await req.json()) as { to: string; content: string }
       return messages.sendMessage(
-        employeeId,
+        employeeWorkSessionId,
         body.to,
         body.content,
         deps.messageService,
@@ -761,60 +691,35 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   ],
 
   /**
-   * 获取员工任务列表
+   * 获取员工工作会话任务列表
    *
-   * @endpoint GET /api/projects/:projectId/employees/:employeeId/tasks
-   * @description 获取指定员工的个人 TODO 任务，包括可执行任务列表
+   * @endpoint GET /api/projects/:projectId/employee-work-sessions/:employeeWorkSessionId/tasks
+   * @description 获取指定员工工作会话的 TODO 任务，包括可执行任务列表
    *
    * @pathParams
    *   - projectId: 项目ID
-   *   - employeeId: 稳定员工 ID
-   *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     tasks: [
-   *       {
-   *         name: "计算1+1",
-   *         status: "completed",
-   *         description: "为 alice 计算 1+1",
-   *         result: "2",
-   *         dependencies: [],
-   *         created: "2026-03-01T10:00:00.000Z",
-   *         completed: "2026-03-01T10:00:05.000Z"
-   *       },
-   *       {
-   *         name: "计算2+2",
-   *         status: "pending",
-   *         description: "为 bob 计算 2+2",
-   *         dependencies: ["计算1+1"],
-   *         created: "2026-03-01T10:01:00.000Z"
-   *       }
-   *     ],
-   *     executableTasks: ["计算2+2", "计算3+3"]
-   *   }
-   * }
+   *   - employeeWorkSessionId: 员工工作会话 ID
    *
    * @example
-   * GET /api/projects/abc123/employees/emp_calculator/tasks
+   * GET /api/projects/abc123/employee-work-sessions/ews_calculator/tasks
    * Response: { success: true, data: { tasks: [...], executableTasks: [...] } }
    */
   [
-    "GET:/employees/:employeeId/tasks",
+    "GET:/employee-work-sessions/:employeeWorkSessionId/tasks",
     async (req, params, deps) => {
-      const employeeId = params.employeeId
-      return tasks.getTasks(employeeId, deps.memoryManager)
+      const employeeWorkSessionId = params.employeeWorkSessionId
+      return tasks.getTasks(employeeWorkSessionId, deps.memoryManager)
     },
   ],
   [
-    "POST:/employees/:employeeId/halt",
+    "POST:/employee-work-sessions/:employeeWorkSessionId/halt",
     async (req, params, deps) => {
       const body = ((await req.json().catch(() => ({}))) || {}) as {
         reason?: string
       }
       return tasks.haltTask(
-        params.employeeId,
-        deps.stateManager,
+        params.employeeWorkSessionId,
+        deps.employeeWorkSessionManager,
         body.reason,
         "http-api",
         deps.messageService
@@ -964,211 +869,5 @@ export const projectParamRoutes = new Map<string, RouteHandler>([
   [
     "GET:/roles/:name",
     async (req, params, deps) => roles.getRole(deps.roleManager, params.name),
-  ],
-
-  /**
-   * 暂停员工（放假）
-   *
-   * @endpoint POST /api/projects/:projectId/employees/:employeeId/pause
-   * @description 暂停员工的 EventLoop，员工将进入离线状态
-   *
-   * @pathParams
-   *   - projectId: 项目ID
-   *   - employeeId: 稳定员工 ID
-   *
-   * @requestBody {} (empty)
-   *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     message: "Employee 'xxx' has been paused. EventLoop will stop shortly."
-   *   }
-   * }
-   *
-   * @errors
-   *   - PROJECT_NOT_FOUND (404): 项目不存在
-   *   - EMPLOYEE_NOT_FOUND (400): 员工不存在
-   *   - PERMISSION_DENIED (400): 权限不足
-   *   - ACTIVE_TASKS (400): 有待处理或进行中的任务
-   *
-   * @example
-   * POST /api/projects/abc123/employees/emp_calculator/pause
-   * Response: { success: true, data: { message: "Employee 'emp_calculator' has been paused..." } }
-   */
-  [
-    "POST:/employees/:employeeId/pause",
-    async (req, params, deps) => {
-      try {
-        const { employeeId } = params
-
-        // 查找员工
-        const allEmployees = deps.stateManager.getEmployees()
-        const employee = allEmployees.find(
-          (e: any) => e.employeeId === employeeId
-        )
-        if (!employee) {
-          return {
-            success: false,
-            error: {
-              code: "EMPLOYEE_NOT_FOUND",
-              message: `Employee '${employeeId}' not found`,
-            },
-          }
-        }
-
-        // 创建 pause_employee 工具（直接使用 deps 中的服务）
-        const { createPauseEmployeeTool } = await import("../tools")
-        const pauseTool = createPauseEmployeeTool(
-          deps.stateManager,
-          deps.memoryManager,
-          deps.bossManager
-        )
-
-        // 获取第一个 Boss 作为操作者
-        const bosses = deps.bossManager.getBosses()
-        if (bosses.length === 0) {
-          return {
-            success: false,
-            error: {
-              code: "NO_BOSS_FOUND",
-              message: "No boss found in project",
-            },
-          }
-        }
-        const operatorName = bosses[0]
-
-        // 注册临时 sessionID
-        const { sessionRegistry } = await import("../utils/SessionRegistry")
-        const tempSessionID = `http-pause-${Date.now()}`
-        sessionRegistry.register(tempSessionID, operatorName)
-
-        // 执行工具
-        const result = await pauseTool.execute(
-          { employeeId: employee.employeeId },
-          {
-            sessionID: tempSessionID,
-          } as any
-        )
-
-        // 清理临时 sessionID
-        sessionRegistry.unregister(tempSessionID)
-
-        return {
-          success: true,
-          data: { message: result },
-        }
-      } catch (error: any) {
-        return {
-          success: false,
-          error: {
-            code: "PAUSE_FAILED",
-            message: error.message,
-          },
-        }
-      }
-    },
-  ],
-
-  /**
-   * 恢复员工（结束假期）
-   *
-   * @endpoint POST /api/projects/:projectId/employees/:employeeId/resume
-   * @description 恢复员工的 EventLoop，员工将从离线状态恢复
-   *
-   * @pathParams
-   *   - projectId: 项目ID
-   *   - employeeId: 稳定员工 ID
-   *
-   * @requestBody {} (empty)
-   *
-   * @response {
-   *   success: true,
-   *   data: {
-   *     message: "Employee 'xxx' has been resumed. EventLoop is starting."
-   *   }
-   * }
-   *
-   * @errors
-   *   - PROJECT_NOT_FOUND (404): 项目不存在
-   *   - EMPLOYEE_NOT_FOUND (400): 员工不存在
-   *   - PERMISSION_DENIED (400): 权限不足
-   *   - NOT_ON_VACATION (400): 员工不在离线状态
-   *
-   * @example
-   * POST /api/projects/abc123/employees/emp_calculator/resume
-   * Response: { success: true, data: { message: "Employee 'emp_calculator' has been resumed..." } }
-   */
-  [
-    "POST:/employees/:employeeId/resume",
-    async (req, params, deps) => {
-      try {
-        const { employeeId } = params
-
-        // 查找员工
-        const allEmployees = deps.stateManager.getEmployees()
-        const employee = allEmployees.find(
-          (e: any) => e.employeeId === employeeId
-        )
-        if (!employee) {
-          return {
-            success: false,
-            error: {
-              code: "EMPLOYEE_NOT_FOUND",
-              message: `Employee '${employeeId}' not found`,
-            },
-          }
-        }
-
-        // 创建 resume_employee 工具（直接使用 deps 中的服务）
-        const { createResumeEmployeeTool } = await import("../tools")
-        const resumeTool = createResumeEmployeeTool(
-          deps.stateManager,
-          deps.bossManager,
-          deps.projectId
-        )
-
-        // 获取第一个 Boss 作为操作者
-        const bosses = deps.bossManager.getBosses()
-        if (bosses.length === 0) {
-          return {
-            success: false,
-            error: {
-              code: "NO_BOSS_FOUND",
-              message: "No boss found in project",
-            },
-          }
-        }
-        const operatorName = bosses[0]
-
-        // 注册临时 sessionID
-        const { sessionRegistry } = await import("../utils/SessionRegistry")
-        const tempSessionID = `http-resume-${Date.now()}`
-        sessionRegistry.register(tempSessionID, operatorName)
-
-        // 执行工具
-        const result = await resumeTool.execute(
-          { employeeId: employee.employeeId },
-          {
-            sessionID: tempSessionID,
-          } as any
-        )
-
-        // 清理临时 sessionID
-        sessionRegistry.unregister(tempSessionID)
-
-        return {
-          success: true,
-          data: { message: result },
-        }
-      } catch (error: any) {
-        return {
-          success: false,
-          error: {
-            code: "RESUME_FAILED",
-            message: error.message,
-          },
-        }
-      }
-    },
   ],
 ])

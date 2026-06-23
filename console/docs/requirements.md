@@ -17,7 +17,7 @@ Build a web-based management console for the OpenCode CClover multi-agent autono
 
 - **Real-time Updates**: Receives event pushes via WebSocket, updates UI in real-time
 - **Visualization**: Tree diagrams for hiring relationships, color-coded employee status
-- **Comprehensive Monitoring**: Covers all employee dimensions (status, messages, tasks, memory, agents, events)
+- **Comprehensive Monitoring**: Covers all employee dimensions (status, messages, tasks, memory, employee work sessions, events)
 - **Responsive Design**: Adapts to different screen sizes
 - **Project Management**: Sidebar for project switching, isolated workspaces per project
 
@@ -131,7 +131,7 @@ console/
 - Get message history
 - Get task list
 - Get memory data
-- Get agent execution records
+- Get EmployeeWorkSession runtime records
 
 **WebSocket**:
 
@@ -231,7 +231,7 @@ console/
 **Description**:
 
 - Display recent system events (max 50)
-- Event types: MessageEvent, TaskEvent, AgentEvent, TimerEvent
+- Event types: MessageEvent, TaskEvent, EmployeeWorkSessionEvent, TimerEvent
 - Filtered by current project
 
 **Display Content**:
@@ -339,15 +339,15 @@ console/
 - Code block or card display
 - High readability
 
-#### 3.3.5 Agent Execution
+#### 3.3.5 EmployeeWorkSession Runtime
 
 **Description**:
 
-- Display agent execution records created by this employee
+- Display EmployeeWorkSession runtime records owned by this employee
 
 **Display Content**:
 
-- Agent ID
+- EmployeeWorkSession ID
 - Associated task name
 - Execution status (running/completed/failed)
 - Created time
@@ -357,11 +357,11 @@ console/
 **Style**:
 
 - Table format
-- Running agents with loading animation
+- Running EmployeeWorkSessions with loading animation
 
 **Real-time Update**:
 
-- Receive agent status changes via WebSocket and update UI
+- Receive EmployeeWorkSession status changes via WebSocket and update UI
 
 #### 3.3.6 Event History
 
@@ -446,11 +446,11 @@ interface Memory {
 }
 ```
 
-### 4.6 Agent Execution
+### 4.6 EmployeeWorkSession Runtime
 
 ```typescript
-interface AgentExecution {
-  agentId: string // Agent ID
+interface EmployeeWorkSessionRecord {
+  employeeWorkSessionId: string // EmployeeWorkSession ID
   taskName: string // Associated task name
   status: "running" | "completed" | "failed"
   createdAt: string // Created time (ISO 8601)
@@ -476,8 +476,8 @@ type EventType =
   | "task_cancelled" // Task cancelled
   | "task_deleted" // Task deleted
   | "task_decomposed" // Task decomposed
-  | "agent_completed" // Agent completed
-  | "agent_failed" // Agent failed
+  | "employee_work_session_status_changed" // EmployeeWorkSession status changed
+  | "employee_work_session_closed" // EmployeeWorkSession closed
   | "timer" // Timer event
   | "employee_hired" // Employee hired
   | "employee_status_changed" // Employee status changed
@@ -555,7 +555,7 @@ GET /projects/:projectId/employees/:name
     "custom": {}
   },
   "tasks": [...],
-  "agents": [...]
+  "employeeWorkSessions": [...]
 }
 ```
 
@@ -718,7 +718,7 @@ Client connects, server starts pushing events.
 - `message_received`: New message received
 - `message_sent`: Message sent
 - `task_updated`: Task status updated
-- `agent_updated`: Agent status updated
+- `employee_work_session_status_changed`: EmployeeWorkSession status updated
 - `employee_hired`: New employee hired
 
 **Client-side Filtering**:
@@ -745,7 +745,7 @@ Client connects, server starts pushing events.
   - ✅ Message communication
   - ✅ Task management
   - ✅ Memory system
-  - ✅ Agent execution
+  - ✅ EmployeeWorkSession runtime
   - ✅ Event history
 - ✅ Real-time updates (WebSocket)
 - ✅ Responsive design
@@ -762,7 +762,7 @@ Client connects, server starts pushing events.
 
 - Send messages to employees
 - Manually create/update/delete/decompose tasks
-- Manually create agents
+- Manually create EmployeeWorkSessions
 - Hire new employees
 - Modify employee memory
 - Pause/resume employees

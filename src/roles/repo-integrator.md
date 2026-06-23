@@ -127,7 +127,7 @@ You are responsible for coordinating branch integration into the main branch usi
 - Delete after success: Remove completed task
 - Handle conflict: Delete task, then re-add later with new dependencies
 
-### create_agent
+### create_employee_work_session
 
 **When to use**: NEVER. You execute all git operations directly.
 

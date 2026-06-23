@@ -122,15 +122,15 @@
 - Atomic operation (both writes succeed or both fail)
 - Recipient's `recv()` unblocks after write completes
 
-### 3. create_agent - Create Agent to Execute Task
+### 3. create_employee_work_session - Create EmployeeWorkSession to Execute Task
 
-**Purpose**: Create OpenCode agent to execute task in background
+**Purpose**: Create an EmployeeWorkSession backed by an OpenCode Session to execute task in background
 
 **Parameters**:
 ```typescript
 {
   task_name: string,  // Associated task name (must exist in memory)
-  prompt: string      // Prompt for the agent
+  prompt: string      // Prompt for the EmployeeWorkSession
 }
 ```
 
@@ -143,14 +143,14 @@
 ```
 
 **Return Value**:
-- Success: Agent ID
+- Success: EmployeeWorkSession ID
 - Failure: Error message
 
 **Behavior**:
-- Creates OpenCode agent using SDK
-- Agent runs in background
-- Agent completion triggers `AgentEvent`
-- Task status should be updated to `in_progress` before creating agent
+- Creates EmployeeWorkSession metadata and an OpenCode Session using SDK
+- EmployeeWorkSession runs in background
+- EmployeeWorkSession status is tracked by runtime state
+- Task status should be updated to `in_progress` before creating an EmployeeWorkSession
 
 **Requirements**:
 - Task must exist in memory
@@ -258,7 +258,7 @@ Each tool receives context including:
 ### Tool Execution
 
 - Tools execute synchronously (return after completion)
-- Long-running operations (create_agent) return immediately with ID
+- Long-running operations (create_employee_work_session) return immediately with ID
 - Tools have access to all necessary services
 
 ### Tool Logging
@@ -273,16 +273,16 @@ Each tool receives context including:
 
 ```
 1. edit_tasks: Add "Calculate1+1"
-2. create_agent: Create agent for "Calculate1+1"
+2. create_employee_work_session: Create EmployeeWorkSession for "Calculate1+1"
 3. edit_tasks: Update "Calculate1+1" to in_progress
-4. (Agent completes)
+4. (EmployeeWorkSession completes)
 5. edit_tasks: Update "Calculate1+1" to completed with result
 ```
 
 **Verification**:
 - All tool calls succeed
 - Task status transitions correctly
-- Agent executes successfully
+- EmployeeWorkSession executes successfully
 
 ### Scenario 2: Message Exchange
 
@@ -315,7 +315,7 @@ Each tool receives context including:
 ```
 1. edit_tasks: Add task with circular dependency
 2. send_message: Send to non-existent employee
-3. create_agent: Create agent for non-existent task
+3. create_employee_work_session: Create EmployeeWorkSession for non-existent task
 4. hire_employee: Hire employee with duplicate name
 ```
 
@@ -348,8 +348,8 @@ Each tool receives context including:
 - Explicit communication action
 - Easier to track message flow
 
-**Why create_agent instead of direct execution?**
-- Leverages OpenCode's agent system
+**Why create_employee_work_session instead of direct execution?**
+- Leverages OpenCode sessions through EmployeeWorkSession runtime
 - Supports parallel execution
 - Better resource management
 

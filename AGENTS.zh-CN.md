@@ -117,6 +117,7 @@ bun test
 - 集成测试：`bun test tests/integration/...`
 - 手动插件测试：`./start-test-server.sh`
 - 备用手动启动：`OPENCODE_CONFIG_DIR="$(pwd)/workspace_test/.opencode" opencode serve --port 4099`
+- 会写文件的测试必须遵循 [testing-workspace-standard.md](testing-workspace-standard.md)：使用 `tests/test-workspace/` 下按测试套件划分的目录，保持 `projectPath` 与 `.cclover/workspace` 分离，并且不要把运行时数据写到仓库根目录或 `tests/fixtures/`。
 
 核心模块覆盖率目标：
 - `MessageService`：100%

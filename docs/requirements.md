@@ -2,13 +2,13 @@
 
 ## Overview
 
-Build a multi-agent autonomous collaboration system based on OpenCode SDK, simulating employee collaboration behavior. Employees can send/receive messages, manage tasks, create agents to execute work, and achieve autonomous decision-making and parallel execution.
+Build a multi-employee autonomous collaboration system based on OpenCode SDK, simulating employee collaboration behavior. Employees can send/receive messages, manage tasks, run EmployeeWorkSessions, and achieve autonomous decision-making and parallel execution.
 
 ### Implementation Approach
 
 - Implemented as an OpenCode plugin
 - Automatically runs when plugin starts, no additional deployment needed
-- Uses OpenCode SDK to create and manage agents
+- Uses OpenCode SDK to create and manage sessions for EmployeeWorkSessions
 - Supports multiple project instances with global service management
 
 ### Core Features
@@ -17,7 +17,7 @@ Build a multi-agent autonomous collaboration system based on OpenCode SDK, simul
 - **Autonomous Decision-Making**: AI autonomously decides next actions based on context
 - **Task Management**: Supports DAG task dependencies, automatically calculates parallelizable tasks
 - **Memory System**: Employees maintain their own experience knowledge and work state
-- **Parallel Execution**: Supports multiple agents working in parallel
+- **Parallel Execution**: Supports multiple EmployeeWorkSessions working in parallel
 - **Multi-Instance Support**: Single global service manages multiple projects, employees run continuously
 
 ## Functional Requirements
@@ -69,11 +69,11 @@ Build a multi-agent autonomous collaboration system based on OpenCode SDK, simul
       timestamp: "2026-03-01T10:00:05Z"
     }
     ```
-  - `AgentEvent`: Agent execution completed
+  - `EmployeeWorkSessionEvent`: EmployeeWorkSession status changed
     ```typescript
     {
-      type: "agent_completed",
-      agentId: "agent_001",
+      type: "employee_work_session_status_changed",
+      employeeWorkSessionId: "ews_001",
       taskName: "Calculate1+1",
       result: "...",
       timestamp: "2026-03-01T10:00:05Z"
@@ -129,7 +129,7 @@ See [Task Management Requirements](./requirements-tasks.md) for detailed specifi
 
 1. **edit_tasks**: Batch edit task list (add, update, delete)
 2. **send_message**: Send message to other employees
-3. **create_agent**: Create OpenCode agent to execute task
+3. **create_employee_work_session**: Create EmployeeWorkSession backed by an OpenCode Session to execute task
 4. **hire_employee**: Hire new employee
 
 See [Tool System Requirements](./requirements-tools.md) for detailed specifications.
@@ -196,7 +196,7 @@ See [Architecture](./architecture.md) for implementation details.
 
 - Support multiple projects (10+) managed by single global service
 - Support multiple employees (10+) per project
-- Support multiple concurrent agents per employee
+- Support multiple concurrent EmployeeWorkSessions per employee
 
 ### Reliability
 
@@ -212,7 +212,7 @@ See [Architecture](./architecture.md) for implementation details.
 
 ## Constraints
 
-- Must use OpenCode SDK for agent creation
+- Must use OpenCode SDK for session creation
 - File system storage (YAML format) for simplicity
 - Single global HTTP service on port 4097
 - Configuration file required for project discovery

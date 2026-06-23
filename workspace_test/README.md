@@ -93,14 +93,14 @@ workspace_test/
 
 - `send_message`: 发送消息给员工
 - `asks`: 管理任务
-- `create_agent`: 创建 Agent 执行任务
+- `create_employee_work_session`: 创建 EmployeeWorkSession 执行任务
 
 ## 测试场景
 
 详见 [TEST_GUIDE.md](./TEST_GUIDE.md)：
 
 1. ✅ 简单计算（1+1）
-2. ✅ 复杂计算（使用 Agent）
+2. ✅ 复杂计算（使用 EmployeeWorkSession）
 3. ⏳ 多轮对话
 4. ⏳ 记忆总结
 5. ⏳ 并发消息
@@ -159,7 +159,7 @@ ls -la .opencode/plugin/
 ```bash
 # 在 OpenCode session 中运行
 opencode session prompt "列出所有可用的工具"
-# 应该看到 send_message, edit_tasks, create_agent
+# 应该看到 send_message, edit_tasks, create_employee_work_session
 ```
 
 ## 下一步

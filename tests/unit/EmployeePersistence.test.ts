@@ -4,27 +4,26 @@ import * as path from "node:path"
 import * as yaml from "yaml"
 import { EmployeePersistence } from "../../src/state/EmployeePersistence"
 import type { Employee } from "../../src/types/index"
+import { getTestWorkspace, resetTestWorkspace } from "../helpers/testWorkspace"
 
-const testWorkspace = "./workspace_test_persistence"
+const testWorkspace = getTestWorkspace("employee-persistence")
 
 function createEmployee(overrides: Partial<Employee> = {}): Employee {
   return {
     employeeId: "emp_current",
     name: "current-worker",
     roleId: "developer",
-    status: "idle",
-    paused: false,
-    activeSessionId: null,
+    description: "Implements current tasks",
+    contextPaths: [],
     createdAt: "2026-06-19T00:00:00.000Z",
-    lastActiveAt: "2026-06-19T00:00:00.000Z",
-    hiredBy: "emp_creator",
+    updatedAt: "2026-06-19T00:00:00.000Z",
+    hiredBy: "boss_creator",
     ...overrides,
   }
 }
 
 beforeEach(async () => {
-  await fs.rm(testWorkspace, { recursive: true, force: true })
-  await fs.mkdir(testWorkspace, { recursive: true })
+  await resetTestWorkspace(testWorkspace)
 })
 
 afterEach(async () => {
@@ -40,9 +39,8 @@ describe("EmployeePersistence", () => {
         employeeId: "emp_reviewer",
         name: "review-worker",
         roleId: "reviewer",
-        status: "busy",
-        paused: true,
-        activeSessionId: "session-1",
+        description: "Reviews current tasks",
+        contextPaths: ["docs/review.md"],
         hiredBy: null,
       }),
     ]
@@ -59,16 +57,19 @@ describe("EmployeePersistence", () => {
       )
     )
     expect(persisted.employees).toHaveLength(2)
-    expect("taskId" in persisted.employees[0]).toBe(false)
-    expect("role" in persisted.employees[0]).toBe(false)
+    expect("status" in persisted.employees[0]).toBe(false)
+    expect("activeSessionId" in persisted.employees[0]).toBe(false)
   })
 
-  it("does not persist legacy taskId or role fields from widened inputs", async () => {
+  it("does not persist legacy runtime fields from widened inputs", async () => {
     const persistence = new EmployeePersistence(testWorkspace)
     const employeeWithLegacyFields = {
       ...createEmployee(),
       taskId: 42,
       role: "legacy-developer",
+      status: "busy",
+      paused: true,
+      activeSessionId: "session-1",
     } as Employee & { taskId: number; role: string }
 
     await persistence.save([employeeWithLegacyFields])
@@ -123,7 +124,13 @@ describe("EmployeePersistence", () => {
 
     expect(loaded).toEqual([createEmployee({ employeeId: "emp_valid" })])
     expect(
-      loaded.some((employee) => "taskId" in employee || "role" in employee)
+      loaded.some(
+        (employee) =>
+          "taskId" in employee ||
+          "role" in employee ||
+          "status" in employee ||
+          "activeSessionId" in employee
+      )
     ).toBe(false)
   })
 

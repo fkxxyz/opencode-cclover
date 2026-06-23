@@ -2,13 +2,13 @@
 
 This document describes employee-private TODO task management. These tasks live in an employee's memory file and drive reminders/executable-task calculation for that employee only.
 
-Project-level work is separate:
+Runtime work is separate:
 
-- **Root task**: high-level boss/user request, identified by `rootTaskId` (`rt_*`).
-- **Work item**: concrete package assigned to exactly one employee, identified by `workItemId` (`wi_*`) and linked to one stable `employeeId` (`emp_*`).
-- **Personal TODO task**: the `Task` records in this document, stored in `MemoryManager.tasks` and identified by semantic task `name`.
+- **EmployeeWorkSession**: runnable runtime unit owned by one employee and backed by one OpenCode Session, identified by `employeeWorkSessionId` (`ews_*`).
+- **Employee**: metadata-only identity containing role, hierarchy, and configuration fields.
+- **Personal TODO task**: the `Task` records in this document, stored in EWS memory through `MemoryManager.tasks` and identified by semantic task `name`.
 
-Do not store root tasks or work items in `MemoryManager.tasks`. Do not use legacy numeric `taskId` as employee identity or as a backend halt/API grouping contract.
+Store runtime task reminders only in EWS memory through `MemoryManager.tasks`. Do not use legacy numeric `taskId` as employee identity or as a backend halt/API grouping contract.
 
 ## Task Dependency System (DAG)
 

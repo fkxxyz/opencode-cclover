@@ -252,15 +252,15 @@ type EventType =
   | "task_cancelled" // Task cancelled
   | "task_deleted" // Task deleted
   | "task_decomposed" // Task decomposed
-  | "agent_completed" // Agent completed
-  | "agent_failed" // Agent failed
+  | "employee_work_session_status_changed" // EmployeeWorkSession status changed
+  | "employee_work_session_closed" // EmployeeWorkSession closed
   | "timer" // Timer event
   | "employee_hired" // Employee hired
   | "employee_status_changed" // Employee status changed
   | "message_sent" // Message sent
   | "message_received" // Message received
   | "task_updated" // Task status updated
-  | "agent_updated" // Agent status updated
+  | "employee_work_session_updated" // EmployeeWorkSession status updated
 ```
 
 ### Event Types

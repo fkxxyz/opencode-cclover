@@ -33,9 +33,9 @@ The intended user experience is:
 - the user selects one of those roles directly in the UI
 - the selected role receives its original role prompt plus meeting-context augmentation
 - the selected role understands that the boss is personally meeting with it
-- the selected role may create root tasks, hire any needed staff, create work items, and coordinate execution immediately
+- the selected role may create employee work sessions, hire any needed staff, create EWS task lists, and coordinate execution immediately
 - when cclover tools are invoked, operations execute as `Boss`
-- user-facing discussion should hide raw `rootTaskId`, `workItemId`, and `employeeId` values unless the user is debugging or explicitly asks for identifiers
+- user-facing discussion should hide raw `employeeWorkSessionId` and `employeeId` values unless the user is debugging or explicitly asks for identifiers
 
 ## Interface
 
@@ -112,11 +112,11 @@ This means:
 - normal `canHire` restrictions do not apply in this context
 - the agent may send messages freely
 - the agent may edit tasks freely
-- the agent may create root tasks and work items through available tools when organizing concrete work
-- the agent may create agents freely
+- the agent may create employee work sessions and EWS task lists through available tools when organizing concrete work
+- the projected role may create EmployeeWorkSessions freely
 - the agent may hire any needed employee role freely
 
-For the MVP, enforcement remains prompt-level and role-definition-level. The framework does not add a hard capabilities system for deciding which role may create root tasks or work items.
+For the MVP, enforcement remains prompt-level and role-definition-level. The framework does not add a hard capabilities system for deciding which role may create employee work sessions or EWS task lists.
 
 The design intentionally does not add feature-specific approval gates, throttles, or confirmation layers.
 
@@ -131,7 +131,7 @@ Instead:
 
 This keeps the implementation simple and matches the current practical behavior where primary-agent tool operations already align with boss-side execution semantics.
 
-When a meeting-mode role decomposes work, it should use the three-layer model internally: create a root task for the high-level request, hire stable employee instances as needed, then create work items assigned to those employees. The user does not need to see raw IDs during normal conversation.
+When a meeting-mode role decomposes work, it should use the three-layer model internally: create an employee work session for the high-level request, hire stable employee instances as needed, then create EWS task lists for those employees. The user does not need to see raw IDs during normal conversation.
 
 ### Implementation Areas
 

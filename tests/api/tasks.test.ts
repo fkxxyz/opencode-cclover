@@ -2,26 +2,43 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test"
 import * as fs from "fs/promises"
 import * as path from "path"
 import * as yaml from "yaml"
+import { EmployeeWorkSessionManager } from "../../src/core/EmployeeWorkSessionManager"
 import { MemoryManager } from "../../src/core/MemoryManager"
+import { RoleManager } from "../../src/core/RoleManager"
 import { getTasks, haltTask } from "../../src/api/tasks"
 import { StateManager } from "../../src/state/StateManager"
 import { projectParamRoutes } from "../../src/server/routes"
 import type { Employee, Memory } from "../../src/types/index"
+import {
+  getTestProjectPaths,
+  resetTestWorkspace,
+} from "../helpers/testWorkspace"
 
-const testWorkspace = "./workspace_test_tasks_api"
+const { suiteRoot, projectPath, workspaceRoot } =
+  getTestProjectPaths("tasks-api")
+const employeeWorkSessionId = "ews_worker"
 
 beforeEach(async () => {
-  await fs.rm(testWorkspace, { recursive: true, force: true })
-  await fs.mkdir(testWorkspace, { recursive: true })
+  await resetTestWorkspace(suiteRoot)
 })
 
 afterEach(async () => {
-  await fs.rm(testWorkspace, { recursive: true, force: true })
+  await fs.rm(suiteRoot, { recursive: true, force: true })
 })
+
+async function writeRole(name: string): Promise<void> {
+  const rolesDir = path.join(projectPath, ".cclover", "roles")
+  await fs.mkdir(rolesDir, { recursive: true })
+  await fs.writeFile(
+    path.join(rolesDir, `${name}.md`),
+    `---\nname: ${name}\nid: ${name}\ndescription: ${name} role\nrequiredArgs: {}\n---\nRole body\n`,
+    "utf-8"
+  )
+}
 
 describe("Tasks API", () => {
   it("should return error when employee name is empty", async () => {
-    const memoryManager = new MemoryManager(testWorkspace)
+    const memoryManager = new MemoryManager(workspaceRoot)
 
     const response = await getTasks("", memoryManager)
 
@@ -32,9 +49,9 @@ describe("Tasks API", () => {
   })
 
   it("should return empty tasks for new employee", async () => {
-    const memoryManager = new MemoryManager(testWorkspace)
+    const memoryManager = new MemoryManager(workspaceRoot)
 
-    const response = await getTasks("test-role", memoryManager)
+    const response = await getTasks(employeeWorkSessionId, memoryManager)
 
     expect(response.success).toBe(true)
     if (response.success) {
@@ -44,10 +61,10 @@ describe("Tasks API", () => {
   })
 
   it("should return all tasks with executable tasks", async () => {
-    const memoryManager = new MemoryManager(testWorkspace)
+    const memoryManager = new MemoryManager(workspaceRoot)
 
-    // 创建员工目录和记忆文件
-    const employeeDir = path.join(testWorkspace, "employees", "test-role")
+    // 创建 EWS 运行时记忆文件
+    const employeeDir = path.join(workspaceRoot, "ews", employeeWorkSessionId)
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -83,7 +100,7 @@ describe("Tasks API", () => {
     const memoryPath = path.join(employeeDir, "memory.yaml")
     await fs.writeFile(memoryPath, yaml.stringify(memory), "utf-8")
 
-    const response = await getTasks("test-role", memoryManager)
+    const response = await getTasks(employeeWorkSessionId, memoryManager)
 
     expect(response.success).toBe(true)
     if (response.success) {
@@ -95,10 +112,10 @@ describe("Tasks API", () => {
   })
 
   it("should return only pending tasks as executable", async () => {
-    const memoryManager = new MemoryManager(testWorkspace)
+    const memoryManager = new MemoryManager(workspaceRoot)
 
-    // 创建员工目录和记忆文件
-    const employeeDir = path.join(testWorkspace, "employees", "test-role")
+    // 创建 EWS 运行时记忆文件
+    const employeeDir = path.join(workspaceRoot, "ews", employeeWorkSessionId)
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -134,7 +151,7 @@ describe("Tasks API", () => {
     const memoryPath = path.join(employeeDir, "memory.yaml")
     await fs.writeFile(memoryPath, yaml.stringify(memory), "utf-8")
 
-    const response = await getTasks("test-role", memoryManager)
+    const response = await getTasks(employeeWorkSessionId, memoryManager)
 
     expect(response.success).toBe(true)
     if (response.success) {
@@ -143,9 +160,9 @@ describe("Tasks API", () => {
     }
   })
 
-  it("routes personal TODO tasks by stable employeeId when name differs", async () => {
-    const memoryManager = new MemoryManager(testWorkspace)
-    const employeeDir = path.join(testWorkspace, "employees", "emp-worker")
+  it("routes TODO tasks by employee work session ID", async () => {
+    const memoryManager = new MemoryManager(workspaceRoot)
+    const employeeDir = path.join(workspaceRoot, "ews", employeeWorkSessionId)
     await fs.mkdir(employeeDir, { recursive: true })
 
     const memory: Memory = {
@@ -154,7 +171,7 @@ describe("Tasks API", () => {
         {
           name: "检查API契约",
           status: "pending",
-          description: "确保个人TODO按employeeId读取",
+          description: "确保 TODO 按 employeeWorkSessionId 读取",
           dependencies: [],
           created: "2026-06-19T00:00:00.000Z",
         },
@@ -167,14 +184,16 @@ describe("Tasks API", () => {
       "utf-8"
     )
 
-    const handler = projectParamRoutes.get("GET:/employees/:employeeId/tasks")
+    const handler = projectParamRoutes.get(
+      "GET:/employee-work-sessions/:employeeWorkSessionId/tasks"
+    )
     expect(handler).toBeDefined()
 
     const response = await handler!(
       new Request(
-        "http://localhost/api/projects/test-project/employees/emp-worker/tasks"
+        `http://localhost/api/projects/test-project/employee-work-sessions/${employeeWorkSessionId}/tasks`
       ),
-      { employeeId: "emp-worker", projectId: "test-project" },
+      { employeeWorkSessionId, projectId: "test-project" },
       { memoryManager }
     )
 
@@ -183,11 +202,17 @@ describe("Tasks API", () => {
     expect(response.data.tasks[0].name).toBe("检查API契约")
   })
 
-  it("should halt one employee by stable employeeId", async () => {
+  it("should halt one employee work session", async () => {
     const stateManager = new StateManager(
       "test-project",
-      testWorkspace,
-      testWorkspace
+      workspaceRoot,
+      projectPath
+    )
+    const roleManager = new RoleManager(projectPath)
+    const employeeWorkSessionManager = new EmployeeWorkSessionManager(
+      projectPath,
+      stateManager,
+      roleManager
     )
     const messageService = {
       abortActiveSession: mock(async () => {}),
@@ -196,33 +221,38 @@ describe("Tasks API", () => {
     const employee1: Employee = {
       employeeId: "emp-worker-001",
       name: "worker-001",
-      roleId: "Developer",
-      status: "busy",
-      paused: false,
+      roleId: "developer",
+      description: "Worker under test",
+      contextPaths: [],
       hiredBy: null,
-      activeSessionId: "session-1",
       createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     const employee2: Employee = {
       employeeId: "emp-worker-002",
       name: "worker-002",
       roleId: "Reviewer",
-      status: "idle",
-      paused: false,
+      description: "Reviewer under test",
+      contextPaths: [],
       hiredBy: "emp-worker-001",
-      activeSessionId: null,
       createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
+    await writeRole("developer")
     await stateManager.registerEmployee(employee1)
     await stateManager.registerEmployee(employee2)
+    const session = await employeeWorkSessionManager.createEmployeeWorkSession({
+      employeeId: employee1.employeeId,
+      description: "Run worker",
+      args: {},
+      createdBy: "boss_alice",
+    })
 
     const response = await haltTask(
-      "emp-worker-001",
-      stateManager,
+      session.employeeWorkSessionId,
+      employeeWorkSessionManager,
       "runaway nested employees",
       "test",
       messageService
@@ -231,40 +261,50 @@ describe("Tasks API", () => {
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data).toEqual({
-        employeeId: "emp-worker-001",
+        employeeWorkSessionId: session.employeeWorkSessionId,
         halted: true,
       })
     }
     expect(messageService.abortActiveSession).toHaveBeenCalledTimes(1)
     expect(messageService.abortActiveSession).toHaveBeenCalledWith(
-      "emp-worker-001"
+      session.employeeWorkSessionId
     )
 
-    const events = stateManager.getEvents({ type: "employee_halted" })
-    expect(events).toHaveLength(1)
-    expect(events[0].employeeId).toBe("emp-worker-001")
-    expect("taskId" in events[0].details).toBe(false)
+    expect(
+      (
+        await employeeWorkSessionManager.getEmployeeWorkSession(
+          session.employeeWorkSessionId
+        )
+      )?.status
+    ).toBe("abnormal")
   })
 
   it("should reject old numeric taskId halt behavior", async () => {
     const stateManager = new StateManager(
       "test-project",
-      testWorkspace,
-      testWorkspace
+      workspaceRoot,
+      projectPath
+    )
+    const employeeWorkSessionManager = new EmployeeWorkSessionManager(
+      projectPath,
+      stateManager,
+      new RoleManager(projectPath)
     )
 
-    const response = await haltTask(13 as any, stateManager)
+    const response = await haltTask(13 as any, employeeWorkSessionManager)
 
     expect(response.success).toBe(false)
     if (!response.success) {
-      expect(response.error.code).toBe("INVALID_EMPLOYEE_ID")
+      expect(response.error.code).toBe("INVALID_EMPLOYEE_WORK_SESSION_ID")
     }
   })
 
   it("should not register old numeric taskId halt route", () => {
     expect(projectParamRoutes.has("POST:/tasks/:taskId/halt")).toBe(false)
-    expect(projectParamRoutes.has("POST:/employees/:employeeId/halt")).toBe(
-      true
-    )
+    expect(
+      projectParamRoutes.has(
+        "POST:/employee-work-sessions/:employeeWorkSessionId/halt"
+      )
+    ).toBe(true)
   })
 })

@@ -38,7 +38,8 @@ export function useEmployees(projectId: string | undefined) {
               ? {
                   ...emp,
                   status:
-                    (event.details.newStatus as Employee["status"]) || emp.status,
+                    (event.details.newStatus as Employee["status"]) ||
+                    emp.status,
                   lastActiveAt:
                     (event.details.lastActiveAt as string) || emp.lastActiveAt,
                 }

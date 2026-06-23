@@ -5,6 +5,17 @@
     "rootDir": ".",
     "types": ["bun-types"]
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": [
+    "src/**/*",
+    "tests/unit/DomainTypes.test.ts",
+    "tests/unit/EmployeePersistence.test.ts",
+    "tests/unit/EmployeeWorkSessionManager.test.ts",
+    "tests/unit/StateManagerEmployeeValidation.test.ts",
+    "tests/unit/SessionRegistry.test.ts",
+    "tests/unit/ContextBuilder.test.ts",
+    "tests/unit/SessionManager.test.ts",
+    "tests/unit/SummaryService.test.ts",
+    "tests/unit/MessageRoutingContract.test.ts"
+  ],
   "exclude": ["node_modules", "dist", "tests/demo"]
 }

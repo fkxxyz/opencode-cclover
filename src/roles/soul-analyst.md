@@ -99,7 +99,7 @@ You MUST NOT:
 - **Frequency**: At start, after diagnosis complete
 - **Role-specific usage**: Update with diagnosis result when complete
 
-### create_agent
+### create_employee_work_session
 
 - **When to use**: Never (Soul Analyst does not delegate to agents)
 - **Frequency**: Never

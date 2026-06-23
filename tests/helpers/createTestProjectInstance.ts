@@ -2,13 +2,11 @@ import {
   ModelConfigManager,
   loadPresetConfig,
 } from "../../src/config/ModelConfigManager"
-import { AgentRegistry } from "../../src/utils/AgentRegistry"
 import { BossManager } from "../../src/core/BossManager"
+import { EmployeeWorkSessionManager } from "../../src/core/EmployeeWorkSessionManager"
 import { MessageService } from "../../src/core/MessageService"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { RoleManager } from "../../src/core/RoleManager"
-import { RootTaskManager } from "../../src/core/RootTaskManager"
-import { WorkItemManager } from "../../src/core/WorkItemManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 import { StateManager } from "../../src/state/StateManager"
 import type { ProjectInstance } from "../../src/server/ProjectRegistry"
@@ -52,11 +50,11 @@ export async function createTestProjectInstance(
     stateManager,
     "test-project"
   )
-  const workItemManager = new WorkItemManager(workspaceRoot, stateManager)
-  const rootTaskManager = new RootTaskManager(
+  const roleManager = new RoleManager(workspaceRoot)
+  const employeeWorkSessionManager = new EmployeeWorkSessionManager(
     workspaceRoot,
     stateManager,
-    workItemManager
+    roleManager
   )
 
   return {
@@ -67,11 +65,9 @@ export async function createTestProjectInstance(
     stateManager,
     messageService,
     memoryManager,
-    rootTaskManager,
-    workItemManager,
-    agentRegistry: new AgentRegistry(),
+    employeeWorkSessionManager,
     bossManager,
-    roleManager: new RoleManager(workspaceRoot),
+    roleManager,
     modelConfigManager,
     meetingModePromptInjector,
     feedbackManager: {} as any,

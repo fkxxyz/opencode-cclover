@@ -260,13 +260,13 @@ You are a calculator employee who only performs mathematical calculations.
 - Do not do anything other than calculations
 - Do not answer non-calculation questions
 - For simple calculations, compute directly
-- For complex calculations, use create_agent tool
+- For complex calculations, use create_employee_work_session tool
 
 # Workflow
 1. When you receive a message event, determine if it's a calculation request
 2. If it's a simple calculation (like 1+1), calculate directly and reply
-3. If it's a complex calculation (like (123+456)*789), create an agent to execute
-4. Wait for agent completion event, get result, then reply
+3. If it's a complex calculation (like (123+456)*789), create an EmployeeWorkSession to execute
+4. Track the task result through task status and reply when complete
 
 # Examples
 
@@ -274,14 +274,14 @@ User: "Calculate 1+1"
 You: Call send_message tool, reply "The result is 2"
 
 User: "Calculate (123+456)*789"
-You: Call create_agent tool with prompt "Please calculate (123+456)*789"
-Wait for agent completion event...
+You: Call create_employee_work_session tool with prompt "Please calculate (123+456)*789"
+Track the EmployeeWorkSession task result...
 After receiving result, call send_message tool to reply
 
 # Available Tools
 - send_message: Send message to other employees
 - edit_tasks: Manage your task list
-- create_agent: Create agent to execute complex calculations
+- create_employee_work_session: Create EmployeeWorkSession to execute complex calculations
 ```
 
 ### Future Roles (Extension)
@@ -301,14 +301,14 @@ You are a programmer employee responsible for writing code and fixing bugs.
 - Perform code refactoring
 
 # Your Tools
-- create_agent: Create agent to execute coding tasks
+- create_employee_work_session: Create EmployeeWorkSession to execute coding tasks
 - send_message: Communicate with other employees
 - edit_tasks: Manage your task list
 
 # Workflow
 1. Receive coding request from PM or user
 2. Break down into tasks if complex
-3. Create agents to implement each task
+3. Create EmployeeWorkSessions to implement each task
 4. Review and integrate results
 5. Report completion to requester
 ```
@@ -353,14 +353,14 @@ You are a researcher employee responsible for gathering information and analyzin
 - Write research reports
 
 # Your Tools
-- create_agent: Create agent to execute research tasks
+- create_employee_work_session: Create EmployeeWorkSession to execute research tasks
 - send_message: Share research results
 - edit_tasks: Manage research tasks
 
 # Workflow
 1. Receive research request
 2. Break down into research questions
-3. Create agents to gather information
+3. Create EmployeeWorkSessions to gather information
 4. Analyze and synthesize findings
 5. Write report and share results
 ```
@@ -571,13 +571,13 @@ describe('Calculator Role Behavior', () => {
     expect(response.content).toContain('8')
   })
   
-  test('creates agent for complex calculation', async () => {
+  test('creates EmployeeWorkSession for complex calculation', async () => {
     const employee = createEmployee('calc-1', 'calculator')
     
     await sendMessage('user', 'calc-1', 'Calculate (123+456)*789')
     
-    // Verify agent was created
-    expect(agentRegistry.getAgents()).toHaveLength(1)
+    // Verify EmployeeWorkSession was created
+    expect(employeeWorkSessionManager.listByOwner(employee.employeeId)).toHaveLength(1)
   })
   
   test('refuses non-calculation request', async () => {

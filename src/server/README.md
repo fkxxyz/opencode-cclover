@@ -143,7 +143,7 @@ Router 类按优先级查找路由：
 [
   "GET:/your-endpoint",
   async (req, params, deps) => {
-    // deps 包含: stateManager, memoryManager, messageService, agentRegistry, workspaceRoot
+    // deps 包含: stateManager, memoryManager, messageService, employeeWorkSessionManager, workspaceRoot
     return { success: true, data: {} }
   },
 ],

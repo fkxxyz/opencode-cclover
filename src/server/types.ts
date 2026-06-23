@@ -33,10 +33,8 @@ export interface ServerDependencies {
   memoryManager: any
   messageService: any
   opcodeClient?: any
-  agentRegistry: any
   bossManager: any
   roleManager: any
-  rootTaskManager: any
-  workItemManager: any
+  employeeWorkSessionManager: any
   workspaceRoot: string
 }

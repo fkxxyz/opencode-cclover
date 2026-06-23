@@ -5,7 +5,7 @@ import * as lockfile from "proper-lockfile"
 import { ConfigManager } from "../config/ConfigManager"
 import type { CcloverConfig } from "../config/ConfigManager"
 import { logger } from "../lib/logger"
-import type { BossId, EmployeeId } from "../types/index"
+import type { BossId, EmployeeWorkSessionId } from "../types/index"
 import { formatBossId, isBossId } from "../types/index"
 import { isValidIdentityId } from "../utils/IdentityValidator"
 import type { RoleManager } from "./RoleManager"
@@ -89,14 +89,14 @@ export class BossManager implements IBossManager {
 
   /**
    * 从 BossId 获取 Boss 名称
-   * @param bossId Boss ID (格式: "0-{bossName}")
+   * @param bossId Boss ID (格式: "boss_{bossName}")
    * @returns Boss 名称，如果不是有效的 BossId 则返回 null
    */
   getBossName(bossId: BossId): string | null {
     if (!isBossId(bossId)) {
       return null
     }
-    const name = bossId.substring(2) // Remove "0-" prefix
+    const name = bossId.substring("boss_".length)
     return this.bosses.has(name) ? name : null
   }
 
@@ -137,7 +137,7 @@ export class BossManager implements IBossManager {
    */
   async recordSession(
     bossName: string,
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     sessionId: string
   ): Promise<void> {
     if (!this.workspaceRoot) {
@@ -162,7 +162,7 @@ export class BossManager implements IBossManager {
    */
   async getSession(
     bossName: string,
-    employeeId: EmployeeId
+    employeeId: EmployeeWorkSessionId
   ): Promise<string | undefined> {
     if (!this.workspaceRoot) {
       return undefined
@@ -177,7 +177,10 @@ export class BossManager implements IBossManager {
    * @param bossName Boss 名称
    * @param employeeId 员工 ID
    */
-  async clearSession(bossName: string, employeeId: EmployeeId): Promise<void> {
+  async clearSession(
+    bossName: string,
+    employeeId: EmployeeWorkSessionId
+  ): Promise<void> {
     if (!this.workspaceRoot) {
       return
     }

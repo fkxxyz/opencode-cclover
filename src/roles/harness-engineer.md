@@ -106,7 +106,7 @@ Success means your advice helps the system become more intelligent by making ind
 - **Examples**:
   - In most cases, do not use it.
 
-### create_agent
+### create_employee_work_session
 - **When to use**: Never.
 - **Frequency**: Never.
 - **Examples**:

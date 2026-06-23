@@ -124,7 +124,7 @@ export interface ProjectInstance {
   stateManager: StateManager
   messageService: MessageService
   memoryManager: MemoryManager
-  agentRegistry: AgentRegistry
+  employeeWorkSessionManager: EmployeeWorkSessionManager
 }
 
 export class ProjectRegistry {
@@ -255,7 +255,7 @@ class EventLoop {
 ```
 
 **Event Loop Flow**:
-1. Wait for event (message, task, agent, timer)
+1. Wait for event (message, task reminder, timer)
 2. Read current memory
 3. Generate Mermaid task graph
 4. Calculate executable tasks
@@ -266,25 +266,6 @@ class EventLoop {
 9. Continue loop
 
 **See**: [Employee Runtime Requirements](./requirements-runtime.md)
-
-### AgentRegistry
-
-**Location**: `src/lib/AgentRegistry.ts`
-
-**Responsibilities**:
-- Track background agents
-- Monitor agent completion
-- Provide agent query interface
-
-**Interface**:
-```typescript
-class AgentRegistry {
-  register(agentId: string, taskName: string, employeeName: string): void
-  unregister(agentId: string): void
-  get(agentId: string): AgentInfo | undefined
-  getByEmployee(employeeName: string): AgentInfo[]
-}
-```
 
 ### RoleManager
 
@@ -374,25 +355,25 @@ class RoleManager {
 }
 ```
 
-### CreateAgentTool
+### EmployeeTools
 
-**Location**: `src/tools/CreateAgentTool.ts`
+**Location**: `src/tools/EmployeeTools.ts`
 
 **Responsibilities**:
-- Implement create_agent tool
-- Create OpenCode agent
-- Register in AgentRegistry
+- Implement create_employee_work_session tool
+- Create EmployeeWorkSession metadata
+- Bind EmployeeWorkSession to an OpenCode Session
 
 **Tool Definition**:
 ```typescript
 {
-  name: "create_agent",
-  description: "Create OpenCode agent to execute task",
+  name: "create_employee_work_session",
+  description: "Create EmployeeWorkSession to execute task",
   parameters: {
     type: "object",
     properties: {
       task_name: { type: "string", description: "Associated task name" },
-      prompt: { type: "string", description: "Prompt for the agent" }
+      prompt: { type: "string", description: "Prompt for the EmployeeWorkSession" }
     },
     required: ["task_name", "prompt"]
   }
@@ -575,7 +556,7 @@ graph TD
     MsgService[MessageService]
     MemMgr[MemoryManager]
     StateMgr[StateManager]
-    AgentReg[AgentRegistry]
+    EwsMgr[EmployeeWorkSessionManager]
     EventLoop[EventLoop]
     
     Tools[Tool Modules]
@@ -590,7 +571,7 @@ graph TD
     ProjectReg --> MsgService
     ProjectReg --> MemMgr
     ProjectReg --> StateMgr
-    ProjectReg --> AgentReg
+    ProjectReg --> EwsMgr
     
     EventLoop --> MsgService
     EventLoop --> MemMgr
@@ -598,7 +579,7 @@ graph TD
     
     Tools --> MsgService
     Tools --> MemMgr
-    Tools --> AgentReg
+    Tools --> EwsMgr
     
     EventLoop --> Utils
     Tools --> Utils

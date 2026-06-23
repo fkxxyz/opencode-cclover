@@ -8,12 +8,14 @@ import { ReplyTracker } from "../../src/core/eventloop/ReplyTracker"
 import { createSendMessageTool } from "../../src/tools/SendMessageTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import * as fs from "node:fs/promises"
-import * as path from "node:path"
+import { createTestEmployee } from "../helpers/employeeFactory"
+import {
+  getTestProjectPaths,
+  resetTestWorkspace,
+} from "../helpers/testWorkspace"
 
-const TEST_WORKSPACE = path.join(
-  import.meta.dir,
-  "../fixtures/send-message-tool-test"
-)
+const { suiteRoot, projectPath, workspaceRoot } =
+  getTestProjectPaths("send-message-tool")
 
 describe("SendMessageTool with Boss", () => {
   let bossManager: BossManager
@@ -24,46 +26,39 @@ describe("SendMessageTool with Boss", () => {
 
   beforeEach(async () => {
     // 清理测试工作空间
-    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
-    await fs.mkdir(TEST_WORKSPACE, { recursive: true })
+    await resetTestWorkspace(suiteRoot)
 
     // 创建 BossManager
     const config: CcloverConfig = {
       bosses: ["bayecao"],
       projects: [],
     }
-    bossManager = new BossManager(config, TEST_WORKSPACE)
+    bossManager = new BossManager(config, workspaceRoot)
 
     // 创建 StateManager 并注册测试员工
-    stateManager = new StateManager("test-project", TEST_WORKSPACE)
-    roleManager = new RoleManager(TEST_WORKSPACE)
+    stateManager = new StateManager("test-project", workspaceRoot, projectPath)
+    roleManager = new RoleManager(projectPath)
     await roleManager.refresh()
-    await stateManager.registerEmployee({
-      employeeId: "emp_alice",
-      name: "alice",
-      hiredBy: null,
-      roleId: "test-role",
-      paused: false,
-      status: "idle",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
-    })
-    await stateManager.registerEmployee({
-      employeeId: "emp_bob",
-      name: "bob",
-      hiredBy: null,
-      roleId: "test-role",
-      paused: false,
-      status: "idle",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_alice",
+        name: "alice",
+        hiredBy: null,
+        roleId: "test-role",
+      })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_bob",
+        name: "bob",
+        hiredBy: null,
+        roleId: "test-role",
+      })
+    )
 
     // 创建 MessageService
     messageService = new MessageService(
-      TEST_WORKSPACE,
+      workspaceRoot,
       stateManager,
       "test-project",
       bossManager
@@ -80,7 +75,7 @@ describe("SendMessageTool with Boss", () => {
 
   afterEach(async () => {
     // 清理测试工作空间
-    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
+    await fs.rm(suiteRoot, { recursive: true, force: true })
   })
 
   test("should recognize boss from context.agent", async () => {
@@ -92,19 +87,19 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "emp_alice",
+        to: "ews_alice",
         content: "Hello from boss",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to emp_alice")
+    expect(result).toBe("Message sent to ews_alice")
 
     // 验证消息已发送
-    const employeeClient = messageService.getClient("emp_alice")
+    const employeeClient = messageService.getClient("ews_alice")
     const message = await employeeClient.recv()
-    expect(message.from).toBe("0-bayecao")
+    expect(message.from).toBe("boss_bayecao")
     expect(message.content).toBe("Hello from boss")
   })
 
@@ -118,7 +113,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "emp_alice",
+          to: "ews_alice",
           content: "Hello",
           expect_reply: false,
         },
@@ -130,7 +125,7 @@ describe("SendMessageTool with Boss", () => {
   test("should treat projected meeting agent as boss-compatible sender", async () => {
     await bossManager.recordSession(
       "bayecao",
-      "emp_alice",
+      "ews_alice",
       "test-session-meeting-agent"
     )
 
@@ -141,19 +136,19 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "emp_alice",
+        to: "ews_alice",
         content: "Hello from meeting mode",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to emp_alice")
+    expect(result).toBe("Message sent to ews_alice")
 
-    const employeeClient = messageService.getClient("emp_alice")
+    const employeeClient = messageService.getClient("ews_alice")
     const message = await employeeClient.recv()
-    // Meeting-mode agent uses role.id as sender, not Boss from session
-    expect(message.from).toBe("0-test-role")
+    // Meeting-mode projected role uses current boss-id format
+    expect(message.from).toBe("boss_test-role")
     expect(message.content).toBe("Hello from meeting mode")
   })
 
@@ -163,12 +158,12 @@ describe("SendMessageTool with Boss", () => {
         bosses: ["alpha", "beta"],
         projects: [],
       },
-      TEST_WORKSPACE,
+      workspaceRoot,
       roleManager
     )
 
     const multiBossMessageService = new MessageService(
-      TEST_WORKSPACE,
+      workspaceRoot,
       stateManager,
       "test-project",
       multiBossManager
@@ -183,13 +178,13 @@ describe("SendMessageTool with Boss", () => {
 
     await multiBossManager.recordSession(
       "beta",
-      "emp_alice",
+      "ews_alice",
       "test-session-meeting-agent-beta"
     )
 
     const result = await multiBossTool.execute(
       {
-        to: "emp_alice",
+        to: "ews_alice",
         content: "Hello from beta meeting",
         expect_reply: false,
       },
@@ -197,27 +192,27 @@ describe("SendMessageTool with Boss", () => {
         sessionID: "test-session-meeting-agent-beta",
         messageID: "msg-meeting-agent-beta",
         agent: "TestRole",
-        directory: TEST_WORKSPACE,
-        worktree: TEST_WORKSPACE,
+        directory: workspaceRoot,
+        worktree: workspaceRoot,
         abort: new AbortController().signal,
         metadata: () => {},
         ask: async () => {},
       }
     )
 
-    expect(result).toBe("Message sent to emp_alice")
+    expect(result).toBe("Message sent to ews_alice")
 
-    const employeeClient = multiBossMessageService.getClient("emp_alice")
+    const employeeClient = multiBossMessageService.getClient("ews_alice")
     const message = await employeeClient.recv()
-    // Meeting-mode agent uses role.id as sender, not Boss from session
-    expect(message.from).toBe("0-test-role")
+    // Meeting-mode projected role uses current boss-id format
+    expect(message.from).toBe("boss_test-role")
     expect(message.content).toBe("Hello from beta meeting")
   })
 
   test("should work with employee from SessionRegistry", async () => {
     // 注册员工到 SessionRegistry
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-employee", "emp_alice")
+    sessionRegistry.register("test-session-employee", "ews_alice")
 
     const context = {
       sessionID: "test-session-employee",
@@ -226,19 +221,19 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "emp_bob",
+        to: "ews_bob",
         content: "Hello from employee",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to emp_bob")
+    expect(result).toBe("Message sent to ews_bob")
 
     // 验证消息已发送
-    const bobClient = messageService.getClient("emp_bob")
+    const bobClient = messageService.getClient("ews_bob")
     const message = await bobClient.recv()
-    expect(message.from).toBe("emp_alice")
+    expect(message.from).toBe("ews_alice")
     expect(message.content).toBe("Hello from employee")
 
     // 清理
@@ -248,7 +243,7 @@ describe("SendMessageTool with Boss", () => {
   test("should prioritize SessionRegistry over context.agent", async () => {
     // 注册员工到 SessionRegistry
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-priority", "emp_alice")
+    sessionRegistry.register("test-session-priority", "ews_alice")
 
     const context = {
       sessionID: "test-session-priority",
@@ -257,19 +252,19 @@ describe("SendMessageTool with Boss", () => {
 
     const result = await sendMessageTool.execute(
       {
-        to: "emp_bob",
+        to: "ews_bob",
         content: "Hello",
         expect_reply: false,
       },
       context
     )
 
-    expect(result).toBe("Message sent to emp_bob")
+    expect(result).toBe("Message sent to ews_bob")
 
     // 验证消息来自 alice（SessionRegistry），不是 bayecao（agent）
-    const bobClient = messageService.getClient("emp_bob")
+    const bobClient = messageService.getClient("ews_bob")
     const message = await bobClient.recv()
-    expect(message.from).toBe("emp_alice")
+    expect(message.from).toBe("ews_alice")
 
     // 清理
     sessionRegistry.unregister("test-session-priority")
@@ -284,7 +279,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "emp_alice",
+          to: "ews_alice",
           content: "Hello",
           expect_reply: false,
         },
@@ -295,7 +290,7 @@ describe("SendMessageTool with Boss", () => {
 
   test("should reject unknown short-name recipient", async () => {
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-invalid-short-name", "emp_alice")
+    sessionRegistry.register("test-session-invalid-short-name", "ews_alice")
 
     const context = {
       sessionID: "test-session-invalid-short-name",
@@ -311,7 +306,9 @@ describe("SendMessageTool with Boss", () => {
         },
         context
       )
-    ).rejects.toThrow("Recipient does not exist: nonexistent")
+    ).rejects.toThrow(
+      "Unsupported message target 'nonexistent'. Use employee_work_session_id or boss_id."
+    )
 
     sessionRegistry.unregister("test-session-invalid-short-name")
   })
@@ -325,7 +322,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       toolWithoutStateManager.execute(
         {
-          to: "emp_bob",
+          to: "ews_bob",
           content: "Hello",
           expect_reply: false,
         },
@@ -333,8 +330,8 @@ describe("SendMessageTool with Boss", () => {
           sessionID: "test-session-boss-no-state-manager",
           messageID: "msg-no-state-manager",
           agent: "bayecao",
-          directory: TEST_WORKSPACE,
-          worktree: TEST_WORKSPACE,
+          directory: workspaceRoot,
+          worktree: workspaceRoot,
           abort: new AbortController().signal,
           metadata: () => {},
           ask: async () => {},
@@ -345,11 +342,11 @@ describe("SendMessageTool with Boss", () => {
 
   test("should stop reply reminders after reply attempt even if send_message fails", async () => {
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
-    sessionRegistry.register("test-session-reply-attempt", "emp_alice")
+    sessionRegistry.register("test-session-reply-attempt", "ews_alice")
 
     await messageService.send(
-      "emp_bob",
-      "emp_alice",
+      "ews_bob",
+      "ews_alice",
       "Please reply to me",
       undefined,
       undefined,
@@ -364,7 +361,7 @@ describe("SendMessageTool with Boss", () => {
     await expect(
       sendMessageTool.execute(
         {
-          to: "emp_bob",
+          to: "ews_bob",
           content: "I am trying to reply",
           expect_reply: false,
         },
@@ -375,21 +372,22 @@ describe("SendMessageTool with Boss", () => {
       )
     ).rejects.toThrow("simulated send failure")
 
-    const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
+    const memoryManager = new MemoryManager(workspaceRoot, stateManager)
     const replyTracker = new ReplyTracker(
-      "emp_alice",
+      "ews_alice",
       messageService,
       memoryManager,
+      undefined as any,
       stateManager
     )
 
     const events = stateManager.getEvents({
-      employeeId: "emp_alice",
+      employeeWorkSessionId: "ews_alice",
       limit: 20,
     })
     const replyAttemptEvent = events.find(
       (event) =>
-        event.type === "reply_attempted" && event.details.to === "emp_bob"
+        event.type === "reply_attempted" && event.details.to === "ews_bob"
     )
     expect(replyAttemptEvent).toBeDefined()
 
@@ -404,12 +402,12 @@ describe("SendMessageTool with Boss", () => {
     const { sessionRegistry } = await import("../../src/utils/SessionRegistry")
     sessionRegistry.register(
       "test-session-missing-recipient-reply",
-      "emp_alice"
+      "ews_alice"
     )
 
     await messageService.send(
-      "emp_bob",
-      "emp_alice",
+      "ews_bob",
+      "ews_alice",
       "Please reply to me",
       undefined,
       undefined,
@@ -428,23 +426,26 @@ describe("SendMessageTool with Boss", () => {
           agent: undefined,
         }
       )
-    ).rejects.toThrow("Recipient does not exist: nonexistent")
+    ).rejects.toThrow(
+      "Unsupported message target 'nonexistent'. Use employee_work_session_id or boss_id."
+    )
 
-    const memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)
+    const memoryManager = new MemoryManager(workspaceRoot, stateManager)
     const replyTracker = new ReplyTracker(
-      "emp_alice",
+      "ews_alice",
       messageService,
       memoryManager,
+      undefined as any,
       stateManager
     )
 
     const events = stateManager.getEvents({
-      employeeId: "emp_alice",
+      employeeWorkSessionId: "ews_alice",
       limit: 20,
     })
     const replyAttemptEvent = events.find(
       (event) =>
-        event.type === "reply_attempted" && event.details.to === "emp_bob"
+        event.type === "reply_attempted" && event.details.to === "ews_bob"
     )
     expect(replyAttemptEvent).toBeDefined()
 
@@ -459,7 +460,7 @@ describe("SendMessageTool with Boss", () => {
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-same-task", "emp_alice")
+      sessionRegistry.register("test-session-same-task", "ews_alice")
 
       const context = {
         sessionID: "test-session-same-task",
@@ -469,19 +470,19 @@ describe("SendMessageTool with Boss", () => {
       // Alice 发送消息给 Bob
       const result = await sendMessageTool.execute(
         {
-          to: "emp_bob",
+          to: "ews_bob",
           content: "Same task message",
           expect_reply: false,
         },
         context
       )
 
-      expect(result).toBe("Message sent to emp_bob")
+      expect(result).toBe("Message sent to ews_bob")
 
       // 验证消息已发送
-      const bobClient = messageService.getClient("emp_bob")
+      const bobClient = messageService.getClient("ews_bob")
       const message = await bobClient.recv()
-      expect(message.from).toBe("emp_alice")
+      expect(message.from).toBe("ews_alice")
       expect(message.content).toBe("Same task message")
 
       // 清理
@@ -490,22 +491,19 @@ describe("SendMessageTool with Boss", () => {
 
     test("should route messages between stable employee IDs", async () => {
       // 注册另一个稳定 ID 员工
-      await stateManager.registerEmployee({
-        employeeId: "emp_dave",
-        name: "dave",
-        hiredBy: "emp_alice",
-        roleId: "test-role",
-        paused: false,
-        status: "idle",
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_dave",
+          name: "dave",
+          hiredBy: "ews_alice",
+          roleId: "test-role",
+        })
+      )
 
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-cross-task", "emp_alice")
+      sessionRegistry.register("test-session-cross-task", "ews_alice")
 
       const context = {
         sessionID: "test-session-cross-task",
@@ -515,19 +513,19 @@ describe("SendMessageTool with Boss", () => {
       // Alice 发送消息给 Dave
       const result = await sendMessageTool.execute(
         {
-          to: "emp_dave",
+          to: "ews_dave",
           content: "Stable ID message",
           expect_reply: false,
         },
         context
       )
 
-      expect(result).toBe("Message sent to emp_dave")
+      expect(result).toBe("Message sent to ews_dave")
 
       // 验证消息已发送
-      const daveClient = messageService.getClient("emp_dave")
+      const daveClient = messageService.getClient("ews_dave")
       const message = await daveClient.recv()
-      expect(message.from).toBe("emp_alice")
+      expect(message.from).toBe("ews_alice")
       expect(message.content).toBe("Stable ID message")
 
       // 清理
@@ -543,19 +541,19 @@ describe("SendMessageTool with Boss", () => {
       // Boss 发送消息给员工
       const result = await sendMessageTool.execute(
         {
-          to: "emp_alice",
+          to: "ews_alice",
           content: "Boss routing message",
           expect_reply: false,
         },
         context
       )
 
-      expect(result).toBe("Message sent to emp_alice")
+      expect(result).toBe("Message sent to ews_alice")
 
       // 验证消息已发送
-      const aliceClient = messageService.getClient("emp_alice")
+      const aliceClient = messageService.getClient("ews_alice")
       const message = await aliceClient.recv()
-      expect(message.from).toBe("0-bayecao")
+      expect(message.from).toBe("boss_bayecao")
       expect(message.content).toBe("Boss routing message")
     })
 
@@ -563,7 +561,7 @@ describe("SendMessageTool with Boss", () => {
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-to-boss", "emp_alice")
+      sessionRegistry.register("test-session-to-boss", "ews_alice")
 
       const context = {
         sessionID: "test-session-to-boss",
@@ -573,18 +571,18 @@ describe("SendMessageTool with Boss", () => {
       // Alice 发送消息给 Boss
       const result = await sendMessageTool.execute(
         {
-          to: "0-bayecao",
+          to: "boss_bayecao",
           content: "Message to boss",
         },
         context
       )
 
-      expect(result).toBe("Message sent to 0-bayecao")
+      expect(result).toBe("Message sent to boss_bayecao")
 
       // 验证消息已发送
-      const bossClient = messageService.getClient("0-bayecao")
+      const bossClient = messageService.getClient("boss_bayecao")
       const message = await bossClient.recv()
-      expect(message.from).toBe("emp_alice")
+      expect(message.from).toBe("ews_alice")
       expect(message.content).toBe("Message to boss")
 
       // 清理
@@ -593,152 +591,121 @@ describe("SendMessageTool with Boss", () => {
   })
 
   describe("Unified Recipient Resolution", () => {
-    test("should route globally unique employee names without taskId expansion", async () => {
-      await stateManager.registerEmployee({
-        employeeId: "emp_tl_001",
-        name: "TL-001",
-        roleId: "technical-lead",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+    test("should reject globally unique employee names", async () => {
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_tl_001",
+          name: "TL-001",
+          roleId: "technical-lead",
+          hiredBy: null,
+        })
+      )
 
-      await stateManager.registerEmployee({
-        employeeId: "emp_ac_sendmsg_fix",
-        name: "AC-sendmsg-fix",
-        roleId: "architecture-consultant",
-        hiredBy: "emp_tl_001",
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_ac_sendmsg_fix",
+          name: "AC-sendmsg-fix",
+          roleId: "architecture-consultant",
+          hiredBy: "ews_tl_001",
+        })
+      )
 
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-unique-name", "emp_tl_001")
+      sessionRegistry.register("test-session-unique-name", "ews_tl_001")
 
-      const result = await sendMessageTool.execute(
-        {
-          to: "AC-sendmsg-fix",
-          content: "Test unique-name routing",
-          expect_reply: false,
-        },
-        {
-          sessionID: "test-session-unique-name",
-          agent: undefined,
-        }
+      await expect(
+        sendMessageTool.execute(
+          {
+            to: "AC-sendmsg-fix",
+            content: "Test unique-name routing",
+            expect_reply: false,
+          },
+          {
+            sessionID: "test-session-unique-name",
+            agent: undefined,
+          }
+        )
+      ).rejects.toThrow(
+        "Unsupported message target 'AC-sendmsg-fix'. Use employee_work_session_id or boss_id."
       )
-
-      expect(result).toBe("Message sent to emp_ac_sendmsg_fix")
-
-      // 验证消息已发送到正确的recipient
-      const recipientClient = messageService.getClient("emp_ac_sendmsg_fix")
-      const message = await recipientClient.recv()
-      expect(message.from).toBe("emp_tl_001")
-      expect(message.content).toBe("Test unique-name routing")
 
       sessionRegistry.unregister("test-session-unique-name")
     })
 
-    test("should use explicit stable employeeId directly", async () => {
-      await stateManager.registerEmployee({
-        employeeId: "emp_tl_001",
-        name: "TL-001",
-        roleId: "technical-lead",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+    test("should reject explicit stable employeeId directly", async () => {
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_tl_001",
+          name: "TL-001",
+          roleId: "technical-lead",
+          hiredBy: null,
+        })
+      )
 
-      await stateManager.registerEmployee({
-        employeeId: "emp_architecture_consultant",
-        name: "Architecture Consultant",
-        roleId: "architecture-consultant",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_architecture_consultant",
+          name: "Architecture Consultant",
+          roleId: "architecture-consultant",
+          hiredBy: null,
+        })
+      )
 
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-explicit-stable-id", "emp_tl_001")
+      sessionRegistry.register("test-session-explicit-stable-id", "ews_tl_001")
 
-      const result = await sendMessageTool.execute(
-        {
-          to: "emp_architecture_consultant",
-          content: "Stable employeeId message",
-          expect_reply: false,
-        },
-        {
-          sessionID: "test-session-explicit-stable-id",
-          agent: undefined,
-        }
+      await expect(
+        sendMessageTool.execute(
+          {
+            to: "emp_architecture_consultant",
+            content: "Stable employeeId message",
+            expect_reply: false,
+          },
+          {
+            sessionID: "test-session-explicit-stable-id",
+            agent: undefined,
+          }
+        )
+      ).rejects.toThrow(
+        "Unsupported message target 'emp_architecture_consultant'. Use employee_work_session_id or boss_id."
       )
-
-      expect(result).toBe("Message sent to emp_architecture_consultant")
-
-      // 验证消息已发送到正确的recipient
-      const recipientClient = messageService.getClient(
-        "emp_architecture_consultant"
-      )
-      const message = await recipientClient.recv()
-      expect(message.from).toBe("emp_tl_001")
-      expect(message.content).toBe("Stable employeeId message")
 
       sessionRegistry.unregister("test-session-explicit-stable-id")
     })
 
     test("should reject duplicate employee names", async () => {
-      await stateManager.registerEmployee({
-        employeeId: "emp_tl_001",
-        name: "TL-001",
-        roleId: "technical-lead",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_tl_001",
+          name: "TL-001",
+          roleId: "technical-lead",
+          hiredBy: null,
+        })
+      )
 
-      await stateManager.registerEmployee({
-        employeeId: "emp_ac_primary",
-        name: "AC-sendmsg-fix",
-        roleId: "architecture-consultant",
-        hiredBy: "emp_tl_001",
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_ac_primary",
+          name: "AC-sendmsg-fix",
+          roleId: "architecture-consultant",
+          hiredBy: "ews_tl_001",
+        })
+      )
 
-      await stateManager.registerEmployee({
-        employeeId: "emp_ac_duplicate",
-        name: "AC-sendmsg-fix",
-        roleId: "architecture-consultant",
-        hiredBy: "emp_tl_001",
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_ac_duplicate",
+          name: "AC-sendmsg-fix",
+          roleId: "architecture-consultant",
+          hiredBy: "ews_tl_001",
+        })
+      )
 
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-duplicate-name", "emp_tl_001")
+      sessionRegistry.register("test-session-duplicate-name", "ews_tl_001")
 
       await expect(
         sendMessageTool.execute(
@@ -752,27 +719,26 @@ describe("SendMessageTool with Boss", () => {
             agent: undefined,
           }
         )
-      ).rejects.toThrow("Recipient name is ambiguous")
+      ).rejects.toThrow(
+        "Unsupported message target 'AC-sendmsg-fix'. Use employee_work_session_id or boss_id."
+      )
 
       sessionRegistry.unregister("test-session-duplicate-name")
     })
 
     test("should reject self-messaging", async () => {
-      await stateManager.registerEmployee({
-        employeeId: "emp_tl_001",
-        name: "TL-001",
-        roleId: "technical-lead",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_tl_001",
+          name: "TL-001",
+          roleId: "technical-lead",
+          hiredBy: null,
+        })
+      )
 
       const { sessionRegistry } =
         await import("../../src/utils/SessionRegistry")
-      sessionRegistry.register("test-session-self-message", "emp_tl_001")
+      sessionRegistry.register("test-session-self-message", "ews_tl_001")
 
       await expect(
         sendMessageTool.execute(
@@ -786,23 +752,22 @@ describe("SendMessageTool with Boss", () => {
             agent: undefined,
           }
         )
-      ).rejects.toThrow("不能向自己发送消息")
+      ).rejects.toThrow(
+        "Unsupported message target 'TL-001'. Use employee_work_session_id or boss_id."
+      )
 
       sessionRegistry.unregister("test-session-self-message")
     })
 
     test("Boss rejects unknown short names", async () => {
-      await stateManager.registerEmployee({
-        employeeId: "emp_mason",
-        name: "mason",
-        roleId: "test-role",
-        hiredBy: null,
-        status: "idle",
-        paused: false,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_mason",
+          name: "mason",
+          roleId: "test-role",
+          hiredBy: null,
+        })
+      )
 
       await expect(
         sendMessageTool.execute(
@@ -816,7 +781,9 @@ describe("SendMessageTool with Boss", () => {
             agent: "bayecao",
           }
         )
-      ).rejects.toThrow("Recipient does not exist: ghost")
+      ).rejects.toThrow(
+        "Unsupported message target 'ghost'. Use employee_work_session_id or boss_id."
+      )
     })
   })
 })

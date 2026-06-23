@@ -4,11 +4,13 @@ import * as path from "node:path"
 import * as yaml from "yaml"
 import { StateManager } from "../../src/state/StateManager"
 import type { Employee } from "../../src/types/index"
+import {
+  getTestProjectPaths,
+  resetTestWorkspace,
+} from "../helpers/testWorkspace"
 
-const TEST_WORKSPACE = path.join(
-  import.meta.dir,
-  "../fixtures/state-manager-test"
-)
+const { suiteRoot, projectPath, workspaceRoot } =
+  getTestProjectPaths("state-manager")
 
 function createEmployee(overrides: Partial<Employee> = {}): Employee {
   return {
@@ -16,11 +18,10 @@ function createEmployee(overrides: Partial<Employee> = {}): Employee {
     name: "worker",
     roleId: "developer",
     hiredBy: null,
-    status: "idle",
-    paused: false,
+    description: "Worker employee",
+    contextPaths: [],
     createdAt: "2026-06-19T00:00:00.000Z",
-    lastActiveAt: "2026-06-19T00:00:00.000Z",
-    activeSessionId: null,
+    updatedAt: "2026-06-19T00:00:00.000Z",
     ...overrides,
   }
 }
@@ -29,17 +30,12 @@ describe("StateManager employee state contract", () => {
   let stateManager: StateManager
 
   beforeEach(async () => {
-    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
-    await fs.mkdir(TEST_WORKSPACE, { recursive: true })
-    stateManager = new StateManager(
-      "test-project",
-      TEST_WORKSPACE,
-      TEST_WORKSPACE
-    )
+    await resetTestWorkspace(suiteRoot)
+    stateManager = new StateManager("test-project", workspaceRoot, projectPath)
   })
 
   afterEach(async () => {
-    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
+    await fs.rm(suiteRoot, { recursive: true, force: true })
   })
 
   it("registers and persists employees without taskId", async () => {
@@ -51,15 +47,19 @@ describe("StateManager employee state contract", () => {
 
     const persisted = yaml.parse(
       await fs.readFile(
-        path.join(TEST_WORKSPACE, ".cclover", "employees.yaml"),
+        path.join(projectPath, ".cclover", "employees.yaml"),
         "utf-8"
       )
     )
     expect(persisted.employees[0]).toEqual(employee)
     expect("taskId" in persisted.employees[0]).toBe(false)
+    expect("status" in persisted.employees[0]).toBe(false)
+    expect("paused" in persisted.employees[0]).toBe(false)
+    expect("activeSessionId" in persisted.employees[0]).toBe(false)
+    expect("lastActiveAt" in persisted.employees[0]).toBe(false)
   })
 
-  it("rejects duplicate employeeId and invalid legacy-style names", async () => {
+  it("rejects duplicate employeeId and blank names", async () => {
     const employee = createEmployee()
 
     await stateManager.registerEmployee(employee)
@@ -69,7 +69,7 @@ describe("StateManager employee state contract", () => {
     )
     await expect(
       stateManager.registerEmployee(
-        createEmployee({ employeeId: "emp_invalid", name: "1-invalid" })
+        createEmployee({ employeeId: "emp_invalid", name: "   " })
       )
     ).rejects.toThrow("格式无效")
   })
@@ -77,9 +77,9 @@ describe("StateManager employee state contract", () => {
   it("skips persisted employees missing employeeId or roleId", async () => {
     const validEmployee = createEmployee({ employeeId: "emp_valid" })
 
-    await fs.mkdir(path.join(TEST_WORKSPACE, ".cclover"), { recursive: true })
+    await fs.mkdir(path.join(projectPath, ".cclover"), { recursive: true })
     await fs.writeFile(
-      path.join(TEST_WORKSPACE, ".cclover", "employees.yaml"),
+      path.join(projectPath, ".cclover", "employees.yaml"),
       yaml.stringify({
         employees: [
           {
@@ -119,15 +119,13 @@ describe("StateManager employee state contract", () => {
     ).toBe(false)
   })
 
-  it("queries employees by name, roleId, hiredBy, status, paused, and running", async () => {
+  it("queries employees by stable metadata", async () => {
     await stateManager.registerEmployee(
       createEmployee({
         employeeId: "emp_api_1",
         name: "api-worker",
         roleId: "developer",
         hiredBy: "emp_creator",
-        status: "busy",
-        paused: false,
       })
     )
     await stateManager.registerEmployee(
@@ -136,8 +134,6 @@ describe("StateManager employee state contract", () => {
         name: "api-worker",
         roleId: "reviewer",
         hiredBy: "emp_creator",
-        status: "idle",
-        paused: true,
       })
     )
     await stateManager.registerEmployee(
@@ -146,8 +142,6 @@ describe("StateManager employee state contract", () => {
         name: "docs-worker",
         roleId: "developer",
         hiredBy: null,
-        status: "offline",
-        paused: false,
       })
     )
 
@@ -156,40 +150,17 @@ describe("StateManager employee state contract", () => {
       stateManager.listEmployeesByRoleId("developer").map((e) => e.employeeId)
     ).toEqual(["emp_api_1", "emp_docs_1"])
     expect(stateManager.listEmployeesByHiredBy("emp_creator")).toHaveLength(2)
-    expect(
-      stateManager.listEmployeesByStatus("busy").map((e) => e.employeeId)
-    ).toEqual(["emp_api_1"])
-    expect(stateManager.listPausedEmployees().map((e) => e.employeeId)).toEqual(
-      ["emp_api_2"]
-    )
-    expect(
-      stateManager.listRunningEmployees().map((e) => e.employeeId)
-    ).toEqual(["emp_api_1", "emp_docs_1"])
   })
 
-  it("persists paused and prompt recovery metadata independent of task ownership", async () => {
-    const employee = createEmployee({ status: "busy" })
-
-    await stateManager.registerEmployee(employee)
-    await stateManager.pauseEmployee(employee.employeeId)
-    await stateManager.setPromptRecovery(employee.employeeId, {
-      version: 1,
-      sessionId: "session-recover",
-      startedAt: "2026-06-19T00:01:00.000Z",
-      triggerEventType: "message",
-    })
-
-    expect(stateManager.getEmployee(employee.employeeId)?.paused).toBe(true)
-    expect(stateManager.getEmployee(employee.employeeId)?.status).toBe(
-      "offline"
-    )
-    expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(1)
-
-    await stateManager.clearPromptRecovery(employee.employeeId)
-    expect(stateManager.listEmployeesWithPromptRecovery()).toHaveLength(0)
-  })
-
-  it("does not expose taskId-based employee grouping as a state contract", () => {
+  it("does not expose old runtime-field employee APIs as a state contract", () => {
     expect("listEmployeesByTaskId" in stateManager).toBe(false)
+    expect("listEmployeesByStatus" in stateManager).toBe(false)
+    expect("listPausedEmployees" in stateManager).toBe(false)
+    expect("listRunningEmployees" in stateManager).toBe(false)
+    expect("pauseEmployee" in stateManager).toBe(false)
+    expect("resumeEmployee" in stateManager).toBe(false)
+    expect("setPromptRecovery" in stateManager).toBe(false)
+    expect("clearPromptRecovery" in stateManager).toBe(false)
+    expect("listEmployeesWithPromptRecovery" in stateManager).toBe(false)
   })
 })

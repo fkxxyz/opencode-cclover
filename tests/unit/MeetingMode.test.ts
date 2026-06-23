@@ -153,7 +153,7 @@ Project override test-role prompt`
     // Meeting-mode agent uses role.id as identity, not Boss from session
     expect(actor).toEqual({
       actorName: "TestRole",
-      actorEmployeeId: "0-test-role",
+      actorEmployeeId: "boss_test-role",
       actorType: "meeting-role",
       isBoss: false,
       hasBossAuthority: true,

@@ -1,42 +1,37 @@
 import { describe, expect, it } from "bun:test"
 import {
   createEmployeeId,
-  createRootTaskId,
-  createWorkItemId,
+  createEmployeeWorkSessionId,
+  formatBossId,
+  isBossId,
 } from "../../src/types"
 import type {
   BossId,
-  CreateRootTaskInput,
-  CreateWorkItemInput,
   Employee,
   EmployeeId,
-  RootTask,
-  RootTaskId,
-  UpdateWorkItemInput,
-  WorkItem,
-  WorkItemFilters,
-  WorkItemId,
-  WorktreeRef,
+  EmployeeWorkSession,
+  EmployeeWorkSessionId,
 } from "../../src/types"
 
-describe("three-layer domain types", () => {
-  it("defines task-independent employee records", () => {
+describe("employee work session domain types", () => {
+  it("defines metadata-only employee records", () => {
     const employee: Employee = {
       employeeId: "emp_designer" as EmployeeId,
       name: "designer-api",
       roleId: "designer",
-      handbookPath: "docs/handbooks/api-design.md",
+      description: "Designs API boundaries",
+      contextPaths: ["docs/handbooks/api-design.md"],
       hiredBy: "boss_alice" as BossId,
-      status: "idle",
-      paused: false,
       createdAt: "2026-06-19T00:00:00.000Z",
-      lastActiveAt: "2026-06-19T00:00:00.000Z",
-      activeSessionId: null,
+      updatedAt: "2026-06-19T00:00:00.000Z",
     }
 
     expect(employee.employeeId).toBe("emp_designer")
     expect(employee.roleId).toBe("designer")
-    expect("taskId" in employee).toBe(false)
+    expect(employee.description).toBe("Designs API boundaries")
+    expect(employee.contextPaths).toEqual(["docs/handbooks/api-design.md"])
+    expect("status" in employee).toBe(false)
+    expect("activeSessionId" in employee).toBe(false)
   })
 
   it("creates stable employee ids with the emp prefix", () => {
@@ -46,72 +41,45 @@ describe("three-layer domain types", () => {
     expect(employeeId).not.toContain("-")
   })
 
-  it("creates root task ids with the rt prefix", () => {
-    const rootTaskId = createRootTaskId()
+  it("creates employee work session ids with the ews prefix", () => {
+    const employeeWorkSessionId = createEmployeeWorkSessionId()
 
-    expect(rootTaskId).toMatch(/^rt_[0-9a-f]{32}$/)
-    expect(rootTaskId).not.toContain("-")
+    expect(employeeWorkSessionId).toMatch(/^ews_[0-9a-f]{32}$/)
+    expect(employeeWorkSessionId).not.toContain("-")
   })
 
-  it("creates work item ids with the wi prefix", () => {
-    const workItemId = createWorkItemId()
+  it("formats boss ids with the boss prefix", () => {
+    const bossId = formatBossId("alice")
 
-    expect(workItemId).toMatch(/^wi_[0-9a-f]{32}$/)
-    expect(workItemId).not.toContain("-")
+    expect(bossId).toBe("boss_alice")
+    expect(isBossId(bossId)).toBe(true)
+    expect(isBossId("0-alice")).toBe(false)
   })
 
-  it("defines root task and work item contracts", () => {
-    const rootTaskId = "rt_refactor" as RootTaskId
-    const workItemId = "wi_types" as WorkItemId
+  it("defines employee work session records without work item fields", () => {
+    const ewsId = "ews_types" as EmployeeWorkSessionId
     const employeeId = "emp_designer" as EmployeeId
-    const worktreeRef =
-      ".worktrees/three-layer-task-model-phase1" as WorktreeRef
 
-    const createRootTaskInput: CreateRootTaskInput = {
-      summary: "Define core domain types",
-      createdBy: "boss_alice" as BossId,
-    }
-    const rootTask: RootTask = {
-      rootTaskId,
-      summary: createRootTaskInput.summary,
-      createdBy: createRootTaskInput.createdBy,
-      createdAt: "2026-06-19T00:00:00.000Z",
-    }
-    const createWorkItemInput: CreateWorkItemInput = {
-      rootTaskId,
+    const employeeWorkSession: EmployeeWorkSession = {
+      employeeWorkSessionId: ewsId,
+      parentEmployeeWorkSessionId: null,
       employeeId,
+      opencodeSessionId: null,
       description: "Define the TypeScript contracts",
-      parentWorkItemId: null,
-      dependsOn: [],
-      worktreeRef,
-    }
-    const workItem: WorkItem = {
-      workItemId,
-      rootTaskId,
-      parentWorkItemId: createWorkItemInput.parentWorkItemId ?? null,
-      employeeId,
-      description: createWorkItemInput.description,
-      dependsOn: createWorkItemInput.dependsOn ?? [],
-      worktreeRef: createWorkItemInput.worktreeRef ?? null,
+      args: { worktree_path: ".worktrees/ews-taskplan" },
+      contextPathsSnapshot: ["docs/architecture.md"],
+      worktreeRef: ".worktrees/ews-taskplan",
+      status: "offline",
+      closedAt: null,
+      closedBy: null,
+      closeReason: null,
       createdAt: "2026-06-19T00:00:00.000Z",
       updatedAt: "2026-06-19T00:00:00.000Z",
     }
-    const updates: UpdateWorkItemInput = {
-      description: "Refine the TypeScript contracts",
-      parentWorkItemId: null,
-      dependsOn: [workItemId],
-      worktreeRef: null,
-    }
-    const filters: WorkItemFilters = {
-      rootTaskId,
-      employeeId,
-      parentWorkItemId: null,
-      dependsOn: workItemId,
-    }
 
-    expect(rootTask.rootTaskId).toBe(rootTaskId)
-    expect(workItem.employeeId).toBe(employeeId)
-    expect(updates.dependsOn).toEqual([workItemId])
-    expect(filters.dependsOn).toBe(workItemId)
+    expect(employeeWorkSession.employeeWorkSessionId).toBe(ewsId)
+    expect(employeeWorkSession.employeeId).toBe(employeeId)
+    expect("dependsOn" in employeeWorkSession).toBe(false)
+    expect("result" in employeeWorkSession).toBe(false)
   })
 })

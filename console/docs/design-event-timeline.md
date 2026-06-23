@@ -51,8 +51,8 @@ Based on backend event tracing design ([Backend Events Design](../../docs/design
 | employee_status_changed | 🔄   | Gray   |
 | session_created         | ⚡   | Blue   |
 | session_summarized      | 📊   | Green  |
-| agent_created           | 🤖   | Purple |
-| agent_completed         | ✅   | Green  |
+| employee_work_session_created           | 🤖   | Purple |
+| employee_work_session_status_changed         | ✅   | Green  |
 | task_created            | 📋   | Blue   |
 | task_modified           | ✏️   | Orange |
 | task_completed          | ✅   | Green  |
@@ -74,9 +74,9 @@ const EVENT_DESCRIPTIONS = {
   session_summarized: (details) =>
     `Session summarized (${details.messageCount} messages, ${details.tokenCount} tokens)`,
 
-  agent_created: (details) => `Agent created: ${details.taskName}`,
+  employee_work_session_created: (details) => `Agent created: ${details.taskName}`,
 
-  agent_completed: (details) => `Agent completed: ${details.taskName}`,
+  employee_work_session_status_changed: (details) => `EmployeeWorkSession status changed: ${details.taskName}`,
 
   task_created: (details) => `Task created: ${details.taskName}`,
 

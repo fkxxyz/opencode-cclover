@@ -4,243 +4,162 @@
  * 提供工具注册机制、类型定义和权限管理
  */
 import type { ToolDefinition } from "@opencode-ai/plugin"
-import type { MessageService } from "../core/MessageService"
-import type { MemoryManager } from "../core/MemoryManager"
-import type { BossManager } from "../core/BossManager"
-import type { RootTaskManager } from "../core/RootTaskManager"
-import type { WorkItemManager } from "../core/WorkItemManager"
 import type { OpencodeClient } from "@opencode-ai/sdk"
+import type { BossManager } from "../core/BossManager"
+import type { EmployeeWorkSessionManager } from "../core/EmployeeWorkSessionManager"
+import type { MemoryManager } from "../core/MemoryManager"
+import type { MessageService } from "../core/MessageService"
 import type { ProjectInstance } from "../server/ProjectRegistry"
-import { createSendMessageTool } from "./SendMessageTool"
 import { createEditTasksTool } from "./EditTasksTool"
-import { createCreateAgentTool } from "./CreateAgentTool"
-import { createHireEmployeeTool } from "./HireEmployeeTool"
-import { createRefreshRolesTool } from "./RefreshRolesTool"
-import { createShowTasksTool } from "./ShowTasksTool"
-import { createShowHireableRolesTool } from "./ShowHireableRolesTool"
-import { createResumeEmployeeTool } from "./ResumeEmployeeTool"
-import { createPauseEmployeeTool } from "./PauseEmployeeTool"
-import { createIntegrateTool } from "./IntegrateTool"
-import { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
 import {
-  createCreateRootTaskTool,
-  createCreateWorkItemTool,
-  createDeleteWorkItemTool,
-  createGetWorkItemTool,
-  createListWorkItemsTool,
-  createUpdateWorkItemTool,
-} from "./WorkItemTools.contract"
+  createCloseEmployeeWorkSessionTool,
+  createCreateEmployeeWorkSessionTool,
+  createShowAvailableEmployeesTool,
+  createShowEmployeeWorkSessionsTool,
+  createUpdateEmployeeTool,
+} from "./EmployeeTools"
+import { createHireEmployeeTool } from "./HireEmployeeTool"
+import { createIntegrateTool } from "./IntegrateTool"
+import { createRefreshRolesTool } from "./RefreshRolesTool"
+import { createSendMessageTool } from "./SendMessageTool"
+import { createShowHireableRolesTool } from "./ShowHireableRolesTool"
+import { createShowTasksTool } from "./ShowTasksTool"
 
-/**
- * 工具定义类型
- */
 export type CcloverTool = ToolDefinition
 
-/**
- * 工具注册表类型
- */
 export interface ToolRegistry {
   [toolName: string]: CcloverTool
 }
 
-/**
- * 工具权限配置
- *
- * 用于控制不同员工可以使用哪些工具
- */
 export interface ToolPermissions {
   [toolName: string]: boolean
 }
 
-/**
- * 默认工具权限
- *
- * 所有员工都可以使用所有工具
- */
 export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   send_message: true,
   edit_tasks: true,
-  create_agent: true,
-  hire_employee: true, // 启用雇佣功能
+  hire_employee: true,
+  update_employee: true,
+  show_available_employees: true,
+  create_employee_work_session: true,
+  show_employee_work_sessions: true,
+  close_employee_work_session: true,
   refresh_roles: true,
   show_tasks: true,
   show_hireable_roles: true,
-  resume_employee: true,
-  pause_employee: true,
   integrate: true,
-  complete_major_task: true,
-  create_root_task: true,
-  create_work_item: true,
-  update_work_item: true,
-  delete_work_item: true,
-  get_work_item: true,
-  list_work_items: true,
 }
 
-/**
- * 获取员工可用的工具列表
- *
- * @param employeeId 员工 ID
- * @param customPermissions 自定义权限（可选）
- * @returns 工具权限配置
- */
 export function getToolPermissions(
-  employeeId: string,
+  _employeeId: string,
   customPermissions?: ToolPermissions
 ): ToolPermissions {
-  // 第一版使用默认权限
-  // 未来可以根据员工角色或名称返回不同权限
   return customPermissions || DEFAULT_TOOL_PERMISSIONS
 }
 
-/**
- * 工具导出
- *
- * 从各个工具文件导入并统一导出
- */
 export { createSendMessageTool } from "./SendMessageTool"
 export { createEditTasksTool } from "./EditTasksTool"
-export { createCreateAgentTool } from "./CreateAgentTool"
 export { createHireEmployeeTool } from "./HireEmployeeTool"
+export {
+  createCloseEmployeeWorkSessionTool,
+  createCreateEmployeeWorkSessionTool,
+  createShowAvailableEmployeesTool,
+  createShowEmployeeWorkSessionsTool,
+  createUpdateEmployeeTool,
+} from "./EmployeeTools"
 export { createRefreshRolesTool } from "./RefreshRolesTool"
 export { createShowTasksTool } from "./ShowTasksTool"
 export { createShowHireableRolesTool } from "./ShowHireableRolesTool"
-export { createResumeEmployeeTool } from "./ResumeEmployeeTool"
-export { createPauseEmployeeTool } from "./PauseEmployeeTool"
 export { createIntegrateTool } from "./IntegrateTool"
-export { createCompleteMajorTaskTool } from "./CompleteMajorTaskTool"
-export {
-  createCreateRootTaskTool,
-  createCreateWorkItemTool,
-  createDeleteWorkItemTool,
-  createGetWorkItemTool,
-  createListWorkItemsTool,
-  createUpdateWorkItemTool,
-} from "./WorkItemTools.contract"
 
-/**
- * 创建所有工具
- *
- * @param deps 依赖项
- * @returns 工具注册表
- */
 export function createTools(deps: {
   messageService: MessageService
   memoryManager: MemoryManager
-  rootTaskManager: RootTaskManager
-  workItemManager: WorkItemManager
   opcodeClient: OpencodeClient
   bossManager?: BossManager
   stateManager?: any
+  employeeWorkSessionManager?: EmployeeWorkSessionManager
   project?: ProjectInstance
 }): ToolRegistry {
+  const employeeWorkSessionManager =
+    deps.employeeWorkSessionManager ?? deps.project?.employeeWorkSessionManager
+  if (!deps.stateManager) {
+    throw new Error("createTools requires stateManager")
+  }
+  if (!deps.project) {
+    return {
+      send_message: createSendMessageTool(
+        deps.messageService,
+        deps.bossManager,
+        deps.stateManager
+      ),
+      edit_tasks: createEditTasksTool(deps.memoryManager, deps.stateManager),
+      hire_employee: createHireEmployeeTool(
+        deps.stateManager,
+        null as any,
+        null as any,
+        deps.bossManager
+      ),
+      show_tasks: createShowTasksTool(deps.memoryManager, deps.stateManager),
+    }
+  }
+  if (!employeeWorkSessionManager) {
+    throw new Error("createTools requires employeeWorkSessionManager")
+  }
+
   return {
     send_message: createSendMessageTool(
       deps.messageService,
       deps.bossManager,
       deps.stateManager,
-      deps.project?.roleManager
+      deps.project.roleManager
     ),
-    edit_tasks: createEditTasksTool(
-      deps.memoryManager,
-      deps.stateManager!,
-      deps.bossManager,
-      deps.project?.roleManager
-    ),
-    create_agent: createCreateAgentTool(
-      deps.opcodeClient,
+    edit_tasks: createEditTasksTool(deps.memoryManager, deps.stateManager),
+    hire_employee: createHireEmployeeTool(
       deps.stateManager,
-      deps.bossManager,
-      deps.project?.roleManager,
-      deps.project?.modelConfigManager,
-      deps.workItemManager
+      deps.project.roleManager,
+      deps.project,
+      deps.bossManager
     ),
-    hire_employee: deps.project
-      ? createHireEmployeeTool(
-          deps.stateManager,
-          deps.project.roleManager,
-          deps.project,
-          deps.bossManager
-        )
-      : createHireEmployeeTool(deps.stateManager, null as any, null as any), // fallback
-    refresh_roles: deps.project
-      ? createRefreshRolesTool(deps.project)
-      : (null as any), // fallback
-    show_tasks: createShowTasksTool(
+    update_employee: createUpdateEmployeeTool(
+      deps.stateManager,
+      deps.project.roleManager,
+      employeeWorkSessionManager
+    ),
+    show_available_employees: createShowAvailableEmployeesTool(
+      deps.stateManager,
+      deps.project.roleManager,
+      employeeWorkSessionManager
+    ),
+    create_employee_work_session: createCreateEmployeeWorkSessionTool(
+      deps.project,
+      deps.project.roleManager,
       deps.memoryManager,
-      deps.stateManager!,
-      deps.bossManager,
-      deps.project?.roleManager
+      employeeWorkSessionManager,
+      deps.opcodeClient
     ),
-    show_hireable_roles: deps.project
-      ? createShowHireableRolesTool(
-          deps.project.roleManager,
-          deps.stateManager,
-          deps.bossManager
-        )
-      : (null as any), // fallback
-    resume_employee: deps.project
-      ? createResumeEmployeeTool(
-          deps.stateManager,
-          deps.bossManager!,
-          deps.project.projectId,
-          deps.project.roleManager
-        )
-      : (null as any), // fallback
-    pause_employee:
-      deps.stateManager && deps.memoryManager && deps.bossManager
-        ? createPauseEmployeeTool(
-            deps.stateManager,
-            deps.memoryManager,
-            deps.bossManager,
-            deps.project?.roleManager
-          )
-        : (null as any), // fallback
-    integrate: deps.project
-      ? createIntegrateTool(
-          deps.stateManager!,
-          deps.project.roleManager,
-          deps.memoryManager
-        )
-      : (null as any), // fallback
-    complete_major_task: deps.project
-      ? createCompleteMajorTaskTool(
-          deps.messageService,
-          deps.stateManager!,
-          deps.project.roleManager,
-          deps.workItemManager
-        )
-      : createCompleteMajorTaskTool(
-          deps.messageService,
-          deps.stateManager!,
-          undefined,
-          deps.workItemManager
-        ), // fallback
-    create_root_task: createCreateRootTaskTool(
-      deps.rootTaskManager,
-      deps.stateManager!,
-      deps.bossManager,
-      deps.project?.roleManager
+    show_employee_work_sessions: createShowEmployeeWorkSessionsTool(
+      deps.stateManager,
+      deps.project.roleManager,
+      employeeWorkSessionManager
     ),
-    create_work_item: createCreateWorkItemTool(
-      deps.workItemManager,
-      deps.stateManager!,
-      deps.bossManager,
-      deps.project?.roleManager
+    close_employee_work_session: createCloseEmployeeWorkSessionTool(
+      deps.project,
+      deps.project.roleManager,
+      employeeWorkSessionManager
     ),
-    update_work_item: createUpdateWorkItemTool(
-      deps.workItemManager,
-      deps.stateManager!,
-      deps.bossManager,
-      deps.project?.roleManager
+    refresh_roles: createRefreshRolesTool(deps.project),
+    show_tasks: createShowTasksTool(deps.memoryManager, deps.stateManager),
+    show_hireable_roles: createShowHireableRolesTool(
+      deps.project.roleManager,
+      deps.stateManager,
+      deps.bossManager
     ),
-    delete_work_item: createDeleteWorkItemTool(deps.workItemManager),
-    get_work_item: createGetWorkItemTool(deps.workItemManager),
-    list_work_items: createListWorkItemsTool(
-      deps.workItemManager,
-      deps.stateManager!,
-      deps.bossManager,
-      deps.project?.roleManager
+    integrate: createIntegrateTool(
+      deps.stateManager,
+      deps.project.roleManager,
+      deps.memoryManager,
+      employeeWorkSessionManager
     ),
   }
 }

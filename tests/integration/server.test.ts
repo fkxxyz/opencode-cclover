@@ -12,11 +12,9 @@ import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"
 import { BossManager } from "../../src/core/BossManager"
 import { RoleManager } from "../../src/core/RoleManager"
-import { RootTaskManager } from "../../src/core/RootTaskManager"
-import { WorkItemManager } from "../../src/core/WorkItemManager"
+import { EmployeeWorkSessionManager } from "../../src/core/EmployeeWorkSessionManager"
 import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
-import { AgentRegistry, agentRegistry } from "../../src/utils/AgentRegistry"
 import { ModelConfigManager } from "../../src/config/ModelConfigManager"
 import { MeetingModePromptInjector } from "../../src/meeting-mode/PromptInjector"
 import { createTestEmployee } from "../helpers/employeeFactory"
@@ -30,7 +28,7 @@ import {
   type HierarchyData,
   type EventListData,
   type StatsData,
-  type EmployeeHaltData,
+  type EmployeeWorkSessionHaltData,
 } from "../helpers/api-client"
 
 const TEST_WORKSPACE = path.join(import.meta.dir, "../.test-workspace-server")
@@ -67,7 +65,11 @@ describe("Console Server", () => {
     const memoryManager = new MemoryManager(TEST_WORKSPACE)
     const bossManager = new BossManager(undefined, TEST_WORKSPACE)
     const roleManager = new RoleManager(TEST_WORKSPACE)
-    const testAgentRegistry = new AgentRegistry()
+    const employeeWorkSessionManager = new EmployeeWorkSessionManager(
+      TEST_WORKSPACE,
+      stateManager,
+      roleManager
+    )
     const modelConfigManager = new ModelConfigManager(
       { bosses: [], projects: [] },
       {}
@@ -102,11 +104,45 @@ describe("Console Server", () => {
         hiredBy: "emp_worker_001",
       })
     )
-    const workItemManager = new WorkItemManager(TEST_WORKSPACE, stateManager)
-    const rootTaskManager = new RootTaskManager(
-      TEST_WORKSPACE,
-      stateManager,
-      workItemManager
+    await fs.mkdir(path.join(TEST_WORKSPACE, ".cclover"), { recursive: true })
+    await fs.writeFile(
+      path.join(TEST_WORKSPACE, ".cclover", "employee-work-sessions.yaml"),
+      yaml.stringify({
+        employeeWorkSessions: [
+          {
+            employeeWorkSessionId: "ews_test_role",
+            parentEmployeeWorkSessionId: null,
+            employeeId: "emp_test_role",
+            opencodeSessionId: null,
+            description: "test role session",
+            args: {},
+            contextPathsSnapshot: [],
+            worktreeRef: null,
+            status: "idle",
+            closedAt: null,
+            closedBy: null,
+            closeReason: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            employeeWorkSessionId: "ews_worker_001",
+            parentEmployeeWorkSessionId: "ews_test_role",
+            employeeId: "emp_worker_001",
+            opencodeSessionId: null,
+            description: "worker session",
+            args: {},
+            contextPathsSnapshot: [],
+            worktreeRef: null,
+            status: "busy",
+            closedAt: null,
+            closedBy: null,
+            closeReason: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      })
     )
     projectRegistry = new ProjectRegistry()
     projectRegistry.register({
@@ -117,9 +153,7 @@ describe("Console Server", () => {
       stateManager,
       messageService,
       memoryManager,
-      rootTaskManager,
-      workItemManager,
-      agentRegistry: testAgentRegistry,
+      employeeWorkSessionManager,
       bossManager,
       roleManager,
       modelConfigManager,
@@ -139,7 +173,6 @@ describe("Console Server", () => {
     )
     await server.start()
     await new Promise((resolve) => setTimeout(resolve, 100))
-    agentRegistry.clear()
     staticDir = undefined
   })
 
@@ -192,7 +225,6 @@ describe("Console Server", () => {
         expect(json.data.roleId).toBe("TestRole")
         expect(json.data.memory).toBeDefined()
         expect(json.data.tasks).toBeDefined()
-        expect(json.data.agents).toBeDefined()
       }
     })
 
@@ -220,9 +252,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:employeeId/messages - 获取消息历史", async () => {
+    test("GET /api/projects/test-project/employee-work-sessions/:employeeWorkSessionId/messages - 获取消息历史", async () => {
       const { response, json } = await fetchApi<MessageListData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role/messages`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employee-work-sessions/ews_test_role/messages`
       )
 
       expect(response.status).toBe(200)
@@ -232,9 +264,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:employeeId/tasks - 获取任务列表", async () => {
+    test("GET /api/projects/test-project/employee-work-sessions/:employeeWorkSessionId/tasks - 获取任务列表", async () => {
       const { response, json } = await fetchApi<TaskListData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role/tasks`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employee-work-sessions/ews_test_role/tasks`
       )
 
       expect(response.status).toBe(200)
@@ -285,9 +317,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("POST /api/projects/test-project/employees/:employeeId/halt - 急停指定员工", async () => {
-      const { response, json } = await fetchApi<EmployeeHaltData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_worker_001/halt`,
+    test("POST /api/projects/test-project/employee-work-sessions/:employeeWorkSessionId/halt - 急停指定员工工作会话", async () => {
+      const { response, json } = await fetchApi<EmployeeWorkSessionHaltData>(
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employee-work-sessions/ews_worker_001/halt`,
         {
           method: "POST",
           headers: {
@@ -302,23 +334,27 @@ describe("Console Server", () => {
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
       if (json.success) {
-        expect(json.data.employeeId).toBe("emp_worker_001")
+        expect(json.data.employeeWorkSessionId).toBe("ews_worker_001")
         expect(json.data.halted).toBe(true)
 
-        const employeesYamlPath = path.join(
+        const employeeWorkSessionsYamlPath = path.join(
           TEST_WORKSPACE,
           ".cclover",
-          "employees.yaml"
+          "employee-work-sessions.yaml"
         )
-        const persistedRaw = await fs.readFile(employeesYamlPath, "utf-8")
+        const persistedRaw = await fs.readFile(
+          employeeWorkSessionsYamlPath,
+          "utf-8"
+        )
         const persisted = yaml.parse(persistedRaw)
-        const haltedEmployees = persisted.employees.filter(
-          (employee: any) => employee.employeeId === json.data.employeeId
+        const haltedSessions = persisted.employeeWorkSessions.filter(
+          (session: any) =>
+            session.employeeWorkSessionId === json.data.employeeWorkSessionId
         )
 
-        expect(haltedEmployees).toHaveLength(1)
+        expect(haltedSessions).toHaveLength(1)
         expect(
-          haltedEmployees.every((employee: any) => employee.paused === true)
+          haltedSessions.every((session: any) => session.status === "abnormal")
         ).toBe(true)
       }
     })
@@ -524,9 +560,9 @@ describe("Console Server", () => {
       }
     })
 
-    test("GET /api/projects/test-project/employees/:employeeId/messages?limit=5 - 限制消息数量", async () => {
+    test("GET /api/projects/test-project/employee-work-sessions/:employeeWorkSessionId/messages?limit=5 - 限制消息数量", async () => {
       const { response, json } = await fetchApi<MessageListData>(
-        `http://localhost:${TEST_PORT}/api/projects/test-project/employees/emp_test_role/messages?limit=5`
+        `http://localhost:${TEST_PORT}/api/projects/test-project/employee-work-sessions/ews_test_role/messages?limit=5`
       )
 
       expect(response.status).toBe(200)

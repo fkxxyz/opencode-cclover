@@ -1,9 +1,15 @@
 import type { OpencodeClient } from "@opencode-ai/sdk"
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
 import type { MemoryManager, Memory } from "../MemoryManager"
 import type { RoleManager } from "../RoleManager"
 import type { StateManager } from "../../state/StateManager"
-import type { EmployeeId } from "../../types"
-import { buildSystemPrompt } from "../../utils/ContextBuilder"
+import type { EmployeeId, EmployeeWorkSessionId } from "../../types"
+import type { EmployeeWorkSessionManager } from "../EmployeeWorkSessionManager"
+import {
+  buildSystemPrompt,
+  type EmployeeContextFile,
+} from "../../utils/ContextBuilder"
 import { sessionRegistry } from "../../utils/SessionRegistry"
 import { logger } from "../../lib/logger"
 
@@ -28,11 +34,13 @@ export class SessionManager {
 
   constructor(
     private projectPath: string,
+    private employeeWorkSessionId: EmployeeWorkSessionId,
     private employeeId: EmployeeId,
     private roleName: string,
     private roleManager: RoleManager,
     private memoryManager: MemoryManager,
     private opcodeClient: OpencodeClient,
+    private employeeWorkSessionManager: EmployeeWorkSessionManager,
     private stateManager?: StateManager
   ) {}
 
@@ -66,6 +74,47 @@ export class SessionManager {
     this.summaryService = summaryService
   }
 
+  private async buildPrompt(memory: Memory): Promise<string> {
+    const role = this.roleManager.getRole(this.roleName)
+    if (!role) {
+      throw new Error(`Role '${this.roleName}' not found`)
+    }
+    const employee = this.stateManager?.getEmployee(this.employeeId)
+    if (!employee) {
+      throw new Error(`Employee '${this.employeeId}' not found`)
+    }
+    const employeeWorkSession =
+      await this.employeeWorkSessionManager.getEmployeeWorkSession(
+        this.employeeWorkSessionId
+      )
+    if (!employeeWorkSession) {
+      throw new Error(
+        `Employee work session '${this.employeeWorkSessionId}' not found`
+      )
+    }
+
+    const employeeContextFiles: EmployeeContextFile[] = []
+    for (const contextPath of employeeWorkSession.contextPathsSnapshot) {
+      employeeContextFiles.push({
+        path: contextPath,
+        content: await fs.readFile(
+          path.join(this.projectPath, contextPath),
+          "utf-8"
+        ),
+      })
+    }
+
+    return buildSystemPrompt(
+      role.systemPrompt,
+      memory,
+      { employee, employeeWorkSession },
+      ".cclover/workspace",
+      role,
+      this.roleManager,
+      employeeContextFiles
+    )
+  }
+
   /**
    * 确保 session 存在
    * 如果没有 session，创建新的；如果有，复用
@@ -82,67 +131,36 @@ export class SessionManager {
     }
 
     // 尝试从 memory 恢复 session
-    let memory = await this.memoryManager.read(this.employeeId)
-    if (memory.sessionId) {
+    let memory = await this.memoryManager.read(this.employeeWorkSessionId)
+    const storedSessionId = memory.opencodeSessionId ?? memory.sessionId
+    if (storedSessionId) {
       try {
         // 验证 session 是否有效
         const session = await this.opcodeClient.session.get({
-          path: { id: memory.sessionId },
+          path: { id: storedSessionId },
         })
 
         if (session.data?.id) {
           // Session 有效，恢复
           logger.debug(
-            `[${this.employeeId}] Restored session: ${memory.sessionId}`
+            `[${this.employeeWorkSessionId}] Restored session: ${storedSessionId}`
           )
 
           // 获取消息数量
           const messages = await this.opcodeClient.session.messages({
-            path: { id: memory.sessionId },
+            path: { id: storedSessionId },
           })
           const messageCount = (messages.data ?? []).length
 
           // 注册 session
-          sessionRegistry.register(memory.sessionId, this.employeeId)
-
-          // 从快照重建系统提示词
-          // 查询主管信息
-          const employee = this.stateManager?.getEmployee(this.employeeId)
-          let supervisor: { name: string; role: string } | undefined
-          if (employee?.hiredBy) {
-            const supervisorEmployee = this.stateManager?.getEmployee(
-              employee.hiredBy
-            )
-            if (supervisorEmployee) {
-              supervisor = {
-                name: supervisorEmployee.name,
-                role: supervisorEmployee.roleId,
-              }
-            }
-          }
+          sessionRegistry.register(storedSessionId, this.employeeWorkSessionId)
 
           const systemPrompt = memory.sessionSnapshot
-            ? buildSystemPrompt(
-                role.systemPrompt,
-                memory.sessionSnapshot,
-                this.employeeId,
-                ".cclover/workspace",
-                role,
-                supervisor,
-                this.roleManager
-              )
-            : buildSystemPrompt(
-                role.systemPrompt,
-                memory,
-                this.employeeId,
-                ".cclover/workspace",
-                role,
-                supervisor,
-                this.roleManager
-              ) // 降级：使用当前状态
+            ? await this.buildPrompt(memory.sessionSnapshot)
+            : await this.buildPrompt(memory) // 降级：使用当前状态
 
           this.currentSession = {
-            id: memory.sessionId,
+            id: storedSessionId,
             messageCount,
             tokenCount: 0,
             systemPrompt,
@@ -153,7 +171,7 @@ export class SessionManager {
       } catch (error) {
         // Session 无效，继续创建新的
         logger.info(
-          `[${this.employeeId}] Failed to restore session ${memory.sessionId}, creating new one`
+          `[${this.employeeWorkSessionId}] Failed to restore session ${storedSessionId}, creating new one`
         )
       }
     }
@@ -161,7 +179,7 @@ export class SessionManager {
     // 创建新 session
     const response = await this.opcodeClient.session.create({
       body: {
-        title: `${this.employeeId} - ${new Date().toISOString()}`,
+        title: `${this.employeeWorkSessionId} - ${new Date().toISOString()}`,
       },
       query: {
         directory: this.projectPath,
@@ -175,10 +193,14 @@ export class SessionManager {
     }
 
     // 注册 session
-    sessionRegistry.register(sessionId, this.employeeId)
+    sessionRegistry.register(sessionId, this.employeeWorkSessionId)
+    await this.employeeWorkSessionManager.updateOpenCodeSessionId(
+      this.employeeWorkSessionId,
+      sessionId
+    )
 
     // 重新读取当前记忆（如果之前恢复失败，memory 可能是旧的）
-    memory = await this.memoryManager.read(this.employeeId)
+    memory = await this.memoryManager.read(this.employeeWorkSessionId)
 
     // 保存快照（深拷贝）
     memory.sessionSnapshot = {
@@ -190,38 +212,16 @@ export class SessionManager {
       args: JSON.parse(JSON.stringify(memory.args)),
       timestamp: new Date().toISOString(),
     }
-    memory.sessionId = sessionId
-    await this.memoryManager.write(this.employeeId, memory)
+    memory.opencodeSessionId = sessionId
+    await this.memoryManager.write(this.employeeWorkSessionId, memory)
 
-    // 构建系统提示词（使用快照）
-    // 查询主管信息
-    const employee = this.stateManager?.getEmployee(this.employeeId)
-    let supervisor: { name: string; role: string } | undefined
-    if (employee?.hiredBy) {
-      const supervisorEmployee = this.stateManager?.getEmployee(
-        employee.hiredBy
-      )
-      if (supervisorEmployee) {
-        supervisor = {
-          name: supervisorEmployee.name,
-          role: supervisorEmployee.roleId,
-        }
-      }
-    }
-
-    const systemPrompt = buildSystemPrompt(
-      role.systemPrompt,
-      memory.sessionSnapshot || {
+    const systemPrompt = await this.buildPrompt(
+      memory.sessionSnapshot ?? {
         knowledge: memory.knowledge,
         tasks: memory.tasks,
         args: memory.args,
         timestamp: new Date().toISOString(),
-      },
-      this.employeeId,
-      ".cclover/workspace",
-      role,
-      supervisor,
-      this.roleManager
+      }
     )
 
     this.currentSession = {
@@ -231,13 +231,14 @@ export class SessionManager {
       systemPrompt,
     }
 
-    logger.info(`[${this.employeeId}] Created session: ${sessionId}`)
+    logger.info(`[${this.employeeWorkSessionId}] Created session: ${sessionId}`)
 
     // 记录 session 创建事件
     await this.stateManager?.addEvent({
       projectId: "",
       type: "session_created",
       timestamp: new Date().toISOString(),
+      employeeWorkSessionId: this.employeeWorkSessionId,
       employeeId: this.employeeId,
       details: {
         sessionId,
@@ -254,14 +255,8 @@ export class SessionManager {
     if (!this.currentSession) return
 
     logger.info(
-      `[${this.employeeId}] Closing session: ${this.currentSession.id}`
+      `[${this.employeeWorkSessionId}] Closing session: ${this.currentSession.id}`
     )
-
-    // 清除 memory 中的 sessionId 和快照
-    const memory = await this.memoryManager.read(this.employeeId)
-    memory.sessionId = undefined
-    memory.sessionSnapshot = undefined
-    await this.memoryManager.write(this.employeeId, memory)
 
     // 取消注册
     sessionRegistry.unregister(this.currentSession.id)
@@ -276,7 +271,7 @@ export class SessionManager {
     // 如果没有活跃的 session，无需刷新
     if (!this.currentSession) {
       logger.debug(
-        `[${this.employeeId}] No active session, skipping system prompt refresh`
+        `[${this.employeeWorkSessionId}] No active session, skipping system prompt refresh`
       )
       return
     }
@@ -285,55 +280,23 @@ export class SessionManager {
     const role = this.roleManager.getRole(this.roleName)
     if (!role) {
       logger.error(
-        `[${this.employeeId}] Role '${this.roleName}' not found during refresh`
+        `[${this.employeeWorkSessionId}] Role '${this.roleName}' not found during refresh`
       )
       return
     }
 
     // 读取当前记忆
-    const memory = await this.memoryManager.read(this.employeeId)
-
-    // 重新构建系统提示词（使用 sessionSnapshot 或当前状态）
-    // 查询主管信息
-    const employee = this.stateManager?.getEmployee(this.employeeId)
-    let supervisor: { name: string; role: string } | undefined
-    if (employee?.hiredBy) {
-      const supervisorEmployee = this.stateManager?.getEmployee(
-        employee.hiredBy
-      )
-      if (supervisorEmployee) {
-        supervisor = {
-          name: supervisorEmployee.name,
-          role: supervisorEmployee.roleId,
-        }
-      }
-    }
+    const memory = await this.memoryManager.read(this.employeeWorkSessionId)
 
     const systemPrompt = memory.sessionSnapshot
-      ? buildSystemPrompt(
-          role.systemPrompt,
-          memory.sessionSnapshot,
-          this.employeeId,
-          ".cclover/workspace",
-          role,
-          supervisor,
-          this.roleManager
-        )
-      : buildSystemPrompt(
-          role.systemPrompt,
-          memory,
-          this.employeeId,
-          ".cclover/workspace",
-          role,
-          supervisor,
-          this.roleManager
-        )
+      ? await this.buildPrompt(memory.sessionSnapshot)
+      : await this.buildPrompt(memory)
 
     // 更新缓存的系统提示词
     this.currentSession.systemPrompt = systemPrompt
 
     logger.info(
-      `[${this.employeeId}] System prompt refreshed for session ${this.currentSession.id} (preserved conversation history)`
+      `[${this.employeeWorkSessionId}] System prompt refreshed for session ${this.currentSession.id} (preserved conversation history)`
     )
   }
 
@@ -369,7 +332,7 @@ export class SessionManager {
       messageCount >= this.MESSAGE_THRESHOLD
     ) {
       logger.info(
-        `[${this.employeeId}] Threshold reached (tokens: ${tokenCount}, messages: ${messageCount}), summarizing...`
+        `[${this.employeeWorkSessionId}] Threshold reached (tokens: ${tokenCount}, messages: ${messageCount}), summarizing...`
       )
 
       // 1. 记录 session 总结开始事件
@@ -377,6 +340,7 @@ export class SessionManager {
         projectId: "",
         type: "session_summary_started",
         timestamp: new Date().toISOString(),
+        employeeWorkSessionId: this.employeeWorkSessionId,
         employeeId: this.employeeId,
         details: {
           sessionId: this.currentSession.id,
@@ -404,6 +368,7 @@ export class SessionManager {
         projectId: "",
         type: "session_summary_completed",
         timestamp: new Date().toISOString(),
+        employeeWorkSessionId: this.employeeWorkSessionId,
         employeeId: this.employeeId,
         details: {
           sessionId,
@@ -415,7 +380,7 @@ export class SessionManager {
       // 6. 关闭当前 session
       await this.closeSession()
 
-      logger.info(`[${this.employeeId}] Summary completed`)
+      logger.info(`[${this.employeeWorkSessionId}] Summary completed`)
     }
   }
 }

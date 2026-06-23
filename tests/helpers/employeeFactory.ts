@@ -11,13 +11,10 @@ export function createTestEmployee(
       overrides.employeeId ?? `emp_${name.replace(/[^a-zA-Z0-9_]/g, "_")}`,
     name,
     roleId: overrides.roleId ?? "test",
-    status: overrides.status ?? "offline",
+    description: overrides.description ?? `${name} test employee`,
+    contextPaths: overrides.contextPaths ?? [],
     hiredBy: overrides.hiredBy ?? null,
-    paused: overrides.paused ?? false,
-    activeSessionId: overrides.activeSessionId ?? null,
     createdAt: overrides.createdAt ?? now,
-    lastActiveAt: overrides.lastActiveAt ?? now,
-    handbookPath: overrides.handbookPath,
-    promptRecovery: overrides.promptRecovery,
+    updatedAt: overrides.updatedAt ?? now,
   }
 }

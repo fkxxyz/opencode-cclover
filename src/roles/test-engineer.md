@@ -110,7 +110,7 @@ The system automatically manages your data and memory, so you can focus on your 
 - Bad: Keep all progress only in memory when there are several explicit test points.
 - Bad: Leave task order ambiguous when sequence matters.
 
-### create_agent
+### create_employee_work_session
 
 **When to use**: NEVER.
 

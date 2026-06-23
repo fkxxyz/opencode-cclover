@@ -121,7 +121,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
   // 4. Create tools
   const sendMessageTool = createSendMessageTool(messageService)
   const editTasksTool = createEditTasksTool(memoryManager)
-  const createAgentTool = createCreateAgentTool(ctx.client)
+  const createEmployeeWorkSessionTool = createEmployeeWorkSessionTool(ctx.client)
   const hireEmployeeTool = createHireEmployeeTool()
   
   // 5. Ensure .gitignore
@@ -137,7 +137,7 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     tool: {
       send_message: sendMessageTool,
       edit_tasks: editTasksTool,
-      create_agent: createAgentTool,
+      create_employee_work_session: createEmployeeWorkSessionTool,
       hire_employee: hireEmployeeTool
     }
   }
@@ -385,7 +385,7 @@ describe('Plugin Integration', () => {
     
     expect(plugin.tool).toHaveProperty('send_message')
     expect(plugin.tool).toHaveProperty('edit_tasks')
-    expect(plugin.tool).toHaveProperty('create_agent')
+    expect(plugin.tool).toHaveProperty('create_employee_work_session')
   })
   
   test('workspace directory created', async () => {
@@ -463,7 +463,7 @@ opencode-cclover/
 │   ├── tools/
 │   │   ├── SendMessageTool.ts
 │   │   ├── EditTasksTool.ts
-│   │   ├── CreateAgentTool.ts
+│   │   ├── EmployeeTools.ts
 │   │   ├── HireEmployeeTool.ts
 │   │   └── index.ts
 │   ├── roles/
@@ -471,7 +471,7 @@ opencode-cclover/
 │   │   └── index.ts
 │   └── utils/
 │       ├── SessionRegistry.ts
-│       ├── AgentRegistry.ts
+│       ├── HaltRegistry.ts
 │       └── index.ts
 ├── tests/
 │   ├── unit/

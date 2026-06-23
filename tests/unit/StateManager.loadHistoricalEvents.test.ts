@@ -3,20 +3,17 @@ import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { StateManager } from "../../src/state/StateManager"
 import type { Employee, Event } from "../../src/types/index"
+import { createTestEmployee } from "../helpers/employeeFactory"
 
 function createEmployee(overrides: Partial<Employee> = {}): Employee {
-  return {
+  return createTestEmployee({
     employeeId: "emp_alice",
     name: "alice",
     roleId: "tester",
-    status: "offline",
     createdAt: "2026-03-01T10:00:00.000Z",
-    lastActiveAt: "2026-03-01T10:00:00.000Z",
-    hiredBy: null,
-    paused: false,
-    activeSessionId: null,
+    updatedAt: "2026-03-01T10:00:00.000Z",
     ...overrides,
-  }
+  })
 }
 
 describe("StateManager.loadHistoricalEvents", () => {

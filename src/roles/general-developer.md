@@ -19,7 +19,7 @@ boundaries:
   - "Do not silently redefine architecture boundaries, software design, schema meaning, interface meaning, or role/responsibility structure"
   - "Do not continue implementation when critical task or design references are missing"
   - "Do not coordinate interface behavior with other Developers (Software Designer has already defined it)"
-  - "Do not use create_agent or hire_employee"
+  - "Do not use create_employee_work_session or hire_employee"
 contextIds:
   - ai-to-ai-communication-principles
   - communication-reporting-completion
@@ -71,7 +71,7 @@ You implement assigned code changes inside a Project-Manager-provided worktree. 
 - Do not silently redefine architecture boundaries, software design, schema meaning, interface meaning, or role/responsibility structure
 - Do not continue implementation when critical task or design references are missing
 - Do not coordinate interface behavior with other Developers (Software Designer has already defined it)
-- Do not use create_agent or hire_employee
+- Do not use create_employee_work_session or hire_employee
 
 ## Working Principles
 
@@ -117,7 +117,7 @@ You implement assigned code changes inside a Project-Manager-provided worktree. 
 - **Frequency**: at task start, on blocker, after each major step, at completion
 - **Role-specific usage**: Create tasks for each implementation phase (read design materials, implement change, validate, report completion); mark tasks as `waiting_for_message` when blocked on PM clarification or SD design updates; update with results showing modified files and validation outcomes
 
-### create_agent
+### create_employee_work_session
 - **When to use**: never (General Developer does not delegate to agents)
 - **Frequency**: never
 

@@ -16,10 +16,7 @@ export interface Role {
 }
 
 export { EventLoop } from "./EventLoop"
-export type {
-  InternalAgentEvent,
-  InternalPromptRecoveryEvent,
-} from "./EventLoop"
+export type { InternalPromptRecoveryEvent } from "./EventLoop"
 export { SessionManager } from "./SessionManager"
 export type { SessionInfo } from "./SessionManager"
 export { SummaryService } from "./SummaryService"

@@ -381,7 +381,7 @@ export interface Employee {
 export interface EmployeeDetail extends Employee {
   memory: Memory // Employee memory
   tasks: Task[] // Task list
-  agents: AgentExecution[] // Agent execution records
+  employeeWorkSessions: EmployeeWorkSessionRecord[] // EmployeeWorkSession runtime records
 }
 
 export interface EmployeeHierarchy {
@@ -436,15 +436,15 @@ export interface Memory {
 }
 ```
 
-#### Agent Execution Types
+#### EmployeeWorkSession Runtime Types
 
 ```typescript
-export type AgentStatus = "running" | "completed" | "failed"
+export type EmployeeWorkSessionStatus = "running" | "completed" | "failed"
 
-export interface AgentExecution {
-  agentId: string // Agent ID
+export interface EmployeeWorkSessionRecord {
+  employeeWorkSessionId: string // EmployeeWorkSession ID
   taskName: string // Associated task name
-  status: AgentStatus // Execution status
+  status: EmployeeWorkSessionStatus // Execution status
   createdAt: string // ISO 8601 timestamp
   completedAt?: string // ISO 8601 timestamp (optional)
   result?: string // Execution result (optional)
@@ -460,15 +460,15 @@ export type EventType =
   | "task_cancelled" // Task cancelled
   | "task_deleted" // Task deleted
   | "task_decomposed" // Task decomposed
-  | "agent_completed" // Agent completed
-  | "agent_failed" // Agent failed
+  | "employee_work_session_status_changed" // EmployeeWorkSession status changed
+  | "employee_work_session_closed" // EmployeeWorkSession closed
   | "timer" // Timer event
   | "employee_hired" // Employee hired
   | "employee_status_changed" // Employee status changed
   | "message_sent" // Message sent
   | "message_received" // Message received
   | "task_updated" // Task updated
-  | "agent_updated" // Agent updated
+  | "employee_work_session_updated" // EmployeeWorkSession updated
 
 export interface Event {
   projectId: string // Project identifier

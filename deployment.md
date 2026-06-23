@@ -225,10 +225,10 @@ await tools.edit_tasks({
 })
 ```
 
-**Create Agent**:
+**Create EmployeeWorkSession**:
 ```typescript
-// Create agent to execute task
-await tools.create_agent({
+// Create EmployeeWorkSession to execute task
+await tools.create_employee_work_session({
   task_name: "ComplexTask",
   prompt: "Execute this complex task..."
 })

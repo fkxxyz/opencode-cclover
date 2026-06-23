@@ -19,12 +19,12 @@ const eventTypeColors: Partial<
   task_created: { bg: "#e0f2fe", text: "#075985" },
   task_modified: { bg: "#fef3c7", text: "#92400e" },
   task_waiting_for_message: { bg: "#fed7aa", text: "#9a3412" },
-  agent_completed: { bg: "#f3e8ff", text: "#6b21a8" },
-  agent_failed: { bg: "#fee2e2", text: "#991b1b" },
-  agent_created: { bg: "#ede9fe", text: "#5b21b6" },
   timer: { bg: "#f1f5f9", text: "#475569" },
   employee_hired: { bg: "#fef3c7", text: "#92400e" },
-  employee_status_changed: { bg: "#fed7aa", text: "#9a3412" },
+  employee_updated: { bg: "#fed7aa", text: "#9a3412" },
+  employee_work_session_created: { bg: "#ddd6fe", text: "#5b21b6" },
+  employee_work_session_status_changed: { bg: "#fed7aa", text: "#9a3412" },
+  employee_work_session_closed: { bg: "#fee2e2", text: "#991b1b" },
   session_created: { bg: "#ddd6fe", text: "#5b21b6" },
   session_prompt_started: { bg: "#e0e7ff", text: "#4338ca" },
   session_prompt_completed: { bg: "#ddd6fe", text: "#4338ca" },
@@ -41,12 +41,12 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   task_created: "任务创建",
   task_modified: "任务修改",
   task_waiting_for_message: "等待消息",
-  agent_completed: "Agent完成",
-  agent_failed: "Agent失败",
-  agent_created: "Agent创建",
   timer: "定时器",
   employee_hired: "员工雇佣",
-  employee_status_changed: "状态变化",
+  employee_updated: "员工更新",
+  employee_work_session_created: "工作会话创建",
+  employee_work_session_status_changed: "工作会话状态变化",
+  employee_work_session_closed: "工作会话关闭",
   session_created: "会话创建",
   session_prompt_started: "AI请求开始",
   session_prompt_completed: "AI响应完成",
@@ -97,12 +97,6 @@ function getEventDescription(
       return `修改任务 "${details.taskName}"`
     case "task_waiting_for_message":
       return `任务 "${details.taskName}" 等待消息: ${details.reason || "waiting for message"}`
-    case "agent_completed":
-      return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
-    case "agent_failed":
-      return `Agent ${details.agentId} 失败: ${details.error}`
-    case "agent_created":
-      return `创建 Agent 执行任务 "${details.taskName}"`
     case "session_created":
       return (
         <>
@@ -151,8 +145,14 @@ function getEventDescription(
       return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
     case "employee_hired":
       return `${details.hiredBy} 雇佣了 ${employeeId} (${details.roleId})`
-    case "employee_status_changed":
+    case "employee_updated":
+      return `员工已更新: ${employeeId}`
+    case "employee_work_session_created":
+      return `工作会话已创建: ${details.employeeWorkSessionId}`
+    case "employee_work_session_status_changed":
       return `${employeeId} 状态: ${details.oldStatus} → ${details.newStatus}`
+    case "employee_work_session_closed":
+      return `工作会话已关闭: ${details.employeeWorkSessionId}`
     case "timer":
       return `定时器触发 (间隔: ${details.interval}ms)`
     default:

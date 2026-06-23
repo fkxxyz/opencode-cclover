@@ -294,9 +294,9 @@ custom:
 }
 ```
 
-### create_agent
+### create_employee_work_session
 
-创建 Agent 执行任务：
+创建 EmployeeWorkSession 执行任务。EmployeeWorkSession 是员工的运行时工作会话，会绑定一个 OpenCode Session；Employee 本身只保存角色和层级等元数据。
 
 ```typescript
 {

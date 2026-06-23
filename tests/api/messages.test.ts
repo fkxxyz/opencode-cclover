@@ -4,6 +4,7 @@ import * as path from "path"
 import * as yaml from "yaml"
 import { MessageService } from "../../src/core/MessageService"
 import { getMessages } from "../../src/api/messages"
+import { getTestWorkspace, resetTestWorkspace } from "../helpers/testWorkspace"
 
 interface YamlMessage {
   timestamp: string
@@ -11,11 +12,13 @@ interface YamlMessage {
   content: string
 }
 
-const testWorkspace = "./workspace_test_messages_api"
+const testWorkspace = getTestWorkspace("messages-api")
+const owner = "ews_test_role"
+const alice = "ews_alice"
+const bob = "ews_bob"
 
 beforeEach(async () => {
-  await fs.rm(testWorkspace, { recursive: true, force: true })
-  await fs.mkdir(testWorkspace, { recursive: true })
+  await resetTestWorkspace(testWorkspace)
 })
 
 afterEach(async () => {
@@ -37,12 +40,7 @@ describe("Messages API", () => {
   it("should return error when limit is out of range", async () => {
     const messageService = new MessageService(testWorkspace)
 
-    const response = await getMessages(
-      "test-role",
-      undefined,
-      300,
-      messageService
-    )
+    const response = await getMessages(owner, undefined, 300, messageService)
 
     expect(response.success).toBe(false)
     if (!response.success) {
@@ -53,11 +51,14 @@ describe("Messages API", () => {
   it("should return messages with peer filter", async () => {
     const messageService = new MessageService(testWorkspace)
 
-    // 创建消息文件
-    const employeeDir = path.join(testWorkspace, "employees", "test-role")
-    await fs.mkdir(employeeDir, { recursive: true })
-
-    const messagesDir = path.join(employeeDir, "messages", "alice")
+    // 创建 EWS 消息文件
+    const messagesDir = path.join(
+      testWorkspace,
+      "ews",
+      owner,
+      "messages",
+      alice
+    )
     await fs.mkdir(messagesDir, { recursive: true })
     const chatFile = path.join(messagesDir, "chat.yaml")
     const messages: YamlMessage[] = [
@@ -75,14 +76,14 @@ describe("Messages API", () => {
 
     await fs.writeFile(chatFile, yaml.stringify(messages), "utf-8")
 
-    const response = await getMessages("test-role", "alice", 10, messageService)
+    const response = await getMessages(owner, alice, 10, messageService)
 
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.messages).toHaveLength(2)
-      expect(response.data.messages[0].from).toBe("alice")
+      expect(response.data.messages[0].from).toBe(alice)
       expect(response.data.messages[0].content).toBe("计算 1+1")
-      expect(response.data.messages[1].from).toBe("test-role")
+      expect(response.data.messages[1].from).toBe(owner)
       expect(response.data.messages[1].content).toBe("结果是 2")
     }
   })
@@ -100,13 +101,7 @@ describe("Messages API", () => {
     const messageService = new MessageService(testWorkspace)
 
     // 创建与 alice 的对话
-    const aliceDir = path.join(
-      testWorkspace,
-      "employees",
-      "test-role",
-      "messages",
-      "alice"
-    )
+    const aliceDir = path.join(testWorkspace, "ews", owner, "messages", alice)
     await fs.mkdir(aliceDir, { recursive: true })
     const aliceMessages: YamlMessage[] = [
       {
@@ -127,13 +122,7 @@ describe("Messages API", () => {
     )
 
     // 创建与 bob 的对话
-    const bobDir = path.join(
-      testWorkspace,
-      "employees",
-      "test-role",
-      "messages",
-      "bob"
-    )
+    const bobDir = path.join(testWorkspace, "ews", owner, "messages", bob)
     await fs.mkdir(bobDir, { recursive: true })
     const bobMessages: YamlMessage[] = [
       {
@@ -154,7 +143,7 @@ describe("Messages API", () => {
     )
 
     const response = await getMessages(
-      "test-role",
+      owner,
       undefined,
       undefined,
       messageService
@@ -176,13 +165,7 @@ describe("Messages API", () => {
     const messageService = new MessageService(testWorkspace)
 
     // 创建与 alice 的对话（3 条消息）
-    const aliceDir = path.join(
-      testWorkspace,
-      "employees",
-      "test-role",
-      "messages",
-      "alice"
-    )
+    const aliceDir = path.join(testWorkspace, "ews", owner, "messages", alice)
     await fs.mkdir(aliceDir, { recursive: true })
     const aliceMessages: YamlMessage[] = [
       {
@@ -207,12 +190,7 @@ describe("Messages API", () => {
       "utf-8"
     )
 
-    const response = await getMessages(
-      "test-role",
-      undefined,
-      2,
-      messageService
-    )
+    const response = await getMessages(owner, undefined, 2, messageService)
 
     expect(response.success).toBe(true)
     if (response.success) {
@@ -238,7 +216,7 @@ describe("getPeers API", () => {
   it("should return empty array when employee has no peers", async () => {
     const messageService = new MessageService(testWorkspace)
     const { getPeers } = await import("../../src/api/messages")
-    const response = await getPeers("test-role", messageService)
+    const response = await getPeers(owner, messageService)
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.peers).toEqual([])
@@ -249,26 +227,21 @@ describe("getPeers API", () => {
     const messageService = new MessageService(testWorkspace)
     const { getPeers } = await import("../../src/api/messages")
     // 创建与 alice 和 bob 的对话目录
-    const employeeDir = path.join(
-      testWorkspace,
-      "employees",
-      "test-role",
-      "messages"
-    )
-    await fs.mkdir(path.join(employeeDir, "alice"), { recursive: true })
-    await fs.mkdir(path.join(employeeDir, "bob"), { recursive: true })
-    const response = await getPeers("test-role", messageService)
+    const employeeDir = path.join(testWorkspace, "ews", owner, "messages")
+    await fs.mkdir(path.join(employeeDir, alice), { recursive: true })
+    await fs.mkdir(path.join(employeeDir, bob), { recursive: true })
+    const response = await getPeers(owner, messageService)
     expect(response.success).toBe(true)
     if (response.success) {
       expect(response.data.peers).toHaveLength(2)
-      expect(response.data.peers.map((p) => p.name)).toContain("alice")
-      expect(response.data.peers.map((p) => p.name)).toContain("bob")
+      expect(response.data.peers.map((p) => p.name)).toContain(alice)
+      expect(response.data.peers.map((p) => p.name)).toContain(bob)
     }
   })
 
   it("should return error when message service is not provided", async () => {
     const { getPeers } = await import("../../src/api/messages")
-    const response = await getPeers("test-role", undefined)
+    const response = await getPeers(owner, undefined)
     expect(response.success).toBe(false)
     if (!response.success) {
       expect(response.error.code).toBe("INTERNAL_ERROR")

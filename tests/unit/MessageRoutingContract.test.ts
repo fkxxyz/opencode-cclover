@@ -7,58 +7,47 @@ import type {
 import { RoutingRules } from "../../src/types/message-routing"
 
 describe("Message routing contract", () => {
-  test("defines recipient resolution without task-coupled fields", () => {
-    const byEmployeeId: RecipientResolution = {
-      targetId: "emp_designer_api",
-      targetType: "employee",
-      resolvedBy: "employee_id",
-    }
-
-    const byUniqueName: RecipientResolution = {
-      targetId: "emp_reviewer_api",
-      targetType: "employee",
-      resolvedBy: "unique_name",
+  test("defines recipient resolution with EWS and boss targets only", () => {
+    const byEmployeeWorkSessionId: RecipientResolution = {
+      targetId: "ews_designer_api",
+      targetType: "employee-work-session",
+      resolvedBy: "employee_work_session_id",
     }
 
     const byBossId: RecipientResolution = {
-      targetId: "0-bayecao",
+      targetId: "boss_bayecao",
       targetType: "boss",
       resolvedBy: "boss_id",
     }
 
-    const byMeetingRole: RecipientResolution = {
-      targetId: "president",
-      targetType: "meeting-role",
-      resolvedBy: "meeting_role",
-    }
+    const targetType: RecipientTargetType = "employee-work-session"
+    const resolvedBy: RecipientResolvedBy = "employee_work_session_id"
 
-    const targetType: RecipientTargetType = "employee"
-    const resolvedBy: RecipientResolvedBy = "employee_id"
-
-    expect(byEmployeeId).toEqual({
-      targetId: "emp_designer_api",
+    expect(byEmployeeWorkSessionId).toEqual({
+      targetId: "ews_designer_api",
       targetType,
       resolvedBy,
     })
-    expect(byUniqueName.resolvedBy).toBe("unique_name")
     expect(byBossId.targetType).toBe("boss")
-    expect(byMeetingRole.targetType).toBe("meeting-role")
 
     // @ts-expect-error Phase 1.4 removes same-task routing state from the contract.
-    byEmployeeId.isSameTask
+    byEmployeeWorkSessionId.isSameTask
     // @ts-expect-error Phase 1.4 removes task-derived targetEmployeeId from the contract.
-    byEmployeeId.targetEmployeeId
+    byEmployeeWorkSessionId.targetEmployeeId
   })
 
-  test("recognizes stable employee and boss identifiers without inferring task ids", () => {
+  test("recognizes stable EWS and boss identifiers without employee targets", () => {
+    expect(RoutingRules.isEmployeeWorkSessionId("ews_designer_api")).toBe(true)
+    expect(RoutingRules.isEmployeeWorkSessionId("emp_designer_api")).toBe(false)
+
     expect(RoutingRules.isEmployeeId("emp_designer_api")).toBe(true)
     expect(RoutingRules.isEmployeeId("emp_123456")).toBe(true)
     expect(RoutingRules.isEmployeeId("1-designer-api")).toBe(false)
     expect(RoutingRules.isEmployeeId("designer-api")).toBe(false)
 
-    expect(RoutingRules.isBossId("0-bayecao")).toBe(true)
-    expect(RoutingRules.isBossId("boss-bayecao")).toBe(false)
-    expect(RoutingRules.extractNameFromBossId("0-bayecao")).toBe("bayecao")
+    expect(RoutingRules.isBossId("boss_bayecao")).toBe(true)
+    expect(RoutingRules.isBossId("0-bayecao")).toBe(false)
+    expect(RoutingRules.extractNameFromBossId("boss_bayecao")).toBe("bayecao")
 
     expect("buildSameTaskEmployeeId" in RoutingRules).toBe(false)
     expect("isFullEmployeeId" in RoutingRules).toBe(false)

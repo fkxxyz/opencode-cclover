@@ -3,7 +3,7 @@ import * as path from "path"
 import * as yaml from "yaml"
 import * as lockfile from "proper-lockfile"
 import type { StateManager } from "../state/StateManager"
-import type { EmployeeId } from "../types"
+import type { EmployeeWorkSessionId } from "../types"
 
 /**
  * 任务状态
@@ -37,7 +37,8 @@ export interface Memory {
   tasks: Task[] // 任务列表
   args: Record<string, any> // 角色参数
   roleData?: Record<string, any> // 角色特定数据
-  sessionId?: string // Session ID（可选）
+  opencodeSessionId?: string // OpenCode Session ID（可选）
+  sessionId?: string // 旧字段读取兼容，写入时不再使用
 
   // Session 创建时的快照
   sessionSnapshot?: {
@@ -69,8 +70,8 @@ export class MemoryManager {
   /**
    * 获取员工记忆文件路径
    */
-  private getMemoryPath(employeeId: EmployeeId): string {
-    return path.join(this.workspaceRoot, "employees", employeeId, "memory.yaml")
+  private getMemoryPath(employeeId: EmployeeWorkSessionId): string {
+    return path.join(this.workspaceRoot, "ews", employeeId, "memory.yaml")
   }
 
   /**
@@ -88,7 +89,7 @@ export class MemoryManager {
    * 读取员工记忆
    * 如果文件不存在，返回空记忆
    */
-  async read(employeeId: EmployeeId): Promise<Memory> {
+  async read(employeeId: EmployeeWorkSessionId): Promise<Memory> {
     const memoryPath = this.getMemoryPath(employeeId)
 
     try {
@@ -105,7 +106,8 @@ export class MemoryManager {
         tasks: data?.tasks ?? [],
         args: data.args,
         roleData: data?.roleData ?? {},
-        sessionId: data?.sessionId ?? undefined,
+        opencodeSessionId:
+          data?.opencodeSessionId ?? data?.sessionId ?? undefined,
         sessionSnapshot: data?.sessionSnapshot ?? undefined,
       }
     } catch (error: any) {
@@ -125,7 +127,10 @@ export class MemoryManager {
   /**
    * 写入员工记忆
    */
-  async write(employeeId: EmployeeId, memory: Memory): Promise<void> {
+  async write(
+    employeeId: EmployeeWorkSessionId,
+    memory: Memory
+  ): Promise<void> {
     const memoryPath = this.getMemoryPath(employeeId)
     const dirPath = path.dirname(memoryPath)
 
@@ -162,7 +167,7 @@ export class MemoryManager {
         tasks: memory.tasks,
         args: memory.args,
         roleData: memory.roleData,
-        sessionId: memory.sessionId,
+        opencodeSessionId: memory.opencodeSessionId ?? memory.sessionId,
         sessionSnapshot: memory.sessionSnapshot,
       }
       const content = yaml.stringify(dataToWrite)
@@ -184,7 +189,7 @@ export class MemoryManager {
    * 添加任务
    */
   async addTask(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     task: Omit<Task, "created">
   ): Promise<void> {
     const memory = await this.read(employeeId)
@@ -207,7 +212,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_created",
       timestamp: newTask.created,
-      employeeId: employeeId,
+      employeeWorkSessionId: employeeId,
       details: {
         taskName: newTask.name,
         description: newTask.description,
@@ -219,7 +224,7 @@ export class MemoryManager {
    * 更新任务
    */
   async updateTask(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     taskName: string,
     updates: Partial<Task>
   ): Promise<void> {
@@ -250,7 +255,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_completed",
         timestamp,
-        employeeId: employeeId,
+        employeeWorkSessionId: employeeId,
         details: {
           taskName,
           result: updates.result,
@@ -261,7 +266,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_cancelled",
         timestamp,
-        employeeId: employeeId,
+        employeeWorkSessionId: employeeId,
         details: {
           taskName,
           reason: updates.statusReason || "cancelled by user",
@@ -273,7 +278,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_waiting_for_message",
         timestamp,
-        employeeId: employeeId,
+        employeeWorkSessionId: employeeId,
         details: {
           taskName,
           reason: updates.statusReason || "waiting_for_message",
@@ -290,7 +295,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_modified",
         timestamp,
-        employeeId: employeeId,
+        employeeWorkSessionId: employeeId,
         details: {
           taskName,
           changes: updates,
@@ -302,7 +307,10 @@ export class MemoryManager {
   /**
    * 删除任务
    */
-  async deleteTask(employeeId: EmployeeId, taskName: string): Promise<void> {
+  async deleteTask(
+    employeeId: EmployeeWorkSessionId,
+    taskName: string
+  ): Promise<void> {
     const memory = await this.read(employeeId)
 
     const taskIndex = memory.tasks.findIndex((t) => t.name === taskName)
@@ -320,7 +328,7 @@ export class MemoryManager {
    * @returns 受影响的任务名称列表
    */
   async deleteTaskWithCleanup(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     taskName: string
   ): Promise<{ affectedTasks: string[] }> {
     const memory = await this.read(employeeId)
@@ -353,7 +361,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_deleted",
       timestamp,
-      employeeId: employeeId,
+      employeeWorkSessionId: employeeId,
       details: {
         taskName,
         affectedTasks,
@@ -372,7 +380,7 @@ export class MemoryManager {
    * @param subtasks 子任务列表
    */
   async decomposeTask(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     taskName: string,
     subtasks: Array<{
       name: string
@@ -424,7 +432,7 @@ export class MemoryManager {
         projectId: this.projectId,
         type: "task_created",
         timestamp,
-        employeeId: employeeId,
+        employeeWorkSessionId: employeeId,
         details: {
           taskName: subtask.name,
           description: subtask.description,
@@ -445,7 +453,7 @@ export class MemoryManager {
       projectId: this.projectId,
       type: "task_decomposed",
       timestamp,
-      employeeId: employeeId,
+      employeeWorkSessionId: employeeId,
       details: {
         originalTask: taskName,
         subtasks: subtaskNames,
@@ -458,7 +466,7 @@ export class MemoryManager {
    * 获取任务
    */
   async getTask(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     taskName: string
   ): Promise<Task | null> {
     const memory = await this.read(employeeId)
@@ -469,7 +477,7 @@ export class MemoryManager {
    * 获取可执行的任务
    * 返回所有依赖已满足的 pending 任务
    */
-  async getExecutableTasks(employeeId: EmployeeId): Promise<Task[]> {
+  async getExecutableTasks(employeeId: EmployeeWorkSessionId): Promise<Task[]> {
     const memory = await this.read(employeeId)
 
     // 获取所有 completed 或 cancelled 任务的名称
@@ -495,7 +503,7 @@ export class MemoryManager {
    * 获取正在进行的任务
    * 返回所有状态为 in_progress 的任务
    */
-  async getInProgressTasks(employeeId: EmployeeId): Promise<Task[]> {
+  async getInProgressTasks(employeeId: EmployeeWorkSessionId): Promise<Task[]> {
     const memory = await this.read(employeeId)
     return memory.tasks.filter((task) => task.status === "in_progress")
   }
@@ -505,7 +513,7 @@ export class MemoryManager {
    * 更新 knowledge 和 args，保留 tasks
    */
   async summarize(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     summary: { knowledge: string[]; args: Record<string, any> }
   ): Promise<void> {
     const memory = await this.read(employeeId)
@@ -523,7 +531,7 @@ export class MemoryManager {
    * 更新 args 字段
    */
   async updateArgs(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     args: Record<string, any>
   ): Promise<void> {
     const memory = await this.read(employeeId)
@@ -539,7 +547,7 @@ export class MemoryManager {
    * 更新角色数据
    */
   async updateRoleData(
-    employeeId: EmployeeId,
+    employeeId: EmployeeWorkSessionId,
     roleData: Record<string, any>
   ): Promise<void> {
     const memory = await this.read(employeeId)
@@ -550,7 +558,9 @@ export class MemoryManager {
   /**
    * 获取角色数据
    */
-  async getRoleData(employeeId: EmployeeId): Promise<Record<string, any>> {
+  async getRoleData(
+    employeeId: EmployeeWorkSessionId
+  ): Promise<Record<string, any>> {
     const memory = await this.read(employeeId)
     return memory.roleData ?? {}
   }
@@ -559,7 +569,7 @@ export class MemoryManager {
    * 检测循环依赖
    * 返回 true 如果存在循环依赖
    */
-  async detectCycle(employeeId: EmployeeId): Promise<boolean> {
+  async detectCycle(employeeId: EmployeeWorkSessionId): Promise<boolean> {
     const memory = await this.read(employeeId)
 
     // 构建邻接表

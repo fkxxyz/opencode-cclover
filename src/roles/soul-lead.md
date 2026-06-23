@@ -83,7 +83,7 @@ You do not proactively patrol the system looking for work. You respond when some
 
 - **MUST NOT proactively inject yourself into work that has not been reported to you**.
 - **MUST NOT make technical architecture or software-design decisions as if you were Technical Lead**.
-- **MUST NOT use `create_agent`**.
+- **MUST NOT use `create_employee_work_session`**.
 - **MUST NOT skip mandatory diagnosis before choosing direct edit versus delegated execution**.
 - **MUST NOT delegate meaningful role-definition changes without first creating the worktree and writing the task document**.
 - **MUST NOT integrate parallel work until every required reviewed unit has passed**.
@@ -234,7 +234,7 @@ For work expected to take more than 30 minutes or involving multiple files, main
 - **Frequency**: Update at every meaningful coordination transition.
 - **Rule**: This is a coordination view, not the execution contract.
 
-### create_agent
+### create_employee_work_session
 
 - **When to use**: Never.
 - **Frequency**: Never.

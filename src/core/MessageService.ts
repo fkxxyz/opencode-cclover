@@ -7,15 +7,23 @@ import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { StateManager } from "../state/StateManager"
 import type { IBossManager } from "../types/boss-manager"
 import type { Message, MessageDirection, Event } from "../types"
-import type { EmployeeId, BossId } from "../types/employee"
+import type { BossId, EmployeeWorkSessionId } from "../types/employee"
+import type { EmployeeWorkSessionManager } from "./EmployeeWorkSessionManager"
 import type {
   RecipientResolution,
   MessageRouter,
 } from "../types/message-routing"
 import { RoutingRules } from "../types/message-routing"
-import { isBossId } from "../types/employee"
 import { buildEventMessage } from "../utils/ContextBuilder"
 import { logger } from "../lib/logger"
+
+function asEmployeeWorkSessionId(value: string): EmployeeWorkSessionId {
+  return value as EmployeeWorkSessionId
+}
+
+function asBossId(value: string): BossId {
+  return value as BossId
+}
 
 /**
  * YAML 文件中的消息格式
@@ -36,7 +44,7 @@ interface YamlMessage {
  */
 export class MessageClient {
   constructor(
-    private employeeId: EmployeeId | BossId,
+    private employeeId: EmployeeWorkSessionId | BossId,
     private service: MessageService
   ) {}
 
@@ -98,7 +106,7 @@ export class MessageClient {
    * @param limit 返回消息数量（可选，返回最近的 N 条）
    */
   async history(
-    peer: EmployeeId | BossId,
+    peer: EmployeeWorkSessionId | BossId,
     limit?: number,
     before?: string
   ): Promise<Message[]> {
@@ -158,14 +166,16 @@ export class MessageService implements MessageRouter {
   private projectId: string
   private clients: Map<string, MessageClient> = new Map()
   private unreadQueues: Map<string, Message[]> = new Map()
-  private pendingUrgentInterruptions: Set<EmployeeId | BossId> = new Set()
+  private pendingUrgentInterruptions: Set<EmployeeWorkSessionId | BossId> =
+    new Set()
   public eventEmitter: EventEmitter = new EventEmitter()
   constructor(
     private workspaceRoot: string,
     private stateManager?: StateManager,
     projectId?: string,
     private bossManager?: IBossManager,
-    private opcodeClient?: OpencodeClient
+    private opcodeClient?: OpencodeClient,
+    private employeeWorkSessionManager?: EmployeeWorkSessionManager
   ) {
     this.projectId = projectId || "default"
   }
@@ -175,87 +185,49 @@ export class MessageService implements MessageRouter {
    * Phase 1 契约不再支持从 employeeId 推断 taskId。
    */
   resolveRecipient(
-    sender: EmployeeId | BossId,
+    sender: EmployeeWorkSessionId | BossId,
     recipient: string
   ): RecipientResolution {
     // Special handling for Boss sender
     const senderIsBoss =
-      isBossId(sender) &&
+      RoutingRules.isBossId(sender) &&
       this.bossManager &&
-      this.bossManager.isBoss(RoutingRules.extractNameFromBossId(sender))
-    if (RoutingRules.isEmployeeId(recipient)) {
+      this.bossManager.isBoss(
+        RoutingRules.extractNameFromBossId(sender as BossId)
+      )
+    if (RoutingRules.isEmployeeWorkSessionId(recipient)) {
       return {
-        targetId: recipient,
-        targetType: "employee",
-        resolvedBy: "employee_id",
+        targetId: asEmployeeWorkSessionId(recipient),
+        targetType: "employee-work-session",
+        resolvedBy: "employee_work_session_id",
       }
     }
 
     if (!RoutingRules.isBossId(recipient)) {
-      const employees = this.stateManager
-        ?.getEmployees()
-        .filter((employee) => employee.name === recipient)
-      if (employees?.length === 1) {
-        return {
-          targetId: employees[0].employeeId,
-          targetType: "employee",
-          resolvedBy: "unique_name",
-        }
-      }
-
-      if (employees && employees.length > 1) {
-        throw new Error(
-          `收件人名称 '${recipient}' 不唯一，请使用稳定 employeeId`
-        )
-      }
-
-      if (senderIsBoss) {
-        throw new Error(
-          `Boss cannot use unknown short names. Use stable employeeId or configured BossId.`
-        )
-      }
-
-      const employee = this.stateManager?.getEmployee(recipient)
-      if (!employee) {
-        throw new Error(`目标 '${recipient}' 不存在`)
-      }
-      return {
-        targetId: recipient,
-        targetType: "employee",
-        resolvedBy: "employee_id",
-      }
+      throw new Error(
+        `Unsupported message target '${recipient}'. Use employee_work_session_id or boss_id.`
+      )
     }
 
-    const name = RoutingRules.extractNameFromBossId(recipient)
+    const name = RoutingRules.extractNameFromBossId(asBossId(recipient))
     const isConfiguredBoss = this.bossManager?.isBoss(name)
     if (isConfiguredBoss) {
-      const employee = this.stateManager?.getEmployee(recipient)
-      if (employee) {
-        logger.warn(
-          `[MessageService] Both Boss and employee "${recipient}" exist, routing to Boss`
-        )
-      }
       return {
-        targetId: recipient,
+        targetId: asBossId(recipient),
         targetType: "boss",
         resolvedBy: "boss_id",
       }
     }
 
-    logger.debug(
-      `[MessageService] Treating "${recipient}" as meeting-mode role (BossId format, not configured boss)`
+    throw new Error(
+      `Unsupported message target '${recipient}'. Use employee_work_session_id or configured boss_id.`
     )
-    return {
-      targetId: recipient,
-      targetType: "meeting-role",
-      resolvedBy: "meeting_role",
-    }
   }
 
   /**
    * 获取员工的消息客户端
    */
-  getClient(employeeId: EmployeeId | BossId): MessageClient {
+  getClient(employeeId: EmployeeWorkSessionId | BossId): MessageClient {
     if (!this.clients.has(employeeId)) {
       this.clients.set(employeeId, new MessageClient(employeeId, this))
     }
@@ -267,7 +239,7 @@ export class MessageService implements MessageRouter {
    * 同时写入双方的消息文件，并通知接收方
    */
   async send(
-    from: EmployeeId | BossId,
+    from: EmployeeWorkSessionId | BossId,
     to: string,
     content: string,
     reference_docs?: string[],
@@ -286,13 +258,21 @@ export class MessageService implements MessageRouter {
     // 3. 查询发送者角色
     let fromRole: string | undefined
     const fromIsBoss =
-      isBossId(from) &&
+      RoutingRules.isBossId(from) &&
       this.bossManager &&
-      this.bossManager.isBoss(RoutingRules.extractNameFromBossId(from))
+      this.bossManager.isBoss(
+        RoutingRules.extractNameFromBossId(from as BossId)
+      )
     if (fromIsBoss) {
       fromRole = "boss"
     } else {
-      const employee = this.stateManager?.getEmployee(from)
+      const employeeWorkSession =
+        await this.employeeWorkSessionManager?.getEmployeeWorkSession(
+          from as EmployeeWorkSessionId
+        )
+      const employee = employeeWorkSession
+        ? this.stateManager?.getEmployee(employeeWorkSession.employeeId)
+        : undefined
       fromRole = employee?.roleId
     }
 
@@ -350,21 +330,21 @@ export class MessageService implements MessageRouter {
     this.notifyNewMessage(targetEmployeeId)
 
     // 9. 转发消息到用户 session（如果接收方有记录的 session）
-    if (
-      this.bossManager &&
-      (resolution.targetType === "boss" ||
-        resolution.targetType === "meeting-role")
-    ) {
-      // Extract boss name from BossId (0-{bossName})
-      const bossName = isBossId(targetEmployeeId)
-        ? targetEmployeeId.substring(2)
-        : targetEmployeeId
+    if (this.bossManager && resolution.targetType === "boss") {
+      const bossName = RoutingRules.extractNameFromBossId(
+        targetEmployeeId as BossId
+      )
 
       logger.debug(
         `[MessageService] Looking up session for boss="${bossName}", employee="${from}"`
       )
 
-      const sessionId = await this.bossManager.getSession(bossName, from)
+      const sessionId = RoutingRules.isEmployeeWorkSessionId(from)
+        ? await this.bossManager.getSession(
+            bossName,
+            from as EmployeeWorkSessionId
+          )
+        : undefined
 
       logger.debug(
         `[MessageService] Session lookup result: sessionId=${sessionId || "not found"}`
@@ -390,11 +370,13 @@ export class MessageService implements MessageRouter {
     }
 
     // 10. 发射事件到 StateManager
-    this.stateManager?.addEvent({
+    await this.stateManager?.addEvent({
       projectId: this.projectId,
       type: "message",
       timestamp,
-      employeeId: from,
+      employeeWorkSessionId: RoutingRules.isEmployeeWorkSessionId(from)
+        ? (from as EmployeeWorkSessionId)
+        : undefined,
       details: {
         from,
         to: targetEmployeeId,
@@ -407,7 +389,7 @@ export class MessageService implements MessageRouter {
   /**
    * 获取未读消息队列
    */
-  getUnreadQueue(employeeId: EmployeeId | BossId): Message[] {
+  getUnreadQueue(employeeId: EmployeeWorkSessionId | BossId): Message[] {
     if (!this.unreadQueues.has(employeeId)) {
       this.unreadQueues.set(employeeId, [])
     }
@@ -418,12 +400,12 @@ export class MessageService implements MessageRouter {
    * 获取消息文件路径
    */
   getMessageFilePath(
-    owner: EmployeeId | BossId,
-    peer: EmployeeId | BossId
+    owner: EmployeeWorkSessionId | BossId,
+    peer: EmployeeWorkSessionId | BossId
   ): string {
     // 检查 owner 是否是 boss (需要同时满足格式和在 boss 列表中)
-    if (isBossId(owner) && this.bossManager) {
-      const bossName = RoutingRules.extractNameFromBossId(owner)
+    if (RoutingRules.isBossId(owner) && this.bossManager) {
+      const bossName = RoutingRules.extractNameFromBossId(owner as BossId)
       if (this.bossManager.isBoss(bossName)) {
         return path.join(
           this.workspaceRoot,
@@ -438,7 +420,7 @@ export class MessageService implements MessageRouter {
     // employee 的消息
     return path.join(
       this.workspaceRoot,
-      "employees",
+      "ews",
       owner,
       "messages",
       peer,
@@ -449,11 +431,13 @@ export class MessageService implements MessageRouter {
   /**
    * 获取员工的所有对话对象列表
    */
-  async getPeers(employeeId: EmployeeId | BossId): Promise<string[]> {
+  async getPeers(
+    employeeId: EmployeeWorkSessionId | BossId
+  ): Promise<string[]> {
     // 获取消息目录路径
     let messagesDir: string
-    if (isBossId(employeeId) && this.bossManager) {
-      const bossName = RoutingRules.extractNameFromBossId(employeeId)
+    if (RoutingRules.isBossId(employeeId) && this.bossManager) {
+      const bossName = RoutingRules.extractNameFromBossId(employeeId as BossId)
       if (this.bossManager.isBoss(bossName)) {
         messagesDir = path.join(
           this.workspaceRoot,
@@ -464,18 +448,13 @@ export class MessageService implements MessageRouter {
       } else {
         messagesDir = path.join(
           this.workspaceRoot,
-          "employees",
+          "ews",
           employeeId,
           "messages"
         )
       }
     } else {
-      messagesDir = path.join(
-        this.workspaceRoot,
-        "employees",
-        employeeId,
-        "messages"
-      )
+      messagesDir = path.join(this.workspaceRoot, "ews", employeeId, "messages")
     }
 
     try {
@@ -497,8 +476,8 @@ export class MessageService implements MessageRouter {
    * 追加消息到文件
    */
   private async appendMessage(
-    owner: EmployeeId | BossId,
-    peer: EmployeeId | BossId,
+    owner: EmployeeWorkSessionId | BossId,
+    peer: EmployeeWorkSessionId | BossId,
     message: YamlMessage
   ): Promise<void> {
     const filePath = this.getMessageFilePath(owner, peer)
@@ -558,7 +537,7 @@ export class MessageService implements MessageRouter {
    * 添加到未读队列
    */
   private addToUnreadQueue(
-    employeeId: EmployeeId | BossId,
+    employeeId: EmployeeWorkSessionId | BossId,
     message: Message
   ): void {
     const queue = this.getUnreadQueue(employeeId)
@@ -569,7 +548,7 @@ export class MessageService implements MessageRouter {
    * 添加到未读队列队首（紧急消息）
    */
   private addToUnreadQueueFront(
-    employeeId: EmployeeId | BossId,
+    employeeId: EmployeeWorkSessionId | BossId,
     message: Message
   ): void {
     const queue = this.getUnreadQueue(employeeId)
@@ -581,7 +560,7 @@ export class MessageService implements MessageRouter {
    * 如果接收方有活跃的 session，调用 abort() 中断
    */
   private async handleUrgentInterruption(
-    to: EmployeeId | BossId
+    to: EmployeeWorkSessionId | BossId
   ): Promise<void> {
     await this.abortActiveSession(to)
   }
@@ -589,13 +568,16 @@ export class MessageService implements MessageRouter {
   /**
    * 中断员工当前活跃 session
    */
-  async abortActiveSession(to: EmployeeId | BossId): Promise<void> {
+  async abortActiveSession(to: EmployeeWorkSessionId | BossId): Promise<void> {
     // 获取接收方的活跃 session ID
-    const employee = this.stateManager?.getEmployee(to)
+    const employeeWorkSession =
+      await this.employeeWorkSessionManager?.getEmployeeWorkSession(
+        to as EmployeeWorkSessionId
+      )
     logger.debug(
-      `[MessageService] Checking active session for ${to}: ${employee?.activeSessionId || "none"}`
+      `[MessageService] Checking active session for ${to}: ${employeeWorkSession?.opencodeSessionId || "none"}`
     )
-    if (!employee?.activeSessionId) {
+    if (!employeeWorkSession?.opencodeSessionId) {
       this.pendingUrgentInterruptions.add(to)
       logger.debug(
         `[MessageService] No active session for ${to}, skipping interruption`
@@ -606,27 +588,31 @@ export class MessageService implements MessageRouter {
     // 调用 abort() 中断 session
     try {
       logger.debug(
-        `[MessageService] Calling abort() for session ${employee.activeSessionId}`
+        `[MessageService] Calling abort() for session ${employeeWorkSession.opencodeSessionId}`
       )
       await this.opcodeClient?.session.abort({
-        path: { id: employee.activeSessionId },
+        path: { id: employeeWorkSession.opencodeSessionId },
       })
       this.pendingUrgentInterruptions.delete(to)
       logger.info(
-        `[MessageService] Successfully aborted session ${employee.activeSessionId} for urgent message to ${to}`
+        `[MessageService] Successfully aborted session ${employeeWorkSession.opencodeSessionId} for urgent message to ${to}`
       )
     } catch (error: any) {
       logger.error(
-        `[MessageService] Failed to abort session ${employee.activeSessionId}: ${error.message}`
+        `[MessageService] Failed to abort session ${employeeWorkSession.opencodeSessionId}: ${error.message}`
       )
     }
   }
 
-  hasPendingUrgentInterruption(employeeId: EmployeeId | BossId): boolean {
+  hasPendingUrgentInterruption(
+    employeeId: EmployeeWorkSessionId | BossId
+  ): boolean {
     return this.pendingUrgentInterruptions.has(employeeId)
   }
 
-  clearPendingUrgentInterruption(employeeId: EmployeeId | BossId): void {
+  clearPendingUrgentInterruption(
+    employeeId: EmployeeWorkSessionId | BossId
+  ): void {
     this.pendingUrgentInterruptions.delete(employeeId)
   }
 
@@ -634,7 +620,7 @@ export class MessageService implements MessageRouter {
    * 通知新消息
    * 事件不传递消息数据,只作为唤醒信号
    */
-  private notifyNewMessage(to: EmployeeId | BossId): void {
+  private notifyNewMessage(to: EmployeeWorkSessionId | BossId): void {
     this.eventEmitter.emit(`message:${to}`)
   }
 
@@ -649,8 +635,8 @@ export class MessageService implements MessageRouter {
    */
   private async forwardToSession(
     sessionId: string,
-    from: EmployeeId | BossId,
-    to: EmployeeId | BossId,
+    from: EmployeeWorkSessionId | BossId,
+    to: EmployeeWorkSessionId | BossId,
     content: string,
     reference_docs?: string[],
     fromRole?: string
@@ -661,7 +647,9 @@ export class MessageService implements MessageRouter {
         projectId: this.projectId,
         type: "message",
         timestamp: new Date().toISOString(),
-        employeeId: to,
+        employeeWorkSessionId: RoutingRules.isEmployeeWorkSessionId(to)
+          ? (to as EmployeeWorkSessionId)
+          : undefined,
         details: {
           from,
           to,
@@ -689,7 +677,6 @@ export class MessageService implements MessageRouter {
           tools: {
             send_message: true,
             edit_tasks: true,
-            create_agent: true,
           },
         },
         headers: {
@@ -708,9 +695,11 @@ export class MessageService implements MessageRouter {
 
       // 清除无效的 session 映射
       if (this.bossManager) {
-        await this.bossManager.clearSession(to, from).catch(() => {
-          // 忽略清除错误
-        })
+        await this.bossManager
+          .clearSession(to, from as EmployeeWorkSessionId)
+          .catch(() => {
+            // 忽略清除错误
+          })
       }
     }
   }

@@ -10,6 +10,7 @@ import {
   type Event,
 } from "../../src/utils/ContextBuilder"
 import type { Task, Memory, RoleMetadata } from "../../src/types"
+import type { Employee, EmployeeWorkSession } from "../../src/types"
 import { createTestRoleMetadata } from "../helpers/roleMetadata"
 
 describe("ContextBuilder", () => {
@@ -96,7 +97,7 @@ describe("ContextBuilder", () => {
         ".cclover/workspace"
       )
       expect(result).toContain("# Workspace Files")
-      expect(result).toContain(".cclover/workspace/employees/alice/")
+      expect(result).toContain(".cclover/workspace/ews/alice/")
       expect(result).toContain("messages/{peer}/chat.yaml")
       expect(result).toContain("events.jsonl")
       expect(result).toContain("memory.yaml")
@@ -234,6 +235,79 @@ describe("ContextBuilder", () => {
       expect(result).toContain("/tmp/context-doc.md")
       expect(result).toContain("Use double quotes.")
     })
+
+    test("should include EWS runtime identity context files args tasks and workspace paths", () => {
+      const employee: Employee = {
+        employeeId: "emp_dev",
+        name: "dev-employee",
+        roleId: "developer",
+        description: "Implements scoped work",
+        contextPaths: ["docs/brief.md"],
+        hiredBy: "boss_main",
+        createdAt: "2026-06-22T00:00:00.000Z",
+        updatedAt: "2026-06-22T00:00:00.000Z",
+      }
+      const employeeWorkSession: EmployeeWorkSession = {
+        employeeWorkSessionId: "ews_dev_one",
+        parentEmployeeWorkSessionId: null,
+        employeeId: "emp_dev",
+        opencodeSessionId: "session-dev-one",
+        description: "Implement memory scope",
+        args: { worktree_path: "/tmp/worktree", ticket: "003" },
+        contextPathsSnapshot: ["docs/brief.md"],
+        worktreeRef: "ews-taskplan",
+        status: "idle",
+        closedAt: null,
+        closedBy: null,
+        closeReason: null,
+        createdAt: "2026-06-22T00:00:01.000Z",
+        updatedAt: "2026-06-22T00:00:01.000Z",
+      }
+      const memory: Memory = {
+        knowledge: ["EWS knowledge"],
+        tasks: [
+          {
+            name: "task-003",
+            status: "pending",
+            description: "Scoped task",
+            dependencies: [],
+            created: "2026-06-22T00:00:02.000Z",
+          },
+        ],
+        args: { worktree_path: "/tmp/worktree", ticket: "003" },
+        opencodeSessionId: "session-dev-one",
+      }
+
+      const result = buildSystemPrompt(
+        "You are a developer.",
+        memory,
+        { employee, employeeWorkSession },
+        ".cclover/workspace",
+        undefined,
+        undefined,
+        [
+          {
+            path: "docs/brief.md",
+            content: "Brief content from employee metadata snapshot.",
+          },
+        ]
+      )
+
+      expect(result).toContain("# Employee Metadata")
+      expect(result).toContain("emp_dev")
+      expect(result).toContain("dev-employee")
+      expect(result).toContain("--- Begin employee context: docs/brief.md ---")
+      expect(result).toContain("Brief content from employee metadata snapshot.")
+      expect(result).toContain("--- End employee context: docs/brief.md ---")
+      expect(result).toContain("# Employee Work Session")
+      expect(result).toContain("ews_dev_one")
+      expect(result).toContain("session-dev-one")
+      expect(result).toContain("worktree_path")
+      expect(result).toContain("task-003")
+      expect(result).toContain(".cclover/workspace/ews/ews_dev_one/")
+      expect(result).not.toContain(".cclover/workspace/employees/emp_dev")
+      expect(result).not.toContain("initial_args")
+    })
   })
 
   describe("buildEventMessage", () => {
@@ -254,23 +328,29 @@ describe("ContextBuilder", () => {
       expect(result).toContain("Content: 计算 1+1")
     })
 
-    test("should format agent_completed event", () => {
+    test("should format task_available event", () => {
       const event: Event = {
         projectId: "test",
-        type: "agent_completed",
+        type: "task_available",
         timestamp: "2026-03-01T10:05:00Z",
         details: {
-          agentId: "agent_001",
-          taskName: "复杂计算",
-          result: "结果是 456831",
+          tasks: [
+            {
+              name: "复杂计算",
+              status: "pending",
+              description: "计算复杂表达式",
+              dependencies: [],
+              created: "2026-03-01T10:00:00Z",
+            },
+          ],
         },
       }
 
       const result = buildEventMessage(event)
-      expect(result).toContain("Type: agent_completed")
-      expect(result).toContain("Agent ID: agent_001")
-      expect(result).toContain("Related Task: 复杂计算")
-      expect(result).toContain("Result: 结果是 456831")
+      expect(result).toContain("Type: task_available")
+      expect(result).toContain("The following tasks can be executed:")
+      expect(result).toContain("**Task: 复杂计算**")
+      expect(result).not.toContain("Agent ID")
     })
   })
 
@@ -613,7 +693,7 @@ describe("ContextBuilder", () => {
 
       expect(result).toContain("## Hiring Reference")
       expect(result).toContain(
-        "When using `hire_employee`, required parameters for the target role must be passed via `initial_args`"
+        "When using `create_employee_work_session`, required parameters for the target role must be passed via `args`"
       )
       expect(result).toContain("You can hire these roles:")
       expect(result).toContain("**developer**")

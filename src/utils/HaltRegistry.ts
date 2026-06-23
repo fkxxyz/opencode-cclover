@@ -6,9 +6,7 @@
 
 export interface HaltEvent {
   type: "halt_requested"
-  employeeId: string
-  rootTaskId?: string
-  workItemId?: string
+  employeeWorkSessionId: string
   reason?: string
   timestamp: string
   triggeredBy?: string
@@ -17,28 +15,28 @@ export interface HaltEvent {
 export class HaltRegistry {
   private haltQueues = new Map<string, HaltEvent[]>()
 
-  addHaltEvent(employeeId: string, event: HaltEvent): void {
-    if (!this.haltQueues.has(employeeId)) {
-      this.haltQueues.set(employeeId, [])
+  addHaltEvent(employeeWorkSessionId: string, event: HaltEvent): void {
+    if (!this.haltQueues.has(employeeWorkSessionId)) {
+      this.haltQueues.set(employeeWorkSessionId, [])
     }
-    this.haltQueues.get(employeeId)!.push(event)
+    this.haltQueues.get(employeeWorkSessionId)!.push(event)
   }
 
-  hasHaltEvent(employeeId: string): boolean {
-    const queue = this.haltQueues.get(employeeId)
+  hasHaltEvent(employeeWorkSessionId: string): boolean {
+    const queue = this.haltQueues.get(employeeWorkSessionId)
     return queue !== undefined && queue.length > 0
   }
 
-  getHaltEvent(employeeId: string): HaltEvent | null {
-    const queue = this.haltQueues.get(employeeId)
+  getHaltEvent(employeeWorkSessionId: string): HaltEvent | null {
+    const queue = this.haltQueues.get(employeeWorkSessionId)
     if (!queue || queue.length === 0) {
       return null
     }
     return queue.shift()!
   }
 
-  clearHaltQueue(employeeId: string): void {
-    this.haltQueues.delete(employeeId)
+  clearHaltQueue(employeeWorkSessionId: string): void {
+    this.haltQueues.delete(employeeWorkSessionId)
   }
 
   clear(): void {

@@ -58,14 +58,14 @@ opencode-cclover/
 │   ├── tools/                                   - Tool implementations
 │   │   ├── SendMessageTool.ts
 │   │   ├── EditTasksTool.ts
-│   │   ├── CreateAgentTool.ts
+│   │   ├── EmployeeTools.ts
 │   │   ├── HireEmployeeTool.ts
 │   │   └── index.ts
 │   ├── utils/                                   - Utility modules
 │   │   ├── MermaidGenerator.ts
 │   │   ├── ContextBuilder.ts
 │   │   ├── SessionRegistry.ts
-│   │   ├── AgentRegistry.ts
+│   │   ├── HaltRegistry.ts
 │   │   └── index.ts
 │   ├── roles/                                   - Role definitions
 │   │   ├── calculator.md                       - Preset roles (markdown)
@@ -96,7 +96,7 @@ opencode-cclover/
 │   │   ├── ContextBuilder.test.ts
 │   │   ├── MermaidGenerator.test.ts
 │   │   ├── SessionRegistry.test.ts
-│   │   ├── AgentRegistry.test.ts
+│   │   ├── EmployeeWorkSessionManager.test.ts
 │   │   ├── EmployeeRegistry.test.ts
 │   │   └── EventHistory.test.ts
 │   ├── integration/                             - Integration tests

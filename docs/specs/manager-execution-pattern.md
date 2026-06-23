@@ -258,7 +258,7 @@ If upstream or new information requires additional action after readiness report
 
 ## Coordination Task View
 
-For each non-trivial coordinated work item, track at least:
+For each non-trivial coordinated work package, track at least:
 - Task/package name
 - Owner
 - Dependencies

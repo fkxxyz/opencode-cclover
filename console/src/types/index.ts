@@ -12,14 +12,6 @@ export interface CandidateProject {
   seenCount: number
 }
 
-// Employee types
-export type EmployeeStatus =
-  | "busy"
-  | "idle"
-  | "error"
-  | "offline"
-  | "abnormal"
-
 export interface PromptRecovery {
   version?: number
   sessionId: string
@@ -31,14 +23,11 @@ export interface Employee {
   employeeId: string
   name: string
   roleId: string
-  handbookPath?: string
+  description: string
+  contextPaths: string[]
   hiredBy: string | null
-  status: EmployeeStatus
-  paused: boolean
   createdAt: string
-  lastActiveAt: string
-  activeSessionId: string | null
-  promptRecovery?: PromptRecovery
+  updatedAt: string
 }
 
 export interface BossInfo {
@@ -50,42 +39,14 @@ export interface BossInfo {
 export interface EmployeeDetail extends Employee {
   memory: Memory
   tasks: Task[]
-  agents: AgentExecution[]
 }
 
 export interface EmployeeHierarchy {
   employeeId?: string
   name: string
   role: string
-  status: EmployeeStatus
+  status?: string
   children: EmployeeHierarchy[]
-}
-
-// Work model types
-export interface RootTask {
-  rootTaskId: string
-  summary: string
-  createdBy: string
-  createdAt: string
-}
-
-export interface WorkItem {
-  workItemId: string
-  rootTaskId: string
-  parentWorkItemId: string | null
-  employeeId: string
-  description: string
-  dependsOn: string[]
-  worktreeRef: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface WorkItemFilters {
-  rootTaskId?: string
-  employeeId?: string
-  parentWorkItemId?: string | null
-  dependsOn?: string
 }
 
 // Message types
@@ -145,18 +106,6 @@ export interface Memory {
   }
 }
 
-// Agent execution types
-export type AgentStatus = "running" | "completed" | "failed"
-
-export interface AgentExecution {
-  agentId: string
-  taskName: string
-  status: AgentStatus
-  createdAt: string
-  completedAt?: string
-  result?: string
-}
-
 // Event types
 export type EventType =
   | "message"
@@ -169,41 +118,29 @@ export type EventType =
   | "task_available"
   | "task_reminder"
   | "reply_reminder"
-  | "agent_completed"
-  | "agent_failed"
   | "timer"
   | "employee_hired"
-  | "employee_status_changed"
-  | "employee_paused"
-  | "employee_resumed"
-  | "employee_halted"
+  | "employee_updated"
+  | "employee_work_session_created"
+  | "employee_work_session_status_changed"
+  | "employee_work_session_closed"
   | "session_created"
   | "session_prompt_started"
   | "session_prompt_completed"
   | "session_summary_started"
   | "session_summary_completed"
   | "summary_parse_failed"
-  | "agent_created"
   | "task_created"
   | "task_modified"
-  | "vacation_requested"
-  | "major_task_completed"
-  | "survey_sent"
   | "feedback_received"
-  | "root_task_created"
-  | "root_task_deleted"
-  | "work_item_created"
-  | "work_item_updated"
-  | "work_item_deleted"
   | "*" // Wildcard for subscribing to all events
 
 export interface Event {
   projectId: string
   type: EventType
   timestamp: string
+  employeeWorkSessionId?: string
   employeeId?: string
-  rootTaskId?: string
-  workItemId?: string
   details: Record<string, unknown>
 }
 

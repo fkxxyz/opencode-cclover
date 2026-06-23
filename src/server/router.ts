@@ -62,11 +62,9 @@ export class Router {
           memoryManager: project.memoryManager,
           messageService: project.messageService,
           opcodeClient: (project.messageService as any).opcodeClient,
-          agentRegistry: project.agentRegistry,
           bossManager: project.bossManager,
           roleManager: project.roleManager,
-          rootTaskManager: project.rootTaskManager,
-          workItemManager: project.workItemManager,
+          employeeWorkSessionManager: project.employeeWorkSessionManager,
           workspaceRoot: project.workspaceRoot,
         }
 

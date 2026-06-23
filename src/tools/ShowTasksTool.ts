@@ -8,6 +8,7 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
+import type { EmployeeWorkSessionId } from "../types"
 import { resolveToolActor } from "../meeting-mode"
 import { generateMermaid } from "../utils/MermaidGenerator"
 
@@ -25,7 +26,7 @@ export function createShowTasksTool(
 ) {
   return tool({
     description:
-      "Display personal TODO tasks with dependency graph visualization; project-level work items use list_work_items",
+      "Display TODO tasks for the current employee work session with dependency graph visualization. Uses EWS memory.",
     args: {},
     async execute(args, context) {
       // 1. Get caller information
@@ -35,7 +36,8 @@ export function createShowTasksTool(
         bossManager,
         roleManager
       )
-      const employeeId = actor?.actorEmployeeId
+      const employeeId = (actor?.actorEmployeeWorkSessionId ??
+        actor?.actorEmployeeId) as EmployeeWorkSessionId | undefined
 
       if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`

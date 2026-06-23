@@ -81,7 +81,7 @@ An **employee** is an instance of a role with:
 - Independent memory (knowledge, tasks, args)
 - Message history with other employees
 - Task list with DAG dependencies
-- Ability to create background agents
+- Ability to create EmployeeWorkSessions for background work
 
 ### Available Tools for Employees
 
@@ -95,9 +95,9 @@ Employees have access to four core tools:
    - Use for: Breaking down work, tracking progress, managing dependencies
    - Frequency: Whenever work structure changes
 
-3. **create_agent**: Create background OpenCode agent to execute work
+3. **create_employee_work_session**: Create EmployeeWorkSession backed by OpenCode Session to execute work
    - Use for: Complex tasks requiring deep focus, parallel work
-   - Frequency: For substantial work items, not trivial operations
+   - Frequency: For substantial work packages, not trivial operations
 
 4. **hire_employee**: Hire new employees with specific roles
    - Use for: Expanding team, delegating to specialists
@@ -374,7 +374,7 @@ The system automatically manages your data and memory, so you can focus on your 
 - **Frequency**: [How often]
 - **Examples**: [Concrete examples]
 
-### create_agent
+### create_employee_work_session
 - **When to use**: [Specific scenarios]
 - **Frequency**: [How often]
 - **Examples**: [Concrete examples]
@@ -451,7 +451,7 @@ After collecting Phase 2 information, provide a detailed summary and ask: "Let m
 **Phase 3: Tool Usage** (CRITICAL - ask for each tool)
 - **send_message**: When should this role use it? How frequently?
 - **edit_tasks**: When should this role use it? How frequently?
-- **create_agent**: When should this role use it? How frequently?
+- **create_employee_work_session**: When should this role use it? How frequently?
 - **hire_employee**: When should this role use it? How frequently?
 
 **Phase 4: Special Constraints**

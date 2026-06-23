@@ -9,18 +9,16 @@ interface EventItemProps {
 
 // 事件图标映射
 const EVENT_ICONS: Partial<Record<EventType, string>> = {
-  employee_status_changed: "🔄",
-  employee_paused: "⏸️",
-  employee_resumed: "▶️",
-  employee_halted: "⏹️",
+  employee_updated: "🔄",
+  employee_work_session_created: "⚡",
+  employee_work_session_status_changed: "🔄",
+  employee_work_session_closed: "⏹️",
   session_created: "⚡",
   session_prompt_started: "🤔",
   session_prompt_completed: "💡",
   session_summary_started: "📝",
   session_summary_completed: "📊",
   summary_parse_failed: "⚠️",
-  agent_created: "🤖",
-  agent_completed: "✅",
   task_created: "📋",
   task_modified: "✏️",
   task_completed: "✅",
@@ -30,20 +28,11 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   task_waiting_for_message: "🚧",
   task_available: "🔔",
   task_reminder: "⏰",
-  root_task_created: "🌱",
-  root_task_deleted: "🗑️",
-  work_item_created: "🧩",
-  work_item_updated: "🔧",
-  work_item_deleted: "🗑️",
   message: "💬",
-  agent_failed: "❌",
   timer: "⏰",
   employee_hired: "👤",
   reply_attempted: "⚠️",
   reply_reminder: "🔔",
-  vacation_requested: "🏖️",
-  major_task_completed: "🎉",
-  survey_sent: "📋",
   feedback_received: "💬",
 }
 
@@ -55,8 +44,17 @@ function getEventDescription(
   const { type, details } = event
 
   switch (type) {
-    case "employee_status_changed":
+    case "employee_updated":
+      return `员工更新: ${event.employeeId}`
+
+    case "employee_work_session_created":
+      return `工作会话创建: ${event.employeeWorkSessionId}`
+
+    case "employee_work_session_status_changed":
       return `状态变化: ${details.oldStatus} → ${details.newStatus}`
+
+    case "employee_work_session_closed":
+      return `工作会话关闭: ${event.employeeWorkSessionId}`
 
     case "session_created":
       return (
@@ -109,12 +107,6 @@ function getEventDescription(
     case "session_summary_completed":
       return `会话总结完成 (${details.messageCount} 条消息, ${details.tokenCount} tokens)`
 
-    case "agent_created":
-      return `Agent 创建: ${details.taskName}`
-
-    case "agent_completed":
-      return `Agent 完成: ${details.taskName}`
-
     case "task_created":
       return `任务创建: ${details.taskName}`
 
@@ -136,20 +128,8 @@ function getEventDescription(
     case "task_waiting_for_message":
       return `任务等待消息: ${details.taskName} - ${details.reason || "waiting for message"}`
 
-    case "agent_failed":
-      return `Agent 失败: ${details.taskName}`
-
     case "employee_hired":
       return `雇佣员工: ${event.employeeId} (${details.roleId})`
-
-    case "employee_paused":
-      return `员工暂停: ${event.employeeId}`
-
-    case "employee_resumed":
-      return `员工恢复: ${event.employeeId}`
-
-    case "employee_halted":
-      return `员工停止: ${event.employeeId}${details.reason ? ` - ${details.reason}` : ""}`
 
     case "message":
       return `消息: ${details.from} → ${details.to}`
@@ -169,32 +149,8 @@ function getEventDescription(
     case "task_reminder":
       return `任务提醒: ${details.taskName || (Array.isArray(details.tasks) ? details.tasks.join(", ") : "")}`
 
-    case "root_task_created":
-      return `根任务创建: ${details.rootTaskId || event.rootTaskId}`
-
-    case "root_task_deleted":
-      return `根任务删除: ${details.rootTaskId || event.rootTaskId}`
-
-    case "work_item_created":
-      return `工作项创建: ${details.workItemId || event.workItemId}`
-
-    case "work_item_updated":
-      return `工作项更新: ${details.workItemId || event.workItemId}`
-
-    case "work_item_deleted":
-      return `工作项删除: ${details.workItemId || event.workItemId}`
-
-    case "vacation_requested":
-      return `休假请求: ${event.employeeId}`
-
     case "summary_parse_failed":
       return `会话总结解析失败 (会话: ${details.sessionId})`
-
-    case "major_task_completed":
-      return `重大任务完成 (完成时间: ${new Date(String(details.completedAt)).toLocaleString("zh-CN")})`
-
-    case "survey_sent":
-      return `反馈调查已发送 (发送时间: ${new Date(String(details.sentAt)).toLocaleString("zh-CN")})`
 
     case "feedback_received":
       return `反馈已收到 (接收时间: ${new Date(String(details.receivedAt)).toLocaleString("zh-CN")})`

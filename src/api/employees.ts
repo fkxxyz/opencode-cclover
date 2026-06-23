@@ -89,8 +89,7 @@ export function getBosses(
 export async function getEmployeeDetail(
   employeeId: string,
   stateManager: StateManager,
-  memoryManager: MemoryManager,
-  agentRegistry: any
+  _memoryManager: MemoryManager
 ): Promise<SuccessResponse<EmployeeDetail> | ErrorResponse> {
   // employeeId 是员工资源键，name 只作为展示字段
   const employees = stateManager.getEmployees()
@@ -107,29 +106,16 @@ export async function getEmployeeDetail(
   }
 
   try {
-    // 读取员工记忆（使用 employeeId）
-    const memory = await memoryManager.read(employee.employeeId)
+    // 员工已是元数据实体，详情接口不再从员工 ID 读取运行时记忆。
+    const memory = { knowledge: [], tasks: [], args: {} }
 
     // 获取员工的任务
     const tasks = memory.tasks || []
-
-    // 获取员工创建的 Agent 执行记录（使用 employeeId）
-    const agentIds = agentRegistry.getAgentsByEmployee(employee.employeeId)
-    const agents = agentIds.map((agentId: string) => {
-      const info = agentRegistry.getInfo(agentId)
-      return {
-        agentId,
-        taskName: info?.taskName || "",
-        status: "running" as const,
-        createdAt: new Date().toISOString(),
-      }
-    })
 
     const detail: EmployeeDetail = {
       ...employee,
       memory,
       tasks,
-      agents,
     }
 
     return {
@@ -153,7 +139,6 @@ export async function getEmployeeDetail(
 export async function getBossDetail(
   name: string,
   bossManager: BossManager,
-  agentRegistry: any,
   workspaceRoot: string
 ): Promise<SuccessResponse<EmployeeDetail> | ErrorResponse> {
   // 验证 boss 是否存在
@@ -189,33 +174,18 @@ export async function getBossDetail(
       // 文件不存在，使用空记忆
     }
 
-    // 获取 boss 创建的 Agent 执行记录
-    const bossId = formatBossId(name)
-    const agentIds = agentRegistry.getAgentsByEmployee(bossId)
-    const agents = agentIds.map((agentId: string) => {
-      const info = agentRegistry.getInfo(agentId)
-      return {
-        agentId,
-        taskName: info?.taskName || "",
-        status: "running" as const,
-        createdAt: new Date().toISOString(),
-      }
-    })
-
-    const detail: EmployeeDetail = {
+    const detail = {
       employeeId: formatBossId(name),
       name,
       roleId: "Boss",
       hiredBy: null,
-      status: "busy" as const,
-      paused: false,
       createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
+      updatedAt: new Date().toISOString(),
+      description: "Configured boss identity",
+      contextPaths: [],
       memory,
       tasks: memory.tasks || [],
-      agents,
-    }
+    } as unknown as EmployeeDetail
 
     return {
       success: true,

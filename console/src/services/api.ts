@@ -7,15 +7,12 @@ import type {
   EmployeeHierarchy,
   Message,
   PeerWithLastMessage,
-  RootTask,
   TasksResponse,
   Event,
   SuccessResponse,
   ErrorResponse,
   TimelineItem,
   Role,
-  WorkItem,
-  WorkItemFilters,
 } from "../types/index"
 import { ApiError, NetworkError } from "../lib/error-handler"
 import { getApiBaseUrlFromRuntime } from "../lib/backend-config"
@@ -126,34 +123,9 @@ export class ApiClient {
     )
   }
 
-  async getRootTasks(projectId: string): Promise<RootTask[]> {
-    const data = await this.request<{ rootTasks: RootTask[] }>(
-      `/projects/${projectId}/root-tasks`
-    )
-    return data.rootTasks
-  }
-
-  async getWorkItems(
-    projectId: string,
-    filters?: WorkItemFilters
-  ): Promise<WorkItem[]> {
-    const params = new URLSearchParams()
-    if (filters?.rootTaskId) params.append("rootTaskId", filters.rootTaskId)
-    if (filters?.employeeId) params.append("employeeId", filters.employeeId)
-    if (filters?.parentWorkItemId !== undefined) {
-      params.append("parentWorkItemId", filters.parentWorkItemId ?? "")
-    }
-    if (filters?.dependsOn) params.append("dependsOn", filters.dependsOn)
-    const query = params.toString() ? `?${params.toString()}` : ""
-    const data = await this.request<{ workItems: WorkItem[] }>(
-      `/projects/${projectId}/work-items${query}`
-    )
-    return data.workItems
-  }
-
   async getMessages(
     projectId: string,
-    employeeId: string,
+    employeeWorkSessionId: string,
     peer?: string,
     limit?: number
   ): Promise<Message[]> {
@@ -162,30 +134,30 @@ export class ApiClient {
     if (limit) params.append("limit", limit.toString())
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ messages: Message[] }>(
-      `/projects/${projectId}/employees/${employeeId}/messages${query}`
+      `/projects/${projectId}/employee-work-sessions/${employeeWorkSessionId}/messages${query}`
     )
     return data.messages
   }
 
   async getPeers(
     projectId: string,
-    employeeId: string
+    employeeWorkSessionId: string
   ): Promise<PeerWithLastMessage[]> {
     const data = await this.request<{ peers: PeerWithLastMessage[] }>(
-      `/projects/${projectId}/employees/${employeeId}/peers`
+      `/projects/${projectId}/employee-work-sessions/${employeeWorkSessionId}/peers`
     )
     return data.peers
   }
 
   async sendMessage(
     projectId: string,
-    employeeId: string,
+    employeeWorkSessionId: string,
     to: string,
     content: string
   ): Promise<void> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/employees/${employeeId}/messages`,
+        `${API_BASE_URL}/projects/${projectId}/employee-work-sessions/${employeeWorkSessionId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -209,10 +181,10 @@ export class ApiClient {
 
   async getTasks(
     projectId: string,
-    employeeId: string
+    employeeWorkSessionId: string
   ): Promise<TasksResponse> {
     return this.request<TasksResponse>(
-      `/projects/${projectId}/employees/${employeeId}/tasks`
+      `/projects/${projectId}/employee-work-sessions/${employeeWorkSessionId}/tasks`
     )
   }
 
@@ -221,16 +193,16 @@ export class ApiClient {
     options?: {
       limit?: number
       employeeId?: string
-      rootTaskId?: string
-      workItemId?: string
+      employeeWorkSessionId?: string
       type?: string
     }
   ): Promise<Event[]> {
     const params = new URLSearchParams()
     if (options?.limit) params.append("limit", options.limit.toString())
     if (options?.employeeId) params.append("employeeId", options.employeeId)
-    if (options?.rootTaskId) params.append("rootTaskId", options.rootTaskId)
-    if (options?.workItemId) params.append("workItemId", options.workItemId)
+    if (options?.employeeWorkSessionId) {
+      params.append("employeeWorkSessionId", options.employeeWorkSessionId)
+    }
     if (options?.type) params.append("type", options.type)
     const query = params.toString() ? `?${params.toString()}` : ""
     const data = await this.request<{ events: Event[] }>(
@@ -299,56 +271,6 @@ export class ApiClient {
     return this.request<Role>(
       `/projects/${projectId}/employees/${employeeId}/role`
     )
-  }
-
-  async pauseEmployee(projectId: string, employeeId: string): Promise<void> {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/employees/${employeeId}/pause`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }
-      )
-      const json = (await response.json()) as
-        | SuccessResponse<any>
-        | ErrorResponse
-      if (!json.success) {
-        const error = json as ErrorResponse
-        throw new ApiError(error.error.message, error.error.code)
-      }
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new NetworkError("无法连接到服务器")
-      }
-      throw error
-    }
-  }
-
-  async resumeEmployee(projectId: string, employeeId: string): Promise<void> {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/employees/${employeeId}/resume`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }
-      )
-      const json = (await response.json()) as
-        | SuccessResponse<any>
-        | ErrorResponse
-      if (!json.success) {
-        const error = json as ErrorResponse
-        throw new ApiError(error.error.message, error.error.code)
-      }
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new NetworkError("无法连接到服务器")
-      }
-      throw error
-    }
   }
 }
 

@@ -2,7 +2,7 @@ import type { OpencodeClient } from "@opencode-ai/sdk"
 import type { MemoryManager, Memory } from "../MemoryManager"
 import type { RoleManager } from "../RoleManager"
 import type { StateManager } from "../../state/StateManager"
-import type { EmployeeId } from "../../types"
+import type { EmployeeWorkSessionId } from "../../types"
 import { logger } from "../../lib/logger"
 
 /**
@@ -12,7 +12,7 @@ import { logger } from "../../lib/logger"
 export class SummaryService {
   constructor(
     private projectPath: string,
-    private employeeId: EmployeeId,
+    private employeeWorkSessionId: EmployeeWorkSessionId,
     private roleName: string,
     private roleManager: RoleManager,
     private memoryManager: MemoryManager,
@@ -255,7 +255,7 @@ Return ONLY a JSON object (or wrap it in a \`\`\`json code block):
 
       lastError = parseResult.error ?? "Unknown error"
       logger.warn(
-        `[${this.employeeId}] Failed to parse summary JSON (attempt ${attempt}/${MAX_RETRIES}): ${lastError}`
+        `[${this.employeeWorkSessionId}] Failed to parse summary JSON (attempt ${attempt}/${MAX_RETRIES}): ${lastError}`
       )
     }
 
@@ -264,7 +264,7 @@ Return ONLY a JSON object (or wrap it in a \`\`\`json code block):
       projectId: "",
       type: "summary_parse_failed",
       timestamp: new Date().toISOString(),
-      employeeId: this.employeeId,
+      employeeWorkSessionId: this.employeeWorkSessionId,
       details: {
         sessionId,
         attempts: MAX_RETRIES,
@@ -274,7 +274,7 @@ Return ONLY a JSON object (or wrap it in a \`\`\`json code block):
     })
 
     console.error(
-      `[${this.employeeId}] Failed to parse summary JSON after ${MAX_RETRIES} attempts`
+      `[${this.employeeWorkSessionId}] Failed to parse summary JSON after ${MAX_RETRIES} attempts`
     )
     return { args: {}, roleData: {}, knowledge: [] }
   }
@@ -288,7 +288,7 @@ Return ONLY a JSON object (or wrap it in a \`\`\`json code block):
     knowledge: string[]
   }): Promise<void> {
     // 读取当前记忆
-    const memory = await this.memoryManager.read(this.employeeId)
+    const memory = await this.memoryManager.read(this.employeeWorkSessionId)
 
     // 合并知识（去重）
     const knowledgeSet = new Set([...memory.knowledge, ...summary.knowledge])
@@ -300,11 +300,13 @@ Return ONLY a JSON object (or wrap it in a \`\`\`json code block):
     const roleData = { ...memory.roleData, ...summary.roleData }
 
     // 写入更新后的记忆
-    await this.memoryManager.write(this.employeeId, {
+    await this.memoryManager.write(this.employeeWorkSessionId, {
       knowledge: Array.from(knowledgeSet),
       tasks: memory.tasks, // tasks 不需要总结，保持原样
       args, // 更新 args
       roleData, // 更新 roleData
+      opencodeSessionId: memory.opencodeSessionId,
+      sessionSnapshot: memory.sessionSnapshot,
     })
   }
 

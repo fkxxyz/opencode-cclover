@@ -1,12 +1,20 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as lockfile from "proper-lockfile"
-import type { Event, TimelineItem, EmployeeId } from "../types/index"
+import type {
+  BossId,
+  EmployeeId,
+  EmployeeWorkSessionId,
+  Event,
+  TimelineItem,
+} from "../types/index"
+
+export type EventLogOwnerId = EmployeeId | EmployeeWorkSessionId | BossId
 
 /**
  * 事件日志记录器
  * 负责将事件持久化到 JSONL 文件
- * 使用 employeeId 作为文件路径
+ * 使用员工元数据 ID 或 EWS 运行时 ID 作为文件路径
  */
 export class EventLogger {
   private workspaceRoot: string
@@ -16,10 +24,10 @@ export class EventLogger {
   }
 
   /**
-   * 记录事件到员工的 events.jsonl 文件
+   * 记录事件到所有者的 events.jsonl 文件
    */
-  async logEvent(employeeId: EmployeeId, event: Event): Promise<void> {
-    const filePath = this.getEventFilePath(employeeId)
+  async logEvent(ownerId: EventLogOwnerId, event: Event): Promise<void> {
+    const filePath = this.getEventFilePath(ownerId)
 
     // 确保目录存在
     await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -92,11 +100,13 @@ export class EventLogger {
    * @param before 游标时间戳，返回此时间之前的事件
    */
   async getEvents(
-    employeeId: EmployeeId,
+    employeeId: string,
     limit: number = 50,
     before?: string
   ): Promise<Event[]> {
-    const filePath = this.getEventFilePath(employeeId)
+    const filePath = this.getEventFilePath(
+      this.normalizeEventLogOwnerId(employeeId)
+    )
 
     try {
       const content = await fs.readFile(filePath, "utf-8")
@@ -131,7 +141,7 @@ export class EventLogger {
    * @param before 游标时间戳，返回此时间之前的消息
    */
   async getTimeline(
-    employeeId: EmployeeId,
+    employeeId: string,
     messageService: any,
     limit: number = 50,
     before?: string
@@ -179,12 +189,32 @@ export class EventLogger {
   /**
    * 获取事件文件路径
    */
-  private getEventFilePath(employeeId: EmployeeId): string {
+  private getEventFilePath(employeeId: EventLogOwnerId): string {
+    if (employeeId.startsWith("ews_")) {
+      return path.join(this.workspaceRoot, "ews", employeeId, "events.jsonl")
+    }
+
+    if (employeeId.startsWith("boss_")) {
+      return path.join(this.workspaceRoot, "bosses", employeeId, "events.jsonl")
+    }
+
     return path.join(
       this.workspaceRoot,
       "employees",
       employeeId,
       "events.jsonl"
     )
+  }
+
+  private normalizeEventLogOwnerId(ownerId: string): EventLogOwnerId {
+    if (
+      ownerId.startsWith("emp_") ||
+      ownerId.startsWith("ews_") ||
+      ownerId.startsWith("boss_")
+    ) {
+      return ownerId as EventLogOwnerId
+    }
+
+    return `emp_${ownerId}`
   }
 }

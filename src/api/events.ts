@@ -13,8 +13,7 @@ export function getEvents(
   options: {
     limit?: number
     employeeId?: string
-    rootTaskId?: string
-    workItemId?: string
+    employeeWorkSessionId?: string
     type?: EventType
   },
   stateManager: StateManager
@@ -35,9 +34,8 @@ export function getEvents(
     // 获取事件
     const events = stateManager.getEvents({
       limit,
-      employeeId: options?.employeeId,
-      rootTaskId: options?.rootTaskId,
-      workItemId: options?.workItemId,
+      employeeId: options?.employeeId as any,
+      employeeWorkSessionId: options?.employeeWorkSessionId as any,
       type: options?.type,
     })
 

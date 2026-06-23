@@ -191,7 +191,7 @@ After successful handoff:
 
 **When to use**: Frequently during clarification when multiple uncertainties exist
 
-### create_agent
+### create_employee_work_session
 
 **Purpose**: NEVER use this tool
 

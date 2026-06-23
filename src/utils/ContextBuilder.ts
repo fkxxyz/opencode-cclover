@@ -5,7 +5,13 @@
  */
 
 import type { Task, Memory } from "../core/MemoryManager"
-import type { RoleMetadata, RoleRequiredArgSpec } from "../types"
+import type {
+  Employee,
+  EmployeeWorkSession,
+  EmployeeWorkSessionId,
+  RoleMetadata,
+  RoleRequiredArgSpec,
+} from "../types"
 import type { RoleManager } from "../core/RoleManager"
 import { generateMermaid } from "./MermaidGenerator"
 
@@ -29,8 +35,6 @@ export interface HaltRequestedEvent {
   type: "halt_requested"
   timestamp: string
   details: {
-    rootTaskId?: string
-    workItemId?: string
     reason?: string
     triggeredBy?: string
   }
@@ -42,6 +46,33 @@ interface MissingArg {
   name: string
   type: string
   description: string
+}
+
+export interface EmployeeContextFile {
+  path: string
+  content: string
+}
+
+export interface RuntimeIdentityContext {
+  employee: Employee
+  employeeWorkSession: EmployeeWorkSession
+  supervisor?: {
+    employeeWorkSessionId: EmployeeWorkSessionId
+    employeeId: string
+    name: string
+    role: string
+  }
+}
+
+function isRuntimeIdentityContext(
+  value: unknown
+): value is RuntimeIdentityContext {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "employee" in value &&
+    "employeeWorkSession" in value
+  )
 }
 
 /**
@@ -158,13 +189,31 @@ function injectRoleContexts(
 export function buildSystemPrompt(
   rolePrompt: string,
   memory: Memory,
-  employeeId: string,
+  runtimeIdentityOrEmployeeId: RuntimeIdentityContext | string,
   workspaceRoot: string,
   roleMetadata?: RoleMetadata,
-  supervisor?: { name: string; role: string },
-  roleManager?: RoleManager
+  supervisorOrRoleManager?: { name: string; role: string } | RoleManager,
+  roleManagerOrEmployeeContextFiles?: RoleManager | EmployeeContextFile[],
+  employeeContextFilesInput?: EmployeeContextFile[]
 ): string {
   const sections: string[] = []
+  const runtimeIdentity = isRuntimeIdentityContext(runtimeIdentityOrEmployeeId)
+    ? runtimeIdentityOrEmployeeId
+    : undefined
+  const employeeId = runtimeIdentity
+    ? runtimeIdentity.employeeWorkSession.employeeWorkSessionId
+    : runtimeIdentityOrEmployeeId
+  const supervisor = runtimeIdentity
+    ? runtimeIdentity.supervisor
+    : (supervisorOrRoleManager as { name: string; role: string } | undefined)
+  const roleManager = runtimeIdentity
+    ? (supervisorOrRoleManager as RoleManager | undefined)
+    : (roleManagerOrEmployeeContextFiles as RoleManager | undefined)
+  const employeeContextFiles = runtimeIdentity
+    ? Array.isArray(roleManagerOrEmployeeContextFiles)
+      ? roleManagerOrEmployeeContextFiles
+      : employeeContextFilesInput
+    : undefined
 
   // 1. 角色定义
   sections.push("# Role Definition")
@@ -178,7 +227,7 @@ export function buildSystemPrompt(
       sections.push("## Hiring Reference")
       sections.push("")
       sections.push(
-        "When using `hire_employee`, required parameters for the target role must be passed via `initial_args`. `initial_message` is task/context text only. It does not satisfy requiredArgs."
+        "When using `create_employee_work_session`, required parameters for the target role must be passed via `args`. The EWS description is task/context text only. It does not satisfy requiredArgs."
       )
       sections.push("")
       sections.push("You can hire these roles:")
@@ -203,6 +252,47 @@ export function buildSystemPrompt(
         }
       }
     }
+  }
+
+  if (runtimeIdentity) {
+    sections.push("# Employee Metadata")
+    sections.push("")
+    sections.push(`- Employee ID: ${runtimeIdentity.employee.employeeId}`)
+    sections.push(`- Name: ${runtimeIdentity.employee.name}`)
+    sections.push(`- Role ID: ${runtimeIdentity.employee.roleId}`)
+    sections.push(`- Description: ${runtimeIdentity.employee.description}`)
+    sections.push("")
+
+    if (employeeContextFiles && employeeContextFiles.length > 0) {
+      sections.push("# Employee Context Files")
+      sections.push("")
+      for (const contextFile of employeeContextFiles) {
+        sections.push(`--- Begin employee context: ${contextFile.path} ---`)
+        sections.push(contextFile.content)
+        sections.push(`--- End employee context: ${contextFile.path} ---`)
+        sections.push("")
+      }
+    }
+
+    sections.push("# Employee Work Session")
+    sections.push("")
+    sections.push(
+      `- Employee Work Session ID: ${runtimeIdentity.employeeWorkSession.employeeWorkSessionId}`
+    )
+    sections.push(
+      `- Parent EWS ID: ${runtimeIdentity.employeeWorkSession.parentEmployeeWorkSessionId ?? "None"}`
+    )
+    sections.push(`- Status: ${runtimeIdentity.employeeWorkSession.status}`)
+    sections.push(
+      `- OpenCode Session ID: ${runtimeIdentity.employeeWorkSession.opencodeSessionId ?? memory.opencodeSessionId ?? "None"}`
+    )
+    sections.push(
+      `- Description: ${runtimeIdentity.employeeWorkSession.description}`
+    )
+    sections.push(
+      `- Worktree Ref: ${runtimeIdentity.employeeWorkSession.worktreeRef ?? "None"}`
+    )
+    sections.push("")
   }
 
   // 2. 当前记忆
@@ -243,7 +333,7 @@ export function buildSystemPrompt(
   sections.push("# Workspace Files")
   sections.push("")
   sections.push("Your workspace is located at:")
-  sections.push(`\`${workspaceRoot}/employees/${employeeId}/\``)
+  sections.push(`\`${workspaceRoot}/ews/${employeeId}/\``)
   sections.push("")
   sections.push("**Messages**: `messages/{peer}/chat.yaml`")
   sections.push("- Conversation history with each employee (one file per peer)")
@@ -251,7 +341,7 @@ export function buildSystemPrompt(
     "- ⚠️ May be very large! Use Bash with tail to read recent messages"
   )
   sections.push(
-    `- Example: \`bash("tail -n 50 ${workspaceRoot}/employees/${employeeId}/messages/{peer}/chat.yaml")\``
+    `- Example: \`bash("tail -n 50 ${workspaceRoot}/ews/${employeeId}/messages/{peer}/chat.yaml")\``
   )
   sections.push(
     '- Or use Grep to search historical keywords: `grep(pattern="keyword", path="...")`'
@@ -266,10 +356,10 @@ export function buildSystemPrompt(
     "- ⚠️ May be very large! Use Bash with tail to read recent events"
   )
   sections.push(
-    `- Example: \`bash("tail -n 100 ${workspaceRoot}/employees/${employeeId}/events.jsonl")\``
+    `- Example: \`bash("tail -n 100 ${workspaceRoot}/ews/${employeeId}/events.jsonl")\``
   )
   sections.push(
-    '- Or use Grep to search specific event types: `grep(pattern="agent_completed", ...)`'
+    '- Or use Grep to search specific event types: `grep(pattern="task_available", ...)`'
   )
   sections.push("")
   sections.push("**Memory**: `memory.yaml`")
@@ -318,7 +408,9 @@ export function buildSystemPrompt(
     sections.push("")
     sections.push("Available tools:")
     sections.push("- edit_tasks: Update task status")
-    sections.push("- create_agent: Create an agent to execute tasks")
+    sections.push(
+      "- create_employee_work_session: Create a new EWS to execute delegated work"
+    )
     sections.push("- send_message: Communicate with other employees")
     sections.push("")
 
@@ -435,11 +527,6 @@ export function buildEventMessage(event: RuntimeEvent): string {
       sections.push(`Role: ${event.details.fromRole}`)
     }
     sections.push(`Content: ${event.details.content}`)
-    sections.push(`Time: ${event.timestamp}`)
-  } else if (event.type === "agent_completed") {
-    sections.push(`Agent ID: ${event.details.agentId}`)
-    sections.push(`Related Task: ${event.details.taskName}`)
-    sections.push(`Result: ${event.details.result}`)
     sections.push(`Time: ${event.timestamp}`)
   } else if (event.type === "task_available") {
     sections.push("The following tasks can be executed:")

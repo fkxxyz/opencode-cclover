@@ -2,9 +2,11 @@
 
 ## Overview
 
+> **EWS refactor status:** MemoryManager is now keyed by `employeeWorkSessionId`, not `employeeId` or employee name. Runtime memory lives at `{workspaceRoot}/ews/{employeeWorkSessionId}/memory.yaml`. Employee records are metadata only and have no runtime memory file. Memory persists EWS-private TODO tasks, role args/data, `opencodeSessionId`, and session snapshots for recovery/summarization.
+
 MemoryManager is responsible for maintaining employee experience knowledge, task state, and custom data, supporting persistence and dynamic updates.
 
-**Module Purpose**: Provide structured memory storage for employees, enabling task dependency management (DAG), knowledge accumulation, and role-specific data persistence.
+**Module Purpose**: Provide structured memory storage for employee work sessions, enabling task dependency management (DAG), knowledge accumulation, OpenCode session recovery, and role-specific data persistence.
 
 **Key Responsibilities**:
 - Memory file read/write operations
@@ -122,15 +124,15 @@ console.log(mermaid)
 ### File Structure
 
 ```
-{workspaceRoot}/employees/
-└── calculator/
+{workspaceRoot}/ews/
+└── {employeeWorkSessionId}/
     └── memory.yaml
 ```
 
 ### Memory File Format
 
 ```yaml
-# calculator/memory.yaml
+# ews/{employeeWorkSessionId}/memory.yaml
 
 # Experience knowledge (free text, AI-maintained)
 knowledge:
@@ -176,7 +178,7 @@ custom:
   # current_sprint: sprint_5
 
 # Current session ID (optional, for recovery after restart)
-sessionId: ses_abc123xyz
+opencodeSessionId: ses_abc123xyz
 ```
 
 ### Internal Components

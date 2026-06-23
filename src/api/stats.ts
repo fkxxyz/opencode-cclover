@@ -1,13 +1,15 @@
 import type { StateManager } from "../state/StateManager"
 import type { MemoryManager } from "../core/MemoryManager"
 import type { SuccessResponse } from "../types/index"
+import type { EmployeeWorkSessionManager } from "../core/EmployeeWorkSessionManager"
 
 /**
  * 获取全局统计数据
  */
 export async function getStats(
   stateManager: StateManager,
-  memoryManager: MemoryManager
+  _memoryManager: MemoryManager,
+  employeeWorkSessionManager?: EmployeeWorkSessionManager
 ): Promise<
   SuccessResponse<{
     totalEmployees: number
@@ -19,13 +21,17 @@ export async function getStats(
   try {
     const employees = stateManager.getEmployees()
 
-    // 计算活跃员工数
-    const activeEmployees = employees.filter((e) => e.status === "busy").length
+    const sessions = employeeWorkSessionManager
+      ? await employeeWorkSessionManager.listEmployeeWorkSessions()
+      : []
+    const activeEmployees = sessions.filter(
+      (session) => session.status === "busy"
+    ).length
 
     // 计算待处理任务数
     let pendingTasks = 0
-    for (const employee of employees) {
-      const memory = await memoryManager.read(employee.employeeId)
+    for (const session of sessions) {
+      const memory = await _memoryManager.read(session.employeeWorkSessionId)
       const employeePendingTasks = memory.tasks.filter(
         (t) => t.status === "pending" || t.status === "in_progress"
       ).length

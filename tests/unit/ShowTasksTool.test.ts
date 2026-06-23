@@ -3,6 +3,7 @@ import { MemoryManager } from "../../src/core/MemoryManager"
 import { StateManager } from "../../src/state/StateManager"
 import { createShowTasksTool } from "../../src/tools/ShowTasksTool"
 import { sessionRegistry } from "../../src/utils/SessionRegistry"
+import { createTestEmployee } from "../helpers/employeeFactory"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 
@@ -27,17 +28,14 @@ describe("ShowTasksTool", () => {
       TEST_WORKSPACE,
       TEST_WORKSPACE
     )
-    await stateManager.registerEmployee({
-      employeeId: "emp_alice",
-      name: "alice",
-      roleId: "test",
-      status: "offline",
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      hiredBy: "boss1",
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_alice",
+        name: "alice",
+        roleId: "test",
+        hiredBy: "boss_boss1",
+      })
+    )
 
     // 创建 MemoryManager
     memoryManager = new MemoryManager(TEST_WORKSPACE, stateManager)

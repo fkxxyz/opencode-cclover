@@ -3,7 +3,7 @@
 ## Test Scenario 1: Survey Trigger (Happy Path)
 
 ### Steps
-1. As core lead employee, call `complete_major_task` tool
+1. As core lead employee, call `send_message` tool
 2. Check all employees' message queues
 
 ### Expected Outcomes
@@ -15,7 +15,7 @@
 ## Test Scenario 2: Permission Denial
 
 ### Steps
-1. As non-core-lead employee, call `complete_major_task` tool
+1. As non-core-lead employee, call `send_message` tool
 
 ### Expected Outcomes
 - Tool throws error: "Permission denied"

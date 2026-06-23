@@ -8,6 +8,7 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { BossManager } from "../core/BossManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { StateManager } from "../state/StateManager"
+import type { EmployeeWorkSessionId } from "../types"
 import { resolveToolActor } from "../meeting-mode"
 
 /**
@@ -90,7 +91,8 @@ export function createEditTasksTool(
         bossManager,
         roleManager
       )
-      const employeeId = actor?.actorEmployeeId
+      const employeeId = (actor?.actorEmployeeWorkSessionId ??
+        actor?.actorEmployeeId) as EmployeeWorkSessionId | undefined
 
       if (!employeeId) {
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`

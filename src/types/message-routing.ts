@@ -1,24 +1,20 @@
-import type { BossId, EmployeeId } from "./employee"
+import type { BossId, EmployeeWorkSessionId } from "./employee"
 
 /**
  * 收件人目标类型
  */
-export type RecipientTargetType = "employee" | "boss" | "meeting-role"
+export type RecipientTargetType = "employee-work-session" | "boss"
 
 /**
  * 收件人解析方式
  */
-export type RecipientResolvedBy =
-  | "employee_id"
-  | "unique_name"
-  | "boss_id"
-  | "meeting_role"
+export type RecipientResolvedBy = "employee_work_session_id" | "boss_id"
 
 /**
  * 收件人解析结果
  */
 export interface RecipientResolution {
-  targetId: EmployeeId | BossId
+  targetId: EmployeeWorkSessionId | BossId
   targetType: RecipientTargetType
   resolvedBy: RecipientResolvedBy
 }
@@ -28,14 +24,14 @@ export interface RecipientResolution {
  */
 export interface MessageRouter {
   /**
-   * 解析收件人到稳定员工、Boss 或会议角色目标。
+   * 解析收件人到稳定 EWS 或 Boss 目标。
    *
-   * @param sender - 发送者的 employeeId 或 BossId
+   * @param sender - 发送者的 EWS ID 或 BossId
    * @param recipient - 收件人字符串
    * @returns 解析结果
    */
   resolveRecipient(
-    sender: EmployeeId | BossId,
+    sender: EmployeeWorkSessionId | BossId,
     recipient: string
   ): RecipientResolution
 }
@@ -45,23 +41,30 @@ export interface MessageRouter {
  */
 export const RoutingRules = {
   /**
-   * 检查值是否为新的稳定员工 ID，不从 ID 中推断任务归属。
+   * 检查值是否为稳定 EWS ID。
+   */
+  isEmployeeWorkSessionId(value: string): boolean {
+    return value.startsWith("ews_")
+  },
+
+  /**
+   * 检查值是否为员工元数据 ID。
    */
   isEmployeeId(value: string): boolean {
     return value.startsWith("emp_")
   },
 
   /**
-   * 检查值是否为 Boss ID。MVP 保留现有 0-{name} 消息标识格式。
+   * 检查值是否为 Boss ID。
    */
   isBossId(value: string): boolean {
-    return value.startsWith("0-")
+    return value.startsWith("boss_")
   },
 
   /**
-   * 从 "0-{name}" 格式提取名称。
+   * 从 "boss_{name}" 格式提取名称。
    */
   extractNameFromBossId(bossId: BossId): string {
-    return bossId.substring(2)
+    return bossId.substring("boss_".length)
   },
 }

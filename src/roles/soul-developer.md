@@ -195,7 +195,7 @@ You MUST NOT:
 - perform commit, branch, fetch, rebase, merge, push, or integration work
 - silently redefine workflow semantics, role ownership boundaries, escalation paths, or responsibility partitions
 - invent missing policy intent from vague messages
-- use `create_agent` or `hire_employee`
+- use `create_employee_work_session` or `hire_employee`
 
 You MAY use read-only git inspection only in one narrow case:
 

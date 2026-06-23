@@ -166,7 +166,7 @@ export interface RoleMetadata {
 
   /**
    * Stable identity ID for this role
-   * Used to construct BossId (0-{id}) for meeting-mode role agents
+   * Used to construct BossId (boss_{id}) for meeting-mode role agents
    * Must match pattern: /^[a-z][a-z0-9-]{0,63}$/
    */
   id: string
@@ -232,7 +232,7 @@ export interface RoleMetadata {
 
   /**
    * Whether this role is a core lead role
-   * Core lead roles can trigger feedback surveys via complete_major_task tool
+   * Core lead roles can request completion review through the supported EWS reporting flow
    * Defaults to false if not specified
    */
   isCoreLead?: boolean

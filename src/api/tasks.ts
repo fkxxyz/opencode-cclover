@@ -1,37 +1,42 @@
 import type { MemoryManager } from "../core/MemoryManager"
 import type { MessageService } from "../core/MessageService"
-import type { StateManager } from "../state/StateManager"
 import { haltRegistry } from "../utils/HaltRegistry"
 import type {
   TasksResponse,
   SuccessResponse,
   ErrorResponse,
+  EmployeeWorkSessionId,
 } from "../types/index"
+import type { EmployeeWorkSessionManager } from "../core/EmployeeWorkSessionManager"
 
 /**
  * 获取员工的任务列表
  */
 export async function getTasks(
-  employeeId: string,
+  employeeWorkSessionId: string,
   memoryManager: MemoryManager
 ): Promise<SuccessResponse<TasksResponse> | ErrorResponse> {
   try {
     // 验证参数
-    if (!employeeId || employeeId.trim() === "") {
+    if (!employeeWorkSessionId || employeeWorkSessionId.trim() === "") {
       return {
         success: false,
         error: {
           code: "INVALID_PARAMETER",
-          message: "员工ID不能为空",
+          message: "员工工作会话ID不能为空",
         },
       }
     }
 
     // 读取员工记忆
-    const memory = await memoryManager.read(employeeId)
+    const memory = await memoryManager.read(
+      employeeWorkSessionId as EmployeeWorkSessionId
+    )
 
     // 获取可执行的任务
-    const executableTasks = await memoryManager.getExecutableTasks(employeeId)
+    const executableTasks = await memoryManager.getExecutableTasks(
+      employeeWorkSessionId as EmployeeWorkSessionId
+    )
     const executableTaskNames = executableTasks.map((t) => t.name)
 
     return {
@@ -53,54 +58,60 @@ export async function getTasks(
 }
 
 export async function haltTask(
-  employeeId: string,
-  stateManager: StateManager,
+  employeeWorkSessionId: string,
+  employeeWorkSessionManager: EmployeeWorkSessionManager,
   reason?: string,
   triggeredBy?: string,
   messageService?: Pick<MessageService, "abortActiveSession">
 ): Promise<
-  SuccessResponse<{ employeeId: string; halted: true }> | ErrorResponse
+  | SuccessResponse<{ employeeWorkSessionId: string; halted: true }>
+  | ErrorResponse
 > {
-  if (typeof employeeId !== "string" || employeeId.trim() === "") {
+  if (
+    typeof employeeWorkSessionId !== "string" ||
+    employeeWorkSessionId.trim() === ""
+  ) {
     return {
       success: false,
       error: {
-        code: "INVALID_EMPLOYEE_ID",
-        message: "employeeId 不能为空",
+        code: "INVALID_EMPLOYEE_WORK_SESSION_ID",
+        message: "employeeWorkSessionId / 员工工作会话 ID 不能为空",
       },
     }
   }
 
-  const employee = stateManager.getEmployee(employeeId)
-  if (!employee) {
+  const session = await employeeWorkSessionManager.getEmployeeWorkSession(
+    employeeWorkSessionId as EmployeeWorkSessionId
+  )
+  if (!session) {
     return {
       success: false,
       error: {
-        code: "EMPLOYEE_NOT_FOUND",
-        message: `Employee '${employeeId}' not found`,
+        code: "EMPLOYEE_WORK_SESSION_NOT_FOUND",
+        message: `Employee work session '${employeeWorkSessionId}' not found`,
       },
     }
   }
 
-  await messageService?.abortActiveSession(employee.employeeId)
+  await messageService?.abortActiveSession(session.employeeWorkSessionId)
 
-  haltRegistry.addHaltEvent(employee.employeeId, {
+  haltRegistry.addHaltEvent(session.employeeWorkSessionId, {
     type: "halt_requested",
-    employeeId: employee.employeeId,
+    employeeWorkSessionId: session.employeeWorkSessionId,
     timestamp: new Date().toISOString(),
     reason,
     triggeredBy,
   })
 
-  await stateManager.forcePauseEmployeeForHalt(employee.employeeId, {
-    reason,
-    triggeredBy,
-  })
+  await employeeWorkSessionManager.updateStatus(
+    session.employeeWorkSessionId,
+    "abnormal"
+  )
 
   return {
     success: true,
     data: {
-      employeeId: employee.employeeId,
+      employeeWorkSessionId: session.employeeWorkSessionId,
       halted: true,
     },
   }

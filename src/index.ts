@@ -46,8 +46,6 @@ export const CcloverPlugin: Plugin = async (ctx) => {
     const tools = createTools({
       messageService: project.messageService,
       memoryManager: project.memoryManager,
-      rootTaskManager: project.rootTaskManager,
-      workItemManager: project.workItemManager,
       opcodeClient: ctx.client,
       bossManager: project.bossManager,
       stateManager: project.stateManager,

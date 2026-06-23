@@ -1,7 +1,8 @@
 import type { MessageService } from "../MessageService"
 import type { MemoryManager, Task } from "../MemoryManager"
 import type { StateManager } from "../../state/StateManager"
-import type { EmployeeId, Event } from "../../types"
+import type { BossId, EmployeeWorkSessionId, Event } from "../../types"
+import type { EmployeeWorkSessionManager } from "../EmployeeWorkSessionManager"
 import { logger } from "../../lib/logger"
 
 /**
@@ -23,9 +24,10 @@ export class ReplyTracker {
   private readonly NO_PROGRESS_THRESHOLD = 3 // 无进展阈值
 
   constructor(
-    private employeeId: EmployeeId,
+    private employeeWorkSessionId: EmployeeWorkSessionId,
     private messageService: MessageService,
     private memoryManager: MemoryManager,
+    private employeeWorkSessionManager: EmployeeWorkSessionManager,
     private stateManager?: StateManager
   ) {}
 
@@ -35,13 +37,15 @@ export class ReplyTracker {
    */
   async getUnrepliedSenders(): Promise<string[]> {
     // 1. 获取所有对话对象
-    const peers = await this.messageService.getPeers(this.employeeId)
+    const peers = await this.messageService.getPeers(this.employeeWorkSessionId)
 
     const unrepliedSenders: string[] = []
 
     // 2. 遍历每个对话对象，检查是否有未回复的 expect_reply=true 消息
     for (const peer of peers) {
-      const hasUnreplied = await this.hasUnrepliedMessage(peer)
+      const hasUnreplied = await this.hasUnrepliedMessage(
+        peer as EmployeeWorkSessionId | BossId
+      )
       if (hasUnreplied) {
         unrepliedSenders.push(peer)
       }
@@ -53,9 +57,11 @@ export class ReplyTracker {
   /**
    * 检查与特定对话对象是否有未回复的 expect_reply=true 消息
    */
-  private async hasUnrepliedMessage(peer: string): Promise<boolean> {
+  private async hasUnrepliedMessage(
+    peer: EmployeeWorkSessionId | BossId
+  ): Promise<boolean> {
     // 1. 获取与该对话对象的消息历史
-    const client = this.messageService.getClient(this.employeeId)
+    const client = this.messageService.getClient(this.employeeWorkSessionId)
     const messages = await client.history(peer)
     const replyAttemptEvents = await this.getReplyAttemptEvents()
 
@@ -68,7 +74,10 @@ export class ReplyTracker {
         // 检查后续是否有我发送给对方的消息
         let hasReply = false
         for (let j = i + 1; j < messages.length; j++) {
-          if (messages[j].from === this.employeeId && messages[j].to === peer) {
+          if (
+            messages[j].from === this.employeeWorkSessionId &&
+            messages[j].to === peer
+          ) {
             hasReply = true
             break
           }
@@ -99,7 +108,7 @@ export class ReplyTracker {
 
     const events = await this.stateManager
       .getEventLogger()
-      .getEvents(this.employeeId, 200)
+      .getEvents(this.employeeWorkSessionId, 200)
 
     return events.filter((event) => event.type === "reply_attempted")
   }
@@ -116,7 +125,7 @@ export class ReplyTracker {
       this.replySnapshot = currentSnapshot
       this.noProgressCount = 1
       logger.info(
-        `[${this.employeeId}] First reply_reminder event, recording snapshot (count: 1)`
+        `[${this.employeeWorkSessionId}] First reply_reminder event, recording snapshot (count: 1)`
       )
       return
     }
@@ -130,12 +139,14 @@ export class ReplyTracker {
       // 有进展，重置计数器
       this.replySnapshot = currentSnapshot
       this.noProgressCount = 1
-      logger.info(`[${this.employeeId}] Progress detected, resetting counter`)
+      logger.info(
+        `[${this.employeeWorkSessionId}] Progress detected, resetting counter`
+      )
     } else {
       // 无进展，增加计数器
       this.noProgressCount++
       logger.info(
-        `[${this.employeeId}] No progress detected (count: ${this.noProgressCount})`
+        `[${this.employeeWorkSessionId}] No progress detected (count: ${this.noProgressCount})`
       )
 
       // 4. 检查是否达到阈值
@@ -154,7 +165,7 @@ export class ReplyTracker {
     const unrepliedCount = unrepliedSenders.length
 
     // 2. 获取任务列表并计算哈希
-    const memory = await this.memoryManager.read(this.employeeId)
+    const memory = await this.memoryManager.read(this.employeeWorkSessionId)
     const tasksHash = this.hashTasks(memory.tasks)
 
     return { unrepliedCount, tasksHash }
@@ -173,18 +184,21 @@ export class ReplyTracker {
    */
   async markAsAbnormal(): Promise<void> {
     logger.warn(
-      `[${this.employeeId}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
+      `[${this.employeeWorkSessionId}] No progress for ${this.NO_PROGRESS_THRESHOLD} times, marking as abnormal`
     )
 
     // 1. 更新状态
-    await this.stateManager?.updateEmployeeStatus(this.employeeId, "abnormal")
+    await this.employeeWorkSessionManager.updateStatus(
+      this.employeeWorkSessionId,
+      "abnormal"
+    )
 
     // 2. 记录事件
     await this.stateManager?.addEvent({
       projectId: "",
-      type: "employee_status_changed",
+      type: "employee_work_session_status_changed",
       timestamp: new Date().toISOString(),
-      employeeId: this.employeeId,
+      employeeWorkSessionId: this.employeeWorkSessionId,
       details: {
         oldStatus: "busy",
         newStatus: "abnormal",
@@ -194,7 +208,7 @@ export class ReplyTracker {
     })
 
     logger.warn(
-      `[${this.employeeId}] Marked as abnormal. Employee will no longer receive reply_reminder events until status is manually changed.`
+      `[${this.employeeWorkSessionId}] Marked as abnormal. EWS will no longer receive reply_reminder events until status is manually changed.`
     )
   }
 

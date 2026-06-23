@@ -65,18 +65,95 @@ describe("MemoryManager", () => {
 
       await manager.write("bob", memory)
 
-      const memoryPath = path.join(
-        TEST_WORKSPACE,
-        "employees",
-        "bob",
-        "memory.yaml"
-      )
+      const memoryPath = path.join(TEST_WORKSPACE, "ews", "bob", "memory.yaml")
       const exists = await fs
         .access(memoryPath)
         .then(() => true)
         .catch(() => false)
 
       expect(exists).toBe(true)
+    })
+
+    test("should store EWS memory under workspace/ews/{ewsId}/memory.yaml", async () => {
+      await manager.write("ews_alpha", {
+        knowledge: ["ews scoped"],
+        tasks: [],
+        args: { worktree_path: "/tmp/a" },
+        opencodeSessionId: "session-alpha",
+      })
+
+      const memoryPath = path.join(
+        TEST_WORKSPACE,
+        "ews",
+        "ews_alpha",
+        "memory.yaml"
+      )
+      const oldEmployeePath = path.join(
+        TEST_WORKSPACE,
+        "employees",
+        "ews_alpha",
+        "memory.yaml"
+      )
+
+      await expect(fs.access(memoryPath)).resolves.toBeNull()
+      await expect(fs.access(oldEmployeePath)).rejects.toThrow()
+
+      const memory = await manager.read("ews_alpha")
+      expect(memory.knowledge).toEqual(["ews scoped"])
+      expect(memory.args).toEqual({ worktree_path: "/tmp/a" })
+      expect(memory.opencodeSessionId).toBe("session-alpha")
+    })
+
+    test("should isolate tasks args and session snapshots for two EWS from one employee", async () => {
+      await manager.write("ews_one", {
+        knowledge: ["first"],
+        tasks: [],
+        args: { worktree_path: "/tmp/one" },
+        opencodeSessionId: "session-one",
+        sessionSnapshot: {
+          knowledge: ["first snapshot"],
+          tasks: [],
+          args: { worktree_path: "/tmp/one" },
+          timestamp: "2026-06-22T00:00:00.000Z",
+        },
+      })
+      await manager.write("ews_two", {
+        knowledge: ["second"],
+        tasks: [],
+        args: { worktree_path: "/tmp/two" },
+        opencodeSessionId: "session-two",
+        sessionSnapshot: {
+          knowledge: ["second snapshot"],
+          tasks: [],
+          args: { worktree_path: "/tmp/two" },
+          timestamp: "2026-06-22T00:00:01.000Z",
+        },
+      })
+
+      await manager.addTask("ews_one", {
+        name: "task-one",
+        status: "pending",
+        description: "Only first EWS sees this",
+        dependencies: [],
+      })
+      await manager.addTask("ews_two", {
+        name: "task-two",
+        status: "pending",
+        description: "Only second EWS sees this",
+        dependencies: [],
+      })
+
+      const first = await manager.read("ews_one")
+      const second = await manager.read("ews_two")
+
+      expect(first.tasks.map((task) => task.name)).toEqual(["task-one"])
+      expect(second.tasks.map((task) => task.name)).toEqual(["task-two"])
+      expect(first.args).toEqual({ worktree_path: "/tmp/one" })
+      expect(second.args).toEqual({ worktree_path: "/tmp/two" })
+      expect(first.opencodeSessionId).toBe("session-one")
+      expect(second.opencodeSessionId).toBe("session-two")
+      expect(first.sessionSnapshot?.knowledge).toEqual(["first snapshot"])
+      expect(second.sessionSnapshot?.knowledge).toEqual(["second snapshot"])
     })
   })
 
@@ -802,7 +879,7 @@ describe("MemoryManager", () => {
       // 直接读取文件验证 args 被更新
       const memoryPath = path.join(
         TEST_WORKSPACE,
-        "employees",
+        "ews",
         "emp_alice",
         "memory.yaml"
       )

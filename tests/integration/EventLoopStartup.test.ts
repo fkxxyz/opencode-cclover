@@ -10,6 +10,7 @@ import * as yaml from "yaml"
 import { RoleManager } from "../../src/core/RoleManager"
 import { StateManager } from "../../src/state/StateManager"
 import type { Employee } from "../../src/types/index"
+import { createTestEmployee } from "../helpers/employeeFactory"
 
 describe("EventLoop Startup Failure Scenarios", () => {
   const testDir = path.join(process.cwd(), "tests/fixtures/eventloop-startup")
@@ -58,32 +59,24 @@ You are a valid test role.`
     const stateManager = new StateManager("test-project", testDir, projectPath)
 
     // 注册一个有效角色的员工
-    const validEmployee: Employee = {
+    const validEmployee: Employee = createTestEmployee({
       employeeId: "emp_valid_employee",
       name: "valid-employee",
       roleId: "Valid Role",
-      status: "idle",
       createdAt: "2026-03-01T10:00:00.000Z",
-      lastActiveAt: "2026-03-01T10:00:00.000Z",
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    }
+      updatedAt: "2026-03-01T10:00:00.000Z",
+    })
 
     await stateManager.registerEmployee(validEmployee)
 
     // 注册一个无效角色的员工
-    const invalidEmployee: Employee = {
+    const invalidEmployee: Employee = createTestEmployee({
       employeeId: "emp_invalid_employee",
       name: "invalid-employee",
       roleId: "Non Existent Role",
-      status: "idle",
       createdAt: "2026-03-01T10:00:00.000Z",
-      lastActiveAt: "2026-03-01T10:00:00.000Z",
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-    }
+      updatedAt: "2026-03-01T10:00:00.000Z",
+    })
 
     await stateManager.registerEmployee(invalidEmployee)
 
@@ -119,28 +112,16 @@ You are a valid test role.`
 
     // 注册多个无效角色的员工
     const invalidEmployees: Employee[] = [
-      {
+      createTestEmployee({
         employeeId: "emp_invalid_1",
         name: "invalid-1",
         roleId: "Non Existent Role 1",
-        status: "idle",
-        hiredBy: null,
-        paused: false,
-        activeSessionId: null,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-      },
-      {
+      }),
+      createTestEmployee({
         employeeId: "emp_invalid_2",
         name: "invalid-2",
         roleId: "Non Existent Role 2",
-        status: "idle",
-        hiredBy: null,
-        paused: false,
-        activeSessionId: null,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-      },
+      }),
     ]
 
     for (const employee of invalidEmployees) {
@@ -174,39 +155,21 @@ You are a valid test role.`
 
     // 注册混合的员工
     const employees: Employee[] = [
-      {
+      createTestEmployee({
         employeeId: "emp_valid_1",
         name: "valid-1",
         roleId: "Valid Role",
-        hiredBy: null,
-        paused: false,
-        activeSessionId: null,
-        status: "idle",
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-      },
-      {
+      }),
+      createTestEmployee({
         employeeId: "emp_invalid_1",
         name: "invalid-1",
         roleId: "Invalid Role",
-        hiredBy: null,
-        paused: false,
-        activeSessionId: null,
-        status: "idle",
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-      },
-      {
+      }),
+      createTestEmployee({
         employeeId: "emp_valid_2",
         name: "valid-2",
         roleId: "Valid Role",
-        hiredBy: null,
-        paused: false,
-        activeSessionId: null,
-        status: "idle",
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-      },
+      }),
     ]
 
     for (const employee of employees) {

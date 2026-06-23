@@ -4,6 +4,7 @@ import { StateManager } from "../../src/state/StateManager"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import * as os from "node:os"
+import { createTestEmployee } from "../helpers/employeeFactory"
 
 describe("MessageService - Duplicate Message Fix", () => {
   let workspaceRoot: string
@@ -20,28 +21,12 @@ describe("MessageService - Duplicate Message Fix", () => {
 
     // 创建 StateManager 并注册测试员工
     stateManager = new StateManager("test-project", workspaceRoot)
-    await stateManager.registerEmployee({
-      employeeId: "emp_alice",
-      name: "alice",
-      roleId: "test",
-      status: "offline",
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
-    await stateManager.registerEmployee({
-      employeeId: "emp_bob",
-      name: "bob",
-      roleId: "test",
-      status: "offline",
-      hiredBy: null,
-      paused: false,
-      activeSessionId: null,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_alice", name: "alice" })
+    )
+    await stateManager.registerEmployee(
+      createTestEmployee({ employeeId: "emp_bob", name: "bob" })
+    )
 
     // 创建 MessageService 实例
     messageService = new MessageService(workspaceRoot, stateManager)
@@ -53,8 +38,8 @@ describe("MessageService - Duplicate Message Fix", () => {
   })
 
   test("should not receive duplicate messages when using event notification", async () => {
-    const alice = messageService.getClient("emp_alice")
-    const bob = messageService.getClient("emp_bob")
+    const alice = messageService.getClient("ews_alice")
+    const bob = messageService.getClient("ews_bob")
 
     // Bob 开始等待消息（模拟 EventLoop 的行为）
     const recvPromise = bob.recv()
@@ -63,34 +48,34 @@ describe("MessageService - Duplicate Message Fix", () => {
     await new Promise((resolve) => setTimeout(resolve, 10))
 
     // Alice 发送消息
-    await alice.send("bob", "Hello Bob!")
+    await alice.send("ews_bob", "Hello Bob!")
 
     // Bob 第一次接收消息（通过事件通知）
     const msg1 = await recvPromise
-    expect(msg1.from).toBe("emp_alice")
+    expect(msg1.from).toBe("ews_alice")
     expect(msg1.content).toBe("Hello Bob!")
 
     // Alice 发送第二条消息
-    await alice.send("bob", "How are you?")
+    await alice.send("ews_bob", "How are you?")
 
     // Bob 第二次接收消息（应该是第二条消息，不是重复的第一条）
     const msg2 = await bob.recv()
-    expect(msg2.from).toBe("emp_alice")
+    expect(msg2.from).toBe("ews_alice")
     expect(msg2.content).toBe("How are you?")
 
     // 验证：不应该再有消息了
-    const queue = messageService.getUnreadQueue("bob")
+    const queue = messageService.getUnreadQueue("ews_bob")
     expect(queue.length).toBe(0)
   })
 
   test("should handle multiple messages in queue correctly", async () => {
-    const alice = messageService.getClient("emp_alice")
-    const bob = messageService.getClient("emp_bob")
+    const alice = messageService.getClient("ews_alice")
+    const bob = messageService.getClient("ews_bob")
 
     // Alice 连续发送三条消息
-    await alice.send("bob", "Message 1")
-    await alice.send("bob", "Message 2")
-    await alice.send("bob", "Message 3")
+    await alice.send("ews_bob", "Message 1")
+    await alice.send("ews_bob", "Message 2")
+    await alice.send("ews_bob", "Message 3")
 
     // Bob 依次接收三条消息
     const msg1 = await bob.recv()
@@ -103,33 +88,33 @@ describe("MessageService - Duplicate Message Fix", () => {
     expect(msg3.content).toBe("Message 3")
 
     // 验证：队列应该为空
-    const queue = messageService.getUnreadQueue("bob")
+    const queue = messageService.getUnreadQueue("ews_bob")
     expect(queue.length).toBe(0)
   })
 
   test("should not duplicate messages when alternating between queue and event", async () => {
-    const alice = messageService.getClient("emp_alice")
-    const bob = messageService.getClient("emp_bob")
+    const alice = messageService.getClient("ews_alice")
+    const bob = messageService.getClient("ews_bob")
 
     // 场景1：先发送消息（进入队列），再接收（从队列取）
-    await alice.send("bob", "Queued message")
+    await alice.send("ews_bob", "Queued message")
     const msg1 = await bob.recv()
     expect(msg1.content).toBe("Queued message")
 
     // 场景2：先等待（注册事件），再发送（通过事件通知）
     const recvPromise = bob.recv()
     await new Promise((resolve) => setTimeout(resolve, 10))
-    await alice.send("bob", "Event message")
+    await alice.send("ews_bob", "Event message")
     const msg2 = await recvPromise
     expect(msg2.content).toBe("Event message")
 
     // 场景3：再次从队列接收（应该没有重复消息）
-    await alice.send("bob", "Final message")
+    await alice.send("ews_bob", "Final message")
     const msg3 = await bob.recv()
     expect(msg3.content).toBe("Final message")
 
     // 验证：队列应该为空
-    const queue = messageService.getUnreadQueue("bob")
+    const queue = messageService.getUnreadQueue("ews_bob")
     expect(queue.length).toBe(0)
   })
 })

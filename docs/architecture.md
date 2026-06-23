@@ -2,6 +2,8 @@
 
 ## System Architecture
 
+> **EWS refactor status:** The current backend runtime model is `Role -> Employee -> EmployeeWorkSession -> OpenCode Session`. Employee records are metadata only. Employee Work Sessions (EWS) are the only runnable units and own runtime status, messages, memory, task reminders, OpenCode session IDs, and EventLoop instances.
+
 ### High-Level Overview
 
 The system implements a multi-project, multi-agent collaboration framework with a global singleton service managing all project instances. Each project has independent employees, memory, and workspace, while sharing common role definitions and infrastructure.
@@ -34,26 +36,26 @@ graph TB
         PA_State[State Manager]
         PA_Msg[Message Service]
         PA_Mem[Memory Manager]
-        PA_Agent[Agent Registry]
-        PA_Emp[Employee Event Loops]
+        PA_EWS[EWS Manager]
+        PA_Emp[EWS Event Loops]
         
         PA_State --> PA_Emp
         PA_Msg --> PA_Emp
         PA_Mem --> PA_Emp
-        PA_Agent --> PA_Emp
+        PA_EWS --> PA_Emp
     end
     
     subgraph "Project B Instance"
         PB_State[State Manager]
         PB_Msg[Message Service]
         PB_Mem[Memory Manager]
-        PB_Agent[Agent Registry]
-        PB_Emp[Employee Event Loops]
+        PB_EWS[EWS Manager]
+        PB_Emp[EWS Event Loops]
         
         PB_State --> PB_Emp
         PB_Msg --> PB_Emp
         PB_Mem --> PB_Emp
-        PB_Agent --> PB_Emp
+        PB_EWS --> PB_Emp
     end
     
     subgraph "OpenCode Plugin Instances"
@@ -115,7 +117,7 @@ graph TB
 │ │  ├─ MessageService                                       │
 │ │  ├─ MemoryManager                                        │
 │ │  ├─ StateManager                                         │
-│ │  ├─ AgentRegistry                                        │
+│ │  ├─ EmployeeWorkSessionManager                          │
 │ │  └─ RoleManager (loads from preset/global/project)      │
 │ ├─ Start employee EventLoops for each project              │
 │ └─ Provide HTTP/WebSocket API (port 4097)                  │
@@ -182,17 +184,17 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
 - ProjectRegistry: Project instance registry
 - MessageService: Message synchronization (supports boss-employee communication)
 - MemoryManager: Memory and task management
-- StateManager: Employee state tracking
+- StateManager: Employee and event state tracking
 - EmployeePersistence: Employee list persistence (`{projectRoot}/.cclover/employees.yaml`)
+- EmployeeWorkSessionManager: Runnable EWS persistence and status lifecycle
 - EventLoop: Employee runtime
-- AgentRegistry: Background agent tracking
 - RoleManager: Role loading and management
 
 **Tool Modules**:
 - SendMessageTool: send_message implementation
 - EditTasksTool: edit_tasks implementation
-- CreateAgentTool: create_agent implementation
 - HireEmployeeTool: hire_employee implementation (any employee can hire any role)
+- EmployeeTools: EWS creation/list/close and Employee metadata updates
 
 **Server Modules**:
 - ConsoleServer: HTTP server for Console UI
@@ -233,24 +235,18 @@ See [Module Design Details](./architecture-modules.md) for comprehensive module 
 - **Structure**:
   ```
   .cclover/
-  ├── employees.yaml          # Employee list
-  ├── root-tasks.yaml         # Project-level high-level requests
-  ├── work-items.yaml         # Project-level assigned work packages
+  ├── employees.yaml          # Employee metadata list
+  ├── employee-work-sessions.yaml
   └── workspace/
-      ├── employees/
-      │   ├── {employeeId}/
-      │   │   ├── messages/
-      │   │   │   ├── {peerName}/
-      │   │   │   │   └── chat.yaml
-      │   │   │   └── {bossName}/
-      │   │   │       └── chat.yaml
-      │   │   ├── events.jsonl
-      │   │   └── memory.yaml
+      ├── ews/
+      │   └── {employeeWorkSessionId}/
+      │       ├── messages/
+      │       │   └── {peerId}/chat.yaml
+      │       └── memory.yaml
       └── bosses/
-          └── {bossName}/
+          └── {bossId}/
               └── messages/
-                  └── {employeeName}/
-                      └── chat.yaml
+                  └── {peerId}/chat.yaml
   ```
 
 ### HTTP Server
@@ -282,7 +278,7 @@ export const CcloverPlugin: Plugin = async (ctx: PluginContext) => {
 }
 ```
 
-`employees.yaml`, `root-tasks.yaml`, and `work-items.yaml` are separate stores. Employee identity uses stable `employeeId` values and does not encode root task or work item membership. `MemoryManager.tasks` remain employee-private TODO/reminder items under each employee memory file; project-level assignment belongs to `WorkItemManager` and `work-items.yaml`.
+`employees.yaml` stores employee metadata only. `employee-work-sessions.yaml` stores runnable EWS records, including status, OpenCode session ID, prompt recovery, context snapshots, and close metadata. `MemoryManager.tasks` are EWS-private TODO/reminder items under `{workspace}/ews/{employeeWorkSessionId}/memory.yaml`.
 
 ### Tool Interface
 
@@ -328,7 +324,7 @@ projects:
 
 ### Memory Data
 
-**File**: `{workspace}/employees/{employeeId}/memory.yaml`
+**File**: `{workspace}/ews/{employeeWorkSessionId}/memory.yaml`
 
 **Schema**:
 ```yaml
@@ -348,17 +344,13 @@ custom:
 
 **See**: [Memory System Requirements](./requirements-memory.md)
 
-### Project Work Data
+### Runtime Work Data
 
-**Root tasks file**: `{projectRoot}/.cclover/root-tasks.yaml`
-
-**Work items file**: `{projectRoot}/.cclover/work-items.yaml`
-
-Root tasks represent boss/user-level requests. Work items represent concrete packages assigned to exactly one employee and may reference a worktree. The legacy numeric `taskId` grouping model is removed from the employee contract; root tasks and work items use `rt_*` and `wi_*` identifiers.
+Supported runtime work is represented by Employee Work Sessions plus EWS-private TODO tasks.
 
 ### Message Data
 
-**File**: `{workspace}/employees/{employeeId}/messages/{peer}/chat.yaml`
+**File**: `{workspace}/ews/{employeeWorkSessionId}/messages/{peerId}/chat.yaml`
 
 **Schema**:
 ```yaml

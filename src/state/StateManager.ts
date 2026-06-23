@@ -1,37 +1,32 @@
+import EventEmitter from "eventemitter3"
+import * as fs from "node:fs/promises"
+import * as path from "node:path"
+import { EmployeePersistence } from "./EmployeePersistence"
 import { EmployeeRegistry } from "./EmployeeRegistry"
 import { EventHistory } from "./EventHistory"
-import { EventLogger } from "./EventLogger"
-import { EmployeePersistence } from "./EmployeePersistence"
+import { EventLogger, type EventLogOwnerId } from "./EventLogger"
+import { logger } from "../lib/logger"
 import type {
+  BossId,
   Employee,
-  EmployeeStatus,
-  Event,
-  EventType,
   EmployeeId,
   EmployeeName,
-  BossId,
-  HaltDetails,
-  RootTaskId,
-  WorkItemId,
+  EmployeeWorkSessionId,
+  Event,
+  EventType,
 } from "../types/index"
 import { isValidEmployeeName } from "../types/index"
-import EventEmitter from "eventemitter3"
-import { logger } from "../lib/logger"
 
 /**
- * 统一状态管理器
- * 整合员工注册表和事件历史,提供统一的状态查询接口
- * 使用 employeeId 作为主键
+ * 统一状态管理器；员工只保存稳定元数据，运行时状态由 EWS 管理。
  */
 export class StateManager {
   private projectId: string
-  private workspaceRoot: string
+  private projectPath: string | undefined
   private employeeRegistry: EmployeeRegistry
   private employeePersistence: EmployeePersistence | null
   private eventHistory: EventHistory
   private eventLogger: EventLogger
-  private taskCount: Map<EmployeeId, number>
-  private messageCount: Map<EmployeeId, number>
   private emitter: EventEmitter
 
   constructor(
@@ -40,333 +35,94 @@ export class StateManager {
     projectPath?: string
   ) {
     this.projectId = projectId
-    this.workspaceRoot = workspaceRoot || ""
+    this.projectPath = projectPath
     this.employeeRegistry = new EmployeeRegistry()
     this.employeePersistence = projectPath
       ? new EmployeePersistence(projectPath)
       : null
     this.eventHistory = new EventHistory()
     this.eventLogger = new EventLogger(workspaceRoot || "")
-    this.taskCount = new Map()
-    this.messageCount = new Map()
     this.emitter = new EventEmitter()
   }
 
-  /**
-   * 获取所有员工
-   */
   getEmployees(): Employee[] {
     return this.employeeRegistry.getAll()
   }
 
-  /**
-   * 获取单个员工
-   */
   getEmployee(employeeId: EmployeeId): Employee | undefined {
     return this.employeeRegistry.get(employeeId)
   }
 
-  /**
-   * 获取项目 ID
-   */
   getProjectId(): string {
     return this.projectId
   }
 
-  /**
-   * 注册员工
-   */
   async registerEmployee(employee: Employee): Promise<void> {
-    // 验证 employeeId 唯一性
+    await this.validateEmployeeMetadata(employee)
     if (this.employeeRegistry.get(employee.employeeId)) {
       throw new Error(`员工 ID '${employee.employeeId}' 已存在`)
     }
 
-    // 验证 name 格式
-    if (!isValidEmployeeName(employee.name)) {
-      throw new Error(`员工名称 '${employee.name}' 格式无效，不能以数字-开头`)
+    this.employeeRegistry.register(employee)
+    await this.persistEmployees()
+  }
+
+  async updateEmployee(
+    employeeId: EmployeeId,
+    updates: Pick<Employee, "name" | "description" | "contextPaths">
+  ): Promise<Employee> {
+    const employee = this.employeeRegistry.get(employeeId)
+    if (!employee) {
+      throw new Error(`员工 '${employeeId}' 不存在`)
     }
 
-    // 确保 paused 字段存在
-    const employeeWithDefaults = {
+    const updated: Employee = {
       ...employee,
-      paused: employee.paused ?? false, // 默认不暂停
+      ...updates,
+      updatedAt: new Date().toISOString(),
     }
+    await this.validateEmployeeMetadata(updated)
+    this.employeeRegistry.update(employeeId, updated)
+    await this.persistEmployees()
 
-    this.employeeRegistry.register(employeeWithDefaults)
-    this.taskCount.set(employeeWithDefaults.employeeId, 0)
-    this.messageCount.set(employeeWithDefaults.employeeId, 0)
-    // 持久化到文件（如果有 persistence）
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-  }
-
-  /**
-   * 更新员工状态并记录事件
-   */
-  async updateEmployeeStatus(
-    employeeId: EmployeeId,
-    status: EmployeeStatus
-  ): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-    const oldStatus = employee.status
-
-    // 如果状态没有变化，直接返回，不触发事件
-    if (oldStatus === status) {
-      return
-    }
-
-    this.employeeRegistry.updateStatus(employeeId, status)
-    // 记录状态变化事件
-    const event = {
+    const event: Event = {
       projectId: this.projectId,
-      type: "employee_status_changed" as const,
-      timestamp: new Date().toISOString(),
-      employeeId: employeeId,
-      details: {
-        employeeId,
-        oldStatus,
-        newStatus: status,
-      },
-    }
-    this.eventHistory.add(event)
-    // 持久化事件到 JSONL 文件
-    await this.eventLogger.logEvent(employeeId, event)
-    // 触发事件通知
-    this.emit("event", event)
-  }
-
-  /**
-   * 暂停员工（修改配置，持久化）
-   */
-  async pauseEmployee(employeeId: EmployeeId): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-
-    // 1. 更新配置
-    this.employeeRegistry.updatePaused(employeeId, true)
-
-    // 2. 持久化配置
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-
-    // 3. 更新运行时状态（不持久化）
-    this.employeeRegistry.updateStatus(employeeId, "offline")
-
-    // 4. 记录事件
-    const event = {
-      projectId: this.projectId,
-      type: "employee_paused" as const,
-      timestamp: new Date().toISOString(),
-      employeeId: employeeId,
-      details: { employeeId },
-    }
-    this.eventHistory.add(event)
-    await this.eventLogger.logEvent(employeeId, event)
-    this.emit("event", event)
-  }
-
-  /**
-   * 恢复员工（修改配置，持久化）
-   */
-  async resumeEmployee(employeeId: EmployeeId): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-
-    // 1. 更新配置
-    this.employeeRegistry.updatePaused(employeeId, false)
-
-    // 2. 持久化配置
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-
-    // 3. 更新运行时状态（不持久化）
-    this.employeeRegistry.updateStatus(employeeId, "idle")
-
-    // 4. 记录事件
-    const event = {
-      projectId: this.projectId,
-      type: "employee_resumed" as const,
-      timestamp: new Date().toISOString(),
-      employeeId: employeeId,
-      details: { employeeId },
-    }
-    this.eventHistory.add(event)
-    await this.eventLogger.logEvent(employeeId, event)
-    this.emit("event", event)
-  }
-
-  /**
-   * 因急停而强制暂停员工（持久化 paused，但记录 halt 事件）
-   */
-  async forcePauseEmployeeForHalt(
-    employeeId: EmployeeId,
-    details: HaltDetails
-  ): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-
-    this.employeeRegistry.updatePaused(employeeId, true)
-
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-
-    this.employeeRegistry.updateStatus(employeeId, "offline")
-
-    const event = {
-      projectId: this.projectId,
-      type: "employee_halted" as const,
-      timestamp: new Date().toISOString(),
+      type: "employee_updated",
+      timestamp: updated.updatedAt,
       employeeId,
-      rootTaskId: details.rootTaskId,
-      workItemId: details.workItemId,
-      details,
+      details: { employee: updated },
     }
-    this.eventHistory.add(event)
-    await this.eventLogger.logEvent(employeeId, event)
-    this.emit("event", event)
+    await this.addEvent(event)
+    return updated
   }
 
-  /**
-   * 更新员工的活跃 session ID
-   */
-  async updateActiveSessionId(
-    employeeId: EmployeeId,
-    sessionId: string | null
-  ): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-
-    // 更新 activeSessionId
-    this.employeeRegistry.updateActiveSessionId(employeeId, sessionId)
-
-    // 持久化到文件（如果有 persistence）
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-  }
-
-  /**
-   * 更新员工的 prompt recovery 标记
-   */
-  async setPromptRecovery(
-    employeeId: EmployeeId,
-    promptRecovery: NonNullable<Employee["promptRecovery"]>
-  ): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-
-    this.employeeRegistry.update(employeeId, { promptRecovery })
-
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-  }
-
-  /**
-   * 清除员工的 prompt recovery 标记
-   */
-  async clearPromptRecovery(employeeId: EmployeeId): Promise<void> {
-    const employee = this.employeeRegistry.get(employeeId)
-    if (!employee) {
-      throw new Error(`员工 '${employeeId}' 不存在`)
-    }
-
-    if (!employee.promptRecovery) {
-      return
-    }
-
-    this.employeeRegistry.update(employeeId, { promptRecovery: undefined })
-
-    if (this.employeePersistence) {
-      await this.employeePersistence.save(this.employeeRegistry.getAll())
-    }
-  }
-
-  /**
-   * 获取携带 prompt recovery 标记的员工
-   */
-  listEmployeesWithPromptRecovery(): Employee[] {
-    return this.employeeRegistry
-      .getAll()
-      .filter((employee) => employee.promptRecovery)
-  }
-
-  /**
-   * 添加事件
-   */
   async addEvent(event: Event): Promise<void> {
-    // 确保事件包含 projectId
     if (!event.projectId) {
       event.projectId = this.projectId
     }
     this.eventHistory.add(event)
 
-    // 持久化事件到 JSONL 文件
-    if (event.employeeId) {
+    if (event.employeeWorkSessionId) {
+      await this.eventLogger.logEvent(event.employeeWorkSessionId, event)
+    } else if (event.employeeId) {
       await this.eventLogger.logEvent(event.employeeId, event)
     }
 
-    // 对于消息事件，同时记录到接收方的 events.jsonl
     if (event.type === "message" && event.details) {
       const from = event.details.from as string
       const to = event.details.to as string
-      // 如果接收方不是发送方（避免重复记录）
       if (to && to !== from) {
-        await this.eventLogger.logEvent(to, event)
+        await this.logEventForResolvedOwner(to, event)
       }
     }
 
-    // 更新统计数据
-    if (event.type === "message" && event.employeeId) {
-      const count = this.messageCount.get(event.employeeId) || 0
-      this.messageCount.set(event.employeeId, count + 1)
-    }
-
-    if (
-      (event.type === "task_completed" || event.type === "task_cancelled") &&
-      event.employeeId
-    ) {
-      const count = this.taskCount.get(event.employeeId) || 0
-      this.taskCount.set(event.employeeId, count + 1)
-    }
-
-    // 触发事件通知（让 ConsoleServer 能够广播到前端）
     this.emit("event", event)
   }
 
-  /**
-   * 根据 name 查找员工（辅助方法）
-   */
-  private findEmployeeByName(name: string): Employee | undefined {
-    return this.employeeRegistry.getAll().find((emp) => emp.name === name)
-  }
-
-  /**
-   * 查询事件
-   */
   getEvents(options?: {
     limit?: number
     employeeId?: EmployeeId
-    rootTaskId?: RootTaskId
-    workItemId?: WorkItemId
+    employeeWorkSessionId?: EmployeeWorkSessionId
     type?: EventType
   }): Event[] {
     const limit = options?.limit || 50
@@ -379,61 +135,25 @@ export class StateManager {
       )
       .filter(
         (event) =>
-          !options?.rootTaskId || event.rootTaskId === options.rootTaskId
-      )
-      .filter(
-        (event) =>
-          !options?.workItemId || event.workItemId === options.workItemId
+          !options?.employeeWorkSessionId ||
+          event.employeeWorkSessionId === options.employeeWorkSessionId
       )
       .filter((event) => !options?.type || event.type === options.type)
       .slice(0, limit)
   }
 
-  /**
-   * 按员工名称查询员工列表
-   */
   listEmployeesByName(name: EmployeeName): Employee[] {
     return this.employeeRegistry.getByName(name)
   }
 
-  /**
-   * 按角色 ID 查询员工列表
-   */
   listEmployeesByRoleId(roleId: string): Employee[] {
     return this.employeeRegistry.getByRoleId(roleId)
   }
 
-  /**
-   * 按雇佣来源查询员工列表
-   */
-  listEmployeesByHiredBy(hiredBy: EmployeeId | BossId): Employee[] {
+  listEmployeesByHiredBy(hiredBy: EmployeeWorkSessionId | BossId): Employee[] {
     return this.employeeRegistry.getByHiredBy(hiredBy)
   }
 
-  /**
-   * 按运行状态查询员工列表
-   */
-  listEmployeesByStatus(status: EmployeeStatus): Employee[] {
-    return this.employeeRegistry.getByStatus(status)
-  }
-
-  /**
-   * 查询已暂停员工
-   */
-  listPausedEmployees(): Employee[] {
-    return this.employeeRegistry.getByPaused(true)
-  }
-
-  /**
-   * 查询未暂停员工
-   */
-  listRunningEmployees(): Employee[] {
-    return this.employeeRegistry.getByPaused(false)
-  }
-
-  /**
-   * 获取统计数据
-   */
   getStats(): {
     totalEmployees: number
     activeEmployees: number
@@ -441,102 +161,55 @@ export class StateManager {
     todayMessages: number
   } {
     const employees = this.employeeRegistry.getAll()
-    const activeEmployees = employees.filter((e) => e.status === "busy").length
-
-    // 计算今日消息数(UTC时区)
     const now = new Date()
     const todayStart = new Date(
       now.getUTCFullYear(),
       now.getUTCMonth(),
       now.getUTCDate()
     )
-    const todayMessages = this.eventHistory.getAll().filter((e) => {
-      const eventTime = new Date(e.timestamp)
-      return e.type === "message" && eventTime >= todayStart
+    const todayMessages = this.eventHistory.getAll().filter((event) => {
+      const eventTime = new Date(event.timestamp)
+      return event.type === "message" && eventTime >= todayStart
     }).length
-
-    // 计算待处理任务数(这里简化处理,实际应该从任务系统获取)
-    const pendingTasks = 0
 
     return {
       totalEmployees: employees.length,
-      activeEmployees,
-      pendingTasks,
+      activeEmployees: 0,
+      pendingTasks: 0,
       todayMessages,
     }
   }
 
-  /**
-   * 监听员工事件
-   */
   onEmployeeEvent(event: string, listener: (...args: any[]) => void): void {
     this.employeeRegistry.on(event, listener)
   }
 
-  /**
-   * 取消监听员工事件
-   */
   offEmployeeEvent(event: string, listener: (...args: any[]) => void): void {
     this.employeeRegistry.off(event, listener)
   }
 
-  /**
-   * 清空所有数据
-   */
   clear(): void {
     this.employeeRegistry.clear()
     this.eventHistory.clear()
-    this.taskCount.clear()
-    this.messageCount.clear()
   }
 
-  /**
-   * 获取 EventLogger 实例
-   */
   getEventLogger(): EventLogger {
     return this.eventLogger
   }
 
-  /**
-   * 从持久化文件加载历史事件
-   * 在 StateManager 初始化后调用，恢复所有员工的历史事件到内存
-   */
   async loadHistoricalEvents(): Promise<void> {
-    // 遍历所有已注册的员工
     const employees = this.employeeRegistry.getAll()
 
     for (const employee of employees) {
       try {
-        // 从文件加载该员工的历史事件（最多 1000 条）
-        // EventLogger.getEvents 返回的是按时间顺序（旧→新）
         const events = await this.eventLogger.getEvents(
           employee.employeeId,
           1000
         )
-
-        // 按时间顺序（旧→新）添加到 EventHistory
-        // EventHistory.add() 使用 unshift，所以最后添加的（最新的）会在数组开头
         for (const event of events) {
           this.eventHistory.add(event)
-
-          // 同步更新统计数据
-          if (event.type === "message" && event.employeeId) {
-            const count = this.messageCount.get(event.employeeId) || 0
-            this.messageCount.set(event.employeeId, count + 1)
-          }
-
-          if (
-            (event.type === "task_completed" ||
-              event.type === "task_cancelled") &&
-            event.employeeId
-          ) {
-            const count = this.taskCount.get(event.employeeId) || 0
-            this.taskCount.set(event.employeeId, count + 1)
-          }
         }
       } catch (error: any) {
-        // 如果某个员工的事件文件不存在或读取失败，跳过并继续
-        // 这是正常情况（新员工还没有事件历史）
         if (error.code !== "ENOENT") {
           console.warn(
             `Failed to load events for employee ${employee.employeeId}:`,
@@ -547,30 +220,18 @@ export class StateManager {
     }
   }
 
-  /**
-   * 监听事件
-   */
   on(event: string, listener: (...args: any[]) => void): void {
     this.emitter.on(event, listener)
   }
 
-  /**
-   * 取消监听事件
-   */
   off(event: string, listener: (...args: any[]) => void): void {
     this.emitter.off(event, listener)
   }
 
-  /**
-   * 触发事件
-   */
   emit(event: string, ...args: any[]): void {
     this.emitter.emit(event, ...args)
   }
 
-  /**
-   * 从持久化文件加载员工列表
-   */
   async loadEmployees(): Promise<void> {
     if (!this.employeePersistence) {
       return
@@ -580,25 +241,93 @@ export class StateManager {
       `[StateManager] loadEmployees: loaded ${employees.length} employees from persistence`
     )
     for (const employee of employees) {
-      logger.debug(
-        `[StateManager] loadEmployees: processing employee ${employee.employeeId}`
-      )
-      // 检查是否已经注册（避免重复）
       if (!this.employeeRegistry.get(employee.employeeId)) {
-        logger.debug(
-          `[StateManager] loadEmployees: registering employee ${employee.employeeId}`
-        )
         this.employeeRegistry.register(employee)
-        this.taskCount.set(employee.employeeId, 0)
-        this.messageCount.set(employee.employeeId, 0)
-      } else {
-        logger.debug(
-          `[StateManager] loadEmployees: employee ${employee.employeeId} already registered, skipping`
+      }
+    }
+  }
+
+  private async validateEmployeeMetadata(employee: Employee): Promise<void> {
+    if (!isValidEmployeeName(employee.name)) {
+      throw new Error(`员工名称 '${employee.name}' 格式无效，不能以数字-开头`)
+    }
+    if (employee.description.trim().length === 0) {
+      throw new Error("Employee description must be non-empty")
+    }
+    await this.validateContextPaths(employee.contextPaths)
+  }
+
+  private async validateContextPaths(contextPaths: string[]): Promise<void> {
+    if (!this.projectPath) {
+      return
+    }
+
+    for (const contextPath of contextPaths) {
+      if (path.isAbsolute(contextPath)) {
+        throw new Error(
+          `Context path '${contextPath}' must be project-relative`
+        )
+      }
+      if (/[\*\?\[\]\{\}]/.test(contextPath)) {
+        throw new Error(
+          `Context path '${contextPath}' must not contain glob patterns`
+        )
+      }
+
+      const resolved = path.resolve(this.projectPath, contextPath)
+      const relative = path.relative(this.projectPath, resolved)
+      if (relative.startsWith("..") || path.isAbsolute(relative)) {
+        throw new Error(
+          `Context path '${contextPath}' must stay inside project root`
+        )
+      }
+
+      let stat
+      try {
+        stat = await fs.stat(resolved)
+      } catch (error: any) {
+        if (error.code === "ENOENT") {
+          throw new Error(
+            `Context path '${contextPath}' must exist and be readable`
+          )
+        }
+        throw error
+      }
+      if (!stat.isFile()) {
+        throw new Error(
+          `Context path '${contextPath}' must be a readable file, not a directory`
+        )
+      }
+      try {
+        await fs.access(resolved, fs.constants.R_OK)
+      } catch {
+        throw new Error(
+          `Context path '${contextPath}' must exist and be readable`
         )
       }
     }
-    logger.debug(
-      `[StateManager] loadEmployees: completed, total employees in registry: ${this.employeeRegistry.getAll().length}`
+  }
+
+  private async persistEmployees(): Promise<void> {
+    if (this.employeePersistence) {
+      await this.employeePersistence.save(this.employeeRegistry.getAll())
+    }
+  }
+
+  private async logEventForResolvedOwner(
+    ownerId: string,
+    event: Event
+  ): Promise<void> {
+    if (this.isEventLogOwnerId(ownerId)) {
+      await this.eventLogger.logEvent(ownerId, event)
+    }
+  }
+
+  private isEventLogOwnerId(ownerId: string): ownerId is EventLogOwnerId {
+    return (
+      ownerId.startsWith("emp_") ||
+      ownerId.startsWith("ews_") ||
+      ownerId.startsWith("boss_")
     )
   }
 }

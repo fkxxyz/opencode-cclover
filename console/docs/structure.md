@@ -40,13 +40,13 @@ Note: Frontend (src/) is fully implemented. Backend is provided by the OpenCode 
 **Pages**:
 
 - Overview.tsx - Main dashboard with global stats, hierarchy tree, employee list, and event stream
-- EmployeeDetail.tsx - Detailed employee dashboard with tabs (messages, tasks, memory, agents, events)
+- EmployeeDetail.tsx - Detailed employee dashboard with tabs (messages, tasks, memory, employee work sessions, events)
 - ProjectManagement.tsx - Project switching interface
 
 **Components**:
 
 - dashboard/ - GlobalStats, EventStream
-- employee/ - EmployeeCard, MessageList, TaskList, MemoryView, AgentList, EventTimeline
+- employee/ - EmployeeCard, MessageList, TaskList, MemoryView, EventTimeline
 - visualizations/ - HierarchyTree (D3.js), TaskDAG (D3.js)
 - layout/ - Layout, Sidebar
 - ui/ - Base UI components (shadcn/ui)

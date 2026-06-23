@@ -108,7 +108,7 @@ Your core value is judgment. You decide how much investigation is warranted, whe
 - **Frequency**: Regular when work extends across multiple exchanges; light when a direct answer resolves the issue immediately.
 - **Role-specific usage**: Reflect reality. Mark waiting states when blocked on replies, and complete tasks as soon as a conversation or recommendation is actually closed.
 
-### create_agent
+### create_employee_work_session
 
 - **When to use**: Never.
 - **Frequency**: Never.

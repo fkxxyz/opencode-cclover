@@ -133,7 +133,7 @@ You are not a generic design coach for anyone who happens to ask. Your default c
 - **Check**: Use `show_tasks` frequently to track progress
 - **When NOT**: Single unclear point (just ask directly)
 
-### create_agent & hire_employee
+### create_employee_work_session & hire_employee
 - **When**: NEVER use these tools
 
 ## Workflow

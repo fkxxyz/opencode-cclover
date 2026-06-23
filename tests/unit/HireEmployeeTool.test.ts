@@ -4,17 +4,21 @@ import { BossManager } from "../../src/core/BossManager"
 import { StateManager } from "../../src/state/StateManager"
 import { RoleManager } from "../../src/core/RoleManager"
 import { MemoryManager } from "../../src/core/MemoryManager"
+import { EmployeeWorkSessionManager } from "../../src/core/EmployeeWorkSessionManager"
 import { createHireEmployeeTool } from "../../src/tools/HireEmployeeTool"
 import type { CcloverConfig } from "../../src/config/ConfigManager"
 import type { ProjectInstance } from "../../src/server/ProjectRegistry"
 import type { Employee } from "../../src/types/employee"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
+import { createTestEmployee } from "../helpers/employeeFactory"
+import {
+  getTestProjectPaths,
+  resetTestWorkspace,
+} from "../helpers/testWorkspace"
 
-const TEST_WORKSPACE = path.join(
-  import.meta.dir,
-  "../fixtures/hire-employee-tool-test"
-)
+const { suiteRoot, projectPath, workspaceRoot } =
+  getTestProjectPaths("hire-employee-tool")
 
 describe("HireEmployeeTool", () => {
   let bossManager: BossManager
@@ -22,6 +26,7 @@ describe("HireEmployeeTool", () => {
   let stateManager: StateManager
   let roleManager: RoleManager
   let memoryManager: MemoryManager
+  let employeeWorkSessionManager: EmployeeWorkSessionManager
   let hireEmployeeTool: any
   let project: ProjectInstance
 
@@ -57,11 +62,10 @@ describe("HireEmployeeTool", () => {
 
   beforeEach(async () => {
     // 清理测试工作空间
-    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
-    await fs.mkdir(TEST_WORKSPACE, { recursive: true })
+    await resetTestWorkspace(suiteRoot)
 
     // 创建测试角色目录
-    const rolesDir = path.join(TEST_WORKSPACE, ".cclover/roles")
+    const rolesDir = path.join(projectPath, ".cclover/roles")
     await fs.mkdir(rolesDir, { recursive: true })
 
     // 创建测试角色文件
@@ -157,59 +161,57 @@ You are a project manager.`
       bosses: ["boss"],
       projects: [],
     }
-    bossManager = new BossManager(config, TEST_WORKSPACE)
+    bossManager = new BossManager(config, workspaceRoot)
 
     // 创建 StateManager
-    stateManager = new StateManager("test-project", TEST_WORKSPACE)
+    stateManager = new StateManager("test-project", workspaceRoot, projectPath)
 
     // 注册 boss 员工
-    await stateManager.registerEmployee({
-      employeeId: "0-boss",
-      name: "boss",
-      hiredBy: null,
-      roleId: "manager",
-      paused: false,
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "boss_boss",
+        name: "boss",
+        hiredBy: null,
+        roleId: "manager",
+      } as Partial<Employee>)
+    )
 
     // 注册测试员工
-    await stateManager.registerEmployee({
-      employeeId: "emp_alice",
-      name: "alice",
-      hiredBy: null,
-      roleId: "developer",
-      paused: false,
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_alice",
+        name: "alice",
+        hiredBy: null,
+        roleId: "developer",
+      })
+    )
 
-    await stateManager.registerEmployee({
-      employeeId: "emp_bob",
-      name: "bob",
-      hiredBy: null,
-      roleId: "manager",
-      paused: false,
-      status: "offline",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
-    })
+    await stateManager.registerEmployee(
+      createTestEmployee({
+        employeeId: "emp_bob",
+        name: "bob",
+        hiredBy: null,
+        roleId: "manager",
+      })
+    )
 
     // 创建 RoleManager 并加载角色
-    roleManager = new RoleManager(TEST_WORKSPACE)
+    roleManager = new RoleManager(projectPath)
     await roleManager.refresh()
 
     // 创建 MemoryManager
-    memoryManager = new MemoryManager(TEST_WORKSPACE)
+    memoryManager = new MemoryManager(workspaceRoot)
+
+    // 创建 EmployeeWorkSessionManager
+    employeeWorkSessionManager = new EmployeeWorkSessionManager(
+      projectPath,
+      stateManager,
+      roleManager
+    )
 
     // 创建 MessageService
     messageService = new MessageService(
-      TEST_WORKSPACE,
+      workspaceRoot,
       stateManager,
       "test-project",
       bossManager
@@ -217,9 +219,10 @@ You are a project manager.`
 
     // 创建 ProjectInstance mock
     project = {
-      directory: TEST_WORKSPACE,
+      directory: projectPath,
       messageService,
       memoryManager,
+      employeeWorkSessionManager,
       stateManager,
       roleManager,
       eventLoops: new Map(),
@@ -236,7 +239,7 @@ You are a project manager.`
 
   afterEach(async () => {
     // 清理测试工作空间
-    await fs.rm(TEST_WORKSPACE, { recursive: true, force: true })
+    await fs.rm(suiteRoot, { recursive: true, force: true })
   })
 
   describe("Permission Check", () => {
@@ -250,16 +253,13 @@ You are a project manager.`
         {
           name: "charlie",
           id: "charlie",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: charlie)")
       expect(result).toContain("role: developer")
 
@@ -267,7 +267,7 @@ You are a project manager.`
       expectStableEmployee(findEmployeeByName("charlie"), {
         name: "charlie",
         roleId: "developer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
     })
 
@@ -281,22 +281,19 @@ You are a project manager.`
         {
           name: "meeting-hire",
           id: "meeting-hire",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: meeting-hire)")
 
       expectStableEmployee(findEmployeeByName("meeting-hire"), {
         name: "meeting-hire",
         roleId: "developer",
-        hiredBy: "0-manager",
+        hiredBy: "boss_manager",
       })
     })
 
@@ -306,7 +303,7 @@ You are a project manager.`
           bosses: ["boss-a", "boss-b"],
           projects: [],
         },
-        TEST_WORKSPACE,
+        workspaceRoot,
         roleManager
       )
 
@@ -327,11 +324,8 @@ You are a project manager.`
       const result = await multiBossTool.execute(
         {
           name: "meeting-hire-b",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         {
           sessionID: "test-session-meeting-agent-boss-b",
@@ -339,13 +333,13 @@ You are a project manager.`
         } as any
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: meeting-hire-b)")
 
       expectStableEmployee(findEmployeeByName("meeting-hire-b"), {
         name: "meeting-hire-b",
         roleId: "developer",
-        hiredBy: "0-manager",
+        hiredBy: "boss_manager",
       })
     })
 
@@ -364,12 +358,13 @@ You are a project manager.`
         {
           name: "dave",
           id: "dave",
-          role: "tester",
+          role_id: "tester",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: dave)")
       expect(result).toContain("role: tester")
 
@@ -381,6 +376,47 @@ You are a project manager.`
       })
 
       sessionRegistry.unregister("test-session-alice")
+    })
+
+    test("employee work session caller can hire permitted role", async () => {
+      const { sessionRegistry } =
+        await import("../../src/utils/SessionRegistry")
+      const aliceEws =
+        await employeeWorkSessionManager.createEmployeeWorkSession({
+          employeeId: "emp_alice",
+          description: "Alice runtime session",
+          args: {
+            projectPath: "/tmp/project",
+            language: "TypeScript",
+          },
+          createdBy: "boss_boss" as any,
+        })
+      sessionRegistry.register(
+        "test-session-alice-ews",
+        aliceEws.employeeWorkSessionId
+      )
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "ews-dave",
+          role_id: "tester",
+          description: "Test employee metadata",
+        },
+        {
+          sessionID: "test-session-alice-ews",
+          agent: undefined,
+        }
+      )
+
+      expect(result).toContain("Successfully created employee metadata 'emp_")
+      expect(result).toContain("(name: ews-dave)")
+      expectStableEmployee(findEmployeeByName("ews-dave"), {
+        name: "ews-dave",
+        roleId: "tester",
+        hiredBy: aliceEws.employeeWorkSessionId,
+      })
+
+      sessionRegistry.unregister("test-session-alice-ews")
     })
 
     test("employee cannot hire unpermitted role", async () => {
@@ -398,7 +434,8 @@ You are a project manager.`
         {
           name: "eve",
           id: "eve",
-          role: "manager",
+          role_id: "manager",
+          description: "Test employee metadata",
         },
         context
       )
@@ -427,16 +464,13 @@ You are a project manager.`
         {
           name: "frank",
           id: "frank",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: frank)")
       expect(result).toContain("role: developer")
 
@@ -450,8 +484,8 @@ You are a project manager.`
     })
   })
 
-  describe("Required Parameters Validation", () => {
-    test("rejects hire when requiredArgs missing", async () => {
+  describe("Metadata-only hire contract", () => {
+    test("ignores role requiredArgs during metadata hire", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -461,20 +495,25 @@ You are a project manager.`
         {
           name: "george",
           id: "george",
-          role: "developer",
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Error: Role 'developer' requires")
-      expect(result).toContain("projectPath, language")
-      expect(result).toContain("Provide them via initial_args parameter")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
+      expect(result).toContain("(name: george)")
+      expect(result).not.toContain("requires")
+      expect(result).not.toContain("initial_args")
 
-      // Verify employee was NOT created
-      expect(findEmployeeByName("george")).toBeUndefined()
+      expectStableEmployee(findEmployeeByName("george"), {
+        name: "george",
+        roleId: "developer",
+        hiredBy: "boss_boss",
+      })
     })
 
-    test("rejects hire when requiredArgs partially provided", async () => {
+    test("ignores supplied initial_args and creates metadata only", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -484,21 +523,28 @@ You are a project manager.`
         {
           name: "helen",
           id: "helen",
-          role: "developer",
+          role_id: "developer",
+          description: "Test employee metadata",
           initial_args: [{ name: "projectPath", value: "/tmp/project" }],
         },
         context
       )
 
-      expect(result).toContain("Error: Role 'developer' requires")
-      expect(result).toContain("language")
-      expect(result).not.toContain("projectPath")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
+      expect(result).toContain("(name: helen)")
+      expect(result).not.toContain("requires")
+      expect(result).not.toContain("initial_args")
 
-      // Verify employee was NOT created
-      expect(findEmployeeByName("helen")).toBeUndefined()
+      const employee = expectStableEmployee(findEmployeeByName("helen"), {
+        name: "helen",
+        roleId: "developer",
+        hiredBy: "boss_boss",
+      })
+      const memory = await memoryManager.read(employee.employeeId)
+      expect(memory.args).toEqual({})
     })
 
-    test("succeeds when all requiredArgs provided", async () => {
+    test("creates developer metadata without required-parameter reminder", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -508,56 +554,22 @@ You are a project manager.`
         {
           name: "ivan",
           id: "ivan",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: ivan)")
-      expect(result).not.toContain("IMPORTANT: This role requires")
+      expect(result).not.toContain("requires")
+      expect(result).not.toContain("Please send a message")
 
-      // Verify employee was created
       expectStableEmployee(findEmployeeByName("ivan"), {
         name: "ivan",
         roleId: "developer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
-    })
-
-    test("persists initial_args to memory", async () => {
-      const context = {
-        sessionID: "test-session-boss",
-        agent: "boss",
-      }
-
-      await hireEmployeeTool.execute(
-        {
-          name: "julia",
-          id: "julia",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/home/user/project" },
-            { name: "language", value: "Python" },
-          ],
-        },
-        context
-      )
-
-      // Verify args persisted to memory
-      const employee = expectStableEmployee(findEmployeeByName("julia"), {
-        name: "julia",
-        roleId: "developer",
-        hiredBy: "0-boss",
-      })
-      const memory = await memoryManager.read(employee.employeeId)
-      expect(memory.args).toBeDefined()
-      expect(memory.args.projectPath).toBe("/home/user/project")
-      expect(memory.args.language).toBe("Python")
     })
 
     test("succeeds for role without requiredArgs", async () => {
@@ -570,12 +582,13 @@ You are a project manager.`
         {
           name: "kate",
           id: "kate",
-          role: "tester",
+          role_id: "tester",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: kate)")
       expect(result).not.toContain("Error:")
 
@@ -583,11 +596,11 @@ You are a project manager.`
       expectStableEmployee(findEmployeeByName("kate"), {
         name: "kate",
         roleId: "tester",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
     })
 
-    test("includes initial_message with requiredArgs", async () => {
+    test("ignores initial_message during metadata hire", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -597,31 +610,26 @@ You are a project manager.`
         {
           name: "leo",
           id: "leo",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "JavaScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
           initial_message: "Welcome to the team!",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: leo)")
-      expect(result).toContain("Initial message sent")
+      expect(result).not.toContain("Initial message sent")
+      expect(result).not.toContain("Default message sent")
 
-      // Verify message was sent
       const employee = expectStableEmployee(findEmployeeByName("leo"), {
         name: "leo",
         roleId: "developer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
       const leoClient = messageService.getClient(employee.employeeId)
-      const messages = await leoClient.history("0-boss")
-      expect(messages.length).toBeGreaterThan(0)
-      const lastMessage = messages[messages.length - 1]
-      expect(lastMessage.content).toBe("Welcome to the team!")
+      const messages = await leoClient.history("boss_boss")
+      expect(messages).toEqual([])
     })
   })
 
@@ -636,7 +644,8 @@ You are a project manager.`
         {
           name: "judy",
           id: "judy",
-          role: "nonexistent",
+          role_id: "nonexistent",
+          description: "Test employee metadata",
         },
         context
       )
@@ -659,7 +668,8 @@ You are a project manager.`
         {
           name: "kate",
           id: "kate",
-          role: "manager",
+          role_id: "manager",
+          description: "Test employee metadata",
         },
         context
       )
@@ -680,11 +690,8 @@ You are a project manager.`
         {
           name: "alice",
           id: "alice", // 已存在
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
@@ -702,11 +709,8 @@ You are a project manager.`
         {
           name: "leo",
           id: "leo",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
@@ -725,11 +729,8 @@ You are a project manager.`
       const result = await hireEmployeeTool.execute(
         {
           name: undefined,
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
@@ -751,11 +752,8 @@ You are a project manager.`
       const result = await hireEmployeeTool.execute(
         {
           name: "",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
@@ -779,11 +777,8 @@ You are a project manager.`
       const result = await hireEmployeeTool.execute(
         {
           name: "   ",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
@@ -807,23 +802,20 @@ You are a project manager.`
       const result = await hireEmployeeTool.execute(
         {
           name: "  trimmed-name  ",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: trimmed-name)")
 
       // 验证员工已注册，且名称已被 trim
       expectStableEmployee(findEmployeeByName("trimmed-name"), {
         name: "trimmed-name",
         roleId: "developer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
     })
 
@@ -836,7 +828,8 @@ You are a project manager.`
       const result = await hireEmployeeTool.execute(
         {
           name: "  success-test  ",
-          role: "tester",
+          role_id: "tester",
+          description: "Test employee metadata",
         },
         context
       )
@@ -846,7 +839,7 @@ You are a project manager.`
       expect(result).not.toContain("name:   success-test  ")
     })
 
-    test("uses trimmed name in required parameters reminder", async () => {
+    test("uses trimmed name in metadata success message", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -855,17 +848,15 @@ You are a project manager.`
       const result = await hireEmployeeTool.execute(
         {
           name: "  param-test  ",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
 
-      // 验证参数提醒使用 trimmed name
-      expect(result).toContain("Successfully hired employee")
+      // 验证 metadata 成功消息使用 trimmed name
+      expect(result).toContain("Successfully created employee metadata 'emp_")
+      expect(result).toContain("(name: param-test)")
       expect(result).not.toContain("Please send a message to '  param-test  '")
     })
   })
@@ -882,16 +873,13 @@ You are a project manager.`
         {
           name: "mike",
           id: "mike",
-          role: "developer", // 这是 name 字段，不是文件名
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer", // 这是 name 字段，不是文件名
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: mike)")
       expect(result).toContain("role: developer")
 
@@ -899,7 +887,7 @@ You are a project manager.`
       expectStableEmployee(findEmployeeByName("mike"), {
         name: "mike",
         roleId: "developer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
     })
   })
@@ -915,11 +903,8 @@ You are a project manager.`
         {
           name: "nancy",
           id: "nancy",
-          role: "developer",
-          initial_args: [
-            { name: "projectPath", value: "/tmp/project" },
-            { name: "language", value: "TypeScript" },
-          ],
+          role_id: "developer",
+          description: "Test employee metadata",
         },
         context
       )
@@ -932,16 +917,16 @@ You are a project manager.`
       const employee = expectStableEmployee(findEmployeeByName("nancy"), {
         name: "nancy",
         roleId: "developer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
       expect(hiredEvent?.employeeId).toBe(employee.employeeId)
-      expect(hiredEvent?.details.hiredBy).toBe("0-boss")
+      expect(hiredEvent?.details.hiredBy).toBe("boss_boss")
       expect(hiredEvent?.details.roleId).toBe("developer")
       expect("role" in hiredEvent!.details).toBe(false)
       expect(hiredEvent?.details.initialMessage).toBeUndefined()
     })
 
-    test("records employee_hired event with initial_message", async () => {
+    test("employee_hired event excludes ignored initial_message", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -951,7 +936,8 @@ You are a project manager.`
         {
           name: "oliver",
           id: "oliver",
-          role: "tester",
+          role_id: "tester",
+          description: "Test employee metadata",
           initial_message: "Welcome aboard!",
         },
         context
@@ -965,18 +951,18 @@ You are a project manager.`
       const employee = expectStableEmployee(findEmployeeByName("oliver"), {
         name: "oliver",
         roleId: "tester",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
       expect(hiredEvent?.employeeId).toBe(employee.employeeId)
-      expect(hiredEvent?.details.hiredBy).toBe("0-boss")
+      expect(hiredEvent?.details.hiredBy).toBe("boss_boss")
       expect(hiredEvent?.details.roleId).toBe("tester")
       expect("role" in hiredEvent!.details).toBe(false)
-      expect(hiredEvent?.details.initialMessage).toBe("Welcome aboard!")
+      expect(hiredEvent?.details.initialMessage).toBeUndefined()
     })
   })
 
-  describe("Default Message", () => {
-    test("sends default message when no initial_message provided", async () => {
+  describe("No automatic hire messages", () => {
+    test("does not send default message when no initial_message provided", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -986,36 +972,28 @@ You are a project manager.`
         {
           name: "peter",
           id: "peter",
-          role: "tester",
+          role_id: "tester",
+          description: "Test employee metadata",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: peter)")
-      expect(result).toContain("Default message sent")
+      expect(result).not.toContain("Default message sent")
+      expect(result).not.toContain("Initial message sent")
 
-      // 验证消息已发送
       const employee = expectStableEmployee(findEmployeeByName("peter"), {
         name: "peter",
         roleId: "tester",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
       const peterClient = messageService.getClient(employee.employeeId)
-      const messages = await peterClient.history("0-boss")
-      expect(messages.length).toBeGreaterThan(0)
-
-      const lastMessage = messages[messages.length - 1]
-      expect(lastMessage.from).toBe("0-boss")
-      expect(lastMessage.to).toBe(employee.employeeId)
-      expect(lastMessage.content).toContain("Hello! I am boss")
-      expect(lastMessage.content).toContain("Your role is tester")
-      expect(lastMessage.content).toContain(
-        "Please start working according to your role definition"
-      )
+      const messages = await peterClient.history("boss_boss")
+      expect(messages).toEqual([])
     })
 
-    test("default message does not include parameters reminder for role without requiredArgs", async () => {
+    test("does not send parameter reminder for role without requiredArgs", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -1025,31 +1003,23 @@ You are a project manager.`
         {
           name: "rachel",
           id: "rachel",
-          role: "tester",
+          role_id: "tester",
+          description: "Test employee metadata",
         },
         context
       )
 
-      // 验证消息已发送
       const employee = expectStableEmployee(findEmployeeByName("rachel"), {
         name: "rachel",
         roleId: "tester",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
       const rachelClient = messageService.getClient(employee.employeeId)
-      const messages = await rachelClient.history("0-boss")
-      expect(messages.length).toBeGreaterThan(0)
-
-      const lastMessage = messages[messages.length - 1]
-      expect(lastMessage.content).not.toContain(
-        "Your role requires the following parameters"
-      )
-      expect(lastMessage.content).toContain(
-        "Please start working according to your role definition"
-      )
+      const messages = await rachelClient.history("boss_boss")
+      expect(messages).toEqual([])
     })
 
-    test("sends custom initial_message instead of default message", async () => {
+    test("ignores custom initial_message instead of sending it", async () => {
       const context = {
         sessionID: "test-session-boss",
         agent: "boss",
@@ -1059,29 +1029,26 @@ You are a project manager.`
         {
           name: "sam",
           id: "sam",
-          role: "designer",
+          role_id: "designer",
+          description: "Test employee metadata",
           initial_message: "Welcome to the design team!",
         },
         context
       )
 
-      expect(result).toContain("Successfully hired employee 'emp_")
+      expect(result).toContain("Successfully created employee metadata 'emp_")
       expect(result).toContain("(name: sam)")
-      expect(result).toContain("Initial message sent")
+      expect(result).not.toContain("Initial message sent")
       expect(result).not.toContain("Default message sent")
 
-      // 验证消息已发送
       const employee = expectStableEmployee(findEmployeeByName("sam"), {
         name: "sam",
         roleId: "designer",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
       const samClient = messageService.getClient(employee.employeeId)
-      const messages = await samClient.history("0-boss")
-      expect(messages.length).toBeGreaterThan(0)
-
-      const lastMessage = messages[messages.length - 1]
-      expect(lastMessage.content).toBe("Welcome to the design team!")
+      const messages = await samClient.history("boss_boss")
+      expect(messages).toEqual([])
     })
   })
 
@@ -1096,7 +1063,8 @@ You are a project manager.`
         {
           name: "tom",
           id: "tom",
-          role: "tester", // soul role
+          role_id: "tester",
+          description: "Test employee metadata", // soul role
         },
         context
       )
@@ -1104,23 +1072,20 @@ You are a project manager.`
       expectStableEmployee(findEmployeeByName("tom"), {
         name: "tom",
         roleId: "tester",
-        hiredBy: "0-boss",
+        hiredBy: "boss_boss",
       })
     })
 
     test("employee-hired worker does not inherit parent taskId", async () => {
       // 注册一个稳定 ID 的员工
-      await stateManager.registerEmployee({
-        employeeId: "emp_parentalice000000000000000000000",
-        name: "parent-alice",
-        hiredBy: "0-boss",
-        roleId: "developer",
-        paused: false,
-        status: "idle",
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_parentalice000000000000000000000",
+          name: "parent-alice",
+          hiredBy: "boss_boss",
+          roleId: "developer",
+        })
+      )
 
       // 注册 alice 到 SessionRegistry
       const { sessionRegistry } =
@@ -1139,7 +1104,8 @@ You are a project manager.`
         {
           name: "jerry",
           id: "jerry",
-          role: "worker", // non-soul role
+          role_id: "worker",
+          description: "Test employee metadata", // non-soul role
         },
         context
       )
@@ -1156,17 +1122,14 @@ You are a project manager.`
 
     test("employee hire creates no root task or task group files", async () => {
       // 注册一个稳定 ID 的员工
-      await stateManager.registerEmployee({
-        employeeId: "emp_parentbob00000000000000000000000",
-        name: "parent-bob",
-        hiredBy: "0-boss",
-        roleId: "manager",
-        paused: false,
-        status: "idle",
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        activeSessionId: null,
-      })
+      await stateManager.registerEmployee(
+        createTestEmployee({
+          employeeId: "emp_parentbob00000000000000000000000",
+          name: "parent-bob",
+          hiredBy: "boss_boss",
+          roleId: "manager",
+        })
+      )
 
       // 注册 bob 到 SessionRegistry
       const { sessionRegistry } =
@@ -1185,7 +1148,8 @@ You are a project manager.`
         {
           name: "worker-kate",
           id: "worker-kate",
-          role: "worker", // non-soul role
+          role_id: "worker",
+          description: "Test employee metadata", // non-soul role
         },
         context
       )
@@ -1196,10 +1160,10 @@ You are a project manager.`
         hiredBy: "emp_parentbob00000000000000000000000",
       })
       await expectMissingFile(
-        path.join(TEST_WORKSPACE, ".cclover", "root-tasks.yaml")
+        path.join(workspaceRoot, ".cclover", "root-tasks.yaml")
       )
       await expectMissingFile(
-        path.join(TEST_WORKSPACE, ".cclover", "work-items.yaml")
+        path.join(workspaceRoot, ".cclover", "work-items.yaml")
       )
 
       // 清理

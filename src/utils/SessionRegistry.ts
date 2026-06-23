@@ -1,55 +1,70 @@
-import type { EmployeeId } from "../types/employee"
+import type { EmployeeWorkSessionId } from "../types/employee"
 
 /**
  * Session Registry
  *
- * 维护 sessionID 到员工 ID 的映射关系
+ * 维护 sessionID 到 EWS ID 的映射关系
  * 用于工具调用时识别调用者身份
  */
 
 class SessionRegistry {
-  private sessionToEmployeeId = new Map<string, EmployeeId>()
+  private sessionToEmployeeWorkSessionId = new Map<
+    string,
+    EmployeeWorkSessionId
+  >()
 
   /**
-   * 注册 session 和员工 ID 的映射关系
+   * 注册 session 和 EWS ID 的映射关系
    */
-  register(sessionId: string, employeeId: EmployeeId): void {
-    this.sessionToEmployeeId.set(sessionId, employeeId)
+  register(
+    sessionId: string,
+    employeeWorkSessionId: EmployeeWorkSessionId
+  ): void {
+    this.sessionToEmployeeWorkSessionId.set(sessionId, employeeWorkSessionId)
   }
 
   /**
-   * 根据 sessionID 获取员工 ID
+   * 根据 sessionID 获取 EWS ID
    */
-  getEmployeeId(sessionId: string): EmployeeId | undefined {
-    return this.sessionToEmployeeId.get(sessionId)
+  getEmployeeWorkSessionId(
+    sessionId: string
+  ): EmployeeWorkSessionId | undefined {
+    return this.sessionToEmployeeWorkSessionId.get(sessionId)
+  }
+
+  /**
+   * @deprecated EWS refactor removed employee-level runtime identity.
+   */
+  getEmployeeId(sessionId: string): EmployeeWorkSessionId | undefined {
+    return this.getEmployeeWorkSessionId(sessionId)
   }
 
   /**
    * 取消注册
    */
   unregister(sessionId: string): void {
-    this.sessionToEmployeeId.delete(sessionId)
+    this.sessionToEmployeeWorkSessionId.delete(sessionId)
   }
 
   /**
    * 检查 session 是否已注册
    */
   has(sessionId: string): boolean {
-    return this.sessionToEmployeeId.has(sessionId)
+    return this.sessionToEmployeeWorkSessionId.has(sessionId)
   }
 
   /**
    * 获取所有注册的 session
    */
   getAllSessions(): string[] {
-    return Array.from(this.sessionToEmployeeId.keys())
+    return Array.from(this.sessionToEmployeeWorkSessionId.keys())
   }
 
   /**
    * 清空所有注册
    */
   clear(): void {
-    this.sessionToEmployeeId.clear()
+    this.sessionToEmployeeWorkSessionId.clear()
   }
 }
 

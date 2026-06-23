@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from "bun:test"
 import { SessionManager } from "../../src/core/eventloop/SessionManager"
 import { MemoryManager } from "../../src/core/MemoryManager"
 import { RoleManager } from "../../src/core/RoleManager"
+import { EmployeeWorkSessionManager } from "../../src/core/EmployeeWorkSessionManager"
 import { StateManager } from "../../src/state/StateManager"
 import type { Employee } from "../../src/types"
 import * as fs from "node:fs/promises"
@@ -14,6 +15,7 @@ describe("SessionManager", () => {
   let roleManager: RoleManager
   let memoryManager: MemoryManager
   let stateManager: StateManager
+  let employeeWorkSessionManager: EmployeeWorkSessionManager
 
   beforeEach(async () => {
     projectPath = await fs.mkdtemp(
@@ -22,7 +24,12 @@ describe("SessionManager", () => {
     workspaceRoot = path.join(projectPath, ".cclover/workspace")
     roleManager = new RoleManager(projectPath)
     memoryManager = new MemoryManager(workspaceRoot)
-    stateManager = new StateManager("test-project", workspaceRoot)
+    stateManager = new StateManager("test-project", workspaceRoot, projectPath)
+    employeeWorkSessionManager = new EmployeeWorkSessionManager(
+      projectPath,
+      stateManager,
+      roleManager
+    )
   })
 
   test("should propagate resolved role contexts into active session prompts", async () => {
@@ -62,16 +69,22 @@ You are a context aware employee.`
       employeeId: "emp_dev",
       name: "dev",
       roleId: "context-role",
+      description: "Context-aware developer",
+      contextPaths: ["brief.md"],
       hiredBy: null,
-      status: "idle",
-      paused: false,
       createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      activeSessionId: null,
+      updatedAt: new Date().toISOString(),
     }
     await stateManager.registerEmployee(employee)
+    const employeeWorkSession =
+      await employeeWorkSessionManager.createEmployeeWorkSession({
+        employeeId: "emp_dev",
+        description: "Implement context-aware feature",
+        args: {},
+        createdBy: "boss_main",
+      })
 
-    await memoryManager.write("emp_dev", {
+    await memoryManager.write(employeeWorkSession.employeeWorkSessionId, {
       knowledge: [],
       tasks: [],
       args: {},
@@ -87,11 +100,13 @@ You are a context aware employee.`
 
     const sessionManager = new SessionManager(
       projectPath,
-      "emp_dev",
+      employeeWorkSession.employeeWorkSessionId,
+      employee.employeeId,
       "context-role",
       roleManager,
       memoryManager,
       opcodeClient,
+      employeeWorkSessionManager,
       stateManager
     )
 

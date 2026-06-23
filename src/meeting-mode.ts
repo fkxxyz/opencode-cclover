@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import type { BossManager } from "./core/BossManager"
+import type { EmployeeWorkSessionManager } from "./core/EmployeeWorkSessionManager"
 import type { RoleManager } from "./core/RoleManager"
 import type { Role } from "./types"
 import { formatBossId } from "./types"
@@ -21,6 +22,7 @@ export interface MeetingModeAgentBuildOptions {
 export interface ResolvedToolActor {
   actorName: string
   actorEmployeeId: string
+  actorEmployeeWorkSessionId?: string
   actorType: "boss" | "meeting-role" | "employee"
   isBoss: boolean
   hasBossAuthority: boolean
@@ -116,32 +118,32 @@ export function resolveToolActor(
   context: { sessionID: string; agent?: string },
   stateManager?: StateManager,
   bossManager?: BossManager,
-  roleManager?: RoleManager
+  roleManager?: RoleManager,
+  employeeWorkSessionManager?: EmployeeWorkSessionManager
 ): ResolvedToolActor | undefined {
-  // 1. Check if sessionID maps to an employee
-  const employeeId = sessionRegistry.getEmployeeId(context.sessionID)
-  if (employeeId) {
+  // 1. Check if sessionID maps to an EWS
+  const employeeWorkSessionId = sessionRegistry.getEmployeeWorkSessionId(
+    context.sessionID
+  )
+  if (employeeWorkSessionId) {
     if (!stateManager) {
       return {
-        actorName: employeeId,
-        actorEmployeeId: employeeId,
+        actorName: employeeWorkSessionId,
+        actorEmployeeId: employeeWorkSessionId,
+        actorEmployeeWorkSessionId: employeeWorkSessionId,
         actorType: "employee",
         isBoss: false,
         hasBossAuthority: false,
       }
     }
 
-    const employee = stateManager.getEmployee(employeeId)
-    if (!employee) {
-      return undefined
-    }
-
     return {
-      actorName: employee.name,
-      actorEmployeeId: employee.employeeId,
-      actorType: bossManager?.isBoss(employee.name) ? "boss" : "employee",
-      isBoss: bossManager?.isBoss(employee.name) || false,
-      hasBossAuthority: bossManager?.isBoss(employee.name) || false,
+      actorName: employeeWorkSessionId,
+      actorEmployeeId: employeeWorkSessionId,
+      actorEmployeeWorkSessionId: employeeWorkSessionId,
+      actorType: "employee",
+      isBoss: false,
+      hasBossAuthority: false,
     }
   }
 

@@ -10,13 +10,11 @@ import { EmployeeCard } from "../components/employee/EmployeeCard"
 import { TaskList } from "../components/employee/TaskList"
 import { TaskDAG } from "../components/visualizations/TaskDAG"
 import { MemoryView } from "../components/employee/MemoryView"
-import { AgentList } from "../components/employee/AgentList"
 import { EventTimeline } from "../components/employee/EventTimeline"
 import type {
   Employee,
   EmployeeDetail as EmployeeDetailType,
   Role,
-  WorkItem,
 } from "../types"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -34,7 +32,6 @@ export function EmployeeProfile() {
   const [role, setRole] = useState<Role | null>(null)
   const [roleLoading, setRoleLoading] = useState(true)
   const [roleError, setRoleError] = useState<Error | null>(null)
-  const [assignedWorkItems, setAssignedWorkItems] = useState<WorkItem[]>([])
   const [childEmployees, setChildEmployees] = useState<Employee[]>([])
   const [relationshipsLoading, setRelationshipsLoading] = useState(true)
   const [relationshipsError, setRelationshipsError] = useState<Error | null>(
@@ -77,15 +74,7 @@ export function EmployeeProfile() {
       setRelationshipsLoading(true)
       setRelationshipsError(null)
       try {
-        const [employees, workItems] = await Promise.all([
-          apiClient.getEmployees(projectId),
-          apiClient.getWorkItems(projectId),
-        ])
-        setAssignedWorkItems(
-          workItems.filter(
-            (workItem) => workItem.employeeId === employee.employeeId
-          )
-        )
+        const employees = await apiClient.getEmployees(projectId)
         setChildEmployees(
           employees.filter(
             (candidate) => candidate.hiredBy === employee.employeeId
@@ -211,28 +200,6 @@ export function EmployeeProfile() {
             )}
             {!relationshipsLoading && !relationshipsError && (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Box>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    分配的 WorkItem ID
-                  </Typography>
-                  {assignedWorkItems.length > 0 ? (
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                      {assignedWorkItems.map((workItem) => (
-                        <Badge key={workItem.workItemId} variant="secondary">
-                          {workItem.workItemId}
-                        </Badge>
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      暂无分配的 WorkItem
-                    </Typography>
-                  )}
-                </Box>
                 <Box>
                   <Typography
                     variant="body2"
@@ -375,12 +342,11 @@ export function EmployeeProfile() {
             sx={{
               display: "grid",
               width: "100%",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: "repeat(3, 1fr)",
             }}
           >
             <TabsTrigger value="tasks">个人任务诊断</TabsTrigger>
             <TabsTrigger value="memory">记忆系统</TabsTrigger>
-            <TabsTrigger value="agents">Agent执行</TabsTrigger>
             <TabsTrigger value="events">事件历史</TabsTrigger>
           </TabsList>
           <TabsContent
@@ -401,12 +367,6 @@ export function EmployeeProfile() {
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
             <MemoryView memory={employee.memory} />
-          </TabsContent>
-          <TabsContent
-            value="agents"
-            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-          >
-            <AgentList agents={employee.agents} />
           </TabsContent>
           <TabsContent
             value="events"

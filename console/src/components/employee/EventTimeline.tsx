@@ -30,12 +30,21 @@ const eventTypeColors: Partial<
   task_created: { backgroundColor: "#e0f2fe", color: "#075985" },
   task_modified: { backgroundColor: "#fef3c7", color: "#92400e" },
   task_waiting_for_message: { backgroundColor: "#fed7aa", color: "#9a3412" },
-  agent_completed: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
-  agent_failed: { backgroundColor: "#fee2e2", color: "#991b1b" },
-  agent_created: { backgroundColor: "#ede9fe", color: "#5b21b6" },
   timer: { backgroundColor: "#f3f4f6", color: "#1f2937" },
   employee_hired: { backgroundColor: "#fef3c7", color: "#92400e" },
-  employee_status_changed: { backgroundColor: "#fed7aa", color: "#9a3412" },
+  employee_updated: { backgroundColor: "#fed7aa", color: "#9a3412" },
+  employee_work_session_created: {
+    backgroundColor: "#ddd6fe",
+    color: "#5b21b6",
+  },
+  employee_work_session_status_changed: {
+    backgroundColor: "#fed7aa",
+    color: "#9a3412",
+  },
+  employee_work_session_closed: {
+    backgroundColor: "#fee2e2",
+    color: "#991b1b",
+  },
   session_created: { backgroundColor: "#ddd6fe", color: "#5b21b6" },
   session_prompt_started: { backgroundColor: "#e0e7ff", color: "#4338ca" },
   session_prompt_completed: { backgroundColor: "#ddd6fe", color: "#4338ca" },
@@ -52,12 +61,12 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   task_created: "任务创建",
   task_modified: "任务修改",
   task_waiting_for_message: "等待消息",
-  agent_completed: "Agent完成",
-  agent_failed: "Agent失败",
-  agent_created: "Agent创建",
   timer: "定时器",
   employee_hired: "员工雇佣",
-  employee_status_changed: "状态变化",
+  employee_updated: "员工更新",
+  employee_work_session_created: "工作会话创建",
+  employee_work_session_status_changed: "工作会话状态变化",
+  employee_work_session_closed: "工作会话关闭",
   session_created: "会话创建",
   session_prompt_started: "AI请求开始",
   session_prompt_completed: "AI响应完成",
@@ -95,14 +104,16 @@ function getEventDescription(
       return `任务 "${details.originalTask}" 分解为 ${details.subtaskCount} 个子任务`
     case "task_waiting_for_message":
       return `任务 "${details.taskName}" 等待消息: ${details.reason || "waiting for message"}`
-    case "agent_completed":
-      return `Agent ${details.agentId} 完成任务 "${details.taskName}"`
-    case "agent_failed":
-      return `Agent ${details.agentId} 失败: ${details.error}`
     case "employee_hired":
       return `雇佣了 ${employeeId} (${details.roleId})`
-    case "employee_status_changed":
+    case "employee_updated":
+      return `员工已更新: ${employeeId}`
+    case "employee_work_session_created":
+      return `工作会话已创建: ${details.employeeWorkSessionId}`
+    case "employee_work_session_status_changed":
       return `状态变化: ${details.oldStatus} → ${details.newStatus}`
+    case "employee_work_session_closed":
+      return `工作会话已关闭: ${details.employeeWorkSessionId}`
     case "timer":
       return `定时器触发 (间隔: ${details.interval}ms)`
     case "session_created":

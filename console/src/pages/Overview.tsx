@@ -1,7 +1,6 @@
 import { useParams } from "react-router-dom"
 import { GlobalStats } from "../components/dashboard/GlobalStats"
 import { EventStream } from "../components/dashboard/EventStream"
-import { WorkItemTree } from "../components/dashboard/WorkItemTree"
 import { EmployeeTreeList } from "../components/visualizations/EmployeeTreeList"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Loader2 } from "lucide-react"
@@ -79,14 +78,6 @@ export function Overview() {
           <Typography variant="body2" color="text.secondary"></Typography>
         </Box>
         <GlobalStats projectId={projectId!} />
-        <Card>
-          <CardHeader>
-            <CardTitle>最新根任务工作项树</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WorkItemTree projectId={projectId!} />
-          </CardContent>
-        </Card>
         {hierarchy.length > 0 && (
           <Card>
             <CardHeader>

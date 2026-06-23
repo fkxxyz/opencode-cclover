@@ -11,36 +11,40 @@ describe("SessionRegistry", () => {
     sessionRegistry.clear()
   })
 
-  test("should register and retrieve session", () => {
-    sessionRegistry.register("session_001", "test-role")
+  test("should register and retrieve EWS session", () => {
+    sessionRegistry.register("session_001", "ews_test")
 
-    const employeeName = sessionRegistry.getEmployeeId("session_001")
-    expect(employeeName).toBe("test-role")
+    const employeeWorkSessionId =
+      sessionRegistry.getEmployeeWorkSessionId("session_001")
+    expect(employeeWorkSessionId).toBe("ews_test")
   })
 
   test("should return undefined for unregistered session", () => {
-    const employeeName = sessionRegistry.getEmployeeId("unknown_session")
-    expect(employeeName).toBeUndefined()
+    const employeeWorkSessionId =
+      sessionRegistry.getEmployeeWorkSessionId("unknown_session")
+    expect(employeeWorkSessionId).toBeUndefined()
   })
 
   test("should check if session exists", () => {
-    sessionRegistry.register("session_001", "test-role")
+    sessionRegistry.register("session_001", "ews_test")
 
     expect(sessionRegistry.has("session_001")).toBe(true)
     expect(sessionRegistry.has("unknown_session")).toBe(false)
   })
 
   test("should unregister session", () => {
-    sessionRegistry.register("session_001", "test-role")
+    sessionRegistry.register("session_001", "ews_test")
     sessionRegistry.unregister("session_001")
 
     expect(sessionRegistry.has("session_001")).toBe(false)
-    expect(sessionRegistry.getEmployeeId("session_001")).toBeUndefined()
+    expect(
+      sessionRegistry.getEmployeeWorkSessionId("session_001")
+    ).toBeUndefined()
   })
 
   test("should get all registered sessions", () => {
-    sessionRegistry.register("session_001", "test-role")
-    sessionRegistry.register("session_002", "coder")
+    sessionRegistry.register("session_001", "ews_test")
+    sessionRegistry.register("session_002", "ews_coder")
 
     const sessions = sessionRegistry.getAllSessions()
     expect(sessions).toHaveLength(2)
@@ -49,8 +53,8 @@ describe("SessionRegistry", () => {
   })
 
   test("should clear all registrations", () => {
-    sessionRegistry.register("session_001", "test-role")
-    sessionRegistry.register("session_002", "coder")
+    sessionRegistry.register("session_001", "ews_test")
+    sessionRegistry.register("session_002", "ews_coder")
 
     sessionRegistry.clear()
 

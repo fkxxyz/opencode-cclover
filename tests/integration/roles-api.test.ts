@@ -14,7 +14,6 @@ import { RoleManager } from "../../src/core/RoleManager"
 import { ConsoleServer } from "../../src/server/index"
 import { ProjectRegistry } from "../../src/server/ProjectRegistry"
 import type { ApiErrorResponse } from "../types/api-responses"
-import { AgentRegistry } from "../../src/utils/AgentRegistry"
 import type { Employee } from "../../src/types/index"
 import { createTestProjectInstance } from "../helpers/createTestProjectInstance"
 import {
@@ -75,19 +74,16 @@ You are a test role. This is your system prompt.
       roleManager
     )
 
-    const testAgentRegistry = new AgentRegistry()
-
     // 注册测试员工
     const testEmployee: Employee = {
       employeeId: "emp_test_employee",
       name: "test-employee",
       roleId: "TestRole",
-      status: "idle",
-      paused: false,
+      description: "Test employee",
+      contextPaths: [],
       hiredBy: "boss1",
-      activeSessionId: null,
       createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
     stateManager.registerEmployee(testEmployee)
 
@@ -97,7 +93,6 @@ You are a test role. This is your system prompt.
       stateManager,
       messageService,
       memoryManager,
-      agentRegistry: testAgentRegistry,
       bossManager,
       roleManager,
     })

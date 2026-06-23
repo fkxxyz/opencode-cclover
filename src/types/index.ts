@@ -1,17 +1,11 @@
 // 导出新的员工相关类型
-import type {
-  Employee as EmployeeBase,
-  EmployeeStatus,
-  EmployeeId,
-  BossId,
-} from "./employee"
-import type { RootTaskId, WorkItemId } from "./work"
+import type { Employee as EmployeeBase, EmployeeId, BossId } from "./employee"
+import type { EmployeeWorkSessionId } from "./employee"
 export type {
   EmployeeId,
   EmployeeName,
   BossId,
-  PromptRecovery,
-  EmployeeStatus,
+  EmployeeWorkSessionId,
 } from "./employee"
 export type { Employee } from "./employee"
 export {
@@ -21,23 +15,19 @@ export {
   isBossId,
 } from "./employee"
 export type {
-  RootTaskId,
-  WorkItemId,
-  WorktreeRef,
-  RootTask,
-  WorkItem,
-  CreateRootTaskInput,
-  CreateWorkItemInput,
-  UpdateWorkItemInput,
-  WorkItemFilters,
-} from "./work"
-export { createRootTaskId, createWorkItemId } from "./work"
+  CloseEmployeeWorkSessionInput,
+  CreateEmployeeWorkSessionInput,
+  EmployeeWorkSession,
+  EmployeeWorkSessionFilters,
+  EmployeeWorkSessionStatus,
+  PromptRecovery,
+} from "./employee-work-session"
+export { createEmployeeWorkSessionId } from "./employee-work-session"
 
 // 员工详细信息
 export interface EmployeeDetail extends EmployeeBase {
   memory: Memory
   tasks: Task[]
-  agents: AgentExecution[]
 }
 
 // 员工雇佣关系树
@@ -45,7 +35,7 @@ export interface EmployeeHierarchy {
   employeeId?: string
   name: string
   role: string
-  status: EmployeeStatus
+  status?: string
   children: EmployeeHierarchy[]
 }
 
@@ -117,25 +107,13 @@ export interface Memory {
   roleData?: Record<string, any>
 
   sessionId?: string
+  opencodeSessionId?: string
   sessionSnapshot?: {
     knowledge: string[]
     tasks: Task[]
     args: Record<string, any>
     timestamp: string
   }
-}
-
-// Agent 状态类型
-export type AgentStatus = "running" | "completed" | "failed"
-
-// Agent 执行记录
-export interface AgentExecution {
-  agentId: string
-  taskName: string
-  status: AgentStatus
-  createdAt: string
-  completedAt?: string
-  result?: string
 }
 
 // 事件类型
@@ -150,49 +128,35 @@ export type EventType =
   | "task_available"
   | "task_reminder"
   | "reply_reminder"
-  | "agent_completed"
-  | "agent_failed"
   | "timer"
   | "employee_hired"
-  | "employee_status_changed"
-  | "employee_paused"
-  | "employee_resumed"
-  | "employee_halted"
+  | "employee_updated"
+  | "employee_work_session_created"
+  | "employee_work_session_status_changed"
+  | "employee_work_session_closed"
   | "session_created"
   | "session_prompt_started"
   | "session_prompt_completed"
   | "session_summary_started"
   | "session_summary_completed"
   | "summary_parse_failed"
-  | "agent_created"
   | "task_created"
   | "task_modified"
-  | "vacation_requested"
-  | "major_task_completed"
-  | "survey_sent"
   | "feedback_received"
-  | "root_task_created"
-  | "root_task_deleted"
-  | "work_item_created"
-  | "work_item_updated"
-  | "work_item_deleted"
 
 // 事件
 export interface Event {
   projectId: string
   type: EventType
   timestamp: string
+  employeeWorkSessionId?: EmployeeWorkSessionId
   employeeId?: EmployeeId
-  rootTaskId?: RootTaskId
-  workItemId?: WorkItemId
   details: Record<string, any>
 }
 
 export interface HaltDetails {
-  rootTaskId?: RootTaskId
-  workItemId?: WorkItemId
   reason?: string
-  triggeredBy?: EmployeeId | BossId
+  triggeredBy?: EmployeeWorkSessionId | BossId
 }
 
 // API 响应类型
@@ -257,11 +221,3 @@ export interface TimelineItem {
   timestamp: string
   data: Message | Event
 }
-
-// 归档和恢复系统类型
-export type {
-  ArchiveValidation,
-  RestoreValidation,
-  ArchiveManager,
-} from "./archive"
-export { ArchiveErrors } from "./archive"
