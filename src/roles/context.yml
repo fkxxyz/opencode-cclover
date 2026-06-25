@@ -77,6 +77,16 @@ contexts:
     documents:
       - "docs/specs/subordinate-management-philosophy.md"
 
+  employee-hiring-best-practices:
+    description: "Use when hiring employees or designing employee responsibility domains and context_paths to create stable domain owners with appropriate handbooks, because hiring is organization design and poor handbook boundaries cause broad repository exploration and responsibility drift"
+    documents:
+      - "docs/specs/employee-hiring-best-practices.md"
+
+  domain-maintenance-best-practices:
+    description: "Use when maintaining responsibility domains and domain handbooks to preserve enough global domain knowledge for task routing without reading subordinate business files, because durable domain memory enables leaders to decompose work accurately and prevent responsibility drift"
+    documents:
+      - "docs/specs/domain-maintenance-best-practices.md"
+
   ai-specification-writing-guide:
     description: "Use when creating, modifying, or reviewing specifications in docs/specs/ to ensure specifications are project-specific, modular, concise, and follow prompt principles, because specifications are context building blocks that form AI system prompts and quality directly affects AI behavior"
     documents:
