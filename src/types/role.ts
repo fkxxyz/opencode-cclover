@@ -175,6 +175,12 @@ export interface RoleMetadata {
   description?: string
 
   /**
+   * Project-relative or preset-root-relative markdown file used as the primary role prompt.
+   * When present, RoleManager loads this file into systemPrompt instead of using the manifest body.
+   */
+  prompt?: string
+
+  /**
    * Memory persistence mode
    * - true: Persistent memory with automatic summarization (default)
    * - false: Temporary memory without summarization
@@ -262,7 +268,7 @@ export interface RoleMetadata {
  * This is the structure returned by RoleManager after loading a role file.
  */
 export interface Role extends RoleMetadata {
-  /** System prompt content (markdown body after frontmatter) */
+  /** System prompt content loaded from prompt metadata when present, otherwise manifest body */
   systemPrompt: string
 
   /** Source location where this role was loaded from */

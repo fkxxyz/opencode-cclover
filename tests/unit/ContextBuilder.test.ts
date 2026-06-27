@@ -103,6 +103,41 @@ describe("ContextBuilder", () => {
       expect(result).toContain("memory.yaml")
     })
 
+    test("should inject runtime context after role definition", () => {
+      const rolePrompt = "You are a portable role prompt."
+      const memory: Memory = {
+        knowledge: [],
+        tasks: [],
+        args: {},
+      }
+
+      const result = buildSystemPrompt(
+        rolePrompt,
+        memory,
+        "alice",
+        ".cclover/workspace"
+      )
+
+      const roleIndex = result.indexOf("# Role Definition")
+      const promptIndex = result.indexOf(rolePrompt)
+      const runtimeIndex = result.indexOf("# Runtime Context")
+      const memoryIndex = result.indexOf("# Current Memory")
+
+      expect(runtimeIndex).toBeGreaterThan(promptIndex)
+      expect(runtimeIndex).toBeGreaterThan(roleIndex)
+      expect(memoryIndex).toBeGreaterThan(runtimeIndex)
+      expect(result).toContain(
+        "Role -> Employee -> Employee Work Session -> OpenCode Session"
+      )
+      expect(result).toContain(
+        "Your thoughts and outputs are private — only you can see them."
+      )
+      expect(result).toContain("you must use the `send_message` tool")
+      expect(result).toContain("Your input is your perception.")
+      expect(result).not.toContain("# Task State")
+      expect(result).not.toContain("# Delegation")
+    })
+
     test("should include supervisor section when supervisor exists", () => {
       const rolePrompt = "你是一个员工"
       const memory: Memory = {

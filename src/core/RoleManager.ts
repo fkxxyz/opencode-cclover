@@ -228,10 +228,13 @@ export class RoleManager {
                 validation.normalized.contextIds
               ),
             }
+            const primarySystemPrompt = metadata.prompt
+              ? await this.loadReferencedPrompt(metadata.prompt, source, dir)
+              : systemPrompt
 
             targetMap.set(metadata.name, {
               ...metadata,
-              systemPrompt,
+              systemPrompt: primarySystemPrompt,
               source,
             })
 
@@ -261,6 +264,62 @@ export class RoleManager {
         )
       }
     }
+  }
+
+  private async loadReferencedPrompt(
+    promptPath: string,
+    source: "preset" | "global" | "project",
+    roleDir: string
+  ): Promise<string> {
+    if (path.isAbsolute(promptPath)) {
+      throw new Error(
+        `Invalid prompt path '${promptPath}': absolute paths are not allowed`
+      )
+    }
+
+    if (promptPath.includes("*") || promptPath.includes("?")) {
+      throw new Error(
+        `Invalid prompt path '${promptPath}': glob patterns are not allowed`
+      )
+    }
+
+    const baseDir = this.getPromptBaseDir(source, roleDir)
+    const resolvedPath = path.resolve(baseDir, promptPath)
+
+    if (!isPathInsideBase(resolvedPath, baseDir)) {
+      throw new Error(
+        `Invalid prompt path '${promptPath}': resolved path escapes allowed base ${baseDir}`
+      )
+    }
+
+    const stat = await fs.stat(resolvedPath)
+    if (!stat.isFile()) {
+      throw new Error(
+        `Invalid prompt path '${promptPath}': resolved path is not a file`
+      )
+    }
+
+    const content = (await fs.readFile(resolvedPath, "utf-8")).trim()
+    if (content.length === 0) {
+      throw new Error(`Prompt file '${resolvedPath}' is empty`)
+    }
+
+    return content
+  }
+
+  private getPromptBaseDir(
+    source: "preset" | "global" | "project",
+    roleDir: string
+  ): string {
+    if (source === "preset") {
+      return this.presetRootDir
+    }
+
+    if (source === "project") {
+      return this.projectPath
+    }
+
+    return path.dirname(roleDir)
   }
 
   private async loadContextDefinitions(): Promise<
@@ -546,4 +605,12 @@ function matchGlob(pattern: string, name: string): boolean {
   }
 
   return pattern === name
+}
+
+function isPathInsideBase(targetPath: string, baseDir: string): boolean {
+  const relativePath = path.relative(path.resolve(baseDir), targetPath)
+  return (
+    relativePath.length === 0 ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  )
 }

@@ -244,6 +244,194 @@ This is the system prompt for the test role.`
     await fs.rm(projectRolesDir, { recursive: true })
   })
 
+  test("should load system prompt from project-relative prompt file", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    const promptDir = path.join(tempDir, "docs/specs/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.mkdir(promptDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(promptDir, "portable-role.md"),
+      "# Portable Role\n\nPortable prompt content."
+    )
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "portable-role.md"),
+      `---
+name: portable-role
+id: portable-role
+description: Role with external prompt
+prompt: docs/specs/roles/portable-role.md
+---
+
+Manifest fallback body.`
+    )
+
+    await roleManager.refresh()
+    const role = roleManager.getRole("portable-role")
+
+    expect(role).toBeDefined()
+    expect(role?.prompt).toBe("docs/specs/roles/portable-role.md")
+    expect(role?.systemPrompt).toBe(
+      "# Portable Role\n\nPortable prompt content."
+    )
+    expect(role?.systemPrompt).not.toContain("Manifest fallback body")
+  })
+
+  test("should load system prompt from preset-root-relative prompt file", async () => {
+    const isolatedProjectDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "rolemanager-preset-prompt-project-")
+    )
+    const isolatedPresetDir = path.join(isolatedProjectDir, "preset-roles")
+    const isolatedPresetRoot = path.dirname(isolatedPresetDir)
+    const promptDir = path.join(isolatedPresetRoot, "docs/specs/roles")
+    const isolatedRoleManager = new RoleManager(
+      isolatedProjectDir,
+      isolatedPresetDir,
+      isolatedPresetRoot
+    )
+
+    await fs.mkdir(isolatedPresetDir, { recursive: true })
+    await fs.mkdir(promptDir, { recursive: true })
+    await fs.writeFile(
+      path.join(isolatedPresetDir, "context.yml"),
+      "contexts: {}"
+    )
+    await fs.writeFile(
+      path.join(promptDir, "preset-portable.md"),
+      "Preset portable prompt."
+    )
+    await fs.writeFile(
+      path.join(isolatedPresetDir, "preset-portable.md"),
+      `---
+name: preset-portable
+id: preset-portable
+description: Preset role with external prompt
+prompt: docs/specs/roles/preset-portable.md
+---
+
+Preset manifest fallback.`
+    )
+
+    await isolatedRoleManager.refresh()
+    const role = isolatedRoleManager.getRole("preset-portable")
+
+    expect(role?.source).toBe("preset")
+    expect(role?.systemPrompt).toBe("Preset portable prompt.")
+  })
+
+  test("should reflect prompt file edits after refresh", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    const promptDir = path.join(tempDir, "docs/specs/roles")
+    const promptPath = path.join(promptDir, "refreshable.md")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+    await fs.mkdir(promptDir, { recursive: true })
+
+    await fs.writeFile(promptPath, "Initial prompt.")
+    await fs.writeFile(
+      path.join(projectRolesDir, "refreshable.md"),
+      `---
+name: refreshable
+id: refreshable
+prompt: docs/specs/roles/refreshable.md
+---
+
+Manifest fallback.`
+    )
+
+    await roleManager.refresh()
+    expect(roleManager.getRole("refreshable")?.systemPrompt).toBe(
+      "Initial prompt."
+    )
+
+    await fs.writeFile(promptPath, "Updated prompt.")
+    await roleManager.refresh()
+    expect(roleManager.getRole("refreshable")?.systemPrompt).toBe(
+      "Updated prompt."
+    )
+  })
+
+  test("should reject role metadata when prompt is not a string", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "invalid-prompt-type.md"),
+      `---
+name: invalid-prompt-type
+id: invalid-prompt-type
+prompt:
+  - docs/specs/roles/invalid.md
+---
+
+This role should not load.`
+    )
+
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
+  })
+
+  test("should reject prompt paths that escape the allowed base", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "escaping-prompt.md"),
+      `---
+name: escaping-prompt
+id: escaping-prompt
+prompt: ../outside.md
+---
+
+This role should not load.`
+    )
+
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
+  })
+
+  test("should reject absolute prompt paths", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "absolute-prompt.md"),
+      `---
+name: absolute-prompt
+id: absolute-prompt
+prompt: /tmp/absolute-prompt.md
+---
+
+This role should not load.`
+    )
+
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
+  })
+
+  test("should reject missing prompt files", async () => {
+    const projectRolesDir = path.join(tempDir, ".cclover/roles")
+    await fs.mkdir(projectRolesDir, { recursive: true })
+
+    await fs.writeFile(
+      path.join(projectRolesDir, "missing-prompt.md"),
+      `---
+name: missing-prompt
+id: missing-prompt
+prompt: docs/specs/roles/missing.md
+---
+
+This role should not load.`
+    )
+
+    await expect(roleManager.refresh()).rejects.toThrow(
+      "Role validation failed"
+    )
+  })
+
   test("should parse memorySchema from YAML frontmatter", async () => {
     const projectRolesDir = path.join(tempDir, ".cclover/roles")
     await fs.mkdir(projectRolesDir, { recursive: true })

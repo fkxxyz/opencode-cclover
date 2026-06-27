@@ -105,6 +105,16 @@ export function validateRoleFrontmatter(
     })
   }
 
+  if (raw.prompt !== undefined) {
+    if (typeof raw.prompt !== "string" || raw.prompt.trim().length === 0) {
+      issues.push({
+        level: "error",
+        field: "prompt",
+        message: "prompt must be a non-empty string",
+      })
+    }
+  }
+
   if (raw.soul !== undefined && typeof raw.soul !== "boolean") {
     issues.push({
       level: "error",
@@ -182,6 +192,7 @@ export function validateRoleFrontmatter(
       id: normalizedId,
       description:
         typeof raw.description === "string" ? raw.description : undefined,
+      prompt: typeof raw.prompt === "string" ? raw.prompt.trim() : undefined,
       soul: typeof raw.soul === "boolean" ? raw.soul : true,
       responsibilities: raw.responsibilities as string[] | undefined,
       boundaries: raw.boundaries as string[] | undefined,
