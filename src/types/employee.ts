@@ -16,6 +16,9 @@ export interface Employee {
   description: string
   contextPaths: string[]
   hiredBy: EmployeeWorkSessionId | BossId | null
+  dismissedAt?: string | null
+  dismissedBy?: EmployeeWorkSessionId | BossId | null
+  dismissReason?: string | null
   createdAt: string
   updatedAt: string
 }

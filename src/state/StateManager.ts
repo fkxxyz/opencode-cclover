@@ -96,6 +96,40 @@ export class StateManager {
     return updated
   }
 
+  async dismissEmployee(
+    employeeId: EmployeeId,
+    dismissedBy: EmployeeWorkSessionId | BossId,
+    reason?: string
+  ): Promise<Employee> {
+    const employee = this.employeeRegistry.get(employeeId)
+    if (!employee) {
+      throw new Error(`员工 '${employeeId}' 不存在`)
+    }
+    if (employee.dismissedAt) {
+      throw new Error(`员工 '${employeeId}' 已被解雇`)
+    }
+
+    const now = new Date().toISOString()
+    const dismissed: Employee = {
+      ...employee,
+      dismissedAt: now,
+      dismissedBy,
+      dismissReason: reason?.trim() || null,
+      updatedAt: now,
+    }
+    this.employeeRegistry.update(employeeId, dismissed)
+    await this.persistEmployees()
+
+    await this.addEvent({
+      projectId: this.projectId,
+      type: "employee_dismissed",
+      timestamp: now,
+      employeeId,
+      details: { dismissedBy, reason: dismissed.dismissReason },
+    })
+    return dismissed
+  }
+
   async addEvent(event: Event): Promise<void> {
     if (!event.projectId) {
       event.projectId = this.projectId

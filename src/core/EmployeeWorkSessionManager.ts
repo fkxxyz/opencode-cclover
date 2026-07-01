@@ -45,6 +45,9 @@ export class EmployeeWorkSessionManager {
     if (!employee) {
       throw new Error(`Employee '${input.employeeId}' does not exist`)
     }
+    if (employee.dismissedAt) {
+      throw new Error(`Employee '${input.employeeId}' has been dismissed`)
+    }
 
     await this.roleManager.refresh()
     const role = this.roleManager.getRole(employee.roleId)

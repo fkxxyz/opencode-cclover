@@ -146,6 +146,7 @@ describe("Task 004 EWS tools and messaging surface", () => {
     expect(Object.keys(tools).sort()).toEqual([
       "close_employee_work_session",
       "create_employee_work_session",
+      "dismiss_employee",
       "edit_tasks",
       "hire_employee",
       "integrate",
@@ -175,6 +176,90 @@ describe("Task 004 EWS tools and messaging surface", () => {
         "parent_employee_work_session_id"
       )
     ).toBe(false)
+  })
+
+  it("dismiss_employee marks metadata dismissed, hides availability, and closes open sessions", async () => {
+    const originalRun = EventLoop.prototype.run
+    const originalStop = EventLoop.prototype.stop
+    EventLoop.prototype.run = mock(async () => {}) as any
+    EventLoop.prototype.stop = mock(async () => {}) as any
+
+    try {
+      const caller = await ewsManager.createEmployeeWorkSession({
+        employeeId: "emp_manager",
+        description: "Manage work",
+        args: { worktree_path: ".worktrees/ews-taskplan" },
+        createdBy: "boss_alice",
+      })
+      const workerSession = await ewsManager.createEmployeeWorkSession({
+        employeeId: "emp_worker",
+        description: "Worker work",
+        args: {},
+        parentEmployeeWorkSessionId: caller.employeeWorkSessionId,
+        createdBy: caller.employeeWorkSessionId,
+      })
+      sessionRegistry.register("session-manager", caller.employeeWorkSessionId)
+      const project = {
+        directory: projectPath,
+        stateManager,
+        roleManager,
+        memoryManager,
+        messageService,
+        employeeWorkSessionManager: ewsManager,
+        eventLoops: new Map([[workerSession.employeeWorkSessionId, {}]]),
+        modelConfigManager: {} as any,
+        opcodeClient: {} as any,
+      } as unknown as ProjectInstance
+      const tools = createTools({
+        messageService,
+        memoryManager,
+        opcodeClient: {} as any,
+        stateManager,
+        project,
+      })
+
+      const result = await tools.dismiss_employee.execute(
+        {
+          employee_id: "emp_worker",
+          reason: "No longer needed",
+        },
+        { sessionID: "session-manager" } as any
+      )
+
+      expect(result).toContain("Dismissed employee 'emp_worker'")
+      expect(
+        stateManager.getEmployee("emp_worker" as any)?.dismissedAt
+      ).toBeString()
+      expect(stateManager.getEmployee("emp_worker" as any)?.dismissReason).toBe(
+        "No longer needed"
+      )
+      expect(project.eventLoops.has(workerSession.employeeWorkSessionId)).toBe(
+        false
+      )
+      const closed = await ewsManager.getEmployeeWorkSession(
+        workerSession.employeeWorkSessionId
+      )
+      expect(closed?.status).toBe("closed")
+      expect(closed?.closeReason).toBe("Employee dismissed: No longer needed")
+
+      const available = await tools.show_available_employees.execute({}, {
+        sessionID: "session-manager",
+      } as any)
+      expect(available).not.toContain("emp_worker")
+
+      const createResult = await tools.create_employee_work_session.execute(
+        {
+          employee_id: "emp_worker",
+          description: "Should not start",
+          args: {},
+        },
+        { sessionID: "session-manager" } as any
+      )
+      expect(createResult).toContain("has been dismissed")
+    } finally {
+      EventLoop.prototype.run = originalRun
+      EventLoop.prototype.stop = originalStop
+    }
   })
 
   it("create_employee_work_session starts runtime and sends initial description", async () => {

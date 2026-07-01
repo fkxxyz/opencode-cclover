@@ -14,6 +14,7 @@ import { createEditTasksTool } from "./EditTasksTool"
 import {
   createCloseEmployeeWorkSessionTool,
   createCreateEmployeeWorkSessionTool,
+  createDismissEmployeeTool,
   createShowAvailableEmployeesTool,
   createShowEmployeeWorkSessionsTool,
   createUpdateEmployeeTool,
@@ -40,6 +41,7 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermissions = {
   edit_tasks: true,
   hire_employee: true,
   update_employee: true,
+  dismiss_employee: true,
   show_available_employees: true,
   create_employee_work_session: true,
   show_employee_work_sessions: true,
@@ -63,6 +65,7 @@ export { createHireEmployeeTool } from "./HireEmployeeTool"
 export {
   createCloseEmployeeWorkSessionTool,
   createCreateEmployeeWorkSessionTool,
+  createDismissEmployeeTool,
   createShowAvailableEmployeesTool,
   createShowEmployeeWorkSessionsTool,
   createUpdateEmployeeTool,
@@ -126,6 +129,11 @@ export function createTools(deps: {
       deps.project.roleManager,
       employeeWorkSessionManager,
       deps.bossManager
+    ),
+    dismiss_employee: createDismissEmployeeTool(
+      deps.project,
+      deps.project.roleManager,
+      employeeWorkSessionManager
     ),
     show_available_employees: createShowAvailableEmployeesTool(
       deps.stateManager,

@@ -31,6 +31,7 @@ const EVENT_ICONS: Partial<Record<EventType, string>> = {
   message: "💬",
   timer: "⏰",
   employee_hired: "👤",
+  employee_dismissed: "👋",
   reply_attempted: "⚠️",
   reply_reminder: "🔔",
   feedback_received: "💬",
@@ -130,6 +131,9 @@ function getEventDescription(
 
     case "employee_hired":
       return `雇佣员工: ${event.employeeId} (${details.roleId})`
+
+    case "employee_dismissed":
+      return `解雇员工: ${event.employeeId}${details.reason ? ` (${details.reason})` : ""}`
 
     case "message":
       return `消息: ${details.from} → ${details.to}`

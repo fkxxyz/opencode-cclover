@@ -221,12 +221,14 @@ export function createShowAvailableEmployeesTool(
         bossManager,
         roleManager
       )
-      const employees = await visibleEmployees(
-        actor,
-        stateManager,
-        roleManager,
-        employeeWorkSessionManager
-      )
+      const employees = (
+        await visibleEmployees(
+          actor,
+          stateManager,
+          roleManager,
+          employeeWorkSessionManager
+        )
+      ).filter((employee) => !employee.dismissedAt)
       return JSON.stringify(
         {
           available_employees: employees.map((employee) => ({
@@ -277,6 +279,10 @@ export function createCreateEmployeeWorkSessionTool(
         return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
       }
       const employeeId = args.employee_id as EmployeeId
+      const employee = project.stateManager.getEmployee(employeeId)
+      if (employee?.dismissedAt) {
+        return `Error: Employee '${employeeId}' has been dismissed`
+      }
       if (
         !(await canAccessEmployee(
           employeeId,
@@ -323,6 +329,82 @@ export function createCreateEmployeeWorkSessionTool(
         false
       )
       return `Created employee work session ${ews.employeeWorkSessionId}`
+    },
+  })
+}
+
+export function createDismissEmployeeTool(
+  project: ProjectInstance,
+  roleManager: RoleManager,
+  employeeWorkSessionManager: EmployeeWorkSessionManager
+) {
+  return tool({
+    description:
+      "Dismiss an employee metadata record, hide it from availability, and close open work sessions",
+    args: {
+      employee_id: tool.schema.string().describe("Employee metadata ID"),
+      reason: tool.schema.string().optional().describe("Dismiss reason"),
+    },
+    async execute(args, context) {
+      const actor = resolveToolActor(
+        context,
+        project.stateManager,
+        project.bossManager,
+        roleManager
+      )
+      const actorId = getActorId(actor)
+      if (!actorId) {
+        return `Error: Unable to identify caller (sessionID: ${context.sessionID})`
+      }
+
+      const employeeId = args.employee_id as EmployeeId
+      const employee = project.stateManager.getEmployee(employeeId)
+      if (!employee) {
+        return `Error: Employee '${employeeId}' does not exist`
+      }
+      if (employee.dismissedAt) {
+        return `Error: Employee '${employeeId}' has already been dismissed`
+      }
+      if (
+        !(await canAccessEmployee(
+          employeeId,
+          actor,
+          project.stateManager,
+          roleManager,
+          employeeWorkSessionManager
+        ))
+      ) {
+        return `Error: You do not have permission to dismiss employee '${employeeId}'`
+      }
+
+      const dismissed = await project.stateManager.dismissEmployee(
+        employeeId,
+        actorId as EmployeeWorkSessionId | BossId,
+        args.reason
+      )
+      const sessions =
+        await employeeWorkSessionManager.listEmployeeWorkSessions({
+          employeeId,
+        })
+      let closedCount = 0
+      for (const session of sessions) {
+        if (session.status === "closed") {
+          continue
+        }
+        const eventLoop = project.eventLoops.get(session.employeeWorkSessionId)
+        eventLoop?.stop?.()
+        project.eventLoops.delete(session.employeeWorkSessionId)
+        await employeeWorkSessionManager.closeEmployeeWorkSession({
+          employeeWorkSessionId: session.employeeWorkSessionId,
+          closedBy: actorId as EmployeeWorkSessionId | BossId,
+          reason: dismissed.dismissReason
+            ? `Employee dismissed: ${dismissed.dismissReason}`
+            : "Employee dismissed",
+        })
+        closedCount += 1
+      }
+
+      return `Dismissed employee '${employeeId}' and closed ${closedCount} open work session(s)`
     },
   })
 }

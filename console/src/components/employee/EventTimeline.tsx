@@ -33,6 +33,7 @@ const eventTypeColors: Partial<
   timer: { backgroundColor: "#f3f4f6", color: "#1f2937" },
   employee_hired: { backgroundColor: "#fef3c7", color: "#92400e" },
   employee_updated: { backgroundColor: "#fed7aa", color: "#9a3412" },
+  employee_dismissed: { backgroundColor: "#fee2e2", color: "#991b1b" },
   employee_work_session_created: {
     backgroundColor: "#ddd6fe",
     color: "#5b21b6",
@@ -64,6 +65,7 @@ const eventTypeLabels: Partial<Record<EventType, string>> = {
   timer: "定时器",
   employee_hired: "员工雇佣",
   employee_updated: "员工更新",
+  employee_dismissed: "员工解雇",
   employee_work_session_created: "工作会话创建",
   employee_work_session_status_changed: "工作会话状态变化",
   employee_work_session_closed: "工作会话关闭",
@@ -108,6 +110,8 @@ function getEventDescription(
       return `雇佣了 ${employeeId} (${details.roleId})`
     case "employee_updated":
       return `员工已更新: ${employeeId}`
+    case "employee_dismissed":
+      return `员工已解雇: ${employeeId}${details.reason ? ` (${details.reason})` : ""}`
     case "employee_work_session_created":
       return `工作会话已创建: ${details.employeeWorkSessionId}`
     case "employee_work_session_status_changed":

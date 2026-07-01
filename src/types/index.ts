@@ -131,6 +131,7 @@ export type EventType =
   | "timer"
   | "employee_hired"
   | "employee_updated"
+  | "employee_dismissed"
   | "employee_work_session_created"
   | "employee_work_session_status_changed"
   | "employee_work_session_closed"

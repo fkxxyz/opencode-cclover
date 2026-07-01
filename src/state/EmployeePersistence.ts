@@ -88,7 +88,7 @@ export class EmployeePersistence {
       return null
     }
 
-    return {
+    const persistedEmployee: Employee = {
       employeeId: employee.employeeId,
       name: employee.name ?? "",
       roleId: employee.roleId,
@@ -102,5 +102,13 @@ export class EmployeePersistence {
       createdAt: employee.createdAt ?? new Date().toISOString(),
       updatedAt: employee.updatedAt ?? new Date().toISOString(),
     }
+
+    if (employee.dismissedAt) {
+      persistedEmployee.dismissedAt = employee.dismissedAt
+      persistedEmployee.dismissedBy = employee.dismissedBy ?? null
+      persistedEmployee.dismissReason = employee.dismissReason ?? null
+    }
+
+    return persistedEmployee
   }
 }
