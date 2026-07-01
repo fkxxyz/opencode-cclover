@@ -28,6 +28,7 @@ describe("RoleManager", () => {
   async function setupPresetFixture(): Promise<void> {
     const realPresetDir = path.join(process.cwd(), "src/roles")
     const testPresetRoot = path.dirname(testPresetDir)
+    const promptPaths = new Set<string>()
 
     await fs.mkdir(testPresetDir, { recursive: true })
 
@@ -39,6 +40,18 @@ describe("RoleManager", () => {
           "utf-8"
         )
         await fs.writeFile(path.join(testPresetDir, file), content)
+
+        if (file.endsWith(".md")) {
+          const frontmatterMatch = content.match(
+            /^---\n([\s\S]*?)\n---\n([\s\S]*)$/
+          )
+          if (frontmatterMatch) {
+            const frontmatterData = yaml.parse(frontmatterMatch[1])
+            if (typeof frontmatterData?.prompt === "string") {
+              promptPaths.add(frontmatterData.prompt)
+            }
+          }
+        }
       }
     }
 
@@ -68,6 +81,24 @@ describe("RoleManager", () => {
 
         await fs.symlink(sourcePath, targetPath)
       }
+    }
+
+    for (const promptPath of promptPaths) {
+      const sourcePath = path.join(process.cwd(), promptPath)
+      const targetPath = path.join(testPresetRoot, promptPath)
+
+      await fs.mkdir(path.dirname(targetPath), { recursive: true })
+
+      try {
+        await fs.lstat(targetPath)
+        continue
+      } catch (error: any) {
+        if (error.code !== "ENOENT") {
+          throw error
+        }
+      }
+
+      await fs.symlink(sourcePath, targetPath)
     }
   }
 

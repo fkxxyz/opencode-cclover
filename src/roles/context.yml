@@ -162,6 +162,11 @@ contexts:
     documents:
       - "docs/specs/repository-structure-best-practices.md"
 
+  responsibility-document-placement:
+    description: "Use when choosing repository paths for versioned responsibility documents to place them by responsibility domain shape without coupling them to employee instances, because durable responsibility documents should move with code and remain maintainable through normal commits"
+    documents:
+      - "docs/specs/responsibility-document-placement.md"
+
   operation-handbook-specification:
     description: "Use when creating or updating operation handbooks to enforce closed-world input/output boundaries and consistent acceptance criteria, because handbook quality determines whether roles can avoid out-of-scope reads/writes and produce reviewable outputs"
     documents:

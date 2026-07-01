@@ -50,15 +50,31 @@ Employee organization relationships are discovered from employee metadata and ma
 
 Before hiring an employee, the hiring employee must provide useful long-lived context through `context_paths`.
 
-If mature documentation already defines the responsibility domain, use it. Otherwise, write an initial handbook before hiring. The new employee may improve its own domain handbook through later work sessions, but it should not start as an empty long-lived identity.
+For recursive responsibility owners over broad or unassessed domains, useful context means clear boundary and takeover authority, not speculative internal decomposition.
 
-A handbook is simultaneously:
+If mature documentation already defines the responsibility domain, use it. Otherwise, write a Supervisor Contract before hiring. The new employee may create or improve its own Domain Handbook through later work sessions, but initial responsibility assignment must not be disguised as domain memory.
 
-- a position description;
-- a responsibility contract;
-- a compressed domain knowledge base.
+Supervisor Contract, Domain Handbook, and role prompt are different context layers.
 
-The purpose is to let future work sessions begin from curated domain context instead of broad repository exploration.
+### Context Ownership Is Mandatory
+
+Every `context_paths` entry must have the correct owner and document identity.
+
+Do not pass a parent employee's Supervisor Contract or Domain Handbook as a subordinate employee's contract or handbook. A Supervisor Contract defines one employee's assigned boundary; a Domain Handbook is one employee's accumulated memory. Copying either document to another employee creates overlapping responsibility and polluted memory.
+
+When hiring a subordinate:
+
+- create or identify a subordinate-specific Supervisor Contract;
+- include a Domain Handbook only when it belongs to that subordinate domain and contains established memory;
+- pass parent or sibling documents only as read-only source references when the task genuinely needs them.
+
+The role prompt defines generic behavior for the occupation.
+
+The Supervisor Contract is written by the assigning authority. It defines the employee's assigned responsibility boundary, explicit exclusions, domain-specific operating constraints, and authority limits. It is a delta over the role prompt, not a replacement or summary of it.
+
+The Domain Handbook is maintained by the employee. It records accumulated project-specific knowledge discovered or confirmed after taking responsibility for the domain.
+
+Do not use a Domain Handbook to restate the role prompt or to assign responsibility boundaries. Do not use a Supervisor Contract to restate generic role behavior or pre-fill speculative domain knowledge.
 
 ## Handbook Document Types
 
@@ -70,19 +86,19 @@ Supervisor contract documents define the employee's responsibility boundary and 
 
 Owner: the position designer or organizational owner responsible for maintaining the contract.
 
-Contents should include:
+Contents may include, when specific to the assigned domain:
 
 - owned domain and non-owned domain;
-- delivery standards;
-- reporting expectations;
-- management or delegation boundaries;
+- domain-specific delivery constraints;
+- upstream reporting requirements not already implied by the role prompt;
+- management or delegation boundaries specific to this assignment;
 - forbidden actions or forbidden areas.
 
 Supervisor contracts describe relative authority relationships. They must not hard-code a specific supervisor employee name. The same employee may be used by different parent work sessions. Express relationships as caller, parent work session, delegating employee, authorized manager, or equivalent relative terms.
 
 ### Domain Handbook
 
-Domain handbooks capture the employee's accumulated domain knowledge.
+Domain handbooks capture the employee's accumulated domain knowledge. They are not supervisor contracts and should not assign responsibility boundaries.
 
 Owner: the employee responsible for the domain.
 
@@ -145,8 +161,13 @@ Before creating employee metadata, the hiring employee should ensure:
 - the employee is not created for a responsibility narrower than one file;
 - the role matches the intended kind of work;
 - `description` explains what the employee is good for so other employees can select it correctly;
-- `context_paths` includes a supervisor contract or equivalent responsibility-boundary document, such as an existing module maintenance guide, project governance document, or role-specific operating standard;
-- `context_paths` includes either a domain handbook or mature existing documentation for the employee's responsibility domain;
+- `context_paths` includes this employee's own supervisor contract or equivalent responsibility-boundary document, such as an existing module maintenance guide or project governance document;
+- supervisor contracts contain only assignment-specific boundaries and constraints, not generic role behavior;
+- no parent, sibling, or unrelated employee Supervisor Contract is included as this employee's contract;
+- `context_paths` may include an existing domain handbook only when it contains established domain memory rather than initial assignment text;
+- no parent, sibling, or unrelated employee Domain Handbook is included as this employee's handbook;
+- each `context_paths` entry has an intended identity: contract, handbook, or source reference;
+- if no established domain memory exists, do not fabricate a domain handbook for completeness;
 - contract documents avoid fixed supervisor names;
 - source references are owned by the appropriate domain owners;
 - task-specific details are left for work-session creation.

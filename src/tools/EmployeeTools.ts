@@ -7,7 +7,12 @@ import type { MemoryManager } from "../core/MemoryManager"
 import type { RoleManager } from "../core/RoleManager"
 import type { ProjectInstance } from "../server/ProjectRegistry"
 import type { StateManager } from "../state/StateManager"
-import type { BossId, Employee, EmployeeId, EmployeeWorkSessionId } from "../types"
+import type {
+  BossId,
+  Employee,
+  EmployeeId,
+  EmployeeWorkSessionId,
+} from "../types"
 import { resolveToolActor } from "../meeting-mode"
 
 function getActorId(actor: ReturnType<typeof resolveToolActor>): string | null {

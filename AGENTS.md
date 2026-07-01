@@ -205,6 +205,7 @@ Detailed component designs (read when implementing or modifying specific compone
 - [docs/specs/ai-specification-review-guide.md](docs/specs/ai-specification-review-guide.md) - How to review specifications
 - [docs/specs/prompt-best-practices.md](docs/specs/prompt-best-practices.md) - Prompt best practices
 - [docs/specs/context-description-writing-guide.md](docs/specs/context-description-writing-guide.md) - Context description writing
+- [docs/specs/responsibility-document-placement.md](docs/specs/responsibility-document-placement.md) - Read when choosing repository paths for versioned responsibility documents such as contracts and handbooks. Defines placement rules by domain shape without redefining document semantics or role-specific obligations.
 
 ### Console Documentation
 

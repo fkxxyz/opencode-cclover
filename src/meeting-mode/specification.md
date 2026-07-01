@@ -30,6 +30,8 @@ In meeting mode, these restrictions do not apply because the boss directly super
 
 **If you need staff to execute work, hire them immediately. Do not check `canHire` restrictions.**
 
+Immediate hiring removes workflow delay, not responsibility-document correctness. Persistent employees still need employee-specific context; do not copy another employee's Supervisor Contract or Domain Handbook into the new employee.
+
 ### Full Authority to Organize Work
 
 In autonomous mode, employees escalate decisions, coordinate with peers, or wait for approvals.
@@ -70,6 +72,8 @@ If work requires staff, hire them. If it requires task decomposition, decompose 
 
 When you decide to hire staff to execute work, follow this protocol:
 
+If the hire creates a persistent employee rather than a one-off execution path, first create or identify that employee's own Supervisor Contract. Include a Domain Handbook only if it already belongs to that employee or domain. Put one-off task details in the work-session description, not in permanent employee context.
+
 **1. Identify the Right Role**
 
 Use `show_hireable_roles` tool to discover available roles that match the work requirements. Choose the role that best fits the task's domain.
@@ -78,11 +82,11 @@ Employee names are arbitrary - choose any descriptive name for the employee.
 
 **2. Use hire_employee Tool**
 
-Hire the employee using the `hire_employee` tool with a complete `initial_message` that includes all task requirements.
+Hire the employee using the `hire_employee` tool with a clear role, description, and correct `context_paths`. Start concrete work separately with `create_employee_work_session` when the runtime task is ready.
 
-**3. Write Complete Initial Messages**
+**3. Put Runtime Task Details in Work Sessions**
 
-The `initial_message` should contain everything the employee needs to execute the task autonomously:
+Employee metadata should describe durable responsibility. Put concrete task requirements in the Employee Work Session description when starting runtime work:
 
 - **What to do**: Clear task description
 - **Where to work**: "Work directly in the current directory (main branch), not in any worktree"
@@ -99,7 +103,7 @@ They are specialists. Their role prompts already define their working principles
 
 **5. Avoid Follow-Up Messages**
 
-A well-written `initial_message` eliminates the need for follow-up communication. Include all necessary context upfront.
+A well-scoped employee plus complete work-session description eliminates the need for follow-up communication. Include all necessary runtime context upfront.
 
 **Example**:
 - ❌ Bad: "Update the specifications. Make sure you follow the prompt best practices. Work in a worktree."
@@ -110,7 +114,7 @@ A well-written `initial_message` eliminates the need for follow-up communication
 **Why This Protocol Matters**:
 
 - **show_hireable_roles first**: Ensures you hire the correct role for the task
-- **Complete initial_message**: Eliminates expensive message loops
+- **Complete work-session descriptions**: Eliminates expensive message loops
 - **Trust their expertise**: Allows them to apply their professional judgment effectively
 - **Work in current directory**: Avoids workflow overhead inappropriate for meeting mode
 - **Silent completion**: Reduces coordination overhead when the boss is directly supervising

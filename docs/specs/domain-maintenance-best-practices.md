@@ -6,6 +6,14 @@ This specification defines how long-lived employees maintain responsibility doma
 
 Domain maintenance is part of task delivery. Hiring, handbook updates, work-session creation, and result integration are organizational tools for completing the assigned task with stable knowledge and accountable delegation.
 
+## Document Type Boundary
+
+A Domain Handbook is employee-maintained domain memory.
+
+It is not the Supervisor Contract. It does not assign responsibility boundaries, define role behavior, or record generic operating rules. Generic role behavior belongs to the role prompt; assigned responsibility boundaries belong to the Supervisor Contract.
+
+Only established project-specific knowledge should enter a Domain Handbook. Do not add speculative child structures, guessed routing, or generic role guidance for completeness.
+
 ## Domain Handbook as Employee Memory
 
 The Domain Handbook is the employee-maintained context document for its responsibility domain. It is the employee's long-lived memory of the domain and must be updated whenever a work session discovers reusable structure, routing knowledge, risks, validation paths, or obsolete guidance.
@@ -40,9 +48,13 @@ The parent must reference the global files it owns from its Domain Handbook so f
 
 ## Domain Handbook Content Standard
 
-A Domain Handbook must be detailed enough that a future work session can decompose ordinary multi-file tasks without reading subordinate-owned business files.
+A mature Domain Handbook should be detailed enough that a future work session can decompose ordinary multi-file tasks without reading subordinate-owned business files.
 
-Include the information needed for routing and global control:
+This standard applies after responsibility structure exists. A newly assigned or unassessed domain may have no Domain Handbook yet. If a placeholder is needed, it should state that no established domain memory exists and avoid speculative routing, guessed child domains, assignment boundaries, or generic role guidance.
+
+A bootstrap Domain Handbook should not contain assignment boundaries; those belong in the Supervisor Contract. It may contain only established prior domain memory. If none exists, keep it empty or state that no stable domain memory has been recorded.
+
+When the handbook is mature and the information is established, include the information needed for routing and global control:
 
 - immediate child directories and what each child domain owns;
 - important parent-owned files and why they represent global domain knowledge;
@@ -82,7 +94,7 @@ The parent employee is responsible for global control:
 
 - decompose the task into child-domain work packages;
 - hire or reuse subordinate employees for immediate child domains;
-- assign each subordinate the correct context paths, including supervisor contract, Domain Handbook, and source references in the correct order;
+- assign each subordinate the correct context paths, including that subordinate's own supervisor contract, its own established Domain Handbook if one exists, and read-only source references in the correct order;
 - create and monitor child Employee Work Sessions;
 - integrate child results;
 - report completion, blockers, and unresolved risks upstream.
