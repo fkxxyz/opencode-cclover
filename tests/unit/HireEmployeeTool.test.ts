@@ -699,6 +699,35 @@ You are a project manager.`
       expect(result).toContain("Error: Employee name 'alice' already exists")
     })
 
+    test("allows reusing dismissed employee name", async () => {
+      await stateManager.dismissEmployee(
+        "emp_alice" as any,
+        "boss_boss" as any,
+        "Replace with a new employee"
+      )
+      const context = {
+        sessionID: "test-session-boss",
+        agent: "boss",
+      }
+
+      const result = await hireEmployeeTool.execute(
+        {
+          name: "alice",
+          role_id: "tester",
+          description: "Replacement employee metadata",
+        },
+        context
+      )
+
+      expect(result).toContain("Successfully created employee metadata 'emp_")
+      expect(result).toContain("(name: alice)")
+      const activeAliceEmployees = stateManager
+        .getEmployees()
+        .filter((employee) => employee.name === "alice" && !employee.dismissedAt)
+      expect(activeAliceEmployees).toHaveLength(1)
+      expect(activeAliceEmployees[0].roleId).toBe("tester")
+    })
+
     test("rejects when caller cannot be identified", async () => {
       const context = {
         sessionID: "test-session-unknown",

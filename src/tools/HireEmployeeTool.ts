@@ -67,7 +67,9 @@ export function createHireEmployeeTool(
         return "Error: Employee description cannot be empty or whitespace"
       }
       if (
-        stateManager.getEmployees().some((employee) => employee.name === name)
+        stateManager
+          .getEmployees()
+          .some((employee) => !employee.dismissedAt && employee.name === name)
       ) {
         return `Error: Employee name '${name}' already exists`
       }

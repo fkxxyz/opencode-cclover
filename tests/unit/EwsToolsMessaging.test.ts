@@ -262,6 +262,107 @@ describe("Task 004 EWS tools and messaging surface", () => {
     }
   })
 
+  it("update_employee rejects renaming to an active employee name", async () => {
+    const caller = await ewsManager.createEmployeeWorkSession({
+      employeeId: "emp_manager",
+      description: "Manage work",
+      args: { worktree_path: ".worktrees/ews-taskplan" },
+      createdBy: "boss_alice",
+    })
+    sessionRegistry.register("session-manager", caller.employeeWorkSessionId)
+    const project = {
+      directory: projectPath,
+      stateManager,
+      roleManager,
+      memoryManager,
+      messageService,
+      employeeWorkSessionManager: ewsManager,
+      eventLoops: new Map(),
+      modelConfigManager: {} as any,
+      opcodeClient: {} as any,
+    } as unknown as ProjectInstance
+    const tools = createTools({
+      messageService,
+      memoryManager,
+      opcodeClient: {} as any,
+      stateManager,
+      project,
+    })
+
+    const result = await tools.update_employee.execute(
+      {
+        employee_id: "emp_worker",
+        fields: {
+          name: "manager-one",
+        },
+      },
+      { sessionID: "session-manager" } as any
+    )
+
+    expect(result).toContain("Error: Employee name 'manager-one' already exists")
+    expect(stateManager.getEmployee("emp_worker" as any)?.name).toBe(
+      "worker-one"
+    )
+  })
+
+  it("update_employee allows renaming to a dismissed employee name", async () => {
+    await stateManager.dismissEmployee(
+      "emp_worker" as any,
+      "boss_alice" as any,
+      "Reserve name no longer needed"
+    )
+    await stateManager.registerEmployee({
+      employeeId: "emp_replacement",
+      name: "replacement-one",
+      roleId: "worker",
+      description: "Replacement worker",
+      contextPaths: [],
+      hiredBy: "boss_alice",
+      createdAt: "2026-06-22T00:00:00.000Z",
+      updatedAt: "2026-06-22T00:00:00.000Z",
+    })
+    const caller = await ewsManager.createEmployeeWorkSession({
+      employeeId: "emp_manager",
+      description: "Manage work",
+      args: { worktree_path: ".worktrees/ews-taskplan" },
+      createdBy: "boss_alice",
+    })
+    sessionRegistry.register("session-manager", caller.employeeWorkSessionId)
+    const project = {
+      directory: projectPath,
+      stateManager,
+      roleManager,
+      memoryManager,
+      messageService,
+      employeeWorkSessionManager: ewsManager,
+      eventLoops: new Map(),
+      modelConfigManager: {} as any,
+      opcodeClient: {} as any,
+    } as unknown as ProjectInstance
+    const tools = createTools({
+      messageService,
+      memoryManager,
+      opcodeClient: {} as any,
+      stateManager,
+      project,
+    })
+
+    const result = await tools.update_employee.execute(
+      {
+        employee_id: "emp_replacement",
+        fields: {
+          name: "worker-one",
+        },
+      },
+      { sessionID: "session-manager" } as any
+    )
+
+    expect(JSON.parse(result).name).toBe("worker-one")
+    expect(stateManager.getEmployee("emp_replacement" as any)?.name).toBe(
+      "worker-one"
+    )
+  })
+
   it("create_employee_work_session starts runtime and sends initial description", async () => {
     const originalRun = EventLoop.prototype.run
     const originalStop = EventLoop.prototype.stop

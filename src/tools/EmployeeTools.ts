@@ -194,8 +194,24 @@ export function createUpdateEmployeeTool(
       if (!employee) {
         return `Error: Employee '${employeeId}' does not exist`
       }
+      const name = args.fields.name?.trim() ?? employee.name
+      if (name.length === 0) {
+        return "Error: Employee name cannot be empty or whitespace"
+      }
+      if (
+        stateManager
+          .getEmployees()
+          .some(
+            (existingEmployee) =>
+              existingEmployee.employeeId !== employeeId &&
+              !existingEmployee.dismissedAt &&
+              existingEmployee.name === name
+          )
+      ) {
+        return `Error: Employee name '${name}' already exists`
+      }
       const updated = await stateManager.updateEmployee(employeeId, {
-        name: args.fields.name ?? employee.name,
+        name,
         description: args.fields.description ?? employee.description,
         contextPaths: args.fields.context_paths ?? employee.contextPaths,
       })
